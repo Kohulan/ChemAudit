@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChemStructVal - Chemical Structure Validation</title>
+
+    <!-- RDKit.js WASM Module -->
+    <script>
+      window.initRDKitModule = async () => {
+        try {
+          const RDKit = await import('@rdkit/rdkit');
+          window.RDKit = await RDKit.initRDKitModule();
+          window.dispatchEvent(new Event('rdkit-loaded'));
+        } catch (error) {
+          console.error('Failed to load RDKit.js:', error);
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
