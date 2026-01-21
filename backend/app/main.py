@@ -11,7 +11,7 @@ from app.core.exceptions import (
     chemstructval_exception_handler,
     generic_exception_handler,
 )
-from app.api.routes import health
+from app.api.routes import health, validation
 
 
 @asynccontextmanager
@@ -50,6 +50,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+app.include_router(validation.router, prefix="/api/v1", tags=["validation"])
 
 
 @app.get("/")
