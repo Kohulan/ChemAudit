@@ -15,6 +15,8 @@ from app.schemas.common import Severity
 
 # Import checks to trigger registration
 import app.services.validation.checks.basic  # noqa: F401
+import app.services.validation.checks.stereo  # noqa: F401
+import app.services.validation.checks.representation  # noqa: F401
 
 
 class ValidationEngine:
