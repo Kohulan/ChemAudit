@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chemstructval-postgres
+    environment:
+      POSTGRES_USER: chemstructval
+      POSTGRES_PASSWORD: chemstructval
+      POSTGRES_DB: chemstructval
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chemstructval"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chemstructval-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chemstructval-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://chemstructval:chemstructval@postgres:5432/chemstructval
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: chemstructval-frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
