@@ -3,6 +3,7 @@ Configuration management for ChemStructVal backend.
 
 Uses pydantic-settings for environment variable management.
 """
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -28,10 +29,10 @@ class Settings(BaseSettings):
     MAX_MOLECULE_LENGTH: int = 10000
     MAX_BATCH_SIZE: int = 10000
 
-    class Config:
-        """Pydantic settings configuration."""
-        env_file = ".env"
-        extra = "ignore"
+    model_config = ConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
 
 settings = Settings()
