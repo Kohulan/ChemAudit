@@ -3,9 +3,11 @@ import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ValidationResults } from '../components/validation/ValidationResults';
 import { AlertResults } from '../components/alerts/AlertResults';
+import { ScoringResults } from '../components/scoring/ScoringResults';
 import { useValidation } from '../hooks/useValidation';
-import { alertsApi } from '../services/api';
+import { alertsApi, scoringApi } from '../services/api';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
+import type { ScoringResponse, ScoringError } from '../types/scoring';
 
 const EXAMPLE_MOLECULES = [
   {
@@ -25,8 +27,8 @@ const EXAMPLE_MOLECULES = [
     smiles: 'O=C1NC(=S)SC1',
   },
   {
-    name: 'Quinone (PAINS)',
-    smiles: 'O=C1C=CC(=O)C=C1',
+    name: 'Morphine',
+    smiles: 'CN1CCC23C4=C5C=CC(O)=C4OC2C(O)C=CC3C1C5',
   },
 ];
 
@@ -40,6 +42,11 @@ export function SingleValidationPage() {
   const [alertError, setAlertError] = useState<AlertError | null>(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(['PAINS', 'BRENK']);
+
+  // Scoring state
+  const [scoringResult, setScoringResult] = useState<ScoringResponse | null>(null);
+  const [scoringError, setScoringError] = useState<ScoringError | null>(null);
+  const [scoringLoading, setScoringLoading] = useState(false);
 
   const handleValidate = async () => {
     if (!molecule.trim()) return;
@@ -71,11 +78,30 @@ export function SingleValidationPage() {
     }
   };
 
+  const handleCalculateScores = async () => {
+    if (!molecule.trim()) return;
+
+    setScoringLoading(true);
+    setScoringError(null);
+
+    try {
+      const response = await scoringApi.getScoring(molecule.trim(), 'auto');
+      setScoringResult(response);
+    } catch (err) {
+      setScoringError(err as ScoringError);
+      setScoringResult(null);
+    } finally {
+      setScoringLoading(false);
+    }
+  };
+
   const handleExampleClick = (smiles: string) => {
     setMolecule(smiles);
     reset();
     setAlertResult(null);
     setAlertError(null);
+    setScoringResult(null);
+    setScoringError(null);
     setHighlightedAtoms([]);
   };
 
@@ -84,6 +110,8 @@ export function SingleValidationPage() {
     reset();
     setAlertResult(null);
     setAlertError(null);
+    setScoringResult(null);
+    setScoringError(null);
     setHighlightedAtoms([]);
   };
 
@@ -94,6 +122,8 @@ export function SingleValidationPage() {
         : [...prev, catalog]
     );
   };
+
+  const isAnyLoading = isLoading || alertsLoading || scoringLoading;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -131,17 +161,32 @@ export function SingleValidationPage() {
             <div className="mt-4 flex gap-2">
               <button
                 onClick={handleValidate}
-                disabled={!molecule.trim() || isLoading}
+                disabled={!molecule.trim() || isAnyLoading}
                 className="flex-1 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
               >
                 {isLoading ? 'Validating...' : 'Validate'}
               </button>
               <button
                 onClick={handleReset}
-                disabled={!molecule && !result && !error && !alertResult}
+                disabled={!molecule && !result && !error && !alertResult && !scoringResult}
                 className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 font-medium rounded-lg transition-colors"
               >
                 Reset
+              </button>
+            </div>
+
+            {/* Scoring Section */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <h4 className="font-medium text-gray-700 mb-2">ML-Readiness Scoring</h4>
+              <p className="text-xs text-gray-500 mb-3">
+                Calculate ML-readiness, NP-likeness, and extract Murcko scaffold
+              </p>
+              <button
+                onClick={handleCalculateScores}
+                disabled={!molecule.trim() || isAnyLoading}
+                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+              >
+                {scoringLoading ? 'Calculating...' : 'Calculate Scores'}
               </button>
             </div>
 
@@ -170,7 +215,7 @@ export function SingleValidationPage() {
               </div>
               <button
                 onClick={handleScreenAlerts}
-                disabled={!molecule.trim() || alertsLoading || selectedCatalogs.length === 0}
+                disabled={!molecule.trim() || isAnyLoading || selectedCatalogs.length === 0}
                 className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
               >
                 {alertsLoading ? 'Screening...' : 'Screen for Alerts'}
@@ -184,7 +229,7 @@ export function SingleValidationPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Structure Preview</h3>
             <MoleculeViewer
-              smiles={result?.molecule_info.canonical_smiles || alertResult?.molecule_info.canonical_smiles || molecule}
+              smiles={result?.molecule_info.canonical_smiles || alertResult?.molecule_info.canonical_smiles || scoringResult?.molecule_info.canonical_smiles || molecule}
               highlightAtoms={highlightedAtoms}
               width={400}
               height={300}
@@ -200,32 +245,34 @@ export function SingleValidationPage() {
       </div>
 
       {/* Loading State */}
-      {(isLoading || alertsLoading) && (
+      {isAnyLoading && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-blue-700 font-medium">
-            {isLoading ? 'Running validation checks...' : 'Screening for structural alerts...'}
+            {isLoading ? 'Running validation checks...' :
+             scoringLoading ? 'Calculating scores...' :
+             'Screening for structural alerts...'}
           </p>
         </div>
       )}
 
       {/* Error State */}
-      {(error || alertError) && !isLoading && !alertsLoading && (
+      {(error || alertError || scoringError) && !isAnyLoading && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-start gap-3">
             <span className="text-2xl">!</span>
             <div className="flex-1">
               <h3 className="font-semibold text-red-900 mb-2">
-                {(error?.error || alertError?.error)?.includes('parse') ? 'Parse Error' : 'Error'}
+                {(error?.error || alertError?.error || scoringError?.error)?.includes('parse') ? 'Parse Error' : 'Error'}
               </h3>
-              <p className="text-red-700 text-sm">{error?.error || alertError?.error}</p>
-              {(error?.details || alertError?.details) && (
+              <p className="text-red-700 text-sm">{error?.error || alertError?.error || scoringError?.error}</p>
+              {(error?.details || alertError?.details || scoringError?.details) && (
                 <div className="mt-3 text-xs text-red-600">
-                  {(error?.details?.errors || alertError?.details?.errors) && (
+                  {(error?.details?.errors || alertError?.details?.errors || scoringError?.details?.errors) && (
                     <div>
                       <strong>Errors:</strong>
                       <ul className="list-disc list-inside mt-1">
-                        {(error?.details?.errors || alertError?.details?.errors)?.map((err, i) => (
+                        {(error?.details?.errors || alertError?.details?.errors || scoringError?.details?.errors)?.map((err, i) => (
                           <li key={i}>{err}</li>
                         ))}
                       </ul>
@@ -244,6 +291,13 @@ export function SingleValidationPage() {
           result={result}
           onHighlightAtoms={setHighlightedAtoms}
         />
+      )}
+
+      {/* Scoring Results */}
+      {scoringResult && !scoringLoading && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <ScoringResults scoringResponse={scoringResult} />
+        </div>
       )}
 
       {/* Alert Results */}

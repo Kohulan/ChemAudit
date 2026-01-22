@@ -16,6 +16,12 @@ import type {
   ScoringResponse,
   ScoringError
 } from '../types/scoring';
+import type {
+  StandardizeRequest,
+  StandardizeResponse,
+  StandardizeError,
+  StandardizeOptionsResponse
+} from '../types/standardization';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -121,6 +127,33 @@ export const scoringApi = {
   }
 };
 
+export const standardizationApi = {
+  /**
+   * Standardize a molecule using ChEMBL-compatible pipeline.
+   */
+  standardize: async (request: StandardizeRequest): Promise<StandardizeResponse> => {
+    try {
+      const response = await api.post<StandardizeResponse>('/standardize', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<StandardizeError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Get available standardization options and pipeline steps.
+   */
+  getOptions: async (): Promise<StandardizeOptionsResponse> => {
+    const response = await api.get<StandardizeOptionsResponse>('/standardize/options');
+    return response.data;
+  }
+};
+
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError };
+export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
