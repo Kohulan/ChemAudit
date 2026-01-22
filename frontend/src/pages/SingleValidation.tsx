@@ -135,7 +135,9 @@ export function SingleValidationPage() {
           <div className="flex items-start gap-3">
             <span className="text-2xl">⚠️</span>
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900 mb-2">Validation Error</h3>
+              <h3 className="font-semibold text-red-900 mb-2">
+                {error.error?.includes('parse') ? 'Parse Error' : 'Validation Error'}
+              </h3>
               <p className="text-red-700 text-sm">{error.error}</p>
               {error.details && (
                 <div className="mt-3 text-xs text-red-600">

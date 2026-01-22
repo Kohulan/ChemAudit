@@ -67,7 +67,9 @@ export function useMolecule(
           if (highlightAtoms.length > 0) {
             const highlightDetails = JSON.stringify({
               atoms: highlightAtoms,
-              highlightColour: [1, 0.5, 0.5]  // Red-ish highlight
+              highlightColour: [1, 0.5, 0.5],  // Red-ish highlight
+              width,
+              height
             });
             svgContent = mol.get_svg_with_highlights(highlightDetails);
           } else {
