@@ -10,7 +10,7 @@ export function Header() {
         </div>
         <nav className="flex items-center space-x-6">
           <a href="/" className="text-gray-600 hover:text-gray-900">Validate</a>
-          <a href="/docs" className="text-gray-600 hover:text-gray-900">API Docs</a>
+          <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900">API Docs</a>
         </nav>
       </div>
     </header>
