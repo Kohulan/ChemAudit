@@ -22,6 +22,13 @@ import type {
   StandardizeError,
   StandardizeOptionsResponse
 } from '../types/standardization';
+import type {
+  BatchUploadResponse,
+  BatchResultsResponse,
+  BatchStatistics,
+  BatchResultsFilters,
+  CSVColumnsResponse
+} from '../types/batch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -153,7 +160,97 @@ export const standardizationApi = {
   }
 };
 
+export const batchApi = {
+  /**
+   * Upload a file for batch processing.
+   *
+   * @param file - SDF or CSV file to upload
+   * @param smilesColumn - Column name for SMILES (CSV only)
+   * @returns Job ID and initial status
+   */
+  uploadBatch: async (file: File, smilesColumn?: string): Promise<BatchUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (smilesColumn) {
+      formData.append('smiles_column', smilesColumn);
+    }
+
+    const response = await api.post<BatchUploadResponse>('/batch/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 1 minute timeout for file upload
+    });
+    return response.data;
+  },
+
+  /**
+   * Get batch job results with optional filtering and pagination.
+   */
+  getBatchResults: async (
+    jobId: string,
+    page: number = 1,
+    pageSize: number = 50,
+    filters?: BatchResultsFilters
+  ): Promise<BatchResultsResponse> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+
+    if (filters?.status_filter) {
+      params.append('status_filter', filters.status_filter);
+    }
+    if (filters?.min_score !== undefined) {
+      params.append('min_score', String(filters.min_score));
+    }
+    if (filters?.max_score !== undefined) {
+      params.append('max_score', String(filters.max_score));
+    }
+
+    const response = await api.get<BatchResultsResponse>(
+      `/batch/${jobId}?${params.toString()}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get statistics only for a batch job.
+   */
+  getBatchStats: async (jobId: string): Promise<BatchStatistics> => {
+    const response = await api.get<BatchStatistics>(`/batch/${jobId}/stats`);
+    return response.data;
+  },
+
+  /**
+   * Cancel a running batch job.
+   */
+  cancelBatch: async (jobId: string): Promise<void> => {
+    await api.delete(`/batch/${jobId}`);
+  },
+
+  /**
+   * Detect columns in a CSV file for SMILES selection.
+   */
+  detectColumns: async (file: File): Promise<CSVColumnsResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post<CSVColumnsResponse>(
+      '/batch/detect-columns',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+};
+
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError };
 export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
+export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
