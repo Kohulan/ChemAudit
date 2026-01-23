@@ -1,11 +1,12 @@
 """
 Validation API Routes
 
-Endpoints for single molecule validation.
+Endpoints for single molecule validation with Redis caching support.
 """
 from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, inchi as rdkit_inchi, rdMolDescriptors
+from redis.asyncio import Redis
 import time
 from typing import Optional
 
@@ -14,9 +15,26 @@ from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
 from app.services.validation.engine import validation_engine
 from app.core.rate_limit import limiter, get_rate_limit_key
 from app.core.security import get_api_key
+from app.core.config import settings
+from app.core.cache import (
+    validation_cache_key,
+    get_cached_validation,
+    set_cached_validation,
+)
 
 
 router = APIRouter()
+
+
+async def get_redis(request: Request) -> Optional[Redis]:
+    """
+    Get Redis client from app state.
+
+    Returns None if Redis is not available (caching will be skipped).
+    """
+    if hasattr(request.app.state, "redis") and request.app.state.redis:
+        return request.app.state.redis
+    return None
 
 
 @router.post("/validate", response_model=ValidationResponse)
@@ -28,6 +46,9 @@ async def validate_molecule(
 ):
     """
     Validate a single molecule.
+
+    Results are cached by InChIKey for 1 hour (configurable).
+    Repeated validation of the same molecule returns cached result.
 
     Rate limits:
     - Anonymous: 10 requests/minute
@@ -70,10 +91,26 @@ async def validate_molecule(
 
     mol = parse_result.mol
 
-    # Extract molecule info
+    # Extract molecule info (needed for InChIKey)
     mol_info = extract_molecule_info(mol, request.molecule)
 
-    # Run validation
+    # Check cache if enabled
+    redis = await get_redis(req)
+    cache_key = None
+    cached_from_redis = False
+
+    if settings.VALIDATION_CACHE_ENABLED and redis and mol_info.inchikey:
+        cache_key = validation_cache_key(mol_info.inchikey, request.checks)
+        cached = await get_cached_validation(redis, cache_key)
+
+        if cached:
+            # Return cached result with updated execution time
+            execution_time = int((time.time() - start_time) * 1000)
+            cached["execution_time_ms"] = execution_time
+            cached["cached"] = True
+            return ValidationResponse(**cached)
+
+    # Run validation (cache miss or caching disabled)
     results, score = validation_engine.validate(mol, request.checks)
 
     # Convert to schema
@@ -91,13 +128,23 @@ async def validate_molecule(
 
     execution_time = int((time.time() - start_time) * 1000)
 
-    return ValidationResponse(
+    response = ValidationResponse(
         molecule_info=mol_info,
         overall_score=score,
         issues=[c for c in check_results if not c.passed],
         all_checks=check_results,
         execution_time_ms=execution_time
     )
+
+    # Cache the result if enabled
+    if settings.VALIDATION_CACHE_ENABLED and redis and cache_key:
+        # Convert to dict for caching (exclude execution_time as it varies)
+        cache_data = response.model_dump()
+        cache_data.pop("execution_time_ms", None)
+        cache_data.pop("cached", None)
+        await set_cached_validation(redis, cache_key, cache_data)
+
+    return response
 
 
 @router.get("/checks")
