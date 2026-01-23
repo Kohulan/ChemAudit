@@ -46,6 +46,15 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
     Returns 429 Too Many Requests with Retry-After header.
     """
+    # Get rate limit info
+    rate_limit = "unknown"
+    if hasattr(request.state, 'view_rate_limit'):
+        limit_value = request.state.view_rate_limit
+        if isinstance(limit_value, tuple):
+            rate_limit = str(limit_value[0])
+        else:
+            rate_limit = str(limit_value)
+
     return JSONResponse(
         status_code=429,
         content={
@@ -55,10 +64,6 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         },
         headers={
             "Retry-After": str(getattr(exc, 'retry_after', 60)),
-            "X-RateLimit-Limit": (
-                request.state.view_rate_limit
-                if hasattr(request.state, 'view_rate_limit')
-                else "unknown"
-            ),
+            "X-RateLimit-Limit": rate_limit,
         }
     )

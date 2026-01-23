@@ -62,8 +62,23 @@ class CSVExporter(BaseExporter):
             }
             rows.append(row)
 
-        # Create DataFrame
-        df = pd.DataFrame(rows)
+        # Define columns
+        columns = [
+            "index",
+            "name",
+            "input_smiles",
+            "canonical_smiles",
+            "inchikey",
+            "overall_score",
+            "ml_readiness_score",
+            "np_likeness_score",
+            "alerts_count",
+            "issues_summary",
+            "standardized_smiles",
+        ]
+
+        # Create DataFrame with explicit columns
+        df = pd.DataFrame(rows, columns=columns)
 
         # Export to CSV in StringIO
         string_buffer = StringIO()
