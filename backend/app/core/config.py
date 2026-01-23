@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     MAX_MOLECULE_LENGTH: int = 10000
     MAX_BATCH_SIZE: int = 10000
 
+    # External API endpoints
+    DECIMER_API_URL: str = "https://decimer.ai/api"
+    COCONUT_API_URL: str = "https://coconut.naturalproducts.net/api"
+    PUBCHEM_API_URL: str = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+    CHEMBL_API_URL: str = "https://www.ebi.ac.uk/chembl/api/data"
+    EXTERNAL_API_TIMEOUT: int = 30  # seconds
+
     model_config = ConfigDict(
         env_file=".env",
         extra="ignore",
