@@ -53,3 +53,4 @@ class ValidationResponse(BaseModel):
     issues: List[CheckResultSchema] = Field(default_factory=list, description="Failed checks")
     all_checks: List[CheckResultSchema] = Field(default_factory=list, description="All check results")
     execution_time_ms: int = Field(description="Execution time in milliseconds")
+    cached: bool = Field(default=False, description="Whether result was served from cache")
