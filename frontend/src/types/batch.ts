@@ -120,3 +120,8 @@ export interface BatchResultsFilters {
  * Batch validation page state
  */
 export type BatchPageState = 'upload' | 'processing' | 'results';
+
+/**
+ * Export format options (matches backend ExportFormat enum)
+ */
+export type ExportFormat = 'csv' | 'excel' | 'sdf' | 'json' | 'pdf';

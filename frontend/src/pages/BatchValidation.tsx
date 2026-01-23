@@ -224,10 +224,10 @@ export function BatchValidationPage() {
           </div>
 
           {/* Summary */}
-          {resultsData.statistics && (
+          {resultsData.statistics && jobId && (
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-              <BatchSummary statistics={resultsData.statistics} />
+              <BatchSummary jobId={jobId} statistics={resultsData.statistics} />
             </div>
           )}
 

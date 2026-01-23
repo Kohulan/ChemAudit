@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import type { BatchStatistics } from '../../types/batch';
+import { ExportDialog } from './ExportDialog';
 
 interface BatchSummaryProps {
+  jobId: string;
   statistics: BatchStatistics;
 }
 
 /**
  * Summary statistics display with cards and charts.
  */
-export function BatchSummary({ statistics }: BatchSummaryProps) {
+export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const formatTime = (seconds: number | null): string => {
     if (seconds === null) return '-';
     if (seconds < 60) return `${seconds.toFixed(1)}s`;
@@ -173,16 +177,35 @@ export function BatchSummary({ statistics }: BatchSummaryProps) {
         </div>
       )}
 
-      {/* Export placeholder */}
+      {/* Export button */}
       <div className="flex justify-end">
         <button
-          disabled
-          className="px-4 py-2 text-sm text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed"
-          title="Coming in Phase 3"
+          onClick={() => setIsExportDialogOpen(true)}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
         >
-          Export Results (Coming Soon)
+          <svg
+            className="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Export Results
         </button>
       </div>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        jobId={jobId}
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+      />
     </div>
   );
 }

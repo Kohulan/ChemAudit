@@ -38,7 +38,7 @@ async def export_batch_results(
     Export batch results to specified format.
 
     - **job_id**: Job identifier from upload response
-    - **format**: Export format (csv, excel, sdf, json)
+    - **format**: Export format (csv, excel, sdf, json, pdf)
     - **score_min**: Filter results by minimum score
     - **score_max**: Filter results by maximum score
     - **status**: Filter results by status
@@ -50,6 +50,7 @@ async def export_batch_results(
     - Excel: Formatted spreadsheet with conditional coloring and summary sheet
     - SDF: Structure-data file with properties attached to molecules
     - JSON: Full result objects with metadata
+    - PDF: Professional report with charts, statistics, and molecule images
     """
     # Check if job exists
     progress_info = progress_tracker.get_progress(job_id)
