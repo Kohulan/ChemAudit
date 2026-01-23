@@ -1,30 +1,313 @@
+/* Inter font import - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* Base styles */
+@layer base {
+  :root {
+    --chem-primary: #0d9488;
+    --chem-secondary: #0284c7;
+    --chem-accent: #7c3aed;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    font-weight: 400;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-gradient-chem-light bg-fixed;
+    @apply text-chem-dark;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  /* Typography enhancements */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 { @apply text-3xl md:text-4xl; }
+  h2 { @apply text-2xl md:text-3xl; }
+  h3 { @apply text-xl md:text-2xl; }
+  h4 { @apply text-lg md:text-xl; }
+
+  /* Code blocks */
+  code, pre {
+    @apply font-mono;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-chem-primary/20;
+  }
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+/* Component styles */
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-white rounded-xl shadow-card border border-chem-dark/5;
+    @apply transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+
+  .card-chem {
+    @apply card;
+    @apply border-chem-primary/10;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-4 py-2.5 rounded-lg font-medium text-sm;
+    @apply transition-all duration-200;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn;
+    @apply bg-chem-primary text-white;
+    @apply hover:bg-chem-primary-700 active:bg-chem-primary-800;
+    @apply shadow-chem hover:shadow-chem-lg;
+  }
+
+  .btn-secondary {
+    @apply btn;
+    @apply bg-chem-secondary text-white;
+    @apply hover:bg-chem-secondary-700 active:bg-chem-secondary-800;
+  }
+
+  .btn-accent {
+    @apply btn;
+    @apply bg-chem-accent text-white;
+    @apply hover:bg-chem-accent-700 active:bg-chem-accent-800;
+  }
+
+  .btn-outline {
+    @apply btn;
+    @apply border-2 border-chem-primary text-chem-primary bg-transparent;
+    @apply hover:bg-chem-primary hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply btn;
+    @apply text-chem-dark/70 bg-transparent;
+    @apply hover:bg-chem-dark/5 hover:text-chem-dark;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-lg;
+    @apply border border-chem-dark/20 bg-white;
+    @apply text-chem-dark placeholder:text-chem-dark/40;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-chem-primary/30 focus:border-chem-primary;
+  }
+
+  .input-lg {
+    @apply input py-3 text-lg;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-status-success-light text-status-success-dark;
+  }
+
+  .badge-warning {
+    @apply badge bg-status-warning-light text-status-warning-dark;
+  }
+
+  .badge-error {
+    @apply badge bg-status-error-light text-status-error-dark;
+  }
+
+  .badge-info {
+    @apply badge bg-status-info-light text-status-info-dark;
+  }
+
+  .badge-chem {
+    @apply badge bg-chem-primary/10 text-chem-primary;
+  }
+
+  /* Score indicators */
+  .score-excellent {
+    @apply text-score-excellent bg-score-excellent/10;
+  }
+
+  .score-good {
+    @apply text-score-good bg-score-good/10;
+  }
+
+  .score-fair {
+    @apply text-score-fair bg-score-fair/10;
+  }
+
+  .score-poor {
+    @apply text-score-poor bg-score-poor/10;
+  }
+
+  /* Molecule preview container */
+  .molecule-preview {
+    @apply bg-white rounded-xl border border-chem-dark/10;
+    @apply p-4 flex items-center justify-center;
+    background-image: radial-gradient(circle at 1px 1px, rgba(13, 148, 136, 0.05) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  /* Section headers */
+  .section-header {
+    @apply flex items-center gap-3 mb-4;
+  }
+
+  .section-header-icon {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+    @apply bg-chem-primary/10 text-chem-primary;
+  }
+
+  .section-header-title {
+    @apply text-lg font-semibold text-chem-dark;
+  }
+
+  /* Alerts/Notices */
+  .alert {
+    @apply rounded-xl p-4 flex items-start gap-3;
+  }
+
+  .alert-success {
+    @apply alert bg-status-success-light border border-status-success/20;
+  }
+
+  .alert-warning {
+    @apply alert bg-status-warning-light border border-status-warning/20;
+  }
+
+  .alert-error {
+    @apply alert bg-status-error-light border border-status-error/20;
+  }
+
+  .alert-info {
+    @apply alert bg-status-info-light border border-status-info/20;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-4 border-chem-primary/20 border-t-chem-primary;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 rounded-full bg-chem-dark/10 overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full bg-chem-primary transition-all duration-500;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    @apply absolute z-50 px-3 py-2 text-sm;
+    @apply bg-chem-dark text-white rounded-lg shadow-lg;
+    @apply animate-fade-in;
+  }
+
+  /* Table styles */
+  .table-chem {
+    @apply w-full border-collapse;
+  }
+
+  .table-chem th {
+    @apply px-4 py-3 text-left text-sm font-semibold text-chem-dark;
+    @apply bg-chem-primary/5 border-b border-chem-dark/10;
+  }
+
+  .table-chem td {
+    @apply px-4 py-3 text-sm text-chem-dark/80;
+    @apply border-b border-chem-dark/5;
+  }
+
+  .table-chem tr:hover td {
+    @apply bg-chem-primary/5;
+  }
 }
 
-#root {
-  width: 100%;
+/* Utility styles */
+@layer utilities {
+  /* Gradient text */
+  .text-gradient-chem {
+    @apply bg-gradient-chem bg-clip-text text-transparent;
+  }
+
+  /* Focus visible */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chem-primary/50 focus-visible:ring-offset-2;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.chem-dark.300') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-chem-dark/20 rounded-full;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-chem-dark/30;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply backdrop-blur-md bg-white/80;
+  }
+
+  /* Subtle animation on load */
+  .animate-in {
+    @apply animate-slide-up;
+  }
 }
