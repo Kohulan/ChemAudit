@@ -4,6 +4,8 @@ ChemStructVal API - Chemical Structure Validation Suite
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import (
@@ -11,6 +13,7 @@ from app.core.exceptions import (
     chemstructval_exception_handler,
     generic_exception_handler,
 )
+from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.api.routes import alerts, batch, health, scoring, standardization, validation
 from app.websockets import manager
 
@@ -43,6 +46,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add rate limiter to app state
+app.state.limiter = limiter
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -52,7 +58,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add SlowAPI middleware for rate limiting
+app.add_middleware(SlowAPIMiddleware)
+
 # Register exception handlers
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_exception_handler(ChemStructValException, chemstructval_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 

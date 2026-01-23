@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+
     # Validation limits
     MAX_MOLECULE_LENGTH: int = 10000
     MAX_BATCH_SIZE: int = 10000
