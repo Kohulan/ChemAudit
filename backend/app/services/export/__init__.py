@@ -8,6 +8,7 @@ from .csv_exporter import CSVExporter
 from .excel_exporter import ExcelExporter
 from .sdf_exporter import SDFExporter
 from .json_exporter import JSONExporter
+from .pdf_report import PDFReportGenerator
 
 __all__ = [
     "BaseExporter",
@@ -17,4 +18,5 @@ __all__ = [
     "ExcelExporter",
     "SDFExporter",
     "JSONExporter",
+    "PDFReportGenerator",
 ]

@@ -16,6 +16,7 @@ class ExportFormat(str, Enum):
     EXCEL = "excel"
     SDF = "sdf"
     JSON = "json"
+    PDF = "pdf"
 
 
 class BaseExporter(ABC):

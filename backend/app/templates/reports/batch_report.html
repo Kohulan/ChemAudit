@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChemStructVal Batch Report - {{ job_id }}</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="report-header">
+    <h1 class="report-title">ChemStructVal Batch Validation Report</h1>
+    <p class="report-subtitle">Job ID: {{ job_id }} | Generated: {{ timestamp }}</p>
+</div>
+
+<!-- Summary Statistics -->
+<div class="summary-section">
+    <h2 class="section-title">Summary Statistics</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <p class="stat-value" style="color: #3b82f6;">{{ stats.total }}</p>
+            <p class="stat-label">Total Molecules</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value" style="color: #16a34a;">{{ stats.successful }}</p>
+            <p class="stat-label">Successful</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value" style="color: #dc2626;">{{ stats.errors }}</p>
+            <p class="stat-label">Errors</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value" style="color: #7c3aed;">
+                {% if stats.processing_time_seconds %}
+                    {{ "%.1f"|format(stats.processing_time_seconds) }}s
+                {% else %}
+                    -
+                {% endif %}
+            </p>
+            <p class="stat-label">Processing Time</p>
+        </div>
+    </div>
+
+    <!-- Score Averages -->
+    <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="stat-card">
+            <p class="stat-value {% if stats.avg_validation_score >= 80 %}score-excellent{% elif stats.avg_validation_score >= 50 %}score-moderate{% else %}score-poor{% endif %}">
+                {% if stats.avg_validation_score is not none %}
+                    {{ "%.1f"|format(stats.avg_validation_score) }}
+                {% else %}
+                    -
+                {% endif %}
+            </p>
+            <p class="stat-label">Avg Validation Score</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value {% if stats.avg_ml_readiness_score >= 80 %}score-excellent{% elif stats.avg_ml_readiness_score >= 50 %}score-moderate{% else %}score-poor{% endif %}">
+                {% if stats.avg_ml_readiness_score is not none %}
+                    {{ "%.1f"|format(stats.avg_ml_readiness_score) }}
+                {% else %}
+                    -
+                {% endif %}
+            </p>
+            <p class="stat-label">Avg ML-Readiness Score</p>
+        </div>
+    </div>
+</div>
+
+<!-- Score Distribution Chart -->
+{% if chart_data %}
+<div class="chart-container">
+    <h3 class="chart-title">Validation Score Distribution</h3>
+    <img src="data:image/svg+xml;base64,{{ chart_data }}" alt="Score Distribution Chart" class="chart-image">
+</div>
+{% endif %}
+
+<!-- Alert Summary -->
+{% if stats.alert_summary %}
+<div class="alert-box">
+    <h3 class="alert-title">Structural Alerts Summary</h3>
+    <p class="alert-content">
+        {% for catalog, count in stats.alert_summary.items() %}
+            <strong>{{ catalog }}:</strong> {{ count }} molecule(s){% if not loop.last %} | {% endif %}
+        {% endfor %}
+    </p>
+</div>
+{% endif %}
+
+<!-- Critical Issues Table -->
+{% if critical_issues %}
+<div>
+    <h2 class="section-title">Critical Issues (Top {{ critical_issues|length }})</h2>
+
+    <table class="results-table">
+        <thead>
+            <tr>
+                <th>Index</th>
+                <th>Molecule</th>
+                <th>Score</th>
+                <th>Issue</th>
+                <th>Severity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for issue in critical_issues %}
+            <tr>
+                <td>{{ issue.index }}</td>
+                <td style="font-family: monospace; font-size: 8pt;">{{ issue.smiles[:40] }}{% if issue.smiles|length > 40 %}...{% endif %}</td>
+                <td>
+                    <span class="{% if issue.score >= 80 %}score-excellent{% elif issue.score >= 50 %}score-moderate{% else %}score-poor{% endif %}">
+                        {{ issue.score }}
+                    </span>
+                </td>
+                <td>{{ issue.issue }}</td>
+                <td><strong>{{ issue.severity }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Flagged Molecules Gallery -->
+{% if flagged_molecules %}
+<div style="page-break-before: always;">
+    <h2 class="section-title">Flagged Molecules (Score &lt; 70)</h2>
+
+    <div class="molecule-gallery">
+        {% for mol in flagged_molecules %}
+        <div class="molecule-card">
+            {% if mol.image_data %}
+            <img src="data:image/png;base64,{{ mol.image_data }}" alt="Molecule {{ mol.index }}" class="molecule-image">
+            {% else %}
+            <p style="color: #dc2626; font-size: 9pt;">Structure rendering failed</p>
+            {% endif %}
+
+            <p class="molecule-info">Index: {{ mol.index }}</p>
+            {% if mol.name %}
+            <p class="molecule-info">{{ mol.name }}</p>
+            {% endif %}
+            <p class="molecule-score {% if mol.score >= 50 %}score-moderate{% else %}score-poor{% endif %}">
+                Score: {{ mol.score }}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Metadata Footer -->
+<div class="metadata">
+    <p>
+        Generated by ChemStructVal v0.1.0 |
+        Report Date: {{ timestamp }} |
+        Total Pages: <span id="page-count"></span>
+    </p>
+</div>
+
+</body>
+</html>
