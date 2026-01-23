@@ -14,7 +14,7 @@ from app.core.exceptions import (
     generic_exception_handler,
 )
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
-from app.api.routes import alerts, api_keys, batch, export, health, scoring, standardization, validation
+from app.api.routes import alerts, api_keys, batch, export, health, integrations, scoring, standardization, validation
 from app.websockets import manager
 
 
@@ -75,6 +75,7 @@ app.include_router(scoring.router, prefix="/api/v1", tags=["scoring"])
 app.include_router(batch.router, prefix="/api/v1", tags=["batch"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
+app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 
 
 @app.websocket("/ws/batch/{job_id}")
