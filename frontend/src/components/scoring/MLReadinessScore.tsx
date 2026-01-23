@@ -1,169 +1,157 @@
 import { useState } from 'react';
 import type { MLReadinessResult } from '../../types/scoring';
+import { ScoreChart, ScoreBreakdownBar } from './ScoreChart';
+import { InfoTooltip } from '../ui/Tooltip';
 
 interface MLReadinessScoreProps {
   result: MLReadinessResult;
 }
 
 /**
- * Displays ML-readiness score with breakdown and interpretation.
+ * Displays ML-readiness score with radial chart, breakdown bars, and informative tooltips.
  */
 export function MLReadinessScore({ result }: MLReadinessScoreProps) {
   const [showFailedDescriptors, setShowFailedDescriptors] = useState(false);
-  const [showCalculationInfo, setShowCalculationInfo] = useState(false);
   const { score, breakdown, interpretation, failed_descriptors } = result;
 
-  // Color based on score
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return { text: 'text-green-600', bg: 'bg-green-500' };
-    if (score >= 50) return { text: 'text-yellow-600', bg: 'bg-yellow-500' };
-    return { text: 'text-red-600', bg: 'bg-red-500' };
-  };
-
-  const scoreColor = getScoreColor(score);
-
-  // Calculate bar widths as percentages
-  const descriptorsWidth = (breakdown.descriptors_score / breakdown.descriptors_max) * 100;
-  const fingerprintsWidth = (breakdown.fingerprints_score / breakdown.fingerprints_max) * 100;
-  const sizeWidth = (breakdown.size_score / breakdown.size_max) * 100;
+  // Calculation explanation
+  const calculation = `Score = Descriptors (${breakdown.descriptors_max}pts) + Fingerprints (${breakdown.fingerprints_max}pts) + Size (${breakdown.size_max}pts)
+= ${breakdown.descriptors_score.toFixed(0)} + ${breakdown.fingerprints_score.toFixed(0)} + ${breakdown.size_score.toFixed(0)} = ${score}`;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">ML-Readiness Score</h3>
-        <div className={`text-3xl font-bold ${scoreColor.text}`}>
-          {score}<span className="text-lg font-normal text-gray-500">/100</span>
+    <div className="card-chem p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="section-header-icon">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-chem-dark">ML-Readiness Score</h3>
+            <p className="text-sm text-chem-dark/50">Suitability for machine learning models</p>
+          </div>
         </div>
+
+        {/* Main Score */}
+        <ScoreChart
+          score={score}
+          label="ML-Readiness"
+          size={120}
+          calculation={calculation}
+          interpretation={interpretation}
+          compact
+        />
       </div>
 
-      <p className="text-sm text-gray-600 mb-4">{interpretation}</p>
-
-      {/* How Calculated Info */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowCalculationInfo(!showCalculationInfo)}
-          className="flex items-center text-sm text-blue-600 hover:text-blue-800"
-        >
-          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          How is this calculated?
-        </button>
-        {showCalculationInfo && (
-          <div className="mt-2 p-4 bg-blue-50 rounded-lg text-sm text-gray-700 border border-blue-100">
-            <p className="font-medium text-gray-900 mb-2">ML-Readiness Score Formula:</p>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <span className="font-semibold">Descriptors (40 pts max):</span> Percentage of RDKit molecular descriptors that can be successfully calculated. Score = 40 × (successful / total descriptors).
-              </li>
-              <li>
-                <span className="font-semibold">Fingerprints (40 pts max):</span> Ability to generate common fingerprint types:
-                <ul className="ml-4 mt-1 text-gray-600">
-                  <li>• Morgan fingerprint (radius=2, 2048 bits): 15 pts</li>
-                  <li>• MACCS keys (166 bits): 15 pts</li>
-                  <li>• Atom pair fingerprint: 10 pts</li>
-                </ul>
-              </li>
-              <li>
-                <span className="font-semibold">Size Constraints (20 pts max):</span> Based on molecular weight and atom count:
-                <ul className="ml-4 mt-1 text-gray-600">
-                  <li>• Optimal (100-900 Da, 3-100 atoms): 20 pts</li>
-                  <li>• Acceptable (50-1200 Da, 1-150 atoms): 10 pts</li>
-                  <li>• Out of range: 0 pts</li>
-                </ul>
-              </li>
-            </ul>
-            <p className="mt-3 text-xs text-gray-500">
-              Higher scores indicate better suitability for machine learning models. Most drug-like molecules score 80+.
-            </p>
-          </div>
-        )}
+      {/* Interpretation */}
+      <div className="bg-chem-primary/5 rounded-xl p-4 mb-6">
+        <p className="text-sm text-chem-dark/80">{interpretation}</p>
       </div>
 
       {/* Score Breakdown */}
-      <div className="space-y-4">
+      <div className="space-y-5">
+        <h4 className="text-sm font-semibold text-chem-dark/70 uppercase tracking-wide flex items-center gap-2">
+          Score Breakdown
+          <InfoTooltip
+            title="How ML-Readiness is Calculated"
+            content={
+              <div className="space-y-2 text-xs">
+                <p>The ML-Readiness score measures how suitable a molecule is for machine learning models.</p>
+                <ul className="list-disc list-inside space-y-1 text-white/70">
+                  <li>Descriptors (40pts): % of RDKit descriptors calculable</li>
+                  <li>Fingerprints (40pts): Ability to generate Morgan, MACCS, AtomPair</li>
+                  <li>Size (20pts): Molecular weight and atom count constraints</li>
+                </ul>
+              </div>
+            }
+          />
+        </h4>
+
         {/* Descriptors */}
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-700">Descriptors</span>
-            <span className="text-gray-600">
-              {breakdown.descriptors_score.toFixed(0)}/{breakdown.descriptors_max}
-              <span className="text-gray-400 ml-1">
-                ({breakdown.descriptors_successful}/{breakdown.descriptors_total} calculated)
-              </span>
-            </span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${scoreColor.bg} transition-all duration-500`}
-              style={{ width: `${descriptorsWidth}%` }}
-            />
-          </div>
-        </div>
+        <ScoreBreakdownBar
+          label="Molecular Descriptors"
+          score={breakdown.descriptors_score}
+          maxScore={breakdown.descriptors_max}
+          detail={`${breakdown.descriptors_successful}/${breakdown.descriptors_total} calculated`}
+          calculation={`Score = ${breakdown.descriptors_max} x (successful / total descriptors)
+= ${breakdown.descriptors_max} x (${breakdown.descriptors_successful} / ${breakdown.descriptors_total})
+= ${breakdown.descriptors_score.toFixed(1)}`}
+          interpretation={breakdown.descriptors_score >= 35
+            ? 'Most molecular descriptors can be calculated successfully. This molecule is well-suited for descriptor-based ML models.'
+            : breakdown.descriptors_score >= 20
+            ? 'Some descriptors failed to calculate. This may limit compatibility with certain ML models.'
+            : 'Many descriptors cannot be calculated. Consider structural issues that may affect ML model performance.'}
+        />
 
         {/* Fingerprints */}
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-700">Fingerprints</span>
-            <span className="text-gray-600">
-              {breakdown.fingerprints_score.toFixed(0)}/{breakdown.fingerprints_max}
-              <span className="text-gray-400 ml-1">
-                ({breakdown.fingerprints_successful.join(', ') || 'none'})
-              </span>
-            </span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${scoreColor.bg} transition-all duration-500`}
-              style={{ width: `${fingerprintsWidth}%` }}
-            />
-          </div>
-          {breakdown.fingerprints_failed.length > 0 && (
-            <p className="text-xs text-red-500 mt-1">
-              Failed: {breakdown.fingerprints_failed.join(', ')}
-            </p>
-          )}
-        </div>
+        <ScoreBreakdownBar
+          label="Molecular Fingerprints"
+          score={breakdown.fingerprints_score}
+          maxScore={breakdown.fingerprints_max}
+          detail={breakdown.fingerprints_successful.join(', ') || 'none'}
+          calculation={`Score based on fingerprint generation:
+- Morgan (radius=2): 15 pts
+- MACCS keys: 15 pts
+- Atom pair: 10 pts
+Successful: ${breakdown.fingerprints_successful.join(', ') || 'none'}`}
+          interpretation={breakdown.fingerprints_score >= 35
+            ? 'All major fingerprint types can be generated. Compatible with fingerprint-based similarity and ML methods.'
+            : breakdown.fingerprints_score >= 20
+            ? 'Some fingerprints types failed. May affect compatibility with certain similarity methods.'
+            : 'Major fingerprint generation issues. Check for unusual atoms or bonds.'}
+        />
+        {breakdown.fingerprints_failed.length > 0 && (
+          <p className="text-xs text-status-error ml-4 -mt-3">
+            Failed: {breakdown.fingerprints_failed.join(', ')}
+          </p>
+        )}
 
-        {/* Size */}
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-700">Size Constraints</span>
-            <span className="text-gray-600">
-              {breakdown.size_score.toFixed(0)}/{breakdown.size_max}
-              <span className="text-gray-400 ml-1">
-                ({breakdown.size_category})
-              </span>
-            </span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${scoreColor.bg} transition-all duration-500`}
-              style={{ width: `${sizeWidth}%` }}
-            />
-          </div>
-          {breakdown.molecular_weight !== null && breakdown.num_atoms !== null && (
-            <p className="text-xs text-gray-500 mt-1">
-              MW: {breakdown.molecular_weight.toFixed(1)} Da | Atoms: {breakdown.num_atoms}
-            </p>
-          )}
-        </div>
+        {/* Size Constraints */}
+        <ScoreBreakdownBar
+          label="Size Constraints"
+          score={breakdown.size_score}
+          maxScore={breakdown.size_max}
+          detail={breakdown.size_category}
+          calculation={`Based on molecular weight and atom count:
+- Optimal (100-900 Da, 3-100 atoms): 20 pts
+- Acceptable (50-1200 Da, 1-150 atoms): 10 pts
+- Out of range: 0 pts
+Category: ${breakdown.size_category}`}
+          interpretation={breakdown.size_score >= 15
+            ? 'Molecule is within optimal size range for most ML models and drug-likeness criteria.'
+            : breakdown.size_score >= 5
+            ? 'Molecule is at the edge of typical size ranges. Some models may handle it differently.'
+            : 'Molecule is outside typical size ranges for drug-like compounds. May require specialized models.'}
+        />
+        {breakdown.molecular_weight !== null && breakdown.num_atoms !== null && (
+          <p className="text-xs text-chem-dark/50 ml-4 -mt-3">
+            MW: {breakdown.molecular_weight.toFixed(1)} Da | Atoms: {breakdown.num_atoms}
+          </p>
+        )}
       </div>
 
       {/* Failed Descriptors (collapsible) */}
       {failed_descriptors.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-chem-dark/10">
           <button
             onClick={() => setShowFailedDescriptors(!showFailedDescriptors)}
-            className="flex items-center text-sm text-gray-600 hover:text-gray-800"
+            className="flex items-center gap-2 text-sm text-chem-dark/60 hover:text-chem-dark transition-colors"
           >
-            <span className={`mr-2 transform transition-transform ${showFailedDescriptors ? 'rotate-90' : ''}`}>
-              &#9654;
-            </span>
-            {failed_descriptors.length} descriptors could not be calculated
+            <svg
+              className={`w-4 h-4 transition-transform ${showFailedDescriptors ? 'rotate-90' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+            <span>{failed_descriptors.length} descriptors could not be calculated</span>
           </button>
           {showFailedDescriptors && (
-            <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-600 max-h-32 overflow-y-auto">
+            <div className="mt-3 p-4 bg-chem-dark/5 rounded-lg text-xs text-chem-dark/60 font-mono max-h-32 overflow-y-auto scrollbar-thin">
               {failed_descriptors.join(', ')}
             </div>
           )}
