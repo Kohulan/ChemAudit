@@ -17,6 +17,10 @@ from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.api.routes import alerts, api_keys, batch, export, health, integrations, scoring, standardization, validation
 from app.websockets import manager
 
+# Conditional Prometheus imports
+if settings.ENABLE_METRICS:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -76,6 +80,19 @@ app.include_router(batch.router, prefix="/api/v1", tags=["batch"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
+
+# Set up Prometheus metrics if enabled
+if settings.ENABLE_METRICS:
+    instrumentator = Instrumentator(
+        should_group_status_codes=False,
+        should_ignore_untemplated=True,
+        should_respect_env_var=True,
+        should_instrument_requests_inprogress=True,
+        excluded_handlers=["/metrics", "/health", "/api/v1/health"],
+        inprogress_name="chemstructval_inprogress_requests",
+        inprogress_labels=True,
+    )
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
 
 @app.websocket("/ws/batch/{job_id}")

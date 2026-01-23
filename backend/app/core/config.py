@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     VALIDATION_CACHE_TTL: int = 3600  # 1 hour in seconds
     VALIDATION_CACHE_ENABLED: bool = True
 
+    # Metrics
+    ENABLE_METRICS: bool = False  # Enable Prometheus metrics endpoint
+
     # Validation limits
     MAX_MOLECULE_LENGTH: int = 10000
     MAX_BATCH_SIZE: int = 10000
