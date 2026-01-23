@@ -3,9 +3,10 @@ Standardization API Routes
 
 Endpoints for molecule standardization using ChEMBL-compatible pipeline.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 import time
+from typing import Optional
 
 from app.schemas.standardization import (
     StandardizeRequest,
@@ -24,6 +25,8 @@ from app.services.standardization.chembl_pipeline import (
     StandardizationOptions,
 )
 from app.api.routes.validation import extract_molecule_info
+from app.core.rate_limit import limiter, get_rate_limit_key
+from app.core.security import get_api_key
 
 
 router = APIRouter()
@@ -33,7 +36,12 @@ _pipeline = StandardizationPipeline()
 
 
 @router.post("/standardize", response_model=StandardizeResponse)
-async def standardize_molecule(request: StandardizeRequest):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def standardize_molecule(
+    req: Request,
+    request: StandardizeRequest,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Standardize a molecule using ChEMBL-compatible pipeline.
 

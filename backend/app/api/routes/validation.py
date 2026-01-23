@@ -3,26 +3,40 @@ Validation API Routes
 
 Endpoints for single molecule validation.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, inchi as rdkit_inchi, rdMolDescriptors
 import time
+from typing import Optional
 
 from app.schemas.validation import ValidationRequest, ValidationResponse, MoleculeInfo, CheckResultSchema
 from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
 from app.services.validation.engine import validation_engine
+from app.core.rate_limit import limiter, get_rate_limit_key
+from app.core.security import get_api_key
 
 
 router = APIRouter()
 
 
 @router.post("/validate", response_model=ValidationResponse)
-async def validate_molecule(request: ValidationRequest):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def validate_molecule(
+    req: Request,
+    request: ValidationRequest,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Validate a single molecule.
 
+    Rate limits:
+    - Anonymous: 10 requests/minute
+    - API key: 300 requests/minute
+
     Args:
+        req: FastAPI request (required for rate limiting)
         request: Validation request with molecule and options
+        api_key: Optional API key for higher rate limits
 
     Returns:
         ValidationResponse with validation results and score
@@ -87,9 +101,17 @@ async def validate_molecule(request: ValidationRequest):
 
 
 @router.get("/checks")
-async def list_checks():
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def list_checks(
+    request: Request,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     List available validation checks.
+
+    Rate limits:
+    - Anonymous: 10 requests/minute
+    - API key: 300 requests/minute
 
     Returns:
         Dictionary mapping check categories to check names

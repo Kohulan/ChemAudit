@@ -3,10 +3,11 @@ Scoring API Routes
 
 Endpoints for molecule scoring including ML-readiness, NP-likeness, and scaffold extraction.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 import time
+from typing import Optional
 
 from app.schemas.scoring import (
     ScoringRequest,
@@ -23,13 +24,20 @@ from app.services.scoring import (
     calculate_np_likeness,
     extract_scaffold,
 )
+from app.core.rate_limit import limiter, get_rate_limit_key
+from app.core.security import get_api_key
 
 
 router = APIRouter()
 
 
 @router.post("/score", response_model=ScoringResponse)
-async def score_molecule(request: ScoringRequest):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def score_molecule(
+    req: Request,
+    request: ScoringRequest,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Calculate scores for a molecule.
 

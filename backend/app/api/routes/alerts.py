@@ -7,10 +7,11 @@ structural alert pattern catalogs.
 IMPORTANT: Alerts are warnings for investigation, not automatic rejections.
 87 FDA-approved drugs contain PAINS patterns.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 import time
+from typing import Optional
 
 from app.schemas.alerts import (
     AlertScreenRequest,
@@ -24,13 +25,20 @@ from app.schemas.alerts import (
 from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
 from app.services.alerts.alert_manager import alert_manager, AlertManager
 from app.services.alerts.filter_catalog import AVAILABLE_CATALOGS
+from app.core.rate_limit import limiter, get_rate_limit_key
+from app.core.security import get_api_key
 
 
 router = APIRouter()
 
 
 @router.post("/alerts", response_model=AlertScreenResponse)
-async def screen_alerts(request: AlertScreenRequest):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def screen_alerts(
+    req: Request,
+    request: AlertScreenRequest,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Screen a molecule for structural alerts.
 
@@ -107,7 +115,11 @@ async def screen_alerts(request: AlertScreenRequest):
 
 
 @router.get("/alerts/catalogs", response_model=CatalogListResponse)
-async def list_catalogs():
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def list_catalogs(
+    request: Request,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     List available structural alert catalogs.
 
@@ -134,7 +146,12 @@ async def list_catalogs():
 
 
 @router.post("/alerts/quick-check")
-async def quick_check_alerts(request: AlertScreenRequest):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def quick_check_alerts(
+    req: Request,
+    request: AlertScreenRequest,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Quick check if molecule has any structural alerts.
 

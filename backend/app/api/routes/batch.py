@@ -6,7 +6,7 @@ Endpoints for batch file upload, job status, and results retrieval.
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, Request, Depends
 
 from app.core.config import settings
 from app.schemas.batch import (
@@ -25,18 +25,23 @@ from app.services.batch.file_parser import (
 from app.services.batch.tasks import process_batch_job, cancel_batch_job
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import result_storage
+from app.core.rate_limit import limiter, get_rate_limit_key
+from app.core.security import get_api_key
 
 
 router = APIRouter()
 
 
 @router.post("/batch/upload", response_model=BatchUploadResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def upload_batch(
+    request: Request,
     file: UploadFile = File(..., description="SDF or CSV file to process"),
     smiles_column: Optional[str] = Form(
         default="SMILES",
         description="Column name containing SMILES (for CSV files)",
     ),
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Upload a file for batch processing.
@@ -124,7 +129,9 @@ async def upload_batch(
 
 
 @router.get("/batch/{job_id}", response_model=BatchResultsResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def get_batch_results(
+    request: Request,
     job_id: str,
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=50, ge=1, le=100, description="Results per page"),
@@ -138,6 +145,7 @@ async def get_batch_results(
     max_score: Optional[int] = Query(
         default=None, ge=0, le=100, description="Maximum validation score"
     ),
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Get batch job status and results.
@@ -210,7 +218,12 @@ async def get_batch_results(
 
 
 @router.get("/batch/{job_id}/status", response_model=BatchJobStatus)
-async def get_batch_status(job_id: str):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def get_batch_status(
+    request: Request,
+    job_id: str,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Get current status of a batch job.
 
@@ -234,7 +247,12 @@ async def get_batch_status(job_id: str):
 
 
 @router.get("/batch/{job_id}/stats", response_model=BatchStatistics)
-async def get_batch_stats(job_id: str):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def get_batch_stats(
+    request: Request,
+    job_id: str,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Get statistics for a completed batch job.
 
@@ -261,7 +279,12 @@ async def get_batch_stats(job_id: str):
 
 
 @router.delete("/batch/{job_id}")
-async def cancel_batch(job_id: str):
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def cancel_batch(
+    request: Request,
+    job_id: str,
+    api_key: Optional[str] = Depends(get_api_key)
+):
     """
     Cancel a batch job.
 
@@ -291,8 +314,11 @@ async def cancel_batch(job_id: str):
 
 
 @router.post("/batch/detect-columns", response_model=CSVColumnsResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def detect_columns(
+    request: Request,
     file: UploadFile = File(..., description="CSV file to analyze"),
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Detect columns in a CSV file for SMILES selection.
