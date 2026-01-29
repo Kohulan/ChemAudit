@@ -90,7 +90,7 @@ export function SingleValidationPage() {
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset } = useValidation();
-  // @ts-expect-error - Used later in event handlers
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [shareToastVisible, setShareToastVisible] = useState(false);
 
   // Load molecule from URL on mount
@@ -363,7 +363,7 @@ export function SingleValidationPage() {
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">SMILES, InChI, or draw</p>
               </div>
             </div>
-            <StructureInput value={molecule} onChange={setMolecule} />
+            <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
 
             <div className="mt-4 flex items-center gap-3">
               <ClayButton
