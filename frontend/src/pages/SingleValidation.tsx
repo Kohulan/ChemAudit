@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
+import { RecentMolecules } from '../components/molecules/RecentMolecules';
 import { IssueCard } from '../components/validation/IssueCard';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
@@ -31,6 +32,7 @@ import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
+import { useRecentMolecules } from '../hooks/useRecentMolecules';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
 import { cn, getScoreLabel } from '../lib/utils';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
@@ -92,6 +94,7 @@ export function SingleValidationPage() {
   const { validate, result, error, isLoading, reset } = useValidation();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [shareToastVisible, setShareToastVisible] = useState(false);
+  const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
 
   // Load molecule from URL on mount
   useEffect(() => {
@@ -108,6 +111,13 @@ export function SingleValidationPage() {
       }, 100);
     }
   }, []); // Only run on mount
+
+  // Add to recent molecules after successful validation
+  useEffect(() => {
+    if (result && !error && molecule.trim()) {
+      addRecent(molecule.trim());
+    }
+  }, [result, error, molecule, addRecent]);
 
   // Get molecule info immediately when molecule is entered
   const { info: moleculeInfo, isLoading: moleculeInfoLoading, error: moleculeInfoError } = useMoleculeInfo(molecule);
@@ -156,6 +166,8 @@ export function SingleValidationPage() {
       format: 'auto',
       preserve_aromatic: preferAromaticSmiles,
     });
+    // Add to recent molecules on successful validation (validate updates result/error)
+    // We'll check result in useEffect after validation completes
   };
 
   const handleScreenAlerts = async () => {
@@ -226,6 +238,11 @@ export function SingleValidationPage() {
   };
 
   const handleExampleClick = (smiles: string) => {
+    setMolecule(smiles);
+    resetAll();
+  };
+
+  const handleSelectRecent = (smiles: string) => {
     setMolecule(smiles);
     resetAll();
   };
@@ -313,7 +330,7 @@ export function SingleValidationPage() {
 
       {/* Example molecules */}
       <motion.div
-        className="flex flex-wrap gap-2 justify-center"
+        className="flex flex-wrap gap-2 justify-center items-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
@@ -339,6 +356,19 @@ export function SingleValidationPage() {
             {example.name}
           </motion.button>
         ))}
+
+        {/* Separator */}
+        {recent.length > 0 && (
+          <div className="hidden sm:block w-px h-6 bg-[var(--color-border)] mx-2" />
+        )}
+
+        {/* Recent molecules dropdown */}
+        <RecentMolecules
+          recent={recent}
+          onSelect={handleSelectRecent}
+          onRemove={removeRecent}
+          onClear={clearRecent}
+        />
       </motion.div>
 
       {/* Two-Column Layout */}
