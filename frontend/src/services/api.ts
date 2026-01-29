@@ -37,7 +37,19 @@ import type {
   IntegrationError
 } from '../types/integrations';
 
+// API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || 'http://localhost:8000/docs';
+export const DEBUG_MODE = import.meta.env.VITE_DEBUG === 'true';
+
+// Debug logging in development
+if (DEBUG_MODE) {
+  console.log('[ChemVault API] Configuration:', {
+    apiUrl: API_BASE_URL,
+    docsUrl: API_DOCS_URL,
+    environment: import.meta.env.MODE,
+  });
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
