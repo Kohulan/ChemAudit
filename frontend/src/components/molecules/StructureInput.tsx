@@ -1,3 +1,4 @@
+import { useHotkeys } from 'react-hotkeys-hook';
 import { cn } from '../../lib/utils';
 
 interface StructureInputProps {
@@ -15,6 +16,26 @@ export function StructureInput({
   disabled = false,
   placeholder = 'Enter SMILES, InChI, or paste MOL block...'
 }: StructureInputProps) {
+  // Detect platform for keyboard hint
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+
+  // Use react-hotkeys-hook for Ctrl+Enter / Cmd+Enter
+  useHotkeys(
+    'ctrl+enter, meta+enter',
+    (e) => {
+      e.preventDefault();
+      if (onSubmit && !disabled) {
+        onSubmit();
+      }
+    },
+    {
+      enableOnFormTags: ['TEXTAREA'],
+      enabled: !disabled,
+    },
+    [onSubmit, disabled]
+  );
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
   };
@@ -47,7 +68,7 @@ export function StructureInput({
         spellCheck={false}
       />
       <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
-        <span>Press Enter to validate, Shift+Enter for new line</span>
+        <span>Press {modifierKey}+Enter to validate, Shift+Enter for new line</span>
         <span>{value.length} chars</span>
       </div>
     </div>
