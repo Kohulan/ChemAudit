@@ -47,9 +47,9 @@ export function BatchUpload({
     if (!name.endsWith('.sdf') && !name.endsWith('.csv')) {
       return 'Invalid file type. Please upload an SDF or CSV file.';
     }
-    // Max 50MB
-    if (file.size > 50 * 1024 * 1024) {
-      return 'File too large. Maximum size is 50MB.';
+    // Max 1GB
+    if (file.size > 1024 * 1024 * 1024) {
+      return 'File too large. Maximum size is 1GB.';
     }
     return null;
   };
@@ -182,7 +182,7 @@ export function BatchUpload({
             {isDragging ? 'Drop file here' : 'Drop file here or click to browse'}
           </p>
           <p className="text-sm text-gray-500 mt-1">
-            Supports SDF and CSV files (up to 10,000 molecules)
+            Supports SDF and CSV files (up to 1,000,000 molecules)
           </p>
         </div>
       </div>

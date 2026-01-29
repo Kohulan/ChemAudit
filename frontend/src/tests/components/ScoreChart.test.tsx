@@ -5,7 +5,7 @@
  * These components use recharts for visualization.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '../setup';
 import { ScoreChart, ScoreIndicator, ScoreBreakdownBar } from '../../components/scoring/ScoreChart';
 
 // Mock recharts to avoid JSDOM issues with SVG rendering
@@ -158,21 +158,21 @@ describe('ScoreIndicator', () => {
     const { container } = render(<ScoreIndicator score={90} />);
 
     const indicator = container.firstChild;
-    expect(indicator).toHaveClass('bg-score-excellent/10');
+    expect(indicator).toHaveClass('bg-emerald-500/10');
   });
 
   it('applies correct color for fair scores', () => {
     const { container } = render(<ScoreIndicator score={60} />);
 
     const indicator = container.firstChild;
-    expect(indicator).toHaveClass('bg-score-fair/10');
+    expect(indicator).toHaveClass('bg-amber-500/10');
   });
 
   it('applies correct color for poor scores', () => {
     const { container } = render(<ScoreIndicator score={30} />);
 
     const indicator = container.firstChild;
-    expect(indicator).toHaveClass('bg-score-poor/10');
+    expect(indicator).toHaveClass('bg-red-500/10');
   });
 
   it('accepts custom size', () => {

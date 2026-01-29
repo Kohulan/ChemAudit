@@ -1,14 +1,12 @@
 """
 External Integrations API Routes
 
-Endpoints for DECIMER, COCONUT, PubChem, and ChEMBL integrations.
+Endpoints for COCONUT, PubChem, and ChEMBL integrations.
 """
 from fastapi import APIRouter, Request, Depends
 from typing import Optional
 
 from app.schemas.integrations import (
-    DECIMERRequest,
-    DECIMERValidation,
     COCONUTRequest,
     COCONUTResult,
     PubChemRequest,
@@ -17,7 +15,6 @@ from app.schemas.integrations import (
     ChEMBLResult,
 )
 from app.services.integrations import (
-    validate_ocsr_result,
     lookup_natural_product,
     get_compound_info,
     get_bioactivity,
@@ -29,54 +26,11 @@ from app.core.security import get_api_key
 router = APIRouter()
 
 
-@router.post("/integrations/decimer/validate", response_model=DECIMERValidation)
-@limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def validate_decimer_ocsr(
-    req: Request,
-    request: DECIMERRequest,
-    api_key: Optional[str] = Depends(get_api_key)
-):
-    """
-    Validate DECIMER OCSR output.
-
-    DECIMER (Deep Learning for Chemical Image Recognition) converts
-    chemical structure images to SMILES. This endpoint validates the
-    OCSR result and provides confidence-adjusted validation.
-
-    Rate limits:
-    - Anonymous: 10 requests/minute (shared with other endpoints)
-    - API key: 300 requests/minute (shared with other endpoints)
-    - This endpoint: 30 requests/minute (specific limit)
-
-    Args:
-        req: FastAPI request (required for rate limiting)
-        request: DECIMER validation request with SMILES and optional confidence
-        api_key: Optional API key for higher rate limits
-
-    Returns:
-        Validation result with canonical SMILES and identifiers
-
-    Example:
-        ```json
-        {
-            "smiles": "CCO",
-            "confidence": 0.95,
-            "is_valid": true,
-            "validation_message": "High confidence OCSR result - valid structure",
-            "canonical_smiles": "CCO",
-            "inchi": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
-            "inchikey": "LFQSCWFLJHTTHZ-UHFFFAOYSA-N"
-        }
-        ```
-    """
-    return validate_ocsr_result(request)
-
-
 @router.post("/integrations/coconut/lookup", response_model=COCONUTResult)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def lookup_coconut(
-    req: Request,
-    request: COCONUTRequest,
+    request: Request,
+    body: COCONUTRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -91,8 +45,8 @@ async def lookup_coconut(
     - This endpoint: 30 requests/minute (specific limit)
 
     Args:
-        req: FastAPI request (required for rate limiting)
-        request: COCONUT lookup request with SMILES or InChIKey
+        request: FastAPI request (required for rate limiting)
+        body: COCONUT lookup request with SMILES or InChIKey
         api_key: Optional API key for higher rate limits
 
     Returns:
@@ -111,14 +65,14 @@ async def lookup_coconut(
         }
         ```
     """
-    return await lookup_natural_product(request)
+    return await lookup_natural_product(body)
 
 
 @router.post("/integrations/pubchem/lookup", response_model=PubChemResult)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def lookup_pubchem(
-    req: Request,
-    request: PubChemRequest,
+    request: Request,
+    body: PubChemRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -133,8 +87,8 @@ async def lookup_pubchem(
     - This endpoint: 30 requests/minute (specific limit)
 
     Args:
-        req: FastAPI request (required for rate limiting)
-        request: PubChem lookup request with SMILES or InChIKey
+        request: FastAPI request (required for rate limiting)
+        body: PubChem lookup request with SMILES or InChIKey
         api_key: Optional API key for higher rate limits
 
     Returns:
@@ -153,14 +107,14 @@ async def lookup_pubchem(
         }
         ```
     """
-    return await get_compound_info(request)
+    return await get_compound_info(body)
 
 
 @router.post("/integrations/chembl/bioactivity", response_model=ChEMBLResult)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def lookup_chembl_bioactivity(
-    req: Request,
-    request: ChEMBLRequest,
+    request: Request,
+    body: ChEMBLRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -175,8 +129,8 @@ async def lookup_chembl_bioactivity(
     - This endpoint: 30 requests/minute (specific limit)
 
     Args:
-        req: FastAPI request (required for rate limiting)
-        request: ChEMBL lookup request with SMILES or InChIKey
+        request: FastAPI request (required for rate limiting)
+        body: ChEMBL lookup request with SMILES or InChIKey
         api_key: Optional API key for higher rate limits
 
     Returns:
@@ -203,4 +157,4 @@ async def lookup_chembl_bioactivity(
         }
         ```
     """
-    return await get_bioactivity(request)
+    return await get_bioactivity(body)

@@ -1,5 +1,7 @@
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 import { CalculationTooltip } from '../ui/Tooltip';
+import { cn } from '../../lib/utils';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 interface ScoreChartProps {
   /** Score value (0-100) */
@@ -19,37 +21,45 @@ interface ScoreChartProps {
 /**
  * Get color configuration based on score value
  */
-function getScoreColor(score: number): {
+function getScoreColor(score: number, isDark: boolean): {
   fill: string;
   text: string;
   bg: string;
   label: string;
   gradientId: string;
+  startColor: string;
+  endColor: string;
 } {
   if (score >= 80) {
     return {
-      fill: '#059669', // emerald-600
-      text: 'text-score-excellent',
-      bg: 'bg-score-excellent/10',
+      fill: isDark ? '#34d399' : '#059669',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
       label: 'Excellent',
       gradientId: 'scoreGradientExcellent',
+      startColor: isDark ? '#34d399' : '#10b981',
+      endColor: isDark ? '#10b981' : '#059669',
     };
   }
   if (score >= 50) {
     return {
-      fill: '#d97706', // amber-600
-      text: 'text-score-fair',
-      bg: 'bg-score-fair/10',
+      fill: isDark ? '#fbbf24' : '#d97706',
+      text: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-500/10 dark:bg-amber-400/15',
       label: 'Fair',
       gradientId: 'scoreGradientFair',
+      startColor: isDark ? '#fcd34d' : '#fbbf24',
+      endColor: isDark ? '#f59e0b' : '#d97706',
     };
   }
   return {
-    fill: '#dc2626', // red-600
-    text: 'text-score-poor',
-    bg: 'bg-score-poor/10',
+    fill: isDark ? '#f87171' : '#dc2626',
+    text: 'text-red-600 dark:text-red-400',
+    bg: 'bg-red-500/10 dark:bg-red-400/15',
     label: 'Poor',
     gradientId: 'scoreGradientPoor',
+    startColor: isDark ? '#fca5a5' : '#f87171',
+    endColor: isDark ? '#ef4444' : '#dc2626',
   };
 }
 
@@ -64,8 +74,10 @@ export function ScoreChart({
   interpretation,
   compact = false,
 }: ScoreChartProps) {
+  const { isDark } = useThemeContext();
   const clampedScore = Math.max(0, Math.min(100, score));
-  const color = getScoreColor(clampedScore);
+  const color = getScoreColor(clampedScore, isDark);
+  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
 
   const data = [
     {
@@ -76,27 +88,27 @@ export function ScoreChart({
   ];
 
   const chartContent = (
-    <div className={`relative ${compact ? '' : 'p-2'}`} style={{ width: size, height: size }}>
+    <div className={cn('relative', compact ? '' : 'p-2')} style={{ width: size, height: size }}>
       {/* SVG Gradient Definitions */}
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="scoreGradientExcellent" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#059669" />
+            <stop offset="0%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.startColor : '#10b981'} />
+            <stop offset="100%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.endColor : '#059669'} />
           </linearGradient>
           <linearGradient id="scoreGradientFair" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fbbf24" />
-            <stop offset="100%" stopColor="#d97706" />
+            <stop offset="0%" stopColor={color.gradientId === 'scoreGradientFair' ? color.startColor : '#fbbf24'} />
+            <stop offset="100%" stopColor={color.gradientId === 'scoreGradientFair' ? color.endColor : '#d97706'} />
           </linearGradient>
           <linearGradient id="scoreGradientPoor" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f87171" />
-            <stop offset="100%" stopColor="#dc2626" />
+            <stop offset="0%" stopColor={color.gradientId === 'scoreGradientPoor' ? color.startColor : '#f87171'} />
+            <stop offset="100%" stopColor={color.gradientId === 'scoreGradientPoor' ? color.endColor : '#dc2626'} />
           </linearGradient>
         </defs>
       </svg>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <RadialBarChart
           innerRadius="70%"
           outerRadius="100%"
@@ -112,7 +124,7 @@ export function ScoreChart({
             tick={false}
           />
           <RadialBar
-            background={{ fill: '#e5e7eb' }}
+            background={{ fill: backgroundFill }}
             dataKey="value"
             cornerRadius={10}
             animationDuration={1000}
@@ -123,11 +135,11 @@ export function ScoreChart({
 
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`${compact ? 'text-2xl' : 'text-4xl'} font-bold ${color.text}`}>
+        <span className={cn(compact ? 'text-2xl' : 'text-4xl', 'font-bold', color.text)}>
           {Math.round(clampedScore)}
         </span>
         {!compact && (
-          <span className="text-xs text-chem-dark/50 uppercase tracking-wider mt-1">
+          <span className="text-xs text-text-muted uppercase tracking-wider mt-1">
             Score
           </span>
         )}
@@ -149,12 +161,12 @@ export function ScoreChart({
           {chartContent}
         </CalculationTooltip>
         {!compact && (
-          <div className={`mt-2 px-4 py-1.5 rounded-full ${color.bg}`}>
-            <span className={`text-sm font-medium ${color.text}`}>{color.label}</span>
+          <div className={cn('mt-2 px-4 py-1.5 rounded-full', color.bg)}>
+            <span className={cn('text-sm font-medium', color.text)}>{color.label}</span>
           </div>
         )}
         {!compact && (
-          <p className="text-sm text-chem-dark/60 mt-2 text-center">{label}</p>
+          <p className="text-sm text-text-secondary mt-2 text-center">{label}</p>
         )}
       </div>
     );
@@ -165,10 +177,10 @@ export function ScoreChart({
       {chartContent}
       {!compact && (
         <>
-          <div className={`mt-2 px-4 py-1.5 rounded-full ${color.bg}`}>
-            <span className={`text-sm font-medium ${color.text}`}>{color.label}</span>
+          <div className={cn('mt-2 px-4 py-1.5 rounded-full', color.bg)}>
+            <span className={cn('text-sm font-medium', color.text)}>{color.label}</span>
           </div>
-          <p className="text-sm text-chem-dark/60 mt-2 text-center">{label}</p>
+          <p className="text-sm text-text-secondary mt-2 text-center">{label}</p>
         </>
       )}
     </div>
@@ -179,14 +191,15 @@ export function ScoreChart({
  * Compact score indicator for tables/lists
  */
 export function ScoreIndicator({ score, size = 40 }: { score: number; size?: number }) {
-  const color = getScoreColor(score);
+  const { isDark } = useThemeContext();
+  const color = getScoreColor(score, isDark);
 
   return (
     <div
-      className={`rounded-full flex items-center justify-center ${color.bg}`}
+      className={cn('rounded-full flex items-center justify-center', color.bg)}
       style={{ width: size, height: size }}
     >
-      <span className={`text-sm font-bold ${color.text}`}>{Math.round(score)}</span>
+      <span className={cn('text-sm font-bold', color.text)}>{Math.round(score)}</span>
     </div>
   );
 }
@@ -211,21 +224,22 @@ export function ScoreBreakdownBar({
   calculation,
   interpretation,
 }: ScoreBreakdownBarProps) {
+  const { isDark } = useThemeContext();
   const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-  const color = getScoreColor(percentage);
+  const color = getScoreColor(percentage, isDark);
 
   const content = (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
-        <span className="text-chem-dark font-medium">{label}</span>
+        <span className="text-text-primary font-medium">{label}</span>
         <span className={color.text}>
           {score.toFixed(0)}/{maxScore}
           {detail && (
-            <span className="text-chem-dark/40 ml-2 text-xs">({detail})</span>
+            <span className="text-text-muted ml-2 text-xs">({detail})</span>
           )}
         </span>
       </div>
-      <div className="h-2.5 bg-chem-dark/10 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{

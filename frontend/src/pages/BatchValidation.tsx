@@ -149,7 +149,7 @@ export function BatchValidationPage() {
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900">Batch Validation</h2>
         <p className="text-gray-500 mt-2">
-          Validate up to 10,000 molecules at once from SDF or CSV files
+          Validate up to 1,000,000 molecules at once from SDF or CSV files
         </p>
       </div>
 

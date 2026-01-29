@@ -34,8 +34,8 @@ router = APIRouter()
 @router.post("/score", response_model=ScoringResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def score_molecule(
-    req: Request,
-    request: ScoringRequest,
+    request: Request,
+    body: ScoringRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -47,7 +47,7 @@ async def score_molecule(
     - scaffold: Murcko scaffold extraction
 
     Args:
-        request: ScoringRequest with molecule and options
+        body: ScoringRequest with molecule and options
 
     Returns:
         ScoringResponse with requested scoring results
@@ -64,9 +64,9 @@ async def score_molecule(
         "mol": MoleculeFormat.MOL,
         "auto": None
     }
-    input_format = format_map.get(request.format)
+    input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(request.molecule, input_format)
+    parse_result = parse_molecule(body.molecule, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -82,7 +82,7 @@ async def score_molecule(
     mol = parse_result.mol
 
     # Extract basic molecule info
-    mol_info = _extract_molecule_info(mol, request.molecule)
+    mol_info = _extract_molecule_info(mol, body.molecule)
 
     # Initialize response components
     ml_readiness_result = None
@@ -90,7 +90,7 @@ async def score_molecule(
     scaffold_result = None
 
     # Calculate requested scores
-    if "ml_readiness" in request.include:
+    if "ml_readiness" in body.include:
         ml_result = calculate_ml_readiness(mol)
         ml_readiness_result = MLReadinessResultSchema(
             score=ml_result.score,
@@ -113,7 +113,7 @@ async def score_molecule(
             failed_descriptors=ml_result.failed_descriptors,
         )
 
-    if "np_likeness" in request.include:
+    if "np_likeness" in body.include:
         np_result = calculate_np_likeness(mol)
         np_likeness_result = NPLikenessResultSchema(
             score=np_result.score,
@@ -122,7 +122,7 @@ async def score_molecule(
             details=np_result.details,
         )
 
-    if "scaffold" in request.include:
+    if "scaffold" in body.include:
         scaffold_res = extract_scaffold(mol)
         scaffold_result = ScaffoldResultSchema(
             scaffold_smiles=scaffold_res.scaffold_smiles,

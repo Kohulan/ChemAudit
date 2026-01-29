@@ -1,5 +1,7 @@
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 import { CalculationTooltip } from '../ui/Tooltip';
+import { cn } from '../../lib/utils';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 interface ScoreGaugeProps {
   score: number;
@@ -13,6 +15,8 @@ interface ScoreGaugeProps {
  * Displays validation score with color-coded feedback and optional calculation tooltip.
  */
 export function ScoreGauge({ score, size = 140, className = '', showCalculation = true }: ScoreGaugeProps) {
+  const { isDark } = useThemeContext();
+
   // Clamp score to 0-100
   const clampedScore = Math.max(0, Math.min(100, score));
 
@@ -20,28 +24,29 @@ export function ScoreGauge({ score, size = 140, className = '', showCalculation 
   const getColor = (score: number) => {
     if (score >= 80) return {
       fill: '#059669',
-      text: 'text-score-excellent',
-      bg: 'bg-score-excellent/10',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
       label: 'Excellent',
       gradientId: 'gaugeExcellent',
     };
     if (score >= 50) return {
       fill: '#d97706',
-      text: 'text-score-fair',
-      bg: 'bg-score-fair/10',
+      text: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-500/10 dark:bg-amber-400/15',
       label: 'Fair',
       gradientId: 'gaugeFair',
     };
     return {
       fill: '#dc2626',
-      text: 'text-score-poor',
-      bg: 'bg-score-poor/10',
+      text: 'text-red-600 dark:text-red-400',
+      bg: 'bg-red-500/10 dark:bg-red-400/15',
       label: 'Poor',
       gradientId: 'gaugePoor',
     };
   };
 
   const color = getColor(clampedScore);
+  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
 
   const data = [
     {
@@ -61,27 +66,27 @@ Clamped to range 0-100`;
     : 'This molecule has significant validation problems. Critical issues must be resolved before use.';
 
   const chartContent = (
-    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+    <div className={cn('relative', className)} style={{ width: size, height: size }}>
       {/* SVG Gradient Definitions */}
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="gaugeExcellent" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#059669" />
+            <stop offset="0%" stopColor={isDark ? '#34d399' : '#10b981'} />
+            <stop offset="100%" stopColor={isDark ? '#10b981' : '#059669'} />
           </linearGradient>
           <linearGradient id="gaugeFair" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fbbf24" />
-            <stop offset="100%" stopColor="#d97706" />
+            <stop offset="0%" stopColor={isDark ? '#fcd34d' : '#fbbf24'} />
+            <stop offset="100%" stopColor={isDark ? '#f59e0b' : '#d97706'} />
           </linearGradient>
           <linearGradient id="gaugePoor" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f87171" />
-            <stop offset="100%" stopColor="#dc2626" />
+            <stop offset="0%" stopColor={isDark ? '#fca5a5' : '#f87171'} />
+            <stop offset="100%" stopColor={isDark ? '#ef4444' : '#dc2626'} />
           </linearGradient>
         </defs>
       </svg>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <RadialBarChart
           innerRadius="65%"
           outerRadius="100%"
@@ -97,7 +102,7 @@ Clamped to range 0-100`;
             tick={false}
           />
           <RadialBar
-            background={{ fill: '#e5e7eb' }}
+            background={{ fill: backgroundFill }}
             dataKey="value"
             cornerRadius={10}
             animationDuration={1000}
@@ -108,10 +113,10 @@ Clamped to range 0-100`;
 
       {/* Score text in center */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-3xl font-bold ${color.text}`}>
+        <span className={cn('text-3xl font-bold', color.text)}>
           {Math.round(clampedScore)}
         </span>
-        <span className="text-xs text-chem-dark/50 uppercase tracking-wide">Score</span>
+        <span className="text-xs text-text-muted uppercase tracking-wide">Score</span>
       </div>
     </div>
   );
@@ -128,8 +133,8 @@ Clamped to range 0-100`;
         >
           {chartContent}
         </CalculationTooltip>
-        <div className={`mt-3 px-4 py-1.5 rounded-full ${color.bg}`}>
-          <span className={`text-sm font-medium ${color.text}`}>{color.label}</span>
+        <div className={cn('mt-3 px-4 py-1.5 rounded-full', color.bg)}>
+          <span className={cn('text-sm font-medium', color.text)}>{color.label}</span>
         </div>
       </div>
     );
@@ -138,8 +143,8 @@ Clamped to range 0-100`;
   return (
     <div className="flex flex-col items-center">
       {chartContent}
-      <div className={`mt-3 px-4 py-1.5 rounded-full ${color.bg}`}>
-        <span className={`text-sm font-medium ${color.text}`}>{color.label}</span>
+      <div className={cn('mt-3 px-4 py-1.5 rounded-full', color.bg)}>
+        <span className={cn('text-sm font-medium', color.text)}>{color.label}</span>
       </div>
     </div>
   );

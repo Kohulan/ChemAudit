@@ -496,8 +496,7 @@ standardization_options = {
 
 1. **Check file size limits:**
    ```
-   CSV: Maximum 50MB
-   SDF: Maximum 100MB
+   Maximum file size: 1GB
    ```
 
 2. **Verify file format:**

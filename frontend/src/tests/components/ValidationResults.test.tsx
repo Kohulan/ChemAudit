@@ -5,7 +5,7 @@
  * Mock data matches backend Pydantic schemas.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '../setup';
 import { ValidationResults } from '../../components/validation/ValidationResults';
 import type { ValidationResponse, CheckResult } from '../../types/validation';
 
@@ -296,7 +296,7 @@ describe('ValidationResults', () => {
       fireEvent.click(screen.getByRole('button', { name: /All Checks/i }));
 
       const badge = screen.getByText('CRITICAL');
-      expect(badge).toHaveClass('bg-red-100', 'text-red-800');
+      expect(badge).toHaveClass('bg-red-500/10', 'text-red-600');
     });
 
     it('applies correct styling for error severity', () => {
@@ -314,7 +314,7 @@ describe('ValidationResults', () => {
       fireEvent.click(screen.getByRole('button', { name: /All Checks/i }));
 
       const badge = screen.getByText('ERROR');
-      expect(badge).toHaveClass('bg-orange-100', 'text-orange-800');
+      expect(badge).toHaveClass('bg-orange-500/10', 'text-orange-600');
     });
 
     it('applies correct styling for warning severity', () => {
@@ -332,7 +332,7 @@ describe('ValidationResults', () => {
       fireEvent.click(screen.getByRole('button', { name: /All Checks/i }));
 
       const badge = screen.getByText('WARNING');
-      expect(badge).toHaveClass('bg-yellow-100', 'text-yellow-800');
+      expect(badge).toHaveClass('bg-amber-500/10', 'text-amber-600');
     });
 
     it('applies correct styling for info severity', () => {
@@ -350,7 +350,7 @@ describe('ValidationResults', () => {
       fireEvent.click(screen.getByRole('button', { name: /All Checks/i }));
 
       const badge = screen.getByText('INFO');
-      expect(badge).toHaveClass('bg-blue-100', 'text-blue-800');
+      expect(badge).toHaveClass('bg-sky-500/10', 'text-sky-600');
     });
   });
 

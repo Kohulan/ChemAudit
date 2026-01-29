@@ -15,8 +15,8 @@ Batch processing allows you to:
 
 | Format | Extension | Max Size | Notes |
 |--------|-----------|----------|-------|
-| SDF | .sdf, .sd | 100MB | Multi-molecule, includes coordinates |
-| CSV | .csv | 50MB | Requires SMILES column mapping |
+| SDF | .sdf, .sd | 1GB | Multi-molecule, includes coordinates |
+| CSV | .csv | 1GB | Requires SMILES column mapping |
 
 ### SDF Format
 
@@ -414,7 +414,7 @@ See [Python Client Documentation](../api/python-client.md) for details.
 ## Troubleshooting
 
 ### Upload fails
-- Check file size limits (CSV: 50MB, SDF: 100MB)
+- Check file size limits (max 1GB)
 - Verify file format (valid CSV/SDF)
 - Check file encoding (use UTF-8)
 
@@ -462,7 +462,7 @@ See [FAQ](../troubleshooting/faq.md) for more troubleshooting.
 
 ### Authenticated Users (API Key)
 - 5 concurrent batch jobs
-- Maximum 10,000 molecules per batch
+- Maximum 1,000,000 molecules per batch
 - Rate limit: 300 requests/minute
 
 ### Enterprise

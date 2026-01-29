@@ -37,11 +37,11 @@ class Settings(BaseSettings):
 
     # Validation limits
     MAX_MOLECULE_LENGTH: int = 10000
-    MAX_BATCH_SIZE: int = 10000
+    MAX_BATCH_SIZE: int = 1000000
 
     # External API endpoints
-    DECIMER_API_URL: str = "https://decimer.ai/api"
     COCONUT_API_URL: str = "https://coconut.naturalproducts.net/api"
+    COCONUT_API_TOKEN: str = ""  # Required for COCONUT API v2
     PUBCHEM_API_URL: str = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
     CHEMBL_API_URL: str = "https://www.ebi.ac.uk/chembl/api/data"
     EXTERNAL_API_TIMEOUT: int = 30  # seconds

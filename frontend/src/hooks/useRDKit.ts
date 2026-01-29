@@ -36,7 +36,6 @@ export function getRDKit(): Promise<RDKitModule> {
     win.initRDKitModule()
       .then((rdkit: RDKitModule) => {
         rdkitInstance = rdkit;
-        console.log('RDKit.js initialized:', rdkit.version());
         resolve(rdkit);
       })
       .catch(reject);

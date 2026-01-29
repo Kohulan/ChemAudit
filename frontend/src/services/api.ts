@@ -29,6 +29,13 @@ import type {
   BatchResultsFilters,
   CSVColumnsResponse
 } from '../types/batch';
+import type {
+  IntegrationRequest,
+  PubChemResult,
+  ChEMBLResult,
+  COCONUTResult,
+  IntegrationError
+} from '../types/integrations';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -179,7 +186,7 @@ export const batchApi = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 60000, // 1 minute timeout for file upload
+      timeout: 600000, // 10 minute timeout for large file upload
     });
     return response.data;
   },
@@ -249,8 +256,80 @@ export const batchApi = {
   },
 };
 
+export const integrationsApi = {
+  /**
+   * Look up molecule in PubChem database.
+   */
+  lookupPubChem: async (request: IntegrationRequest): Promise<PubChemResult> => {
+    try {
+      const response = await api.post<PubChemResult>('/integrations/pubchem/lookup', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<IntegrationError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Look up molecule in ChEMBL for bioactivity data.
+   */
+  lookupChEMBL: async (request: IntegrationRequest): Promise<ChEMBLResult> => {
+    try {
+      const response = await api.post<ChEMBLResult>('/integrations/chembl/bioactivity', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<IntegrationError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Look up molecule in COCONUT natural products database.
+   */
+  lookupCOCONUT: async (request: IntegrationRequest): Promise<COCONUTResult> => {
+    try {
+      const response = await api.post<COCONUTResult>('/integrations/coconut/lookup', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<IntegrationError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Look up molecule in all databases in parallel.
+   */
+  lookupAll: async (request: IntegrationRequest): Promise<{
+    pubchem: PubChemResult | null;
+    chembl: ChEMBLResult | null;
+    coconut: COCONUTResult | null;
+  }> => {
+    const [pubchem, chembl, coconut] = await Promise.allSettled([
+      integrationsApi.lookupPubChem(request),
+      integrationsApi.lookupChEMBL(request),
+      integrationsApi.lookupCOCONUT(request),
+    ]);
+
+    return {
+      pubchem: pubchem.status === 'fulfilled' ? pubchem.value : null,
+      chembl: chembl.status === 'fulfilled' ? chembl.value : null,
+      coconut: coconut.status === 'fulfilled' ? coconut.value : null,
+    };
+  },
+};
+
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError };
 export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
 export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
+export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };
