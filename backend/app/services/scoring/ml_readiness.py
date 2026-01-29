@@ -9,12 +9,11 @@ Score breakdown:
 - Size/Elements (20 points): Molecular weight and atom count constraints
 """
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 
 from rdkit import Chem
-from rdkit.Chem import Descriptors, MACCSkeys, rdMolDescriptors
-from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Avalon import pyAvalonTools
+from rdkit.Chem import Descriptors, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors
 
 
 @dataclass
@@ -26,7 +25,7 @@ class MLReadinessBreakdown:
     descriptors_max: float = 35.0
     descriptors_successful: int = 0
     descriptors_total: int = 0
-    failed_descriptors: list = field(default_factory=list)
+    failed_descriptors: List[str] = field(default_factory=list)
 
     # Additional descriptors (AUTOCORR2D + MQN)
     additional_descriptors_score: float = 0.0
@@ -39,8 +38,8 @@ class MLReadinessBreakdown:
     # Fingerprints (7 types)
     fingerprints_score: float = 0.0
     fingerprints_max: float = 40.0
-    fingerprints_successful: list = field(default_factory=list)
-    fingerprints_failed: list = field(default_factory=list)
+    fingerprints_successful: List[str] = field(default_factory=list)
+    fingerprints_failed: List[str] = field(default_factory=list)
 
     # Size constraints
     size_score: float = 0.0
