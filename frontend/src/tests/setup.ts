@@ -6,14 +6,39 @@
  * - Mock for RDKit.js WASM module
  * - Mock for window.matchMedia
  * - Cleanup between tests
+ * - ThemeProvider wrapper for tests
  */
 import '@testing-library/jest-dom';
-import { afterEach, vi } from 'vitest';
+import { vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import React from 'react';
+import { render as rtlRender, type RenderOptions } from '@testing-library/react';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 // Run cleanup after each test
 afterEach(() => {
   cleanup();
+});
+
+// Mock localStorage for theme persistence
+const mockLocalStorage = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  value: mockLocalStorage,
 });
 
 // Mock RDKit.js module
@@ -40,11 +65,11 @@ vi.stubGlobal('initRDKitModule', vi.fn().mockResolvedValue(mockRDKitModule));
 // Mock window.RDKit (for already-loaded scenarios)
 vi.stubGlobal('RDKit', mockRDKitModule);
 
-// Mock matchMedia (for responsive components)
+// Mock matchMedia (for responsive components and theme detection)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
+    matches: query.includes('prefers-color-scheme: dark') ? false : false,
     media: query,
     onchange: null,
     addListener: vi.fn(),
@@ -96,3 +121,20 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError;
 });
+
+/**
+ * Custom render function that wraps components in ThemeProvider
+ */
+function AllTheProviders({ children }: { children: React.ReactNode }) {
+  return React.createElement(ThemeProvider, null, children);
+}
+
+function customRender(ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+  return rtlRender(ui, { wrapper: AllTheProviders, ...options });
+}
+
+// Re-export everything from @testing-library/react
+export * from '@testing-library/react';
+
+// Override the render function
+export { customRender as render };

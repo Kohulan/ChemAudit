@@ -40,8 +40,8 @@ async def get_redis(request: Request) -> Optional[Redis]:
 @router.post("/validate", response_model=ValidationResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def validate_molecule(
-    req: Request,
-    request: ValidationRequest,
+    request: Request,
+    body: ValidationRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -55,8 +55,8 @@ async def validate_molecule(
     - API key: 300 requests/minute
 
     Args:
-        req: FastAPI request (required for rate limiting)
-        request: Validation request with molecule and options
+        request: FastAPI request (required for rate limiting)
+        body: Validation request with molecule and options
         api_key: Optional API key for higher rate limits
 
     Returns:
@@ -74,9 +74,9 @@ async def validate_molecule(
         "mol": MoleculeFormat.MOL,
         "auto": None
     }
-    input_format = format_map.get(request.format)
+    input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(request.molecule, input_format)
+    parse_result = parse_molecule(body.molecule, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -92,15 +92,15 @@ async def validate_molecule(
     mol = parse_result.mol
 
     # Extract molecule info (needed for InChIKey)
-    mol_info = extract_molecule_info(mol, request.molecule)
+    mol_info = extract_molecule_info(mol, body.molecule, body.preserve_aromatic)
 
     # Check cache if enabled
-    redis = await get_redis(req)
+    redis = await get_redis(request)
     cache_key = None
     cached_from_redis = False
 
     if settings.VALIDATION_CACHE_ENABLED and redis and mol_info.inchikey:
-        cache_key = validation_cache_key(mol_info.inchikey, request.checks)
+        cache_key = validation_cache_key(mol_info.inchikey, body.checks)
         cached = await get_cached_validation(redis, cache_key)
 
         if cached:
@@ -111,7 +111,7 @@ async def validate_molecule(
             return ValidationResponse(**cached)
 
     # Run validation (cache miss or caching disabled)
-    results, score = validation_engine.validate(mol, request.checks)
+    results, score = validation_engine.validate(mol, body.checks)
 
     # Convert to schema
     check_results = [
@@ -166,19 +166,35 @@ async def list_checks(
     return validation_engine.list_checks()
 
 
-def extract_molecule_info(mol: Chem.Mol, input_smiles: str) -> MoleculeInfo:
+def extract_molecule_info(mol: Chem.Mol, input_smiles: str, preserve_aromatic: bool = False) -> MoleculeInfo:
     """
     Extract molecule properties.
 
     Args:
         mol: RDKit molecule object
         input_smiles: Original input string
+        preserve_aromatic: If True, output aromatic SMILES notation (lowercase atoms)
 
     Returns:
         MoleculeInfo with molecular properties
     """
     try:
-        canonical = Chem.MolToSmiles(mol)
+        # When preserve_aromatic is True, we don't kekulize (default RDKit behavior)
+        # When False (default), we kekulize to get explicit double bonds
+        if preserve_aromatic:
+            # Use default RDKit behavior which preserves aromatic notation
+            canonical = Chem.MolToSmiles(mol)
+        else:
+            # Kekulize to get explicit double bonds (C1=CC=CC=C1 instead of c1ccccc1)
+            # Note: RDKit's MolToSmiles uses aromatic notation by default
+            # We need to use the kekuleSmiles parameter to get kekulized form
+            try:
+                Chem.Kekulize(mol, clearAromaticFlags=False)
+                canonical = Chem.MolToSmiles(mol, kekuleSmiles=True)
+            except Exception:
+                # If kekulization fails, fall back to aromatic form
+                canonical = Chem.MolToSmiles(mol)
+
         mol_inchi = rdkit_inchi.MolToInchi(mol)
         mol_inchikey = rdkit_inchi.MolToInchiKey(mol) if mol_inchi else None
         formula = rdMolDescriptors.CalcMolFormula(mol)

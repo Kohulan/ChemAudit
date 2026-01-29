@@ -34,6 +34,7 @@ class ValidationRequest(BaseModel):
     molecule: str = Field(..., min_length=1, max_length=10000, description="Molecule string (SMILES, InChI, or MOL block)")
     format: str = Field(default="auto", pattern="^(auto|smiles|inchi|mol)$", description="Input format")
     checks: List[str] = Field(default=["all"], description="List of checks to run")
+    preserve_aromatic: bool = Field(default=False, description="Preserve aromatic notation in canonical SMILES output")
 
     @field_validator('molecule')
     @classmethod

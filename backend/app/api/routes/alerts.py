@@ -35,8 +35,8 @@ router = APIRouter()
 @router.post("/alerts", response_model=AlertScreenResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def screen_alerts(
-    req: Request,
-    request: AlertScreenRequest,
+    request: Request,
+    body: AlertScreenRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -47,7 +47,7 @@ async def screen_alerts(
     for highlighting.
 
     Args:
-        request: Alert screening request with molecule and catalog selection
+        body: Alert screening request with molecule and catalog selection
 
     Returns:
         AlertScreenResponse with matched alerts and screening metadata
@@ -64,9 +64,9 @@ async def screen_alerts(
         "mol": MoleculeFormat.MOL,
         "auto": None
     }
-    input_format = format_map.get(request.format)
+    input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(request.molecule, input_format)
+    parse_result = parse_molecule(body.molecule, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -82,10 +82,10 @@ async def screen_alerts(
     mol = parse_result.mol
 
     # Extract molecule info
-    mol_info = extract_molecule_info(mol, request.molecule)
+    mol_info = extract_molecule_info(mol, body.molecule)
 
     # Screen for alerts
-    screening_result = alert_manager.screen(mol, catalogs=request.catalogs)
+    screening_result = alert_manager.screen(mol, catalogs=body.catalogs)
 
     # Convert to schema
     alerts = [
@@ -148,8 +148,8 @@ async def list_catalogs(
 @router.post("/alerts/quick-check")
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def quick_check_alerts(
-    req: Request,
-    request: AlertScreenRequest,
+    request: Request,
+    body: AlertScreenRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -159,7 +159,7 @@ async def quick_check_alerts(
     not specific patterns or atom indices.
 
     Args:
-        request: Alert screening request with molecule and catalog selection
+        body: Alert screening request with molecule and catalog selection
 
     Returns:
         Dictionary with has_alerts boolean and checked catalogs
@@ -171,9 +171,9 @@ async def quick_check_alerts(
         "mol": MoleculeFormat.MOL,
         "auto": None
     }
-    input_format = format_map.get(request.format)
+    input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(request.molecule, input_format)
+    parse_result = parse_molecule(body.molecule, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -184,11 +184,11 @@ async def quick_check_alerts(
             }
         )
 
-    has_alerts = alert_manager.has_alerts(parse_result.mol, catalogs=request.catalogs)
+    has_alerts = alert_manager.has_alerts(parse_result.mol, catalogs=body.catalogs)
 
     return {
         "has_alerts": has_alerts,
-        "checked_catalogs": request.catalogs,
+        "checked_catalogs": body.catalogs,
     }
 
 

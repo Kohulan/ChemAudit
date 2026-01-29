@@ -81,6 +81,49 @@ Any chemist can validate chemical structures comprehensively — from basic pars
 - Real-time collaborative editing — unnecessary for validation workflow
 - Mobile app — web-first, responsive design sufficient
 
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| Single molecule validation with 8+ checks | Phase 1 | Pending |
+| SMILES, InChI, MOL/SDF format support | Phase 1 | Pending |
+| Parsability, sanitization, valence, aromaticity checks | Phase 1 | Pending |
+| Stereochemistry validation | Phase 1 | Pending |
+| Representation consistency | Phase 1 | Pending |
+| Overall quality score (0-100) | Phase 1 | Pending |
+| PAINS A/B/C pattern screening | Phase 2 | Pending |
+| BRENK alerts | Phase 2 | Pending |
+| NIH, ZINC, ChEMBL alert sets | Phase 2 | Pending |
+| Matched atom highlighting | Phase 2 | Pending |
+| ML-readiness scoring | Phase 2 | Pending |
+| NP-likeness scoring | Phase 2 | Pending |
+| Scaffold analysis | Phase 2 | Pending |
+| ChEMBL-compatible standardization | Phase 2 | Pending |
+| Salt stripping, solvent removal, normalization | Phase 2 | Pending |
+| Tautomer canonicalization | Phase 2 | Pending |
+| Parent structure extraction | Phase 2 | Pending |
+| Before/after comparison view | Phase 2 | Pending |
+| File upload (SDF, CSV) up to 10K | Phase 2 | Pending |
+| Progress tracking with WebSocket | Phase 2 | Pending |
+| Job queue with Celery workers | Phase 2 | Pending |
+| Partial failure handling | Phase 2 | Pending |
+| Result aggregation and statistics | Phase 2 | Pending |
+| RDKit.js molecule rendering | Phase 1 | Pending |
+| Interactive validation results dashboard | Phase 1 | Pending |
+| Batch upload with drag-and-drop | Phase 3 | Pending |
+| Export (CSV, Excel, SDF, JSON) | Phase 3 | Pending |
+| PDF report generation | Phase 3 | Pending |
+| RESTful API with OpenAPI docs | Phase 1 | Pending |
+| Rate limiting and API key auth | Phase 3 | Pending |
+| Python client library | Phase 3 | Pending |
+| DECIMER OCSR output validation | Phase 3 | Pending |
+| COCONUT database lookup | Phase 3 | Pending |
+| PubChem cross-reference | Phase 3 | Pending |
+| ChEMBL bioactivity lookup | Phase 3 | Pending |
+| Docker Compose for development | Phase 1 | Pending |
+| Production-ready Docker images | Phase 1 | Pending |
+| Self-hosting documentation | Phase 1 | Pending |
+
 ## Context
 
 **Existing Documentation:**
@@ -89,6 +132,11 @@ Any chemist can validate chemical structures comprehensively — from basic pars
 - `docs/ARCHITECTURE.md` — System design, code structure, patterns
 - `docs/CLAUDE_CODE_GUIDE.md` — Implementation snippets and patterns
 - `docs/SKILLS.md` — Technical dependencies and requirements
+
+**Planning Files:**
+- `.planning/ROADMAP.md` — Phase roadmap with success criteria
+- `.planning/STATE.md` — Project state and session continuity
+- `.planning/research/` — Research findings (stack, features, architecture, pitfalls)
 
 **Codebase Map:**
 - `.planning/codebase/` — Technology stack, architecture, conventions
@@ -117,4 +165,4 @@ Chemists currently validate structures manually using fragmented tools. ChemStru
 | PostgreSQL for job/result storage | Reliable, good JSON support, familiar | — Pending |
 
 ---
-*Last updated: 2026-01-20 after initialization*
+*Last updated: 2026-01-20 after roadmap creation*

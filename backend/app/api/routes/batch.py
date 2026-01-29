@@ -46,7 +46,7 @@ async def upload_batch(
     """
     Upload a file for batch processing.
 
-    Accepts SDF or CSV files with up to 10,000 molecules.
+    Accepts SDF or CSV files with up to 1,000,000 molecules.
     Returns a job_id for tracking progress and retrieving results.
 
     - **file**: SDF (.sdf) or CSV (.csv) file

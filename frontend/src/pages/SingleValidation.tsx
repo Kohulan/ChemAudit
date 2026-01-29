@@ -1,47 +1,99 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Atom,
+  Beaker,
+  AlertTriangle,
+  Database,
+  Sparkles,
+  RotateCcw,
+  Play,
+  Search,
+  Layers,
+  Target,
+  Zap,
+  CheckCircle2,
+  Info,
+} from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
-import { ValidationResults } from '../components/validation/ValidationResults';
-import { AlertResults } from '../components/alerts/AlertResults';
+import { IssueCard } from '../components/validation/IssueCard';
+import { AlertCard } from '../components/alerts/AlertCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
+import { ScoreChart } from '../components/scoring/ScoreChart';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
+import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
+import { ClayButton } from '../components/ui/ClayButton';
+import { Badge } from '../components/ui/Badge';
+import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { useValidation } from '../hooks/useValidation';
-import { alertsApi, scoringApi, standardizationApi } from '../services/api';
+import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
+import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
+import { cn, getScoreLabel } from '../lib/utils';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
+import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../types/integrations';
 
 const EXAMPLE_MOLECULES = [
+  { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
+  { name: 'Caffeine', smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C' },
+  { name: 'Ethanol', smiles: 'CCO' },
+  { name: 'Rhodanine (PAINS)', smiles: 'O=C1NC(=S)SC1' },
+  { name: 'Morphine', smiles: 'CN1CCC23C4=C5C=CC(O)=C4OC2C(O)C=CC3C1C5' },
+  { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
+];
+
+type TabType = 'validate' | 'database' | 'alerts' | 'standardize';
+
+interface TabConfig {
+  id: TabType;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+const TABS: TabConfig[] = [
   {
-    name: 'Aspirin',
-    smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+    id: 'validate',
+    label: 'Validate & Score',
+    icon: <CheckCircle2 className="w-4 h-4" />,
+    description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
   },
   {
-    name: 'Caffeine',
-    smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
+    id: 'database',
+    label: 'Database Lookup',
+    icon: <Database className="w-4 h-4" />,
+    description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
   },
   {
-    name: 'Ethanol',
-    smiles: 'CCO',
+    id: 'alerts',
+    label: 'Alerts Screening',
+    icon: <AlertTriangle className="w-4 h-4" />,
+    description: 'Screen for problematic structural patterns using PAINS, BRENK, NIH, and ZINC filters',
   },
   {
-    name: 'Rhodanine (PAINS)',
-    smiles: 'O=C1NC(=S)SC1',
-  },
-  {
-    name: 'Morphine',
-    smiles: 'CN1CCC23C4=C5C=CC(O)=C4OC2C(O)C=CC3C1C5',
-  },
-  {
-    name: 'Amine HCl (salt)',
-    smiles: 'CCN.Cl',
+    id: 'standardize',
+    label: 'Standardize',
+    icon: <Layers className="w-4 h-4" />,
+    description: 'Normalize structure representation and remove salts/solvents',
   },
 ];
 
 export function SingleValidationPage() {
   const [molecule, setMolecule] = useState('');
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset } = useValidation();
+
+  // Get molecule info immediately when molecule is entered
+  const { info: moleculeInfo, isLoading: moleculeInfoLoading, error: moleculeInfoError } = useMoleculeInfo(molecule);
+
+  // Check if input has aromatic atoms (lowercase c, n, o, s in SMILES context)
+  const hasAromaticInput = /[cnos]/.test(molecule) && molecule.trim().length > 0;
+
+  // Aromatic SMILES preference - show option when aromatic atoms detected
+  const [preferAromaticSmiles, setPreferAromaticSmiles] = useState(false);
 
   // Alert screening state
   const [alertResult, setAlertResult] = useState<AlertScreenResponse | null>(null);
@@ -60,21 +112,30 @@ export function SingleValidationPage() {
   const [standardizationLoading, setStandardizationLoading] = useState(false);
   const [includeTautomer, setIncludeTautomer] = useState(false);
 
+  // SMILES display preference
+  const [showKekulized, setShowKekulized] = useState(false);
+
+  // Database lookup state
+  const [databaseResults, setDatabaseResults] = useState<{
+    pubchem: PubChemResult | null;
+    chembl: ChEMBLResult | null;
+    coconut: COCONUTResult | null;
+  } | null>(null);
+  const [databaseLoading, setDatabaseLoading] = useState(false);
+
   const handleValidate = async () => {
     if (!molecule.trim()) return;
-
     await validate({
       molecule: molecule.trim(),
       format: 'auto',
+      preserve_aromatic: preferAromaticSmiles,
     });
   };
 
   const handleScreenAlerts = async () => {
     if (!molecule.trim()) return;
-
     setAlertsLoading(true);
     setAlertError(null);
-
     try {
       const response = await alertsApi.screenAlerts({
         molecule: molecule.trim(),
@@ -92,10 +153,8 @@ export function SingleValidationPage() {
 
   const handleCalculateScores = async () => {
     if (!molecule.trim()) return;
-
     setScoringLoading(true);
     setScoringError(null);
-
     try {
       const response = await scoringApi.getScoring(molecule.trim(), 'auto');
       setScoringResult(response);
@@ -109,18 +168,13 @@ export function SingleValidationPage() {
 
   const handleStandardize = async () => {
     if (!molecule.trim()) return;
-
     setStandardizationLoading(true);
     setStandardizationError(null);
-
     try {
       const response = await standardizationApi.standardize({
         molecule: molecule.trim(),
         format: 'auto',
-        options: {
-          include_tautomer: includeTautomer,
-          preserve_stereo: true,
-        },
+        options: { include_tautomer: includeTautomer, preserve_stereo: true },
       });
       setStandardizationResult(response);
     } catch (err) {
@@ -131,8 +185,26 @@ export function SingleValidationPage() {
     }
   };
 
+  const handleDatabaseLookup = async () => {
+    if (!molecule.trim()) return;
+    setDatabaseLoading(true);
+    try {
+      const results = await integrationsApi.lookupAll({ smiles: molecule.trim() });
+      setDatabaseResults(results);
+    } catch (err) {
+      console.error('Database lookup error:', err);
+      setDatabaseResults(null);
+    } finally {
+      setDatabaseLoading(false);
+    }
+  };
+
   const handleExampleClick = (smiles: string) => {
     setMolecule(smiles);
+    resetAll();
+  };
+
+  const resetAll = () => {
     reset();
     setAlertResult(null);
     setAlertError(null);
@@ -140,267 +212,862 @@ export function SingleValidationPage() {
     setScoringError(null);
     setStandardizationResult(null);
     setStandardizationError(null);
+    setDatabaseResults(null);
     setHighlightedAtoms([]);
   };
 
   const handleReset = () => {
     setMolecule('');
-    reset();
-    setAlertResult(null);
-    setAlertError(null);
-    setScoringResult(null);
-    setScoringError(null);
-    setStandardizationResult(null);
-    setStandardizationError(null);
-    setHighlightedAtoms([]);
+    resetAll();
   };
 
   const toggleCatalog = (catalog: string) => {
     setSelectedCatalogs((prev) =>
-      prev.includes(catalog)
-        ? prev.filter((c) => c !== catalog)
-        : [...prev, catalog]
+      prev.includes(catalog) ? prev.filter((c) => c !== catalog) : [...prev, catalog]
     );
   };
 
-  const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading;
+  const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading || databaseLoading;
+  const hasError = error || alertError || scoringError || standardizationError;
+
+  // Calculate quality score
+  const qualityScore = result?.overall_score ?? scoringResult?.ml_readiness?.score ?? null;
+  // ML ready if score >= 70
+  const mlReadyScore = scoringResult?.ml_readiness?.score;
+  const mlReady = mlReadyScore !== undefined ? mlReadyScore >= 70 : null;
+
+  // Derived state for right column
+  const showStandardizationComparison = activeTab === 'standardize' && standardizationResult;
+  const hasScores = result?.overall_score !== undefined || scoringResult?.ml_readiness;
+
+  // Get canonical SMILES from any available result
+  const canonicalSmiles = result?.molecule_info.canonical_smiles
+    || alertResult?.molecule_info.canonical_smiles
+    || scoringResult?.molecule_info.canonical_smiles;
+
+  // Current issues to display based on active tab/operation
+  const validationIssues = result?.issues || [];
+  const alertIssues = alertResult?.alerts || [];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900">
-          Single Molecule Validation
-        </h2>
-        <p className="text-gray-500 mt-2">
-          Validate chemical structures with comprehensive checks
+      <motion.div
+        className="text-center pt-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight">
+          Molecule Validation
+        </h1>
+        <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto">
+          Comprehensive validation, scoring, and standardization for chemical structures
         </p>
-      </div>
+      </motion.div>
 
       {/* Example molecules */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        <span className="text-sm text-gray-600 self-center">Try examples:</span>
-        {EXAMPLE_MOLECULES.map((example) => (
-          <button
+      <motion.div
+        className="flex flex-wrap gap-2 justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <span className="text-sm text-[var(--color-text-muted)] self-center mr-2">Try:</span>
+        {EXAMPLE_MOLECULES.map((example, i) => (
+          <motion.button
             key={example.name}
             onClick={() => handleExampleClick(example.smiles)}
-            className="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors"
+            className={cn(
+              'px-3 py-1.5 text-sm rounded-full transition-all',
+              'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
+              'text-[var(--color-text-secondary)]',
+              'hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]',
+              'hover:shadow-[0_0_12px_var(--glow-primary)]'
+            )}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 + i * 0.05 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             {example.name}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Input and Preview Section */}
+      {/* Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Input */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Input Structure</h3>
+        {/* LEFT COLUMN */}
+        <motion.div
+          className="space-y-4"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {/* Input Section */}
+          <div className="card-glass p-5 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                <Beaker className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
+                  Input Structure
+                </h4>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">SMILES, InChI, or draw</p>
+              </div>
+            </div>
             <StructureInput value={molecule} onChange={setMolecule} />
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={handleValidate}
-                disabled={!molecule.trim() || isAnyLoading}
-                className="flex-1 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-              >
-                {isLoading ? 'Validating...' : 'Validate'}
-              </button>
-              <button
+
+            <div className="mt-4 flex items-center gap-3">
+              <ClayButton
                 onClick={handleReset}
-                disabled={!molecule && !result && !error && !alertResult && !scoringResult && !standardizationResult}
-                className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 font-medium rounded-lg transition-colors"
+                disabled={!molecule && !result && !alertResult && !scoringResult && !standardizationResult && !databaseResults}
+                leftIcon={<RotateCcw className="w-4 h-4" />}
               >
                 Reset
-              </button>
+              </ClayButton>
             </div>
 
-            {/* Scoring Section */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="font-medium text-gray-700 mb-2">ML-Readiness Scoring</h4>
-              <p className="text-xs text-gray-500 mb-3">
-                Calculate ML-readiness, NP-likeness, and extract Murcko scaffold
-              </p>
-              <button
-                onClick={handleCalculateScores}
-                disabled={!molecule.trim() || isAnyLoading}
-                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-              >
-                {scoringLoading ? 'Calculating...' : 'Calculate Scores'}
-              </button>
-            </div>
+            {/* Parsing Failed Message - Suggest trying validation */}
+            <AnimatePresence>
+              {moleculeInfoError && molecule.trim() && !result && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-4 pt-4 border-t border-[var(--color-border)]"
+                >
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                        Initial parsing failed
+                      </p>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                        The browser-based parser couldn't read this structure, but the server might be able to sanitize and fix it.
+                        Try clicking <strong>Validate</strong> to process it with the full RDKit engine.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Alert Screening Section */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="font-medium text-gray-700 mb-2">Structural Alerts</h4>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {['PAINS', 'BRENK', 'NIH', 'ZINC'].map((catalog) => (
-                  <label
-                    key={catalog}
-                    className={`px-3 py-1 text-sm rounded-md cursor-pointer transition-colors ${
-                      selectedCatalogs.includes(catalog)
-                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                    }`}
-                  >
+            {/* Aromatic SMILES Preference - Show when aromatic atoms detected (even if parsing failed) */}
+            <AnimatePresence>
+              {hasAromaticInput && molecule.trim() && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3"
+                >
+                  <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer p-2 rounded-lg hover:bg-[var(--color-surface-sunken)] transition-colors">
                     <input
                       type="checkbox"
-                      checked={selectedCatalogs.includes(catalog)}
-                      onChange={() => toggleCatalog(catalog)}
-                      className="sr-only"
+                      checked={preferAromaticSmiles}
+                      onChange={(e) => setPreferAromaticSmiles(e.target.checked)}
+                      className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
                     />
-                    {catalog}
+                    <span>Preserve aromatic notation in output (e.g., <code className="text-[10px] bg-[var(--color-surface-sunken)] px-1 rounded">c1ccccc1</code> instead of <code className="text-[10px] bg-[var(--color-surface-sunken)] px-1 rounded">C1=CC=CC=C1</code>)</span>
                   </label>
-                ))}
-              </div>
-              <button
-                onClick={handleScreenAlerts}
-                disabled={!molecule.trim() || isAnyLoading || selectedCatalogs.length === 0}
-                className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-              >
-                {alertsLoading ? 'Screening...' : 'Screen for Alerts'}
-              </button>
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Standardization Section */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="font-medium text-gray-700 mb-2">Standardization</h4>
-              <p className="text-xs text-gray-500 mb-3">
-                Standardize structure using ChEMBL pipeline (salt stripping, normalization)
-              </p>
-              <label className="flex items-center gap-2 mb-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={includeTautomer}
-                  onChange={(e) => setIncludeTautomer(e.target.checked)}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-600">Include tautomer canonicalization</span>
-                <span className="relative">
-                  <span className="text-amber-500 cursor-help" title="May lose E/Z stereochemistry">!</span>
-                  <span className="absolute left-6 top-0 w-48 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 hidden group-hover:block z-10">
-                    Warning: Tautomer canonicalization may remove E/Z double bond stereochemistry
-                  </span>
-                </span>
-              </label>
-              <button
-                onClick={handleStandardize}
-                disabled={!molecule.trim() || isAnyLoading}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-              >
-                {standardizationLoading ? 'Standardizing...' : 'Standardize'}
-              </button>
-            </div>
+            {/* Molecule Info - Shows when valid molecule is entered or after validation */}
+            <AnimatePresence>
+              {(moleculeInfo || result) && !moleculeInfoLoading && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-4 pt-4 border-t border-[var(--color-border)]"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Atom className="w-4 h-4 text-[var(--color-primary)]" />
+                    <span className="text-xs font-medium text-[var(--color-text-secondary)]">Molecule Info</span>
+                    <Badge variant="success" size="sm">{result ? 'Validated' : 'Valid'}</Badge>
+                  </div>
+
+                  {/* Show detailed info if validation result available, otherwise basic info */}
+                  {result ? (
+                    <div className="space-y-3">
+                      {/* Stats row */}
+                      <div className="grid grid-cols-4 gap-2 text-center">
+                        {result.molecule_info.num_atoms && (
+                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_atoms}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
+                          </div>
+                        )}
+                        {moleculeInfo?.numBonds && (
+                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numBonds}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Bonds</div>
+                          </div>
+                        )}
+                        {moleculeInfo?.numRings !== undefined && (
+                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numRings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Rings</div>
+                          </div>
+                        )}
+                        {result.molecule_info.molecular_weight && (
+                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.molecular_weight.toFixed(1)}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">MW</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Detailed info */}
+                      <div className="space-y-2 text-sm">
+                        {result.molecule_info.molecular_formula && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider w-16">Formula</span>
+                            <span className="text-[var(--color-text-primary)] font-medium">{result.molecule_info.molecular_formula}</span>
+                          </div>
+                        )}
+                        {result.molecule_info.canonical_smiles && (
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                                {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                              </span>
+                              {moleculeInfo?.kekulizedSmiles && (
+                                <button
+                                  onClick={() => setShowKekulized(!showKekulized)}
+                                  className={cn(
+                                    'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                                    'border shadow-sm',
+                                    showKekulized
+                                      ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
+                                      : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                                  )}
+                                >
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                  </svg>
+                                  {showKekulized ? 'Canonical' : 'Kekulize'}
+                                </button>
+                              )}
+                            </div>
+                            <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded-lg px-3 py-2">
+                              {showKekulized && moleculeInfo?.kekulizedSmiles
+                                ? moleculeInfo.kekulizedSmiles
+                                : result.molecule_info.canonical_smiles}
+                            </code>
+                          </div>
+                        )}
+                        {result.molecule_info.inchikey && (
+                          <div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1">InChIKey</div>
+                            <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded px-2 py-1.5">
+                              {result.molecule_info.inchikey}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : moleculeInfo ? (
+                    <>
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numAtoms}</div>
+                          <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
+                        </div>
+                        <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numBonds}</div>
+                          <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Bonds</div>
+                        </div>
+                        <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numRings}</div>
+                          <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Rings</div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                            {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                          </span>
+                          {moleculeInfo.kekulizedSmiles && (
+                            <button
+                              onClick={() => setShowKekulized(!showKekulized)}
+                              className={cn(
+                                'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                                'border shadow-sm',
+                                showKekulized
+                                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
+                                  : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                              )}
+                            >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                              </svg>
+                              {showKekulized ? 'Canonical' : 'Kekulize'}
+                            </button>
+                          )}
+                        </div>
+                        <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded-lg px-3 py-2">
+                          {showKekulized && moleculeInfo.kekulizedSmiles
+                            ? moleculeInfo.kekulizedSmiles
+                            : moleculeInfo.canonicalSmiles}
+                        </code>
+                      </div>
+                    </>
+                  ) : null}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
 
-        {/* Preview */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Structure Preview</h3>
-            <MoleculeViewer
-              smiles={result?.molecule_info.canonical_smiles || alertResult?.molecule_info.canonical_smiles || scoringResult?.molecule_info.canonical_smiles || molecule}
-              highlightAtoms={highlightedAtoms}
-              width={400}
-              height={300}
-              className="mx-auto"
-            />
-            {highlightedAtoms.length > 0 && (
-              <div className="mt-2 text-xs text-center text-amber-600 font-medium">
-                Highlighting atoms: {highlightedAtoms.join(', ')}
-              </div>
+          {/* Combined Tab Bar + Content */}
+          <div className="card overflow-hidden">
+            {/* Tab Bar */}
+            <div className="flex flex-wrap gap-1 p-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all',
+                    activeTab === tab.id
+                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]/50 hover:text-[var(--color-text-primary)]'
+                  )}
+                >
+                  {tab.icon}
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="p-5 sm:p-6"
+              >
+                {/* Validate & Score Tab */}
+                {activeTab === 'validate' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <p className="text-[var(--color-text-secondary)] text-sm">
+                        Validate your chemical structure for correctness and calculate
+                        ML-readiness scores for machine learning applications.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={isLoading}
+                        leftIcon={<Play className="w-4 h-4" />}
+                      >
+                        Validate
+                      </ClayButton>
+                      <ClayButton
+                        variant="accent"
+                        onClick={handleCalculateScores}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={scoringLoading}
+                        leftIcon={<Sparkles className="w-4 h-4" />}
+                      >
+                        Score
+                      </ClayButton>
+                    </div>
+                  </div>
+                )}
+
+                {/* Database Lookup Tab */}
+                {activeTab === 'database' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[var(--color-text-secondary)] text-sm mb-3">
+                          Search compound databases for additional information:
+                        </p>
+                        <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">PubChem</strong> — NIH compound database (100M+ compounds)
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">ChEMBL</strong> — Bioactivity and drug data
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">COCONUT</strong> — Natural products database
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <ClayButton
+                      variant="primary"
+                      onClick={handleDatabaseLookup}
+                      disabled={!molecule.trim() || isAnyLoading}
+                      loading={databaseLoading}
+                      leftIcon={<Search className="w-4 h-4" />}
+                    >
+                      Look Up
+                    </ClayButton>
+                  </div>
+                )}
+
+                {/* Alerts Screening Tab */}
+                {activeTab === 'alerts' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <p className="text-[var(--color-text-secondary)] text-sm">
+                        Screen for problematic structural patterns that may cause issues
+                        in assays or drug development.
+                      </p>
+                    </div>
+
+                    {/* Catalog selector */}
+                    <div>
+                      <p className="text-xs text-[var(--color-text-muted)] mb-2">Select catalogs to screen:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['PAINS', 'BRENK', 'NIH', 'ZINC'].map((catalog) => (
+                          <button
+                            key={catalog}
+                            onClick={() => toggleCatalog(catalog)}
+                            className={cn(
+                              'px-3 py-1.5 text-sm rounded-lg transition-all',
+                              selectedCatalogs.includes(catalog)
+                                ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                                : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-transparent hover:border-[var(--color-border)]'
+                            )}
+                          >
+                            {catalog}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <ClayButton
+                      variant="primary"
+                      onClick={handleScreenAlerts}
+                      disabled={!molecule.trim() || isAnyLoading || selectedCatalogs.length === 0}
+                      loading={alertsLoading}
+                      leftIcon={<AlertTriangle className="w-4 h-4" />}
+                    >
+                      Screen Alerts
+                    </ClayButton>
+                  </div>
+                )}
+
+                {/* Standardize Tab */}
+                {activeTab === 'standardize' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[var(--color-text-secondary)] text-sm mb-3">
+                          Standardize your structure using the ChEMBL pipeline. This includes:
+                        </p>
+                        <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                            Salt and solvent removal
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                            Charge neutralization
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                            Stereochemistry normalization
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                            Tautomer canonicalization (optional)
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeTautomer}
+                        onChange={(e) => setIncludeTautomer(e.target.checked)}
+                        className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                      />
+                      Enable tautomer canonicalization
+                    </label>
+
+                    <ClayButton
+                      variant="primary"
+                      onClick={handleStandardize}
+                      disabled={!molecule.trim() || isAnyLoading}
+                      loading={standardizationLoading}
+                      leftIcon={<Layers className="w-4 h-4" />}
+                    >
+                      Standardize
+                    </ClayButton>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Database Results - Separate Box */}
+          <AnimatePresence>
+            {databaseResults && activeTab === 'database' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="card p-5 sm:p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
+                      Database Results
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Cross-reference results</p>
+                  </div>
+                </div>
+                <DatabaseLookupResults results={databaseResults} />
+              </motion.div>
             )}
-          </div>
-        </div>
+          </AnimatePresence>
+
+          {/* Loading State */}
+          <AnimatePresence>
+            {isAnyLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="card-glass p-6"
+              >
+                <MoleculeLoader
+                  size="md"
+                  text={
+                    isLoading ? 'Running validation checks...' :
+                    databaseLoading ? 'Querying external databases...' :
+                    scoringLoading ? 'Calculating scores...' :
+                    standardizationLoading ? 'Running standardization pipeline...' :
+                    'Screening for structural alerts...'
+                  }
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Error State */}
+          <AnimatePresence>
+            {hasError && !isAnyLoading && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="card p-5 border-red-500/30"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-red-500 mb-1">
+                      {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error) as string)?.includes('parse') ? 'Parse Error' : 'Error'}
+                    </h3>
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      {error?.error || alertError?.error || scoringError?.error || standardizationError?.error}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* RIGHT COLUMN */}
+        <motion.div
+          className="space-y-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          {/* Standardization Comparison View - replaces normal right column */}
+          {showStandardizationComparison ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="card p-5 sm:p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
+                    Standardization Results
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">ChEMBL structure pipeline</p>
+                </div>
+                <Badge variant={standardizationResult.result.steps_applied.filter(s => s.applied).length > 0 ? 'info' : 'success'}>
+                  {standardizationResult.result.steps_applied.filter(s => s.applied).length} changes
+                </Badge>
+              </div>
+              <StandardizationResults result={standardizationResult.result} />
+              <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
+                Completed in {standardizationResult.execution_time_ms}ms
+              </p>
+            </motion.div>
+          ) : (
+            <>
+              {/* Molecule Viewer */}
+              <div className="card-glow p-5 sm:p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <Atom className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
+                      Structure Preview
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      {molecule ? 'Rendered with RDKit.js' : 'Enter a SMILES to preview'}
+                    </p>
+                  </div>
+                </div>
+                <div className="molecule-preview rounded-xl min-h-[280px] flex items-center justify-center">
+                  <MoleculeViewer
+                    smiles={canonicalSmiles || molecule}
+                    highlightAtoms={highlightedAtoms}
+                    width={380}
+                    height={280}
+                  />
+                </div>
+                {highlightedAtoms.length > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-3 text-xs text-center text-amber-500 font-medium"
+                  >
+                    Highlighting atoms: {highlightedAtoms.join(', ')}
+                  </motion.p>
+                )}
+              </div>
+
+              {/* Score Tiles - Only show after validation/scoring */}
+              <AnimatePresence>
+                {hasScores && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    {/* Quality Score */}
+                    <div className="card-gradient p-4 sm:p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                            <Target className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs font-medium text-[var(--color-text-secondary)]">Quality</span>
+                        </div>
+                        {qualityScore !== null && (
+                          <Badge variant={qualityScore >= 70 ? 'success' : qualityScore >= 40 ? 'warning' : 'error'} size="sm">
+                            {getScoreLabel(qualityScore)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className={cn(
+                          'text-3xl font-bold tracking-tight',
+                          qualityScore !== null && qualityScore >= 70 && 'text-gradient text-glow'
+                        )}>
+                          {qualityScore !== null ? Math.round(qualityScore) : '--'}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-muted)]">/100</span>
+                      </div>
+                    </div>
+
+                    {/* ML Readiness */}
+                    <div className="card-accent p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
+                            <Zap className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs font-medium text-[var(--color-text-secondary)]">ML Ready</span>
+                        </div>
+                        {mlReady !== null && (
+                          <Badge variant={mlReady ? 'success' : 'warning'} dot size="sm">
+                            {mlReady ? 'Ready' : 'Review'}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex justify-center">
+                        {mlReadyScore !== undefined ? (
+                          <ScoreChart
+                            score={mlReadyScore}
+                            label="ML-Readiness"
+                            size={100}
+                            compact
+                          />
+                        ) : (
+                          <div className="w-[100px] h-[100px] flex items-center justify-center">
+                            <span className="text-3xl font-bold text-[var(--color-text-muted)]">--</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Issues / Alerts Panel */}
+              <AnimatePresence>
+                {/* Validation Issues */}
+                {result && validationIssues.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="card p-5 sm:p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
+                        Validation Issues
+                      </h4>
+                      <Badge variant="warning">{validationIssues.length} found</Badge>
+                    </div>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {validationIssues.map((issue, index) => (
+                        <IssueCard
+                          key={`${issue.check_name}-${index}`}
+                          issue={issue}
+                          onAtomHover={setHighlightedAtoms}
+                        />
+                      ))}
+                    </div>
+                    {result && (
+                      <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
+                        Completed in {result.execution_time_ms.toFixed(0)}ms
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* Validation Success - no issues */}
+                {result && validationIssues.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="rounded-xl p-5 text-center bg-emerald-500/10 border border-emerald-500/20"
+                  >
+                    <div className="text-4xl mb-2">✓</div>
+                    <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                      No Issues Found
+                    </h3>
+                    <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80">
+                      All validation checks passed successfully
+                    </p>
+                    <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                      Completed in {result.execution_time_ms.toFixed(0)}ms
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Alert Screening Results */}
+                {alertResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="card p-5 sm:p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
+                          Structural Alerts
+                        </h4>
+                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                          Screened: {alertResult.screened_catalogs.join(', ')}
+                        </p>
+                      </div>
+                      <Badge variant={alertIssues.length === 0 ? 'success' : 'warning'}>
+                        {alertIssues.length} alerts
+                      </Badge>
+                    </div>
+
+                    {alertIssues.length > 0 ? (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        {alertIssues.map((alert, index) => (
+                          <AlertCard
+                            key={`${alert.pattern_name}-${index}`}
+                            alert={alert}
+                            onAtomHover={setHighlightedAtoms}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl p-4 text-center bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="text-2xl mb-1">✓</div>
+                        <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                          No structural alerts detected
+                        </p>
+                      </div>
+                    )}
+
+                    <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
+                      Completed in {alertResult.execution_time_ms}ms
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+            </>
+          )}
+        </motion.div>
       </div>
 
-      {/* Loading State */}
-      {isAnyLoading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-700 font-medium">
-            {isLoading ? 'Running validation checks...' :
-             scoringLoading ? 'Calculating scores...' :
-             standardizationLoading ? 'Running standardization pipeline...' :
-             'Screening for structural alerts...'}
-          </p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {(error || alertError || scoringError || standardizationError) && !isAnyLoading && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">!</span>
-            <div className="flex-1">
-              <h3 className="font-semibold text-red-900 mb-2">
-                {(error?.error || alertError?.error || scoringError?.error || standardizationError?.error)?.includes('parse') ? 'Parse Error' : 'Error'}
-              </h3>
-              <p className="text-red-700 text-sm">{error?.error || alertError?.error || scoringError?.error || standardizationError?.error}</p>
-              {(error?.details || alertError?.details || scoringError?.details || standardizationError?.details) && (
-                <div className="mt-3 text-xs text-red-600">
-                  {(error?.details?.errors || alertError?.details?.errors || scoringError?.details?.errors || standardizationError?.details?.errors) && (
-                    <div>
-                      <strong>Errors:</strong>
-                      <ul className="list-disc list-inside mt-1">
-                        {(error?.details?.errors || alertError?.details?.errors || scoringError?.details?.errors || standardizationError?.details?.errors)?.map((err, i) => (
-                          <li key={i}>{err}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Validation Results */}
-      {result && !isLoading && (
-        <ValidationResults
-          result={result}
-          onHighlightAtoms={setHighlightedAtoms}
-        />
-      )}
-
-      {/* Scoring Results */}
-      {scoringResult && !scoringLoading && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <ScoringResults scoringResponse={scoringResult} />
-        </div>
-      )}
-
-      {/* Alert Results */}
-      {alertResult && !alertsLoading && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Structural Alert Screening Results
-          </h3>
-          <AlertResults
-            alerts={alertResult.alerts}
-            screenedCatalogs={alertResult.screened_catalogs}
-            educationalNote={alertResult.educational_note}
-            onHighlightAtoms={setHighlightedAtoms}
-          />
-          <div className="mt-4 text-xs text-gray-500 text-right">
-            Completed in {alertResult.execution_time_ms}ms
-          </div>
-        </div>
-      )}
-
-      {/* Standardization Results */}
-      {standardizationResult && !standardizationLoading && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Standardization Results
-          </h3>
-          <StandardizationResults result={standardizationResult.result} />
-          <div className="mt-4 text-xs text-gray-500 text-right">
-            Completed in {standardizationResult.execution_time_ms}ms
-          </div>
-        </div>
-      )}
+      {/* Scoring Results - Full Width Below Grid */}
+      <AnimatePresence>
+        {scoringResult && activeTab === 'validate' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="card p-6 sm:p-8"
+          >
+            <ScoringResults scoringResponse={scoringResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ChemStructVal - Chemical Structure Validation</title>
+    <meta name="theme-color" content="#0d9488" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#2dd4bf" media="(prefers-color-scheme: dark)" />
+    <title>ChemVault - Chemical Structure Validation Toolkit</title>
+
+    <!-- Prevent theme flash on page load -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('chemvault-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (theme === 'dark' || (theme === 'system' && prefersDark) || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
 
     <!-- RDKit.js WASM module -->
     <script src="https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js"></script>

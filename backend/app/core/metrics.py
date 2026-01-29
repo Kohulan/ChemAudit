@@ -97,7 +97,7 @@ STANDARDIZATIONS_PERFORMED = Counter(
 EXTERNAL_API_CALLS = Counter(
     "chemstructval_external_api_calls_total",
     "Total number of external API calls",
-    ["api", "status"],  # api: pubchem, chembl, decimer, coconut; status: success, error
+    ["api", "status"],  # api: pubchem, chembl, coconut; status: success, error
 )
 
 EXTERNAL_API_DURATION = Histogram(
@@ -184,7 +184,7 @@ def record_external_api_call(
     Record an external API call.
 
     Args:
-        api: API name (pubchem, chembl, decimer, coconut)
+        api: API name (pubchem, chembl, coconut)
         status: Result status (success, error)
         duration: Request duration in seconds (optional)
     """

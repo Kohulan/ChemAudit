@@ -23,6 +23,7 @@ export interface ValidationRequest {
   molecule: string;
   format?: 'auto' | 'smiles' | 'inchi' | 'mol';
   checks?: string[];
+  preserve_aromatic?: boolean;
 }
 
 export interface ValidationResponse {

@@ -1,17 +1,48 @@
+import { motion } from 'framer-motion';
+import { BookOpen, ExternalLink } from 'lucide-react';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { cn } from '../../lib/utils';
+
 /**
- * Application header with chemistry-themed gradient and branding
+ * Premium header with glassmorphism and gradient accent
  */
 export function Header() {
   return (
-    <header className="bg-gradient-chem shadow-chem sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50">
+      {/* Glass background */}
+      <div
+        className={cn(
+          'absolute inset-0',
+          'bg-[var(--color-surface-elevated)]/80 dark:bg-[var(--color-surface)]/80',
+          'backdrop-blur-xl',
+          'border-b border-[var(--color-border)]'
+        )}
+      />
+
+      {/* Gradient accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--color-primary)]/40 to-transparent" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and branding */}
-          <div className="flex items-center gap-3">
-            {/* Molecule icon */}
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+          <motion.a
+            href="/"
+            className="flex items-center gap-3 group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {/* Molecule icon with gradient */}
+            <div
+              className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)]',
+                'shadow-[0_2px_8px_var(--glow-primary)]',
+                'group-hover:shadow-[0_4px_16px_var(--glow-primary)]',
+                'transition-shadow duration-300'
+              )}
+            >
               <svg
-                className="w-6 h-6 text-white"
+                className="w-5 h-5 text-white"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
@@ -33,40 +64,67 @@ export function Header() {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                ChemStructVal
+              <h1 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">
+                ChemVault
               </h1>
-              <p className="text-xs text-white/70 -mt-0.5">
-                Structure Validation Suite
+              <p className="text-[10px] text-[var(--color-text-muted)] -mt-0.5 tracking-wide uppercase">
+                Structure Validation
               </p>
             </div>
-          </div>
+          </motion.a>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-2">
-            <a
-              href="/"
-              className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-            >
+          <nav className="flex items-center gap-1">
+            <NavLink href="/" active>
               Validate
-            </a>
-            <a
+            </NavLink>
+            <NavLink
               href="http://localhost:8000/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-all flex items-center gap-2"
+              external
+              icon={<BookOpen className="w-4 h-4" />}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
               API Docs
-              <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
-              </svg>
-            </a>
+            </NavLink>
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-[var(--color-border)] mx-2" />
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </nav>
         </div>
       </div>
     </header>
+  );
+}
+
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  active?: boolean;
+  external?: boolean;
+  icon?: React.ReactNode;
+}
+
+function NavLink({ href, children, active, external, icon }: NavLinkProps) {
+  return (
+    <motion.a
+      href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      className={cn(
+        'px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+        'flex items-center gap-2',
+        active
+          ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+          : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-sunken)]'
+      )}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {icon}
+      {children}
+      {external && <ExternalLink className="w-3 h-3 opacity-50" />}
+    </motion.a>
   );
 }

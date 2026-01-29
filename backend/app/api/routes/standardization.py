@@ -38,8 +38,8 @@ _pipeline = StandardizationPipeline()
 @router.post("/standardize", response_model=StandardizeResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def standardize_molecule(
-    req: Request,
-    request: StandardizeRequest,
+    request: Request,
+    body: StandardizeRequest,
     api_key: Optional[str] = Depends(get_api_key)
 ):
     """
@@ -52,7 +52,7 @@ async def standardize_molecule(
     4. **Tautomer** (optional): Canonicalize tautomers (WARNING: may lose E/Z stereo)
 
     Args:
-        request: StandardizeRequest with molecule and options
+        body: StandardizeRequest with molecule and options
 
     Returns:
         StandardizeResponse with original and standardized structures
@@ -69,9 +69,9 @@ async def standardize_molecule(
         "mol": MoleculeFormat.MOL,
         "auto": None
     }
-    input_format = format_map.get(request.format)
+    input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(request.molecule, input_format)
+    parse_result = parse_molecule(body.molecule, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -87,12 +87,12 @@ async def standardize_molecule(
     mol = parse_result.mol
 
     # Extract molecule info
-    mol_info = extract_molecule_info(mol, request.molecule)
+    mol_info = extract_molecule_info(mol, body.molecule)
 
     # Convert request options to internal options
     options = StandardizationOptions(
-        include_tautomer=request.options.include_tautomer,
-        preserve_stereo=request.options.preserve_stereo,
+        include_tautomer=body.options.include_tautomer,
+        preserve_stereo=body.options.preserve_stereo,
     )
 
     # Run standardization pipeline

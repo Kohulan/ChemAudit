@@ -1,28 +1,10 @@
 """
 Schemas for external integration requests and responses.
 
-Covers DECIMER, COCONUT, PubChem, and ChEMBL integrations.
+Covers COCONUT, PubChem, and ChEMBL integrations.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
-
-
-# DECIMER OCSR Integration
-class DECIMERRequest(BaseModel):
-    """Request for DECIMER OCSR validation."""
-    smiles: str = Field(..., description="SMILES string from DECIMER OCSR")
-    confidence: Optional[float] = Field(None, description="Confidence score from DECIMER (0-1)")
-
-
-class DECIMERValidation(BaseModel):
-    """DECIMER OCSR validation result."""
-    smiles: str
-    confidence: Optional[float]
-    is_valid: bool
-    validation_message: str
-    canonical_smiles: Optional[str] = None
-    inchi: Optional[str] = None
-    inchikey: Optional[str] = None
+from typing import Optional, List
 
 
 # COCONUT Natural Products Database

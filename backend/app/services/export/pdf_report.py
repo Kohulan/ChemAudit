@@ -63,8 +63,8 @@ class PDFReportGenerator(BaseExporter):
         # Extract critical issues (top 20)
         critical_issues = self._extract_critical_issues(results, limit=20)
 
-        # Get flagged molecules (score < 70, limit 30)
-        flagged_molecules = self._get_flagged_molecules(results, score_threshold=70, limit=30)
+        # Get all molecules with full validation data
+        all_molecules = self._get_all_molecules(results)
 
         # Render HTML template
         html_content = self.template.render(
@@ -73,7 +73,7 @@ class PDFReportGenerator(BaseExporter):
             stats=stats,
             chart_data=chart_data,
             critical_issues=critical_issues,
-            flagged_molecules=flagged_molecules,
+            all_molecules=all_molecules,
         )
 
         # Convert HTML to PDF
@@ -280,45 +280,59 @@ class PDFReportGenerator(BaseExporter):
 
         return issues[:limit]
 
-    def _get_flagged_molecules(
-        self, results: List[Dict[str, Any]], score_threshold: int = 70, limit: int = 30
-    ) -> List[Dict[str, Any]]:
+    def _get_all_molecules(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Get molecules with low validation scores for visual inspection.
+        Get all molecules with full validation data for the report.
 
         Args:
             results: List of batch result dictionaries
-            score_threshold: Score below which molecules are flagged
-            limit: Maximum number of molecules to return
 
         Returns:
-            List of molecule dictionaries with index, name, score, image_data
+            List of molecule dictionaries with index, name, smiles, score,
+            formula, mw, issues, alerts, and image_data
         """
-        flagged = []
+        molecules = []
 
         for result in results:
-            if not result.get("validation"):
+            smiles = result.get("smiles", "")
+            if not smiles:
                 continue
 
-            score = result["validation"].get("overall_score", 0)
-            if score < score_threshold:
-                # Generate molecule image
-                image_data = self._mol_to_base64_png(result.get("smiles", ""), width=200, height=200)
+            # Get validation data
+            validation = result.get("validation", {})
+            score = validation.get("overall_score", 0)
+            issues = validation.get("issues", [])
 
-                flagged.append(
-                    {
-                        "index": result.get("index", 0),
-                        "name": result.get("name"),
-                        "smiles": result.get("smiles", ""),
-                        "score": score,
-                        "image_data": image_data,
-                    }
-                )
+            # Get molecular properties
+            mol_props = validation.get("molecular_properties", {})
+            formula = mol_props.get("molecular_formula")
+            mw = mol_props.get("molecular_weight")
 
-        # Sort by score (lowest first)
-        flagged.sort(key=lambda x: x["score"])
+            # Get alerts
+            alerts_data = result.get("alerts", {})
+            alerts = alerts_data.get("alerts", [])
 
-        return flagged[:limit]
+            # Generate molecule image
+            image_data = self._mol_to_base64_png(smiles, width=150, height=150)
+
+            molecules.append(
+                {
+                    "index": result.get("index", 0),
+                    "name": result.get("name"),
+                    "smiles": smiles,
+                    "score": score,
+                    "formula": formula,
+                    "mw": mw,
+                    "issues": issues,
+                    "alerts": alerts,
+                    "image_data": image_data,
+                }
+            )
+
+        # Sort by index
+        molecules.sort(key=lambda x: x["index"])
+
+        return molecules
 
     def _mol_to_base64_png(self, smiles: str, width: int = 200, height: int = 200) -> Optional[str]:
         """
