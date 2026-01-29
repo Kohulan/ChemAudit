@@ -1,5 +1,5 @@
 {
-  "name": "chemstructval-frontend",
+  "name": "chemvault-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,6 +22,8 @@
     "lucide-react": "^0.441.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-error-boundary": "^6.1.0",
+    "react-hotkeys-hook": "^4.6.2",
     "react-router-dom": "^6.26.0",
     "recharts": "^3.7.0",
     "tailwind-merge": "^2.5.0"
