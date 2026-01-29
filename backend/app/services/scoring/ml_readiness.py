@@ -3,32 +3,46 @@ ML-Readiness Scorer
 
 Calculates how suitable a molecule is for machine learning applications.
 Score breakdown:
-- Descriptors (40 points): Successful descriptor calculations
-- Fingerprints (40 points): Successful fingerprint generation
+- Standard Descriptors (35 points): CalcMolDescriptors (217 descriptors)
+- Additional Descriptors (5 points): AUTOCORR2D (192) + MQN (42)
+- Fingerprints (40 points): 7 fingerprint types
 - Size/Elements (20 points): Molecular weight and atom count constraints
 """
 from dataclasses import dataclass, field
 from typing import Optional
 
 from rdkit import Chem
-from rdkit.Chem import Descriptors, AllChem, MACCSkeys, rdMolDescriptors
+from rdkit.Chem import Descriptors, MACCSkeys, rdMolDescriptors
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Avalon import pyAvalonTools
 
 
 @dataclass
 class MLReadinessBreakdown:
     """Breakdown of ML-readiness score components."""
 
+    # Standard descriptors (CalcMolDescriptors - 217 descriptors)
     descriptors_score: float = 0.0
-    descriptors_max: float = 40.0
+    descriptors_max: float = 35.0
     descriptors_successful: int = 0
     descriptors_total: int = 0
     failed_descriptors: list = field(default_factory=list)
 
+    # Additional descriptors (AUTOCORR2D + MQN)
+    additional_descriptors_score: float = 0.0
+    additional_descriptors_max: float = 5.0
+    autocorr2d_successful: int = 0
+    autocorr2d_total: int = 192
+    mqn_successful: int = 0
+    mqn_total: int = 42
+
+    # Fingerprints (7 types)
     fingerprints_score: float = 0.0
     fingerprints_max: float = 40.0
     fingerprints_successful: list = field(default_factory=list)
     fingerprints_failed: list = field(default_factory=list)
 
+    # Size constraints
     size_score: float = 0.0
     size_max: float = 20.0
     molecular_weight: Optional[float] = None
@@ -50,13 +64,31 @@ class MLReadinessScorer:
     """
     Scores molecules for ML-readiness based on descriptor calculability,
     fingerprint generation success, and size constraints.
+
+    Fingerprint Types:
+    - Morgan (ECFP-like): Circular fingerprint based on atom connectivity
+    - Morgan Features (FCFP-like): Circular fingerprint with pharmacophore features
+    - MACCS: 166 structural keys
+    - Atom Pair: Encodes pairs of atoms and topological distances
+    - Topological Torsion: Encodes torsion angle patterns
+    - RDKit: Daylight-like path enumeration fingerprint
+    - Avalon: Fast substructure fingerprint
+
+    Descriptor Types:
+    - Standard: 217 RDKit CalcMolDescriptors (physical, topological, functional groups)
+    - AUTOCORR2D: 192 2D autocorrelation descriptors
+    - MQN: 42 Molecular Quantum Numbers (atom/bond type counts)
     """
 
-    # Fingerprint types with their point allocations
+    # Fingerprint types with their point allocations (total: 40 points)
     FINGERPRINT_TYPES = [
-        ("morgan", 15),
-        ("maccs", 15),
-        ("atompair", 10),
+        ("morgan", 8),              # ECFP-like circular fingerprint
+        ("morgan_features", 8),     # FCFP-like with pharmacophore features
+        ("maccs", 8),               # 166 structural keys
+        ("atompair", 4),            # Atom pair fingerprint
+        ("topological_torsion", 4), # Torsion patterns
+        ("rdkit_fp", 4),            # Daylight-like paths
+        ("avalon", 4),              # Avalon substructure fingerprint
     ]
 
     # Size thresholds
@@ -64,6 +96,21 @@ class MLReadinessScorer:
     OPTIMAL_ATOM_RANGE = (3, 100)
     ACCEPTABLE_MW_RANGE = (50, 1200)
     ACCEPTABLE_ATOM_RANGE = (1, 150)
+
+    def __init__(self):
+        """Initialize fingerprint generators using new API to avoid deprecation warnings."""
+        self._morgan_gen = rdFingerprintGenerator.GetMorganGenerator(
+            radius=2, fpSize=2048
+        )
+        self._morgan_feat_gen = rdFingerprintGenerator.GetMorganGenerator(
+            radius=2, fpSize=2048,
+            atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+        )
+        self._atompair_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+        self._torsion_gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(
+            fpSize=2048
+        )
+        self._rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(fpSize=2048)
 
     def score(self, mol: Chem.Mol) -> MLReadinessResult:
         """
@@ -77,8 +124,11 @@ class MLReadinessScorer:
         """
         breakdown = MLReadinessBreakdown()
 
-        # Calculate descriptor score (40 points max)
+        # Calculate standard descriptor score (35 points max)
         self._score_descriptors(mol, breakdown)
+
+        # Calculate additional descriptor score (5 points max)
+        self._score_additional_descriptors(mol, breakdown)
 
         # Calculate fingerprint score (40 points max)
         self._score_fingerprints(mol, breakdown)
@@ -89,6 +139,7 @@ class MLReadinessScorer:
         # Calculate total score
         total_score = int(
             breakdown.descriptors_score +
+            breakdown.additional_descriptors_score +
             breakdown.fingerprints_score +
             breakdown.size_score
         )
@@ -107,7 +158,7 @@ class MLReadinessScorer:
     def _score_descriptors(
         self, mol: Chem.Mol, breakdown: MLReadinessBreakdown
     ) -> None:
-        """Score descriptor calculability (40 points max)."""
+        """Score standard descriptor calculability (35 points max)."""
         try:
             # Use CalcMolDescriptors with missingVal=None to track failures
             # The silent=True prevents RDKit warnings from cluttering output
@@ -139,6 +190,45 @@ class MLReadinessScorer:
             breakdown.descriptors_score = 0.0
             breakdown.failed_descriptors = [f"CalcMolDescriptors error: {str(e)}"]
 
+    def _score_additional_descriptors(
+        self, mol: Chem.Mol, breakdown: MLReadinessBreakdown
+    ) -> None:
+        """Score additional 2D descriptors: AUTOCORR2D + MQN (5 points max)."""
+        autocorr_success = 0
+        mqn_success = 0
+
+        # Calculate AUTOCORR2D (192 values)
+        try:
+            autocorr2d = rdMolDescriptors.CalcAUTOCORR2D(mol)
+            # Count non-None/non-NaN values
+            autocorr_success = sum(
+                1 for v in autocorr2d
+                if v is not None and v == v  # v == v is False for NaN
+            )
+        except Exception:
+            autocorr_success = 0
+
+        # Calculate MQN (42 values)
+        try:
+            mqn = rdMolDescriptors.MQNs_(mol)
+            # MQN returns integers, count successful calculations
+            mqn_success = len([v for v in mqn if v is not None])
+        except Exception:
+            mqn_success = 0
+
+        breakdown.autocorr2d_successful = autocorr_success
+        breakdown.mqn_successful = mqn_success
+
+        # Calculate score based on success rate
+        total_additional = breakdown.autocorr2d_total + breakdown.mqn_total
+        successful_additional = autocorr_success + mqn_success
+
+        if total_additional > 0:
+            breakdown.additional_descriptors_score = (
+                breakdown.additional_descriptors_max *
+                (successful_additional / total_additional)
+            )
+
     def _score_fingerprints(
         self, mol: Chem.Mol, breakdown: MLReadinessBreakdown
     ) -> None:
@@ -149,21 +239,7 @@ class MLReadinessScorer:
 
         for fp_name, points in self.FINGERPRINT_TYPES:
             try:
-                if fp_name == "morgan":
-                    # Morgan fingerprint (radius=2, 2048 bits)
-                    fp = AllChem.GetMorganFingerprintAsBitVect(
-                        mol, radius=2, nBits=2048
-                    )
-                elif fp_name == "maccs":
-                    # MACCS keys
-                    fp = MACCSkeys.GenMACCSKeys(mol)
-                elif fp_name == "atompair":
-                    # Atom pair fingerprint
-                    fp = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(
-                        mol, nBits=2048
-                    )
-                else:
-                    continue
+                fp = self._generate_fingerprint(mol, fp_name)
 
                 # If we get here without exception, fingerprint was successful
                 if fp is not None:
@@ -178,6 +254,25 @@ class MLReadinessScorer:
         breakdown.fingerprints_score = total_score
         breakdown.fingerprints_successful = successful
         breakdown.fingerprints_failed = failed
+
+    def _generate_fingerprint(self, mol: Chem.Mol, fp_name: str):
+        """Generate a specific fingerprint type using new generator API."""
+        if fp_name == "morgan":
+            return self._morgan_gen.GetFingerprint(mol)
+        elif fp_name == "morgan_features":
+            return self._morgan_feat_gen.GetFingerprint(mol)
+        elif fp_name == "maccs":
+            return MACCSkeys.GenMACCSKeys(mol)
+        elif fp_name == "atompair":
+            return self._atompair_gen.GetFingerprint(mol)
+        elif fp_name == "topological_torsion":
+            return self._torsion_gen.GetFingerprint(mol)
+        elif fp_name == "rdkit_fp":
+            return self._rdkit_gen.GetFingerprint(mol)
+        elif fp_name == "avalon":
+            return pyAvalonTools.GetAvalonFP(mol)
+        else:
+            return None
 
     def _score_size(self, mol: Chem.Mol, breakdown: MLReadinessBreakdown) -> None:
         """Score molecule size constraints (20 points max)."""
@@ -234,10 +329,31 @@ class MLReadinessScorer:
         else:
             parts.append("Poor ML-readiness; significant computation issues likely.")
 
+        # Descriptor summary
+        total_descriptors = (
+            breakdown.descriptors_total +
+            breakdown.autocorr2d_total +
+            breakdown.mqn_total
+        )
+        successful_descriptors = (
+            breakdown.descriptors_successful +
+            breakdown.autocorr2d_successful +
+            breakdown.mqn_successful
+        )
+        parts.append(
+            f"{successful_descriptors}/{total_descriptors} descriptors calculated "
+            f"(217 standard + 192 AUTOCORR2D + 42 MQN)."
+        )
+
+        # Fingerprint summary
+        fp_count = len(breakdown.fingerprints_successful)
+        total_fp = len(self.FINGERPRINT_TYPES)
+        parts.append(f"{fp_count}/{total_fp} fingerprint types generated.")
+
         # Specific issues
         if breakdown.failed_descriptors:
             count = len(breakdown.failed_descriptors)
-            parts.append(f"{count} descriptors could not be calculated.")
+            parts.append(f"{count} standard descriptors failed.")
 
         if breakdown.fingerprints_failed:
             parts.append(

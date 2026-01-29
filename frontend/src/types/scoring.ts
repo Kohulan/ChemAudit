@@ -8,16 +8,27 @@
  * Breakdown of ML-readiness score components.
  */
 export interface MLReadinessBreakdown {
+  // Standard descriptors (CalcMolDescriptors - 217 descriptors)
   descriptors_score: number;
   descriptors_max: number;
   descriptors_successful: number;
   descriptors_total: number;
 
+  // Additional descriptors (AUTOCORR2D + MQN)
+  additional_descriptors_score: number;
+  additional_descriptors_max: number;
+  autocorr2d_successful: number;
+  autocorr2d_total: number;
+  mqn_successful: number;
+  mqn_total: number;
+
+  // Fingerprints (7 types)
   fingerprints_score: number;
   fingerprints_max: number;
   fingerprints_successful: string[];
   fingerprints_failed: string[];
 
+  // Size constraints
   size_score: number;
   size_max: number;
   molecular_weight: number | null;
