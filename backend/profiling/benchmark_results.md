@@ -1,4 +1,4 @@
-# ChemStructVal Performance Benchmark Results
+# ChemVault Performance Benchmark Results
 
 ## Environment
 
@@ -66,7 +66,7 @@
 ## Bottlenecks Identified
 
 1. **Standardization (37.3%)** - ChEMBL structure pipeline is the largest contributor
-2. **ML Scoring (34.8%)** - Descriptor calculation across 217 RDKit descriptors
+2. **ML Scoring (34.8%)** - Descriptor calculation across ~208 RDKit descriptors
 3. **Complex molecules** - atorvastatin and ritonavir take 2x longer than simple molecules
 
 ## Optimizations Applied

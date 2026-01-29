@@ -203,11 +203,11 @@ describe('ScoreBreakdownBar', () => {
         label="Descriptors"
         score={35}
         maxScore={40}
-        detail="200/217 calculated"
+        detail="200/208 calculated"
       />
     );
 
-    expect(screen.getByText(/200\/217 calculated/)).toBeInTheDocument();
+    expect(screen.getByText(/200\/208 calculated/)).toBeInTheDocument();
   });
 
   it('calculates percentage correctly', () => {
@@ -242,7 +242,7 @@ describe('ScoreBreakdownBar', () => {
         label="Test"
         score={30}
         maxScore={40}
-        calculation="Score = 40 * (200/217)"
+        calculation="Score = 40 * (200/208)"
         interpretation="Most descriptors calculated successfully"
       />
     );
