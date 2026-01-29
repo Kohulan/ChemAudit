@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Cpu, Fingerprint, Scale, ChevronRight, Sparkles, AlertCircle } from 'lucide-react';
+import { Cpu, Fingerprint, Scale, ChevronRight, Sparkles, AlertCircle, Layers, Database } from 'lucide-react';
 import type { MLReadinessResult } from '../../types/scoring';
 import { ScoreChart } from './ScoreChart';
 import { InfoTooltip } from '../ui/Tooltip';
@@ -39,6 +39,17 @@ function getScoreColor(percentage: number) {
   };
 }
 
+/** Fingerprint type descriptions */
+const FINGERPRINT_INFO: Record<string, { name: string; description: string }> = {
+  morgan: { name: 'Morgan (ECFP)', description: 'Circular fingerprint based on atom connectivity' },
+  morgan_features: { name: 'Morgan Features (FCFP)', description: 'Circular fingerprint with pharmacophore features' },
+  maccs: { name: 'MACCS', description: '166 predefined structural keys' },
+  atompair: { name: 'Atom Pair', description: 'Encodes pairs of atoms and topological distances' },
+  topological_torsion: { name: 'Topological Torsion', description: 'Encodes torsion angle patterns' },
+  rdkit_fp: { name: 'RDKit', description: 'Daylight-like path enumeration fingerprint' },
+  avalon: { name: 'Avalon', description: 'Fast substructure fingerprint' },
+};
+
 interface BreakdownCardProps {
   icon: React.ReactNode;
   label: string;
@@ -47,9 +58,10 @@ interface BreakdownCardProps {
   detail: string;
   subDetail?: string;
   delay?: number;
+  tooltip?: React.ReactNode;
 }
 
-function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay = 0 }: BreakdownCardProps) {
+function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay = 0, tooltip }: BreakdownCardProps) {
   const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
   const color = getScoreColor(percentage);
 
@@ -85,7 +97,10 @@ function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay 
               {icon}
             </div>
             <div>
-              <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">{label}</h4>
+              <div className="flex items-center gap-1">
+                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">{label}</h4>
+                {tooltip}
+              </div>
               <p className="text-xs text-[var(--color-text-muted)]">{detail}</p>
             </div>
           </div>
@@ -117,15 +132,72 @@ function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay 
 }
 
 /**
+ * Fingerprint badges component
+ */
+function FingerprintBadges({ successful, failed }: { successful: string[]; failed: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {successful.map((fp) => {
+        const info = FINGERPRINT_INFO[fp] || { name: fp, description: '' };
+        return (
+          <span
+            key={fp}
+            title={info.description}
+            className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
+              'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
+              'border border-yellow-500/20'
+            )}
+          >
+            {info.name}
+          </span>
+        );
+      })}
+      {failed.map((fp) => {
+        const info = FINGERPRINT_INFO[fp] || { name: fp, description: '' };
+        return (
+          <span
+            key={fp}
+            title={`Failed: ${info.description}`}
+            className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
+              'bg-red-500/10 text-red-600 dark:text-red-400',
+              'border border-red-500/20 line-through'
+            )}
+          >
+            {info.name}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Displays ML-readiness score with radial chart, breakdown bars, and informative tooltips.
  */
 export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessScoreProps) {
   const [showFailedDescriptors, setShowFailedDescriptors] = useState(false);
+  const [showFingerprintDetails, setShowFingerprintDetails] = useState(false);
   const { score, breakdown, interpretation, failed_descriptors } = result;
 
+  // Calculate total descriptors
+  const totalDescriptors = breakdown.descriptors_total +
+    (breakdown.autocorr2d_total || 0) +
+    (breakdown.mqn_total || 0);
+  const successfulDescriptors = breakdown.descriptors_successful +
+    (breakdown.autocorr2d_successful || 0) +
+    (breakdown.mqn_successful || 0);
+
+  // Combined descriptor score
+  const combinedDescriptorScore = breakdown.descriptors_score +
+    (breakdown.additional_descriptors_score || 0);
+  const combinedDescriptorMax = breakdown.descriptors_max +
+    (breakdown.additional_descriptors_max || 0);
+
   // Calculation explanation
-  const calculation = `Score = Descriptors (${breakdown.descriptors_max}pts) + Fingerprints (${breakdown.fingerprints_max}pts) + Size (${breakdown.size_max}pts)
-= ${breakdown.descriptors_score.toFixed(0)} + ${breakdown.fingerprints_score.toFixed(0)} + ${breakdown.size_score.toFixed(0)} = ${score}`;
+  const calculation = `Score = Descriptors (${combinedDescriptorMax}pts) + Fingerprints (${breakdown.fingerprints_max}pts) + Size (${breakdown.size_max}pts)
+= ${combinedDescriptorScore.toFixed(0)} + ${breakdown.fingerprints_score.toFixed(0)} + ${breakdown.size_score.toFixed(0)} = ${score}`;
 
   if (breakdownOnly) {
     return (
@@ -152,34 +224,134 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
         </motion.div>
 
         {/* Breakdown cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Standard Descriptors Card */}
           <BreakdownCard
             icon={<Cpu className="w-5 h-5" />}
-            label="Descriptors"
+            label="Standard Descriptors"
             score={breakdown.descriptors_score}
             maxScore={breakdown.descriptors_max}
             detail={`${breakdown.descriptors_successful}/${breakdown.descriptors_total} calculated`}
+            subDetail="Physical, topological, and functional group descriptors"
             delay={0.1}
+            tooltip={
+              <InfoTooltip
+                title="Standard Descriptors (217)"
+                content={
+                  <div className="text-xs space-y-1">
+                    <p>RDKit's CalcMolDescriptors including:</p>
+                    <ul className="list-disc list-inside text-white/70">
+                      <li>Physical properties (MW, LogP, TPSA)</li>
+                      <li>Topological indices (Chi, Kappa)</li>
+                      <li>85 functional group counts</li>
+                    </ul>
+                  </div>
+                }
+              />
+            }
           />
+
+          {/* Additional Descriptors Card */}
+          {(breakdown.additional_descriptors_max || 0) > 0 && (
+            <BreakdownCard
+              icon={<Layers className="w-5 h-5" />}
+              label="Additional Descriptors"
+              score={breakdown.additional_descriptors_score || 0}
+              maxScore={breakdown.additional_descriptors_max || 5}
+              detail={`${(breakdown.autocorr2d_successful || 0) + (breakdown.mqn_successful || 0)}/${(breakdown.autocorr2d_total || 192) + (breakdown.mqn_total || 42)} calculated`}
+              subDetail={`AUTOCORR2D: ${breakdown.autocorr2d_successful || 0}/${breakdown.autocorr2d_total || 192} | MQN: ${breakdown.mqn_successful || 0}/${breakdown.mqn_total || 42}`}
+              delay={0.15}
+              tooltip={
+                <InfoTooltip
+                  title="Additional 2D Descriptors (234)"
+                  content={
+                    <div className="text-xs space-y-1">
+                      <p><strong>AUTOCORR2D (192):</strong> 2D autocorrelation descriptors</p>
+                      <p><strong>MQN (42):</strong> Molecular Quantum Numbers - atom and bond type counts</p>
+                    </div>
+                  }
+                />
+              }
+            />
+          )}
+
+          {/* Fingerprints Card */}
           <BreakdownCard
             icon={<Fingerprint className="w-5 h-5" />}
             label="Fingerprints"
             score={breakdown.fingerprints_score}
             maxScore={breakdown.fingerprints_max}
-            detail={breakdown.fingerprints_successful.join(', ') || 'none'}
-            subDetail={breakdown.fingerprints_failed.length > 0 ? `Failed: ${breakdown.fingerprints_failed.join(', ')}` : undefined}
+            detail={`${breakdown.fingerprints_successful.length}/7 types generated`}
             delay={0.2}
+            tooltip={
+              <InfoTooltip
+                title="Molecular Fingerprints (7 types)"
+                content={
+                  <div className="text-xs space-y-1">
+                    <ul className="list-disc list-inside text-white/70">
+                      <li><strong>Morgan (ECFP):</strong> Circular, atom connectivity</li>
+                      <li><strong>Morgan Features (FCFP):</strong> Pharmacophore-aware</li>
+                      <li><strong>MACCS:</strong> 166 structural keys</li>
+                      <li><strong>Atom Pair:</strong> Atom pairs + distances</li>
+                      <li><strong>Topological Torsion:</strong> Torsion patterns</li>
+                      <li><strong>RDKit:</strong> Daylight-like paths</li>
+                      <li><strong>Avalon:</strong> Fast substructure FP</li>
+                    </ul>
+                  </div>
+                }
+              />
+            }
           />
+
+          {/* Size Card */}
           <BreakdownCard
             icon={<Scale className="w-5 h-5" />}
             label="Size"
             score={breakdown.size_score}
             maxScore={breakdown.size_max}
             detail={breakdown.size_category}
-            subDetail={breakdown.molecular_weight !== null ? `MW: ${breakdown.molecular_weight.toFixed(1)} Da` : undefined}
-            delay={0.3}
+            subDetail={breakdown.molecular_weight !== null ? `MW: ${breakdown.molecular_weight.toFixed(1)} Da | Atoms: ${breakdown.num_atoms}` : undefined}
+            delay={0.25}
           />
         </div>
+
+        {/* Fingerprint badges (expandable) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <button
+            onClick={() => setShowFingerprintDetails(!showFingerprintDetails)}
+            className={cn(
+              'w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl',
+              'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
+              'text-sm text-[var(--color-text-secondary)]',
+              'hover:bg-[var(--color-surface-sunken)] transition-colors'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              <span>View fingerprint types ({breakdown.fingerprints_successful.length} successful)</span>
+            </div>
+            <ChevronRight className={cn(
+              'w-4 h-4 transition-transform',
+              showFingerprintDetails && 'rotate-90'
+            )} />
+          </button>
+          {showFingerprintDetails && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-2 p-3 bg-[var(--color-surface-sunken)] rounded-xl"
+            >
+              <FingerprintBadges
+                successful={breakdown.fingerprints_successful}
+                failed={breakdown.fingerprints_failed}
+              />
+            </motion.div>
+          )}
+        </motion.div>
 
         {/* Failed descriptors (collapsible) */}
         {failed_descriptors.length > 0 && (
@@ -217,6 +389,11 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
             )}
           </motion.div>
         )}
+
+        {/* Total descriptors summary */}
+        <div className="text-center text-xs text-[var(--color-text-muted)] pt-2">
+          Total: {successfulDescriptors}/{totalDescriptors} descriptors | 7 fingerprint types
+        </div>
       </div>
     );
   }
@@ -264,30 +441,42 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
               <div className="space-y-2 text-xs">
                 <p>The ML-Readiness score measures how suitable a molecule is for machine learning models.</p>
                 <ul className="list-disc list-inside space-y-1 text-white/70">
-                  <li>Descriptors (40pts): % of RDKit descriptors calculable</li>
-                  <li>Fingerprints (40pts): Ability to generate Morgan, MACCS, AtomPair</li>
-                  <li>Size (20pts): Molecular weight and atom count constraints</li>
+                  <li>Standard Descriptors (35pts): 217 RDKit descriptors</li>
+                  <li>Additional Descriptors (5pts): AUTOCORR2D (192) + MQN (42)</li>
+                  <li>Fingerprints (40pts): 7 fingerprint types</li>
+                  <li>Size (20pts): Molecular weight and atom count</li>
                 </ul>
+                <p className="text-white/50 mt-2">Total: 451 descriptors + 7 fingerprint types</p>
               </div>
             }
           />
         </h4>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <BreakdownCard
             icon={<Cpu className="w-5 h-5" />}
-            label="Descriptors"
+            label="Standard Descriptors"
             score={breakdown.descriptors_score}
             maxScore={breakdown.descriptors_max}
             detail={`${breakdown.descriptors_successful}/${breakdown.descriptors_total}`}
             delay={0}
           />
+          {(breakdown.additional_descriptors_max || 0) > 0 && (
+            <BreakdownCard
+              icon={<Layers className="w-5 h-5" />}
+              label="Additional Descriptors"
+              score={breakdown.additional_descriptors_score || 0}
+              maxScore={breakdown.additional_descriptors_max || 5}
+              detail={`AUTOCORR2D + MQN`}
+              delay={0.05}
+            />
+          )}
           <BreakdownCard
             icon={<Fingerprint className="w-5 h-5" />}
             label="Fingerprints"
             score={breakdown.fingerprints_score}
             maxScore={breakdown.fingerprints_max}
-            detail={breakdown.fingerprints_successful.join(', ') || 'none'}
+            detail={`${breakdown.fingerprints_successful.length}/7 types`}
             delay={0.1}
           />
           <BreakdownCard
@@ -296,7 +485,16 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
             score={breakdown.size_score}
             maxScore={breakdown.size_max}
             detail={breakdown.size_category}
-            delay={0.2}
+            delay={0.15}
+          />
+        </div>
+
+        {/* Fingerprint badges */}
+        <div className="mt-4">
+          <h5 className="text-xs font-medium text-chem-dark/60 mb-2">Fingerprint Types</h5>
+          <FingerprintBadges
+            successful={breakdown.fingerprints_successful}
+            failed={breakdown.fingerprints_failed}
           />
         </div>
       </div>
