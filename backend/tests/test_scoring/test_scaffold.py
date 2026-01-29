@@ -158,6 +158,74 @@ class TestScaffoldSmiles:
                 assert "C" in atom_symbols
 
 
+class TestGenericScaffoldCorrectness:
+    """Tests for correct generic scaffold generation (Bemis-Murcko CSK)."""
+
+    def test_exocyclic_double_bond_removed_in_generic(self):
+        """
+        Test that exocyclic double-bonded atoms are correctly removed
+        in the generic scaffold.
+
+        RDKit's MakeScaffoldGeneric converts =O to -C, but we need to
+        remove this extra carbon by calling GetScaffoldForMol again.
+
+        Reference: https://github.com/rdkit/rdkit/discussions/6844
+        """
+        # Cyclopropanone: 3-membered ring with =O
+        mol = Chem.MolFromSmiles("C1CC1=O")
+        result = extract_scaffold(mol)
+
+        assert result.has_scaffold is True
+
+        # Standard scaffold should keep the =O (RDKit behavior)
+        # Generic scaffold should be just the 3-membered carbon ring
+        generic_mol = Chem.MolFromSmiles(result.generic_scaffold_smiles)
+        assert generic_mol is not None
+
+        # Generic scaffold should have exactly 3 atoms (cyclopropane ring)
+        # NOT 4 atoms (which would be wrong - the =O converted to -C)
+        assert generic_mol.GetNumAtoms() == 3, (
+            f"Generic scaffold should have 3 atoms (cyclopropane), "
+            f"got {generic_mol.GetNumAtoms()} atoms: {result.generic_scaffold_smiles}"
+        )
+
+    def test_ketone_on_benzene_generic(self):
+        """Test acetophenone - benzene with C(=O)C side chain."""
+        mol = Chem.MolFromSmiles("CC(=O)c1ccccc1")  # Acetophenone
+        result = extract_scaffold(mol)
+
+        assert result.has_scaffold is True
+
+        # Generic scaffold should be just benzene (6 carbons)
+        generic_mol = Chem.MolFromSmiles(result.generic_scaffold_smiles)
+        assert generic_mol is not None
+        assert generic_mol.GetNumAtoms() == 6, (
+            f"Generic scaffold should be benzene (6 atoms), "
+            f"got {generic_mol.GetNumAtoms()}: {result.generic_scaffold_smiles}"
+        )
+
+    def test_pyridone_generic_scaffold(self):
+        """Test 2-pyridone - ring with both N and =O."""
+        mol = Chem.MolFromSmiles("O=c1cccc[nH]1")  # 2-pyridone
+        result = extract_scaffold(mol)
+
+        assert result.has_scaffold is True
+
+        # Generic scaffold should be 6-membered carbon ring
+        generic_mol = Chem.MolFromSmiles(result.generic_scaffold_smiles)
+        assert generic_mol is not None
+        assert generic_mol.GetNumAtoms() == 6, (
+            f"Generic scaffold should have 6 atoms, "
+            f"got {generic_mol.GetNumAtoms()}: {result.generic_scaffold_smiles}"
+        )
+
+        # All atoms should be carbon in generic scaffold
+        for atom in generic_mol.GetAtoms():
+            assert atom.GetSymbol() == "C", (
+                f"Generic scaffold should have all carbons, found {atom.GetSymbol()}"
+            )
+
+
 class TestEdgeCases:
     """Tests for edge cases."""
 

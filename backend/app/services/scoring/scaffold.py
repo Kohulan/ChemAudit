@@ -26,9 +26,20 @@ def extract_scaffold(mol: Chem.Mol) -> ScaffoldResult:
     """
     Extract Murcko scaffold from a molecule.
 
-    The Murcko scaffold consists of the ring systems and linker atoms
-    connecting them. The generic scaffold additionally converts all
-    atoms to carbons and all bonds to single bonds.
+    The Murcko scaffold (Bemis-Murcko framework) consists of ring systems
+    and linker atoms connecting them, with side chains removed.
+
+    Note: RDKit's implementation differs slightly from the original
+    Bemis-Murcko paper by retaining exocyclic double-bonded atoms (e.g., =O, =N).
+    This is intentional as these atoms significantly impact molecular properties.
+
+    The generic scaffold (cyclic skeleton/CSK) converts all atoms to carbons
+    and all bonds to single bonds. This implementation correctly handles
+    the conversion by running GetScaffoldForMol twice - once to get the
+    standard scaffold, and again after MakeScaffoldGeneric to remove
+    converted exocyclic substituents.
+
+    Reference: https://github.com/rdkit/rdkit/discussions/6844
 
     Args:
         mol: RDKit molecule object
@@ -94,8 +105,15 @@ def extract_scaffold(mol: Chem.Mol) -> ScaffoldResult:
         details["scaffold_atoms"] = scaffold.GetNumAtoms()
 
         # Create generic scaffold (all C, single bonds)
+        # Note: MakeScaffoldGeneric converts double-bonded exocyclic atoms to
+        # single-bonded substituents. We need to call GetScaffoldForMol again
+        # to remove these and get the true Bemis-Murcko framework.
+        # See: https://github.com/rdkit/rdkit/discussions/6844
         try:
             generic_scaffold = MurckoScaffold.MakeScaffoldGeneric(scaffold)
+            # IMPORTANT: Call GetScaffoldForMol again to remove the converted
+            # exocyclic substituents that MakeScaffoldGeneric created
+            generic_scaffold = MurckoScaffold.GetScaffoldForMol(generic_scaffold)
             generic_scaffold_smiles = Chem.MolToSmiles(generic_scaffold)
             details["generic_scaffold_atoms"] = generic_scaffold.GetNumAtoms()
         except Exception as e:
