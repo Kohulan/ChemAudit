@@ -15,9 +15,29 @@ from typing import Any, Dict, List, Optional
 from jinja2 import Environment, FileSystemLoader
 from rdkit import Chem
 from rdkit.Chem import Draw
-from weasyprint import HTML
 
 from app.services.export.base import BaseExporter, ExporterFactory, ExportFormat
+
+# Lazy import for weasyprint - requires system libraries (pango, gobject)
+# Import only when PDF generation is actually needed
+_HTML = None
+
+
+def _get_weasyprint_html():
+    """Lazily import weasyprint HTML class."""
+    global _HTML
+    if _HTML is None:
+        try:
+            from weasyprint import HTML
+            _HTML = HTML
+        except OSError as e:
+            raise ImportError(
+                "WeasyPrint requires system libraries (pango, gobject). "
+                "Install them with: brew install pango (macOS) or "
+                "apt-get install libpango-1.0-0 libpangocairo-1.0-0 (Linux). "
+                f"Original error: {e}"
+            )
+    return _HTML
 
 
 def _extract_validation_scores(results: List[Dict[str, Any]]) -> List[int]:
@@ -105,7 +125,8 @@ class PDFReportGenerator(BaseExporter):
 
         # Convert HTML to PDF
         pdf_buffer = BytesIO()
-        HTML(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(
+        html_class = _get_weasyprint_html()
+        html_class(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(
             pdf_buffer
         )
         pdf_buffer.seek(0)
@@ -316,18 +337,18 @@ class PDFReportGenerator(BaseExporter):
             if not smiles:
                 continue
 
-            # Get validation data
-            validation = result.get("validation", {})
+            # Get validation data (handle None explicitly)
+            validation = result.get("validation") or {}
             score = validation.get("overall_score", 0)
             issues = validation.get("issues", [])
 
-            # Get molecular properties
-            mol_props = validation.get("molecular_properties", {})
+            # Get molecular properties (handle None explicitly)
+            mol_props = validation.get("molecular_properties") or {}
             formula = mol_props.get("molecular_formula")
             mw = mol_props.get("molecular_weight")
 
-            # Get alerts
-            alerts_data = result.get("alerts", {})
+            # Get alerts (handle None explicitly)
+            alerts_data = result.get("alerts") or {}
             alerts = alerts_data.get("alerts", [])
 
             # Generate molecule image

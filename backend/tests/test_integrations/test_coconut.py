@@ -1,8 +1,9 @@
 """
 Tests for COCONUT integration client.
 """
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from app.schemas.integrations import COCONUTRequest
@@ -16,34 +17,38 @@ class TestCOCONUTClient:
     async def test_search_by_smiles_success(self):
         """Test successful search by SMILES."""
         client = COCONUTClient()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = [
-            {
-                "coconut_id": "CNP0123456",
-                "name": "Caffeine",
-                "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
-            }
-        ]
-        mock_response.raise_for_status = AsyncMock()
+        mock_response = MagicMock()
+        # API v2 returns {"data": [...]} structure
+        mock_response.json.return_value = {
+            "data": [
+                {
+                    "identifier": "CNP0123456",
+                    "name": "Caffeine",
+                    "canonical_smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+                }
+            ]
+        }
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            # COCONUT uses POST for search
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
             result = await client.search_by_smiles("CN1C=NC2=C1C(=O)N(C(=O)N2C)C")
 
             assert result is not None
-            assert result["coconut_id"] == "CNP0123456"
+            assert result["identifier"] == "CNP0123456"
 
     @pytest.mark.asyncio
     async def test_search_by_smiles_not_found(self):
         """Test search by SMILES not found."""
         client = COCONUTClient()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = []
-        mock_response.raise_for_status = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": []}
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
             result = await client.search_by_smiles("CCO")
 
@@ -53,30 +58,37 @@ class TestCOCONUTClient:
     async def test_search_by_inchikey_success(self):
         """Test successful search by InChIKey."""
         client = COCONUTClient()
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
+        # API v2 returns {"data": [...]} structure
         mock_response.json.return_value = {
-            "coconut_id": "CNP0123456",
-            "inchikey": "RYYVLZVUVIJVGH-UHFFFAOYSA-N",
+            "data": [
+                {
+                    "identifier": "CNP0123456",
+                    "standard_inchi_key": "RYYVLZVUVIJVGH-UHFFFAOYSA-N",
+                }
+            ]
         }
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
             result = await client.search_by_inchikey("RYYVLZVUVIJVGH-UHFFFAOYSA-N")
 
             assert result is not None
-            assert result["coconut_id"] == "CNP0123456"
+            assert result["identifier"] == "CNP0123456"
 
     @pytest.mark.asyncio
     async def test_search_api_failure(self):
         """Test API failure returns None gracefully."""
         client = COCONUTClient()
-        mock_response = AsyncMock()
-        mock_response.raise_for_status.side_effect = Exception("API error")
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "API error", request=MagicMock(), response=MagicMock()
+        )
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
             result = await client.search_by_smiles("CCO")
 
@@ -89,16 +101,18 @@ class TestLookupNaturalProduct:
     @pytest.mark.asyncio
     async def test_lookup_by_inchikey(self):
         """Test lookup by InChIKey."""
+        # Mock data uses actual API v2 field names
         mock_data = {
-            "coconut_id": "CNP0123456",
+            "identifier": "CNP0123456",
             "name": "Caffeine",
-            "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
-            "inchikey": "RYYVLZVUVIJVGH-UHFFFAOYSA-N",
+            "canonical_smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+            "standard_inchi_key": "RYYVLZVUVIJVGH-UHFFFAOYSA-N",
             "molecular_weight": 194.19,
         }
 
         with patch("app.services.integrations.coconut.COCONUTClient") as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.token = "test_token"  # Ensure token check passes
             mock_client.search_by_inchikey = AsyncMock(return_value=mock_data)
             mock_client_class.return_value = mock_client
 
@@ -114,13 +128,14 @@ class TestLookupNaturalProduct:
     async def test_lookup_by_smiles(self):
         """Test lookup by SMILES."""
         mock_data = {
-            "coconut_id": "CNP0123456",
+            "identifier": "CNP0123456",
             "name": "Ethanol",
-            "smiles": "CCO",
+            "canonical_smiles": "CCO",
         }
 
         with patch("app.services.integrations.coconut.COCONUTClient") as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.token = "test_token"
             mock_client.search_by_inchikey = AsyncMock(return_value=mock_data)
             mock_client_class.return_value = mock_client
 
@@ -134,6 +149,7 @@ class TestLookupNaturalProduct:
         """Test lookup not found."""
         with patch("app.services.integrations.coconut.COCONUTClient") as mock_client_class:
             mock_client = AsyncMock()
+            mock_client.token = "test_token"
             mock_client.search_by_inchikey = AsyncMock(return_value=None)
             mock_client.search_by_smiles = AsyncMock(return_value=None)
             mock_client_class.return_value = mock_client

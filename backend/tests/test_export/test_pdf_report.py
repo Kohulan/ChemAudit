@@ -12,6 +12,19 @@ from PyPDF2 import PdfReader
 from app.services.export.base import ExporterFactory, ExportFormat
 from app.services.export.pdf_report import PDFReportGenerator
 
+# Check if weasyprint is available (requires system libraries)
+try:
+    import weasyprint  # noqa: F401
+    WEASYPRINT_AVAILABLE = True
+except (ImportError, OSError):
+    WEASYPRINT_AVAILABLE = False
+
+# Decorator to skip tests that require weasyprint
+requires_weasyprint = pytest.mark.skipif(
+    not WEASYPRINT_AVAILABLE,
+    reason="WeasyPrint requires system libraries (pango, gobject). Install with: brew install pango"
+)
+
 # Sample test data
 SAMPLE_RESULTS = [
     {
@@ -97,6 +110,7 @@ class TestPDFReportGenerator:
         exporter = ExporterFactory.create(ExportFormat.PDF)
         assert isinstance(exporter, PDFReportGenerator)
 
+    @requires_weasyprint
     def test_generate_pdf_basic(self):
         """Test PDF generation with sample data."""
         generator = PDFReportGenerator()
@@ -110,6 +124,7 @@ class TestPDFReportGenerator:
         pdf_data = pdf_buffer.read()
         assert pdf_data.startswith(b"%PDF-")  # PDF signature
 
+    @requires_weasyprint
     def test_generate_pdf_readable(self):
         """Test generated PDF is valid and readable."""
         generator = PDFReportGenerator()
@@ -211,26 +226,27 @@ class TestPDFReportGenerator:
 
         assert len(issues) == 20
 
-    def test_get_flagged_molecules(self):
-        """Test flagged molecules extraction."""
+    def test_get_all_molecules(self):
+        """Test all molecules extraction."""
         generator = PDFReportGenerator()
-        flagged = generator._get_flagged_molecules(SAMPLE_RESULTS, score_threshold=70, limit=10)
+        all_mols = generator._get_all_molecules(SAMPLE_RESULTS)
 
-        # Should flag the 45-score molecule
-        assert len(flagged) == 1
-        assert flagged[0]["score"] == 45
-        assert flagged[0]["index"] == 2
+        # Should get 4 molecules (all with non-empty SMILES strings, even "INVALID")
+        assert len(all_mols) == 4
 
-    def test_get_flagged_molecules_with_images(self):
-        """Test flagged molecules include images."""
+        # Should be sorted by index
+        assert all_mols[0]["index"] == 0
+        assert all_mols[1]["index"] == 1
+        assert all_mols[2]["index"] == 2
+        assert all_mols[3]["index"] == 3
+
+    def test_get_all_molecules_with_images(self):
+        """Test all molecules include images."""
         generator = PDFReportGenerator()
-        flagged = generator._get_flagged_molecules(SAMPLE_RESULTS, score_threshold=80, limit=10)
+        all_mols = generator._get_all_molecules(SAMPLE_RESULTS)
 
-        # Should flag score 75 and 45
-        assert len(flagged) == 2
-
-        # Check images were generated
-        for mol in flagged:
+        # Check images were generated for valid SMILES
+        for mol in all_mols:
             assert "image_data" in mol
             # Should be base64-encoded PNG or None
             if mol["image_data"]:
@@ -255,6 +271,7 @@ class TestPDFReportGenerator:
 
         assert img_data is None
 
+    @requires_weasyprint
     def test_pdf_includes_alert_summary(self):
         """Test PDF includes alert summary when alerts present."""
         generator = PDFReportGenerator()
@@ -267,6 +284,7 @@ class TestPDFReportGenerator:
         # Should mention PAINS
         assert "PAINS" in text or "Alert" in text
 
+    @requires_weasyprint
     def test_pdf_includes_statistics(self):
         """Test PDF includes all key statistics."""
         generator = PDFReportGenerator()

@@ -12,7 +12,12 @@ Performance Targets:
 - ML-readiness: <50ms per molecule
 
 These benchmarks ensure performance doesn't regress across releases.
+
+Requirements:
+    pip install pytest-benchmark
 """
+
+import importlib.util
 
 import pytest
 from rdkit import Chem
@@ -23,6 +28,15 @@ from app.services.parser import parse_molecule
 from app.services.scoring.ml_readiness import calculate_ml_readiness
 from app.services.standardization.chembl_pipeline import standardize_molecule
 from app.services.validation.engine import validation_engine
+
+# Check if pytest-benchmark is available
+HAS_BENCHMARK = importlib.util.find_spec("pytest_benchmark") is not None
+
+# Skip all tests in this module if pytest-benchmark is not installed
+pytestmark = pytest.mark.skipif(
+    not HAS_BENCHMARK,
+    reason="pytest-benchmark not installed. Install with: pip install pytest-benchmark"
+)
 
 # Performance targets documented for automated CI checks
 PERF_TARGETS = {

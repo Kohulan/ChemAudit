@@ -1,8 +1,13 @@
 """
 Pytest configuration and fixtures for backend tests
 """
+import os
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+# Disable rate limiting for tests
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 from app.main import app
 

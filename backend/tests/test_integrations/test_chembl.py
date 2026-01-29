@@ -1,8 +1,9 @@
 """
 Tests for ChEMBL integration client.
 """
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from app.schemas.integrations import ChEMBLRequest
@@ -16,7 +17,7 @@ class TestChEMBLClient:
     async def test_search_by_smiles_success(self):
         """Test successful search by SMILES."""
         client = ChEMBLClient()
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "molecules": [
                 {
@@ -24,7 +25,7 @@ class TestChEMBLClient:
                 }
             ]
         }
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -37,7 +38,7 @@ class TestChEMBLClient:
     async def test_get_molecule_by_inchikey_success(self):
         """Test successful retrieval by InChIKey."""
         client = ChEMBLClient()
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "molecules": [
                 {
@@ -46,7 +47,7 @@ class TestChEMBLClient:
                 }
             ]
         }
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -60,13 +61,13 @@ class TestChEMBLClient:
     async def test_get_molecule_success(self):
         """Test successful retrieval of molecule by ChEMBL ID."""
         client = ChEMBLClient()
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "molecule_chembl_id": "CHEMBL25",
             "pref_name": "ASPIRIN",
             "max_phase": 4,
         }
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -80,7 +81,7 @@ class TestChEMBLClient:
     async def test_get_bioactivities_success(self):
         """Test successful retrieval of bioactivities."""
         client = ChEMBLClient()
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "activities": [
                 {
@@ -93,7 +94,7 @@ class TestChEMBLClient:
                 }
             ]
         }
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -107,8 +108,11 @@ class TestChEMBLClient:
     async def test_api_failure_returns_none(self):
         """Test API failure returns None gracefully."""
         client = ChEMBLClient()
-        mock_response = AsyncMock()
-        mock_response.raise_for_status.side_effect = Exception("API error")
+        mock_response = MagicMock()
+        # Use httpx.HTTPStatusError which is what raise_for_status() raises
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "API error", request=MagicMock(), response=MagicMock()
+        )
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)

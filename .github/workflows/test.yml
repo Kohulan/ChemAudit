@@ -190,3 +190,53 @@ jobs:
       - name: Run tests
         working-directory: ./frontend
         run: npm test -- --run || echo "Tests not configured yet, skipping"
+
+  backend-benchmarks:
+    name: Backend Performance Benchmarks
+    runs-on: ubuntu-latest
+    # Only run benchmarks on main branch pushes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run performance benchmarks
+        working-directory: ./backend
+        run: |
+          pytest tests/test_performance/ -v \
+            --benchmark-only \
+            --benchmark-autosave \
+            --benchmark-json=benchmark-results.json
+        env:
+          REDIS_URL: redis://localhost:6379/0
+        continue-on-error: true
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: backend/benchmark-results.json
+          if-no-files-found: ignore
