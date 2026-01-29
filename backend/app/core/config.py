@@ -1,29 +1,31 @@
 """
-Configuration management for ChemStructVal backend.
+Configuration management for ChemVault backend.
 
 Uses pydantic-settings for environment variable management.
 """
+
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # App metadata
-    APP_NAME: str = "ChemStructVal"
+    APP_NAME: str = "ChemVault"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://chemstructval:chemstructval@localhost:5432/chemstructval"
+    DATABASE_URL: str = (
+        "postgresql+asyncpg://chemvault:chemvault@localhost:5432/chemvault"
+    )
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
@@ -37,7 +39,11 @@ class Settings(BaseSettings):
 
     # Validation limits
     MAX_MOLECULE_LENGTH: int = 10000
-    MAX_BATCH_SIZE: int = 1000000
+    MAX_BATCH_SIZE: int = 10000
+    MAX_FILE_SIZE_MB: int = 500
+
+    # Deployment profile
+    DEPLOYMENT_PROFILE: str = "medium"
 
     # External API endpoints
     COCONUT_API_URL: str = "https://coconut.naturalproducts.net/api"

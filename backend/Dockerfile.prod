@@ -1,4 +1,4 @@
-# Multi-stage production build for ChemStructVal backend
+# Multi-stage production build for ChemVault backend
 # Stage 1: Builder - Install dependencies
 FROM python:3.11-slim AS builder
 
@@ -64,6 +64,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# Configurable worker count (default: 4)
+ENV GUNICORN_WORKERS=4
+
 # Expose port
 EXPOSE 8000
 
@@ -72,12 +75,13 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 # Use gunicorn with uvicorn workers for production
-CMD ["gunicorn", "app.main:app", \
-    "--worker-class", "uvicorn.workers.UvicornWorker", \
-    "--workers", "4", \
-    "--bind", "0.0.0.0:8000", \
-    "--timeout", "120", \
-    "--keepalive", "5", \
-    "--access-logfile", "-", \
-    "--error-logfile", "-", \
-    "--log-level", "info"]
+# Worker count is configurable via GUNICORN_WORKERS env var
+CMD gunicorn app.main:app \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --workers ${GUNICORN_WORKERS} \
+    --bind 0.0.0.0:8000 \
+    --timeout 120 \
+    --keepalive 5 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info

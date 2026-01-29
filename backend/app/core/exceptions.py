@@ -1,22 +1,24 @@
 """
-Custom exceptions and exception handlers for ChemStructVal.
+Custom exceptions and exception handlers for ChemVault.
 
-All application exceptions inherit from ChemStructValException and
+All application exceptions inherit from ChemVaultException and
 return structured JSON responses.
 """
+
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from typing import Optional
+
+from app.core.config import settings
 
 
-class ChemStructValException(Exception):
-    """Base exception for ChemStructVal application."""
+class ChemVaultException(Exception):
+    """Base exception for ChemVault application."""
 
     def __init__(
         self,
         message: str,
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        details: Optional[dict] = None,
+        details: dict | None = None,
     ):
         self.message = message
         self.status_code = status_code
@@ -24,10 +26,12 @@ class ChemStructValException(Exception):
         super().__init__(self.message)
 
 
-class ParseError(ChemStructValException):
+class ParseError(ChemVaultException):
     """Exception raised when molecule parsing fails."""
 
-    def __init__(self, message: str = "Failed to parse molecule", details: Optional[dict] = None):
+    def __init__(
+        self, message: str = "Failed to parse molecule", details: dict | None = None
+    ):
         super().__init__(
             message=message,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -35,12 +39,10 @@ class ParseError(ChemStructValException):
         )
 
 
-class ValidationError(ChemStructValException):
+class ValidationError(ChemVaultException):
     """Exception raised when molecule validation fails."""
 
-    def __init__(
-        self, message: str = "Validation failed", details: Optional[dict] = None
-    ):
+    def __init__(self, message: str = "Validation failed", details: dict | None = None):
         super().__init__(
             message=message,
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -48,10 +50,12 @@ class ValidationError(ChemStructValException):
         )
 
 
-class NotFoundError(ChemStructValException):
+class NotFoundError(ChemVaultException):
     """Exception raised when requested resource is not found."""
 
-    def __init__(self, message: str = "Resource not found", details: Optional[dict] = None):
+    def __init__(
+        self, message: str = "Resource not found", details: dict | None = None
+    ):
         super().__init__(
             message=message,
             status_code=status.HTTP_404_NOT_FOUND,
@@ -59,10 +63,10 @@ class NotFoundError(ChemStructValException):
         )
 
 
-async def chemstructval_exception_handler(
-    request: Request, exc: ChemStructValException
+async def chemvault_exception_handler(
+    request: Request, exc: ChemVaultException
 ) -> JSONResponse:
-    """Handle ChemStructVal exceptions by returning structured JSON."""
+    """Handle ChemVault exceptions by returning structured JSON."""
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -74,10 +78,11 @@ async def chemstructval_exception_handler(
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected exceptions by returning generic error."""
+    content = {"error": "Internal server error"}
+    # Only expose exception details in debug mode to prevent information leakage
+    if settings.DEBUG:
+        content["details"] = {"message": str(exc)}
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": "Internal server error",
-            "details": {"message": str(exc)},
-        },
+        content=content,
     )

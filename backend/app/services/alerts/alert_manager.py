@@ -9,25 +9,28 @@ IMPORTANT: Structural alerts are warnings, not automatic rejections.
 - Many alerts represent potential issues, not definite problems
 - Alerts should prompt investigation, not immediate rejection
 """
+
 from dataclasses import dataclass, field
-from typing import List, Optional, Set
+from typing import List, Optional
 from enum import Enum
 
 from rdkit import Chem
 
-from .filter_catalog import get_filter_catalog, CatalogInfo
+from .filter_catalog import get_filter_catalog
 
 
 class AlertSeverity(str, Enum):
     """Severity level for structural alerts."""
+
     CRITICAL = "critical"  # Known toxicophores, reactive groups
-    WARNING = "warning"    # PAINS, BRENK - investigate but not automatic fail
-    INFO = "info"          # Minor concerns, informational
+    WARNING = "warning"  # PAINS, BRENK - investigate but not automatic fail
+    INFO = "info"  # Minor concerns, informational
 
 
 @dataclass
 class AlertResult:
     """Result from a structural alert pattern match."""
+
     pattern_name: str
     description: str
     severity: AlertSeverity
@@ -39,11 +42,21 @@ class AlertResult:
 @dataclass
 class ScreeningResult:
     """Complete result from screening a molecule."""
+
     alerts: List[AlertResult] = field(default_factory=list)
     screened_catalogs: List[str] = field(default_factory=list)
-    total_alerts: int = 0
     has_critical: bool = False
     has_warning: bool = False
+
+    @property
+    def total_alerts(self) -> int:
+        """Total number of alerts found."""
+        return len(self.alerts)
+
+    @property
+    def has_alerts(self) -> bool:
+        """Whether any alerts were found."""
+        return len(self.alerts) > 0
 
 
 # Known patterns that appear in approved drugs (for educational context)
@@ -72,10 +85,21 @@ def _get_severity_for_pattern(pattern_name: str, catalog_source: str) -> AlertSe
     """
     # Critical patterns (known toxicophores and highly reactive groups)
     critical_patterns = {
-        "azide", "diazo", "nitroso", "nitrogen_mustard", "epoxide",
-        "acyl_halide", "acyl_fluoride", "acyl_chloride",
-        "isocyanate", "isothiocyanate", "aziridine", "beta_lactam",
-        "peroxide", "aldehyde", "phosphorane",
+        "azide",
+        "diazo",
+        "nitroso",
+        "nitrogen_mustard",
+        "epoxide",
+        "acyl_halide",
+        "acyl_fluoride",
+        "acyl_chloride",
+        "isocyanate",
+        "isothiocyanate",
+        "aziridine",
+        "beta_lactam",
+        "peroxide",
+        "aldehyde",
+        "phosphorane",
     }
 
     pattern_lower = pattern_name.lower()
@@ -161,13 +185,15 @@ class AlertManager:
                 if quick_check:
                     # Just check if any match exists (faster)
                     if catalog_info.catalog.HasMatch(mol):
-                        result.alerts.append(AlertResult(
-                            pattern_name=f"{catalog_type}_match",
-                            description=f"Molecule matches {catalog_type} patterns",
-                            severity=AlertSeverity.WARNING,
-                            matched_atoms=[],
-                            catalog_source=catalog_type.upper(),
-                        ))
+                        result.alerts.append(
+                            AlertResult(
+                                pattern_name=f"{catalog_type}_match",
+                                description=f"Molecule matches {catalog_type} patterns",
+                                severity=AlertSeverity.WARNING,
+                                matched_atoms=[],
+                                catalog_source=catalog_type.upper(),
+                            )
+                        )
                 else:
                     # Get detailed matches
                     matches = catalog_info.catalog.GetMatches(mol)
@@ -175,7 +201,6 @@ class AlertManager:
                     for entry in matches:
                         # Get pattern information
                         pattern_name = entry.GetDescription() or "unknown_pattern"
-                        prop_names = entry.GetPropList() if hasattr(entry, 'GetPropList') else []
 
                         # Try to get additional info
                         description = pattern_name
@@ -183,7 +208,11 @@ class AlertManager:
                         # Try to get SMARTS if available
                         smarts = None
                         try:
-                            smarts = entry.GetSmarts() if hasattr(entry, 'GetSmarts') else None
+                            smarts = (
+                                entry.GetSmarts()
+                                if hasattr(entry, "GetSmarts")
+                                else None
+                            )
                         except Exception:
                             pass
 
@@ -209,11 +238,9 @@ class AlertManager:
                         elif severity == AlertSeverity.WARNING:
                             result.has_warning = True
 
-            except ValueError as e:
+            except ValueError:
                 # Unknown catalog type - skip but could log
                 continue
-
-        result.total_alerts = len(result.alerts)
 
         return result
 

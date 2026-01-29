@@ -11,6 +11,7 @@ Score interpretation:
 
 Typical range: -5 to +5 (most molecules fall within -3 to +3)
 """
+
 from dataclasses import dataclass, field
 from functools import lru_cache
 import gzip
@@ -61,7 +62,8 @@ class NPLikenessScorer:
         """Load NP scoring model (cached)."""
         # Try to use RDKit's built-in NP score calculation
         try:
-            from rdkit.Chem.Scaffolds import MurckoScaffold  # Test import
+            from rdkit.Chem.Scaffolds import MurckoScaffold as _  # noqa: F401
+
             # RDKit has built-in NP score functionality
             return None
         except ImportError:
@@ -73,8 +75,9 @@ class NPLikenessScorer:
         else:
             # Default location
             model_file = (
-                Path(__file__).parent.parent.parent.parent /
-                "data" / "publicnp.model.gz"
+                Path(__file__).parent.parent.parent.parent
+                / "data"
+                / "publicnp.model.gz"
             )
 
         if model_file.exists():
@@ -164,6 +167,7 @@ class NPLikenessScorer:
         # Try to use RDKit's built-in calculation if available
         try:
             from rdkit.Chem import rdNPScore
+
             return rdNPScore.GetNPLScore(mol)
         except (ImportError, AttributeError):
             pass
@@ -186,14 +190,12 @@ class NPLikenessScorer:
 
         try:
             # Get basic counts
-            num_atoms = mol.GetNumAtoms()
             num_heavy = mol.GetNumHeavyAtoms()
             if num_heavy == 0:
                 return 0.0
 
             # Ring analysis
             ring_info = mol.GetRingInfo()
-            num_rings = ring_info.NumRings()
             ring_atoms = set()
             for ring in ring_info.AtomRings():
                 ring_atoms.update(ring)
@@ -229,9 +231,7 @@ class NPLikenessScorer:
                     score -= 0.3  # High N suggests synthetic
 
             # Halogen content (usually low in NPs)
-            halogens = sum(
-                atom_counts.get(x, 0) for x in ["F", "Cl", "Br", "I"]
-            )
+            halogens = sum(atom_counts.get(x, 0) for x in ["F", "Cl", "Br", "I"])
             if halogens > 0:
                 score -= 0.3 * min(halogens, 3)
 
@@ -249,7 +249,9 @@ class NPLikenessScorer:
 
             # Chiral center count (NPs often have multiple)
             try:
-                chiral_centers = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
+                chiral_centers = len(
+                    Chem.FindMolChiralCenters(mol, includeUnassigned=True)
+                )
                 if chiral_centers >= 3:
                     score += 0.5
                 elif chiral_centers >= 1:

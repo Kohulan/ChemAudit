@@ -3,6 +3,7 @@ Structure comparison utilities for standardization.
 
 Compares original and standardized structures to summarize changes.
 """
+
 from dataclasses import dataclass, field
 from typing import Optional, List
 from rdkit import Chem
@@ -54,8 +55,7 @@ class StructureComparison:
 
 
 def compare_structures(
-    original: Chem.Mol,
-    standardized: Chem.Mol
+    original: Chem.Mol, standardized: Chem.Mol
 ) -> StructureComparison:
     """
     Compare original and standardized molecules.
@@ -132,16 +132,16 @@ def compare_structures(
 
     # Check if structures are identical
     comparison.is_identical = (
-        comparison.original_inchikey is not None and
-        comparison.standardized_inchikey is not None and
-        comparison.original_inchikey == comparison.standardized_inchikey
+        comparison.original_inchikey is not None
+        and comparison.standardized_inchikey is not None
+        and comparison.original_inchikey == comparison.standardized_inchikey
     )
 
     # Determine if change is significant (different InChIKey = different compound)
     comparison.significant_change = (
-        comparison.original_inchikey is not None and
-        comparison.standardized_inchikey is not None and
-        comparison.original_inchikey != comparison.standardized_inchikey
+        comparison.original_inchikey is not None
+        and comparison.standardized_inchikey is not None
+        and comparison.original_inchikey != comparison.standardized_inchikey
     )
 
     # Generate diff summary
@@ -149,11 +149,15 @@ def compare_structures(
         comparison.diff_summary.append("No structural changes")
     else:
         if comparison.atoms_removed > 0:
-            comparison.diff_summary.append(f"{comparison.atoms_removed} atom(s) removed")
+            comparison.diff_summary.append(
+                f"{comparison.atoms_removed} atom(s) removed"
+            )
         if comparison.atoms_added > 0:
             comparison.diff_summary.append(f"{comparison.atoms_added} atom(s) added")
         if comparison.bonds_removed > 0:
-            comparison.diff_summary.append(f"{comparison.bonds_removed} bond(s) removed")
+            comparison.diff_summary.append(
+                f"{comparison.bonds_removed} bond(s) removed"
+            )
         if comparison.bonds_added > 0:
             comparison.diff_summary.append(f"{comparison.bonds_added} bond(s) added")
 

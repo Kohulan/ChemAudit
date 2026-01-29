@@ -4,19 +4,20 @@ Validation Engine
 Orchestrates validation checks on molecules.
 Initializes registered checks and calculates overall validation scores.
 """
-from typing import List, Optional, Dict
-from rdkit import Chem
-from rdkit.Chem import Descriptors, inchi as rdkit_inchi, rdMolDescriptors
-import time
 
-from app.services.validation.registry import CheckRegistry
-from app.services.validation.checks.base import CheckResult, BaseCheck
+from collections import defaultdict
+from typing import Dict, List, Optional
+
+from rdkit import Chem
+
 from app.schemas.common import Severity
+from app.services.validation.checks.base import BaseCheck, CheckResult
+from app.services.validation.registry import CheckRegistry
 
 # Import checks to trigger registration
 import app.services.validation.checks.basic  # noqa: F401
-import app.services.validation.checks.stereo  # noqa: F401
 import app.services.validation.checks.representation  # noqa: F401
+import app.services.validation.checks.stereo  # noqa: F401
 
 
 class ValidationEngine:
@@ -62,12 +63,14 @@ class ValidationEngine:
                 result = check.run(mol)
                 results.append(result)
             except Exception as e:
-                results.append(CheckResult(
-                    check_name=check_name,
-                    passed=False,
-                    severity=Severity.ERROR,
-                    message=f"Check failed: {str(e)}"
-                ))
+                results.append(
+                    CheckResult(
+                        check_name=check_name,
+                        passed=False,
+                        severity=Severity.ERROR,
+                        message=f"Check failed: {str(e)}",
+                    )
+                )
 
         score = self._calculate_score(results)
         return results, score
@@ -108,13 +111,10 @@ class ValidationEngine:
         Returns:
             Dictionary mapping category names to list of check names
         """
-        categories: Dict[str, List[str]] = {}
+        categories: Dict[str, List[str]] = defaultdict(list)
         for name, check in self._check_instances.items():
-            cat = check.category
-            if cat not in categories:
-                categories[cat] = []
-            categories[cat].append(name)
-        return categories
+            categories[check.category].append(name)
+        return dict(categories)
 
 
 # Singleton instance

@@ -7,6 +7,7 @@ https://pubchem.ncbi.nlm.nih.gov/
 
 This client provides compound lookup and cross-reference functionality.
 """
+
 import httpx
 from typing import Optional, List
 from rdkit import Chem
@@ -129,7 +130,11 @@ class PubChemClient:
                 response.raise_for_status()
 
                 data = response.json()
-                synonyms = data.get("InformationList", {}).get("Information", [{}])[0].get("Synonym", [])
+                synonyms = (
+                    data.get("InformationList", {})
+                    .get("Information", [{}])[0]
+                    .get("Synonym", [])
+                )
                 return synonyms[:max_synonyms]
 
         except (httpx.HTTPError, KeyError, ValueError, IndexError):

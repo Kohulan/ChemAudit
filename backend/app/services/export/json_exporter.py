@@ -3,6 +3,7 @@ JSON Exporter
 
 Exports batch results to JSON format with metadata.
 """
+
 from io import BytesIO
 from typing import List, Dict, Any
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ import json
 
 try:
     import orjson
+
     HAS_ORJSON = True
 except ImportError:
     HAS_ORJSON = False
@@ -36,7 +38,7 @@ class JSONExporter(BaseExporter):
                 "export_date": datetime.now(timezone.utc).isoformat(),
                 "total_count": len(results),
                 "format_version": "1.0",
-                "tool": "ChemStructVal",
+                "tool": "ChemVault",
             },
             "results": results,
         }
@@ -45,8 +47,7 @@ class JSONExporter(BaseExporter):
         if HAS_ORJSON:
             # Use orjson for fast serialization
             json_bytes = orjson.dumps(
-                export_data,
-                option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE
+                export_data, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE
             )
         else:
             # Fallback to standard json

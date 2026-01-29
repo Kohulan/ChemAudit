@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import type { ValidationResponse } from '../../types/validation';
 import { ScoreGauge } from './ScoreGauge';
 import { IssueCard } from './IssueCard';
+import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
 
 interface ValidationResultsProps {
@@ -40,38 +41,49 @@ export function ValidationResults({
         </h3>
         <div className="space-y-2 text-sm">
           {molecule_info.canonical_smiles && (
-            <div className="flex">
-              <span className="font-medium text-[var(--color-text-secondary)] w-32">SMILES:</span>
+            <div className="flex items-start">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">SMILES:</span>
               <code className="flex-1 text-[var(--color-text-secondary)] font-mono text-xs break-all">
                 {molecule_info.canonical_smiles}
               </code>
+              <CopyButton text={molecule_info.canonical_smiles} className="ml-2 shrink-0" />
             </div>
           )}
           {molecule_info.molecular_formula && (
-            <div className="flex">
-              <span className="font-medium text-[var(--color-text-secondary)] w-32">Formula:</span>
+            <div className="flex items-center">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">Formula:</span>
               <span className="text-[var(--color-text-secondary)]">{molecule_info.molecular_formula}</span>
             </div>
           )}
           {molecule_info.molecular_weight && (
-            <div className="flex">
-              <span className="font-medium text-[var(--color-text-secondary)] w-32">Mol. Weight:</span>
+            <div className="flex items-center">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">Mol. Weight:</span>
               <span className="text-[var(--color-text-secondary)]">
                 {molecule_info.molecular_weight.toFixed(2)} g/mol
               </span>
             </div>
           )}
+          {molecule_info.inchi && (
+            <div className="flex items-start">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">InChI:</span>
+              <code className="flex-1 text-[var(--color-text-secondary)] font-mono text-xs break-all">
+                {molecule_info.inchi}
+              </code>
+              <CopyButton text={molecule_info.inchi} className="ml-2 shrink-0" />
+            </div>
+          )}
           {molecule_info.inchikey && (
-            <div className="flex">
-              <span className="font-medium text-[var(--color-text-secondary)] w-32">InChIKey:</span>
+            <div className="flex items-start">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">InChIKey:</span>
               <code className="flex-1 text-[var(--color-text-secondary)] font-mono text-xs break-all">
                 {molecule_info.inchikey}
               </code>
+              <CopyButton text={molecule_info.inchikey} className="ml-2 shrink-0" />
             </div>
           )}
           {molecule_info.num_atoms !== null && (
-            <div className="flex">
-              <span className="font-medium text-[var(--color-text-secondary)] w-32">Atoms:</span>
+            <div className="flex items-center">
+              <span className="font-medium text-[var(--color-text-secondary)] w-32 shrink-0">Atoms:</span>
               <span className="text-[var(--color-text-secondary)]">{molecule_info.num_atoms}</span>
             </div>
           )}

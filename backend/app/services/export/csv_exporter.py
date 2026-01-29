@@ -3,11 +3,13 @@ CSV Exporter
 
 Exports batch results to CSV format using pandas.
 """
+
 from io import BytesIO, StringIO
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import pandas as pd
 
-from .base import BaseExporter, ExportFormat, ExporterFactory
+from .base import BaseExporter, count_alerts, ExportFormat, ExporterFactory
 
 
 class CSVExporter(BaseExporter):
@@ -32,19 +34,15 @@ class CSVExporter(BaseExporter):
             alerts = result.get("alerts", {})
 
             # Count alerts
-            alerts_count = 0
-            if alerts:
-                for catalog in ["pains", "brenk", "nih", "glaxo"]:
-                    catalog_data = alerts.get(catalog, {})
-                    if isinstance(catalog_data, dict):
-                        matches = catalog_data.get("matches", [])
-                        alerts_count += len(matches)
+            alerts_count = count_alerts(alerts)
 
             # Collect issues for summary
             issues = validation.get("issues", [])
             issues_summary = "; ".join(
-                [f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
-                 for issue in issues[:3]]  # Limit to first 3 issues
+                [
+                    f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
+                    for issue in issues[:3]
+                ]  # Limit to first 3 issues
             )
 
             row = {
@@ -54,8 +52,12 @@ class CSVExporter(BaseExporter):
                 "canonical_smiles": validation.get("canonical_smiles", ""),
                 "inchikey": validation.get("inchikey", ""),
                 "overall_score": validation.get("overall_score", 0),
-                "ml_readiness_score": scoring.get("ml_readiness_score", 0) if scoring else 0,
-                "np_likeness_score": scoring.get("np_likeness_score", 0) if scoring else 0,
+                "ml_readiness_score": (
+                    scoring.get("ml_readiness_score", 0) if scoring else 0
+                ),
+                "np_likeness_score": (
+                    scoring.get("np_likeness_score", 0) if scoring else 0
+                ),
                 "alerts_count": alerts_count,
                 "issues_summary": issues_summary,
                 "standardized_smiles": result.get("standardized_smiles", ""),

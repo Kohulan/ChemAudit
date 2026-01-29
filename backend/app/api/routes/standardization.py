@@ -3,8 +3,8 @@ Standardization API Routes
 
 Endpoints for molecule standardization using ChEMBL-compatible pipeline.
 """
+
 from fastapi import APIRouter, HTTPException, Request, Depends
-from rdkit import Chem
 import time
 from typing import Optional
 
@@ -16,9 +16,7 @@ from app.schemas.standardization import (
     StereoComparison,
     StructureComparisonSchema,
     CheckerIssue,
-    StandardizationOptions as OptionsSchema,
 )
-from app.schemas.validation import MoleculeInfo
 from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
 from app.services.standardization.chembl_pipeline import (
     StandardizationPipeline,
@@ -40,7 +38,7 @@ _pipeline = StandardizationPipeline()
 async def standardize_molecule(
     request: Request,
     body: StandardizeRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Standardize a molecule using ChEMBL-compatible pipeline.
@@ -67,7 +65,7 @@ async def standardize_molecule(
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
-        "auto": None
+        "auto": None,
     }
     input_format = format_map.get(body.format)
 
@@ -80,8 +78,8 @@ async def standardize_molecule(
                 "error": "Failed to parse molecule",
                 "errors": parse_result.errors,
                 "warnings": parse_result.warnings,
-                "format_detected": parse_result.format_detected.value
-            }
+                "format_detected": parse_result.format_detected.value,
+            },
         )
 
     mol = parse_result.mol
@@ -104,9 +102,7 @@ async def standardize_molecule(
     execution_time = int((time.time() - start_time) * 1000)
 
     return StandardizeResponse(
-        molecule_info=mol_info,
-        result=result,
-        execution_time_ms=execution_time
+        molecule_info=mol_info, result=result, execution_time_ms=execution_time
     )
 
 
@@ -124,43 +120,41 @@ async def get_standardization_options():
                 "type": "boolean",
                 "default": False,
                 "description": "Include tautomer canonicalization",
-                "warning": "May lose E/Z double bond stereochemistry"
+                "warning": "May lose E/Z double bond stereochemistry",
             },
             "preserve_stereo": {
                 "type": "boolean",
                 "default": True,
-                "description": "Attempt to preserve stereochemistry during standardization"
-            }
+                "description": "Attempt to preserve stereochemistry during standardization",
+            },
         },
         "pipeline_steps": [
             {
                 "name": "checker",
                 "description": "Detect structural issues before standardization",
-                "always_run": True
+                "always_run": True,
             },
             {
                 "name": "standardizer",
                 "description": "Fix common issues (nitro groups, metals, sulphoxides, etc.)",
-                "always_run": True
+                "always_run": True,
             },
             {
                 "name": "get_parent",
                 "description": "Extract parent molecule, remove salts and solvents",
-                "always_run": True
+                "always_run": True,
             },
             {
                 "name": "tautomer_canonicalization",
                 "description": "Canonicalize tautomers",
                 "always_run": False,
-                "requires_option": "include_tautomer"
-            }
-        ]
+                "requires_option": "include_tautomer",
+            },
+        ],
     }
 
 
-def _convert_pipeline_result(
-    pipeline_result
-) -> StandardizationResult:
+def _convert_pipeline_result(pipeline_result) -> StandardizationResult:
     """
     Convert internal pipeline result to API schema.
 
@@ -176,7 +170,7 @@ def _convert_pipeline_result(
             step_name=step.step_name,
             applied=step.applied,
             description=step.description,
-            changes=step.changes
+            changes=step.changes,
         )
         for step in pipeline_result.steps_applied
     ]
@@ -197,7 +191,7 @@ def _convert_pipeline_result(
             lost=sc.stereocenters_lost,
             gained=sc.stereocenters_gained,
             double_bond_stereo_lost=sc.double_bond_stereo_lost,
-            warning=sc.warning
+            warning=sc.warning,
         )
 
     # Convert structure comparison
@@ -213,7 +207,7 @@ def _convert_pipeline_result(
             standardized_mw=scomp.standardized_mw,
             mass_change_percent=scomp.mass_change_percent,
             is_identical=scomp.is_identical,
-            diff_summary=scomp.diff_summary
+            diff_summary=scomp.diff_summary,
         )
 
     return StandardizationResult(
@@ -226,5 +220,5 @@ def _convert_pipeline_result(
         excluded_fragments=pipeline_result.excluded_fragments,
         stereo_comparison=stereo_comparison,
         structure_comparison=structure_comparison,
-        mass_change_percent=pipeline_result.mass_change_percent
+        mass_change_percent=pipeline_result.mass_change_percent,
     )

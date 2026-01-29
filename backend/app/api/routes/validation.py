@@ -3,6 +3,7 @@ Validation API Routes
 
 Endpoints for single molecule validation with Redis caching support.
 """
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, inchi as rdkit_inchi, rdMolDescriptors
@@ -10,7 +11,12 @@ from redis.asyncio import Redis
 import time
 from typing import Optional
 
-from app.schemas.validation import ValidationRequest, ValidationResponse, MoleculeInfo, CheckResultSchema
+from app.schemas.validation import (
+    ValidationRequest,
+    ValidationResponse,
+    MoleculeInfo,
+    CheckResultSchema,
+)
 from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
 from app.services.validation.engine import validation_engine
 from app.core.rate_limit import limiter, get_rate_limit_key
@@ -42,7 +48,7 @@ async def get_redis(request: Request) -> Optional[Redis]:
 async def validate_molecule(
     request: Request,
     body: ValidationRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Validate a single molecule.
@@ -72,7 +78,7 @@ async def validate_molecule(
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
-        "auto": None
+        "auto": None,
     }
     input_format = format_map.get(body.format)
 
@@ -85,8 +91,8 @@ async def validate_molecule(
                 "error": "Failed to parse molecule",
                 "errors": parse_result.errors,
                 "warnings": parse_result.warnings,
-                "format_detected": parse_result.format_detected.value
-            }
+                "format_detected": parse_result.format_detected.value,
+            },
         )
 
     mol = parse_result.mol
@@ -97,7 +103,6 @@ async def validate_molecule(
     # Check cache if enabled
     redis = await get_redis(request)
     cache_key = None
-    cached_from_redis = False
 
     if settings.VALIDATION_CACHE_ENABLED and redis and mol_info.inchikey:
         cache_key = validation_cache_key(mol_info.inchikey, body.checks)
@@ -121,7 +126,7 @@ async def validate_molecule(
             severity=r.severity,
             message=r.message,
             affected_atoms=r.affected_atoms,
-            details=r.details
+            details=r.details,
         )
         for r in results
     ]
@@ -133,7 +138,7 @@ async def validate_molecule(
         overall_score=score,
         issues=[c for c in check_results if not c.passed],
         all_checks=check_results,
-        execution_time_ms=execution_time
+        execution_time_ms=execution_time,
     )
 
     # Cache the result if enabled
@@ -149,10 +154,7 @@ async def validate_molecule(
 
 @router.get("/checks")
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
-async def list_checks(
-    request: Request,
-    api_key: Optional[str] = Depends(get_api_key)
-):
+async def list_checks(request: Request, api_key: Optional[str] = Depends(get_api_key)):
     """
     List available validation checks.
 
@@ -166,7 +168,9 @@ async def list_checks(
     return validation_engine.list_checks()
 
 
-def extract_molecule_info(mol: Chem.Mol, input_smiles: str, preserve_aromatic: bool = False) -> MoleculeInfo:
+def extract_molecule_info(
+    mol: Chem.Mol, input_smiles: str, preserve_aromatic: bool = False
+) -> MoleculeInfo:
     """
     Extract molecule properties.
 
@@ -215,5 +219,5 @@ def extract_molecule_info(mol: Chem.Mol, input_smiles: str, preserve_aromatic: b
         inchikey=mol_inchikey,
         molecular_formula=formula,
         molecular_weight=mw,
-        num_atoms=num_atoms
+        num_atoms=num_atoms,
     )

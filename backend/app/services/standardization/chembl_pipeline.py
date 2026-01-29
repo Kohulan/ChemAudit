@@ -10,6 +10,7 @@ CRITICAL: Tautomer canonicalization is OFF by default because it can
 remove double-bond stereochemistry (E/Z isomerism). Users must explicitly
 opt-in when they understand the implications.
 """
+
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 from rdkit import Chem
@@ -19,7 +20,6 @@ from chembl_structure_pipeline import standardizer, checker, get_parent_mol
 
 from app.services.standardization.stereo_tracker import (
     StereoTracker,
-    StereoInfo,
     StereoComparison,
 )
 from app.services.standardization.comparison import (
@@ -102,9 +102,7 @@ class StandardizationPipeline:
         self._tautomer_enumerator = rdMolStandardize.TautomerEnumerator()
 
     def standardize(
-        self,
-        mol: Chem.Mol,
-        options: Optional[StandardizationOptions] = None
+        self, mol: Chem.Mol, options: Optional[StandardizationOptions] = None
     ) -> StandardizationResult:
         """
         Standardize a molecule using ChEMBL pipeline.
@@ -169,12 +167,14 @@ class StandardizationPipeline:
                 result.steps_applied.append(taut_step)
             else:
                 final_mol = parent_mol
-                result.steps_applied.append(StandardizationStep(
-                    step_name="tautomer_canonicalization",
-                    applied=False,
-                    description="Tautomer canonicalization (skipped by default to preserve E/Z stereo)",
-                    changes="Not applied - enable with include_tautomer=True"
-                ))
+                result.steps_applied.append(
+                    StandardizationStep(
+                        step_name="tautomer_canonicalization",
+                        applied=False,
+                        description="Tautomer canonicalization (skipped by default to preserve E/Z stereo)",
+                        changes="Not applied - enable with include_tautomer=True",
+                    )
+                )
 
             # Generate final SMILES
             result.standardized_smiles = Chem.MolToSmiles(final_mol)
@@ -182,7 +182,9 @@ class StandardizationPipeline:
 
             # Track stereochemistry after standardization
             stereo_after = StereoTracker.get_stereo_info(final_mol)
-            result.stereo_comparison = StereoTracker.compare(stereo_before, stereo_after)
+            result.stereo_comparison = StereoTracker.compare(
+                stereo_before, stereo_after
+            )
 
             # Compare structures
             result.structure_comparison = compare_structures(mol, final_mol)
@@ -194,9 +196,7 @@ class StandardizationPipeline:
         return result
 
     def _run_checker(
-        self,
-        mol: Chem.Mol,
-        result: StandardizationResult
+        self, mol: Chem.Mol, result: StandardizationResult
     ) -> StandardizationStep:
         """
         Run ChEMBL checker to detect structure issues.
@@ -218,26 +218,25 @@ class StandardizationPipeline:
                     step_name="checker",
                     applied=True,
                     description="Structure checker (detect issues)",
-                    changes=f"Found {len(issues)} issue(s)"
+                    changes=f"Found {len(issues)} issue(s)",
                 )
             else:
                 return StandardizationStep(
                     step_name="checker",
                     applied=True,
                     description="Structure checker (detect issues)",
-                    changes="No issues found"
+                    changes="No issues found",
                 )
         except Exception as e:
             return StandardizationStep(
                 step_name="checker",
                 applied=False,
                 description="Structure checker (detect issues)",
-                changes=f"Error: {str(e)}"
+                changes=f"Error: {str(e)}",
             )
 
     def _run_standardizer(
-        self,
-        mol: Chem.Mol
+        self, mol: Chem.Mol
     ) -> Tuple[Optional[Chem.Mol], StandardizationStep]:
         """
         Run ChEMBL standardizer.
@@ -267,7 +266,7 @@ class StandardizationPipeline:
                     step_name="standardizer",
                     applied=False,
                     description="ChEMBL standardizer (fix common issues)",
-                    changes="Failed to standardize"
+                    changes="Failed to standardize",
                 )
 
             # Get SMILES after standardization
@@ -278,14 +277,14 @@ class StandardizationPipeline:
                     step_name="standardizer",
                     applied=True,
                     description="ChEMBL standardizer (fix common issues)",
-                    changes="Structure modified"
+                    changes="Structure modified",
                 )
             else:
                 return std_mol, StandardizationStep(
                     step_name="standardizer",
                     applied=True,
                     description="ChEMBL standardizer (fix common issues)",
-                    changes="No changes needed"
+                    changes="No changes needed",
                 )
 
         except Exception as e:
@@ -293,13 +292,11 @@ class StandardizationPipeline:
                 step_name="standardizer",
                 applied=False,
                 description="ChEMBL standardizer (fix common issues)",
-                changes=f"Error: {str(e)}"
+                changes=f"Error: {str(e)}",
             )
 
     def _run_get_parent(
-        self,
-        mol: Chem.Mol,
-        return_excluded: bool = True
+        self, mol: Chem.Mol, return_excluded: bool = True
     ) -> Tuple[Optional[Chem.Mol], StandardizationStep, List[str]]:
         """
         Run ChEMBL GetParent to extract parent molecule.
@@ -323,12 +320,16 @@ class StandardizationPipeline:
             parent_mol, exclude = get_parent_mol(mol)
 
             if parent_mol is None:
-                return None, StandardizationStep(
-                    step_name="get_parent",
-                    applied=False,
-                    description="Extract parent molecule (remove salts/solvents)",
-                    changes="Failed to extract parent"
-                ), excluded_fragments
+                return (
+                    None,
+                    StandardizationStep(
+                        step_name="get_parent",
+                        applied=False,
+                        description="Extract parent molecule (remove salts/solvents)",
+                        changes="Failed to extract parent",
+                    ),
+                    excluded_fragments,
+                )
 
             # Get SMILES after
             after_smiles = Chem.MolToSmiles(parent_mol)
@@ -340,45 +341,60 @@ class StandardizationPipeline:
                 # We need to reconstruct excluded fragments by comparing
                 if before_smiles != after_smiles:
                     # Find removed fragments by parsing the original as multiple components
-                    original_parts = before_smiles.split('.')
-                    parent_parts = after_smiles.split('.')
+                    original_parts = before_smiles.split(".")
+                    parent_parts = after_smiles.split(".")
                     for part in original_parts:
                         if part not in parent_parts:
                             excluded_fragments.append(part)
 
             if excluded_fragments:
-                return parent_mol, StandardizationStep(
-                    step_name="get_parent",
-                    applied=True,
-                    description="Extract parent molecule (remove salts/solvents)",
-                    changes=f"Removed {len(excluded_fragments)} fragment(s)"
-                ), excluded_fragments
+                return (
+                    parent_mol,
+                    StandardizationStep(
+                        step_name="get_parent",
+                        applied=True,
+                        description="Extract parent molecule (remove salts/solvents)",
+                        changes=f"Removed {len(excluded_fragments)} fragment(s)",
+                    ),
+                    excluded_fragments,
+                )
             elif before_smiles != after_smiles:
-                return parent_mol, StandardizationStep(
-                    step_name="get_parent",
-                    applied=True,
-                    description="Extract parent molecule (remove salts/solvents)",
-                    changes="Structure modified"
-                ), excluded_fragments
+                return (
+                    parent_mol,
+                    StandardizationStep(
+                        step_name="get_parent",
+                        applied=True,
+                        description="Extract parent molecule (remove salts/solvents)",
+                        changes="Structure modified",
+                    ),
+                    excluded_fragments,
+                )
             else:
-                return parent_mol, StandardizationStep(
-                    step_name="get_parent",
-                    applied=True,
-                    description="Extract parent molecule (remove salts/solvents)",
-                    changes="No fragments to remove"
-                ), excluded_fragments
+                return (
+                    parent_mol,
+                    StandardizationStep(
+                        step_name="get_parent",
+                        applied=True,
+                        description="Extract parent molecule (remove salts/solvents)",
+                        changes="No fragments to remove",
+                    ),
+                    excluded_fragments,
+                )
 
         except Exception as e:
-            return None, StandardizationStep(
-                step_name="get_parent",
-                applied=False,
-                description="Extract parent molecule (remove salts/solvents)",
-                changes=f"Error: {str(e)}"
-            ), excluded_fragments
+            return (
+                None,
+                StandardizationStep(
+                    step_name="get_parent",
+                    applied=False,
+                    description="Extract parent molecule (remove salts/solvents)",
+                    changes=f"Error: {str(e)}",
+                ),
+                excluded_fragments,
+            )
 
     def _run_tautomer_canonicalization(
-        self,
-        mol: Chem.Mol
+        self, mol: Chem.Mol
     ) -> Tuple[Optional[Chem.Mol], StandardizationStep]:
         """
         Run tautomer canonicalization.
@@ -403,7 +419,7 @@ class StandardizationPipeline:
                     step_name="tautomer_canonicalization",
                     applied=False,
                     description="Tautomer canonicalization (WARNING: may lose E/Z stereo)",
-                    changes="Failed to canonicalize"
+                    changes="Failed to canonicalize",
                 )
 
             after_smiles = Chem.MolToSmiles(canon_mol)
@@ -413,14 +429,14 @@ class StandardizationPipeline:
                     step_name="tautomer_canonicalization",
                     applied=True,
                     description="Tautomer canonicalization (WARNING: may lose E/Z stereo)",
-                    changes="Tautomer changed"
+                    changes="Tautomer changed",
                 )
             else:
                 return canon_mol, StandardizationStep(
                     step_name="tautomer_canonicalization",
                     applied=True,
                     description="Tautomer canonicalization (WARNING: may lose E/Z stereo)",
-                    changes="No tautomer change needed"
+                    changes="No tautomer change needed",
                 )
 
         except Exception as e:
@@ -428,7 +444,7 @@ class StandardizationPipeline:
                 step_name="tautomer_canonicalization",
                 applied=False,
                 description="Tautomer canonicalization (WARNING: may lose E/Z stereo)",
-                changes=f"Error: {str(e)}"
+                changes=f"Error: {str(e)}",
             )
 
 
@@ -437,8 +453,7 @@ _pipeline = StandardizationPipeline()
 
 
 def standardize_molecule(
-    mol: Chem.Mol,
-    options: Optional[StandardizationOptions] = None
+    mol: Chem.Mol, options: Optional[StandardizationOptions] = None
 ) -> StandardizationResult:
     """
     Convenience function to standardize a molecule.

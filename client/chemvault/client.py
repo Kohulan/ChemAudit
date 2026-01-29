@@ -1,7 +1,7 @@
 """
-ChemStructVal API Client
+ChemVault API Client
 
-Synchronous Python client for the ChemStructVal API.
+Synchronous Python client for the ChemVault API.
 """
 import time
 from typing import Optional, List, Dict, Any, Iterator
@@ -30,9 +30,9 @@ from .exceptions import (
 )
 
 
-class ChemStructValClient:
+class ChemVaultClient:
     """
-    Synchronous client for the ChemStructVal API.
+    Synchronous client for the ChemVault API.
 
     This client is intentionally synchronous-only using httpx.Client.
     For async usage, wrap calls with asyncio.to_thread() or use httpx directly.
@@ -44,7 +44,7 @@ class ChemStructValClient:
         max_retries: Maximum retries for rate limit errors (default: 3)
 
     Example:
-        >>> client = ChemStructValClient(api_key="your-key")
+        >>> client = ChemVaultClient(api_key="your-key")
         >>> result = client.validate("CCO")
         >>> print(result.overall_score)
     """

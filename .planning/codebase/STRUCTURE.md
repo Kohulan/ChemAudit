@@ -5,7 +5,7 @@
 ## Project Layout
 
 ```
-chemstructval/
+chemvault/
 ├── backend/                    # FastAPI Python backend
 │   ├── app/
 │   │   ├── __init__.py

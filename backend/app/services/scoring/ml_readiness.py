@@ -8,6 +8,7 @@ Score breakdown:
 - Fingerprints (40 points): 7 fingerprint types
 - Size/Elements (20 points): Molecular weight and atom count constraints
 """
+
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -81,13 +82,13 @@ class MLReadinessScorer:
 
     # Fingerprint types with their point allocations (total: 40 points)
     FINGERPRINT_TYPES = [
-        ("morgan", 8),              # ECFP-like circular fingerprint
-        ("morgan_features", 8),     # FCFP-like with pharmacophore features
-        ("maccs", 8),               # 166 structural keys
-        ("atompair", 4),            # Atom pair fingerprint
-        ("topological_torsion", 4), # Torsion patterns
-        ("rdkit_fp", 4),            # Daylight-like paths
-        ("avalon", 4),              # Avalon substructure fingerprint
+        ("morgan", 8),  # ECFP-like circular fingerprint
+        ("morgan_features", 8),  # FCFP-like with pharmacophore features
+        ("maccs", 8),  # 166 structural keys
+        ("atompair", 4),  # Atom pair fingerprint
+        ("topological_torsion", 4),  # Torsion patterns
+        ("rdkit_fp", 4),  # Daylight-like paths
+        ("avalon", 4),  # Avalon substructure fingerprint
     ]
 
     # Size thresholds
@@ -102,8 +103,9 @@ class MLReadinessScorer:
             radius=2, fpSize=2048
         )
         self._morgan_feat_gen = rdFingerprintGenerator.GetMorganGenerator(
-            radius=2, fpSize=2048,
-            atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+            radius=2,
+            fpSize=2048,
+            atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen(),
         )
         self._atompair_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
         self._torsion_gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(
@@ -137,10 +139,10 @@ class MLReadinessScorer:
 
         # Calculate total score
         total_score = int(
-            breakdown.descriptors_score +
-            breakdown.additional_descriptors_score +
-            breakdown.fingerprints_score +
-            breakdown.size_score
+            breakdown.descriptors_score
+            + breakdown.additional_descriptors_score
+            + breakdown.fingerprints_score
+            + breakdown.size_score
         )
         total_score = max(0, min(100, total_score))
 
@@ -180,8 +182,8 @@ class MLReadinessScorer:
             breakdown.failed_descriptors = failed
 
             if total > 0:
-                breakdown.descriptors_score = (
-                    breakdown.descriptors_max * (successful / total)
+                breakdown.descriptors_score = breakdown.descriptors_max * (
+                    successful / total
                 )
 
         except Exception as e:
@@ -201,7 +203,8 @@ class MLReadinessScorer:
             autocorr2d = rdMolDescriptors.CalcAUTOCORR2D(mol)
             # Count non-None/non-NaN values
             autocorr_success = sum(
-                1 for v in autocorr2d
+                1
+                for v in autocorr2d
                 if v is not None and v == v  # v == v is False for NaN
             )
         except Exception:
@@ -224,8 +227,8 @@ class MLReadinessScorer:
 
         if total_additional > 0:
             breakdown.additional_descriptors_score = (
-                breakdown.additional_descriptors_max *
-                (successful_additional / total_additional)
+                breakdown.additional_descriptors_max
+                * (successful_additional / total_additional)
             )
 
     def _score_fingerprints(
@@ -283,9 +286,7 @@ class MLReadinessScorer:
             breakdown.num_atoms = num_atoms
 
             # Check optimal range
-            mw_optimal = (
-                self.OPTIMAL_MW_RANGE[0] <= mw <= self.OPTIMAL_MW_RANGE[1]
-            )
+            mw_optimal = self.OPTIMAL_MW_RANGE[0] <= mw <= self.OPTIMAL_MW_RANGE[1]
             atoms_optimal = (
                 self.OPTIMAL_ATOM_RANGE[0] <= num_atoms <= self.OPTIMAL_ATOM_RANGE[1]
             )
@@ -295,7 +296,9 @@ class MLReadinessScorer:
                 self.ACCEPTABLE_MW_RANGE[0] <= mw <= self.ACCEPTABLE_MW_RANGE[1]
             )
             atoms_acceptable = (
-                self.ACCEPTABLE_ATOM_RANGE[0] <= num_atoms <= self.ACCEPTABLE_ATOM_RANGE[1]
+                self.ACCEPTABLE_ATOM_RANGE[0]
+                <= num_atoms
+                <= self.ACCEPTABLE_ATOM_RANGE[1]
             )
 
             if mw_optimal and atoms_optimal:
@@ -312,9 +315,7 @@ class MLReadinessScorer:
             breakdown.size_score = 0.0
             breakdown.size_category = "error"
 
-    def _get_interpretation(
-        self, score: int, breakdown: MLReadinessBreakdown
-    ) -> str:
+    def _get_interpretation(self, score: int, breakdown: MLReadinessBreakdown) -> str:
         """Generate human-readable interpretation of the score."""
         parts = []
 
@@ -330,14 +331,14 @@ class MLReadinessScorer:
 
         # Descriptor summary
         total_descriptors = (
-            breakdown.descriptors_total +
-            breakdown.autocorr2d_total +
-            breakdown.mqn_total
+            breakdown.descriptors_total
+            + breakdown.autocorr2d_total
+            + breakdown.mqn_total
         )
         successful_descriptors = (
-            breakdown.descriptors_successful +
-            breakdown.autocorr2d_successful +
-            breakdown.mqn_successful
+            breakdown.descriptors_successful
+            + breakdown.autocorr2d_successful
+            + breakdown.mqn_successful
         )
         parts.append(
             f"{successful_descriptors}/{total_descriptors} descriptors calculated "

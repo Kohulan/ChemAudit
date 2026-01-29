@@ -4,12 +4,13 @@ WebSocket Connection Manager
 Manages WebSocket connections with Redis pub/sub for horizontal scaling.
 Forwards batch progress updates to connected clients.
 """
+
 import asyncio
 import json
 from typing import Dict, List, Optional
 
 import redis.asyncio as redis
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 from app.core.config import settings
 
@@ -154,9 +155,7 @@ class ConnectionManager:
         for ws in dead_connections:
             self.disconnect(job_id, ws)
 
-    async def send_initial_status(
-        self, job_id: str, websocket: WebSocket
-    ) -> None:
+    async def send_initial_status(self, job_id: str, websocket: WebSocket) -> None:
         """
         Send current job status when client first connects.
 

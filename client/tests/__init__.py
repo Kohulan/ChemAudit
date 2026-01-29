@@ -1,3 +1,3 @@
 """
-Tests for ChemStructVal client.
+Tests for ChemVault client.
 """

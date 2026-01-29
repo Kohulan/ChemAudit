@@ -4,8 +4,8 @@ Scaffold Extraction
 Extracts Murcko scaffolds from molecules for structure analysis.
 Provides both standard and generic (framework) scaffolds.
 """
+
 from dataclasses import dataclass
-from typing import Optional
 
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold

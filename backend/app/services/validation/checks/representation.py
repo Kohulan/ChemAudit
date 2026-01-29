@@ -3,6 +3,7 @@ Representation Consistency Checks
 
 Checks for issues with molecular representation conversions (SMILES/InChI roundtrips).
 """
+
 from rdkit import Chem
 
 from app.schemas.common import Severity

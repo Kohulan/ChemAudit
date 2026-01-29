@@ -1,6 +1,14 @@
 # GSD planning docs (local only)
 .planning/
 
+# Local documentation (not for git)
+local_docs/
+
+# Claude Code related files (local only)
+CLAUDE.md
+**/CLAUDE*.md
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]

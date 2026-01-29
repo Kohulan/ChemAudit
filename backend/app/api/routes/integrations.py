@@ -3,6 +3,7 @@ External Integrations API Routes
 
 Endpoints for COCONUT, PubChem, and ChEMBL integrations.
 """
+
 from fastapi import APIRouter, Request, Depends
 from typing import Optional
 
@@ -31,7 +32,7 @@ router = APIRouter()
 async def lookup_coconut(
     request: Request,
     body: COCONUTRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Look up molecule in COCONUT natural products database.
@@ -61,7 +62,7 @@ async def lookup_coconut(
             "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
             "molecular_weight": 194.19,
             "organism": "Coffea arabica",
-            "url": "https://coconut.naturalproducts.net/compound/CNP0123456"
+            "url": "https://coconut.naturalproducts.net/compounds/CNP0123456"
         }
         ```
     """
@@ -73,7 +74,7 @@ async def lookup_coconut(
 async def lookup_pubchem(
     request: Request,
     body: PubChemRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Cross-reference molecule with PubChem database.
@@ -113,9 +114,7 @@ async def lookup_pubchem(
 @router.post("/integrations/chembl/bioactivity", response_model=ChEMBLResult)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def lookup_chembl_bioactivity(
-    request: Request,
-    body: ChEMBLRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    request: Request, body: ChEMBLRequest, api_key: Optional[str] = Depends(get_api_key)
 ):
     """
     Look up ChEMBL bioactivity data for molecule.

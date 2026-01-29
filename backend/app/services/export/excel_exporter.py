@@ -3,11 +3,19 @@ Excel Exporter
 
 Exports batch results to Excel format with conditional formatting using XlsxWriter.
 """
+
 from io import BytesIO
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import pandas as pd
 
-from .base import BaseExporter, ExportFormat, ExporterFactory
+from .base import (
+    BaseExporter,
+    count_alerts,
+    count_alerts_by_catalog,
+    ExportFormat,
+    ExporterFactory,
+)
 
 
 class ExcelExporter(BaseExporter):
@@ -48,23 +56,18 @@ class ExcelExporter(BaseExporter):
                 total_score += overall_score
                 total_ml_score += ml_score
 
-            # Count alerts
-            alerts_count = 0
-            if alerts:
-                for catalog in ["pains", "brenk", "nih", "glaxo"]:
-                    catalog_data = alerts.get(catalog, {})
-                    if isinstance(catalog_data, dict):
-                        matches = catalog_data.get("matches", [])
-                        count = len(matches)
-                        alerts_count += count
-                        if count > 0:
-                            alert_distribution[catalog] = alert_distribution.get(catalog, 0) + count
+            # Count alerts and update distribution
+            alerts_count = count_alerts(alerts)
+            for catalog, cnt in count_alerts_by_catalog(alerts).items():
+                alert_distribution[catalog] = alert_distribution.get(catalog, 0) + cnt
 
             # Collect issues for summary
             issues = validation.get("issues", [])
             issues_summary = "; ".join(
-                [f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
-                 for issue in issues[:3]]  # Limit to first 3 issues
+                [
+                    f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
+                    for issue in issues[:3]
+                ]  # Limit to first 3 issues
             )
 
             row = {
@@ -75,7 +78,9 @@ class ExcelExporter(BaseExporter):
                 "inchikey": validation.get("inchikey", ""),
                 "overall_score": overall_score,
                 "ml_readiness_score": ml_score,
-                "np_likeness_score": scoring.get("np_likeness_score", 0) if scoring else 0,
+                "np_likeness_score": (
+                    scoring.get("np_likeness_score", 0) if scoring else 0
+                ),
                 "alerts_count": alerts_count,
                 "issues_summary": issues_summary,
                 "standardized_smiles": result.get("standardized_smiles", ""),
@@ -102,84 +107,45 @@ class ExcelExporter(BaseExporter):
             yellow_format = workbook.add_format({"bg_color": "#FFEB9C"})
             red_format = workbook.add_format({"bg_color": "#FFC7CE"})
 
-            # Apply conditional formatting to score columns (F, G, H - zero-indexed: 5, 6, 7)
-            # overall_score column (F, index 5)
-            worksheet.conditional_format(
-                1,
-                5,
-                len(df),
-                5,
-                {
-                    "type": "cell",
-                    "criteria": ">=",
-                    "value": 80,
-                    "format": green_format,
-                },
-            )
-            worksheet.conditional_format(
-                1,
-                5,
-                len(df),
-                5,
-                {
-                    "type": "cell",
-                    "criteria": "between",
-                    "minimum": 50,
-                    "maximum": 79,
-                    "format": yellow_format,
-                },
-            )
-            worksheet.conditional_format(
-                1,
-                5,
-                len(df),
-                5,
-                {
-                    "type": "cell",
-                    "criteria": "<",
-                    "value": 50,
-                    "format": red_format,
-                },
-            )
-
-            # ml_readiness_score column (G, index 6)
-            worksheet.conditional_format(
-                1,
-                6,
-                len(df),
-                6,
-                {
-                    "type": "cell",
-                    "criteria": ">=",
-                    "value": 80,
-                    "format": green_format,
-                },
-            )
-            worksheet.conditional_format(
-                1,
-                6,
-                len(df),
-                6,
-                {
-                    "type": "cell",
-                    "criteria": "between",
-                    "minimum": 50,
-                    "maximum": 79,
-                    "format": yellow_format,
-                },
-            )
-            worksheet.conditional_format(
-                1,
-                6,
-                len(df),
-                6,
-                {
-                    "type": "cell",
-                    "criteria": "<",
-                    "value": 50,
-                    "format": red_format,
-                },
-            )
+            # Apply conditional formatting to score columns (overall_score=5, ml_readiness_score=6)
+            for col_idx in [5, 6]:
+                worksheet.conditional_format(
+                    1,
+                    col_idx,
+                    len(df),
+                    col_idx,
+                    {
+                        "type": "cell",
+                        "criteria": ">=",
+                        "value": 80,
+                        "format": green_format,
+                    },
+                )
+                worksheet.conditional_format(
+                    1,
+                    col_idx,
+                    len(df),
+                    col_idx,
+                    {
+                        "type": "cell",
+                        "criteria": "between",
+                        "minimum": 50,
+                        "maximum": 79,
+                        "format": yellow_format,
+                    },
+                )
+                worksheet.conditional_format(
+                    1,
+                    col_idx,
+                    len(df),
+                    col_idx,
+                    {
+                        "type": "cell",
+                        "criteria": "<",
+                        "value": 50,
+                        "format": red_format,
+                    },
+                )
 
             # Freeze first row (header)
             worksheet.freeze_panes(1, 0)
@@ -187,17 +153,16 @@ class ExcelExporter(BaseExporter):
             # Auto-fit column widths (approximate)
             for idx, col in enumerate(df.columns):
                 # Calculate max width
-                max_width = max(
-                    df[col].astype(str).map(len).max(),
-                    len(str(col))
-                )
+                max_width = max(df[col].astype(str).map(len).max(), len(str(col)))
                 # Add some padding
                 worksheet.set_column(idx, idx, min(max_width + 2, 50))
 
             # Create summary sheet
             total_count = len(results)
             avg_score = total_score / successful_count if successful_count > 0 else 0
-            avg_ml_score = total_ml_score / successful_count if successful_count > 0 else 0
+            avg_ml_score = (
+                total_ml_score / successful_count if successful_count > 0 else 0
+            )
 
             summary_data = {
                 "Metric": [

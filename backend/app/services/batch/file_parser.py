@@ -4,6 +4,7 @@ File Parser Module
 Parses SDF and CSV files into molecule data for batch processing.
 Handles errors per-molecule without crashing the entire batch.
 """
+
 import io
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any

@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, useRef, useEffect, ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
 interface TooltipProps {
@@ -11,6 +11,20 @@ interface TooltipProps {
   disabled?: boolean;
   className?: string;
 }
+
+const positionClasses = {
+  top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+  bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+  left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+  right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+};
+
+const arrowClasses = {
+  top: 'top-full left-1/2 -translate-x-1/2 border-t-zinc-800 border-x-transparent border-b-transparent',
+  bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-zinc-800 border-x-transparent border-t-transparent',
+  left: 'left-full top-1/2 -translate-y-1/2 border-l-zinc-800 border-y-transparent border-r-transparent',
+  right: 'right-full top-1/2 -translate-y-1/2 border-r-zinc-800 border-y-transparent border-l-transparent',
+};
 
 /**
  * Simple tooltip with relative positioning
@@ -26,43 +40,34 @@ export function Tooltip({
   className = '',
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
-  let timeout: ReturnType<typeof setTimeout>;
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const show = () => {
     if (disabled) return;
-    timeout = setTimeout(() => setIsVisible(true), delay);
+    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);
   };
 
   const hide = () => {
-    clearTimeout(timeout);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsVisible(false);
   };
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  };
-
-  const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-t-zinc-800 border-x-transparent border-b-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-zinc-800 border-x-transparent border-t-transparent',
-    left: 'left-full top-1/2 -translate-y-1/2 border-l-zinc-800 border-y-transparent border-r-transparent',
-    right: 'right-full top-1/2 -translate-y-1/2 border-r-zinc-800 border-y-transparent border-l-transparent',
-  };
-
   return (
-    <div className="relative inline-flex">
-      <div
-        onMouseEnter={show}
-        onMouseLeave={hide}
-        onFocus={show}
-        onBlur={hide}
-        className="inline-flex"
-      >
-        {children}
-      </div>
+    <div
+      className="relative inline-flex"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+    >
+      {children}
 
       {isVisible && (
         <div
@@ -76,7 +81,6 @@ export function Tooltip({
           style={{ maxWidth, minWidth: 120 }}
           role="tooltip"
         >
-          {/* Arrow */}
           <div
             className={cn(
               'absolute w-0 h-0 border-[6px]',
@@ -151,7 +155,7 @@ export function CalculationTooltip({
       {value !== undefined && (
         <div className="flex items-center gap-2 pb-2 border-b border-white/20">
           <span className="text-zinc-400 text-xs">Value:</span>
-          <span className="font-mono font-semibold text-teal-400">{value}</span>
+          <span className="font-mono font-semibold text-red-400">{value}</span>
         </div>
       )}
       <div>

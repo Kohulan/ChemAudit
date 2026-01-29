@@ -11,7 +11,6 @@ const badgeVariants = cva(
         warning: 'badge-warning',
         error: 'badge-error',
         info: 'badge-info',
-        accent: 'badge-primary',
         outline: 'bg-transparent border border-current',
       },
       size: {
@@ -90,15 +89,15 @@ interface StatusDotProps {
   className?: string;
 }
 
-export function StatusDot({ status, pulse = false, className }: StatusDotProps) {
-  const statusColors = {
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    error: 'bg-red-500',
-    info: 'bg-cyan-500',
-    neutral: 'bg-[var(--color-text-muted)]',
-  };
+const statusColors = {
+  success: 'bg-status-success',
+  warning: 'bg-status-warning',
+  error: 'bg-status-error',
+  info: 'bg-status-info',
+  neutral: 'bg-[var(--color-text-muted)]',
+};
 
+export function StatusDot({ status, pulse = false, className }: StatusDotProps) {
   return (
     <span className={cn('relative inline-flex', className)}>
       <span

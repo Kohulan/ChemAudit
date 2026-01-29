@@ -7,6 +7,7 @@ standardization to detect any stereochemistry loss.
 CRITICAL: Stereochemistry loss is a common pitfall in standardization.
 Always warn users when defined stereocenters are lost.
 """
+
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 from rdkit import Chem
@@ -91,12 +92,12 @@ class StereoTracker:
                 mol,
                 includeUnassigned=True,
                 includeCIP=True,
-                useLegacyImplementation=False
+                useLegacyImplementation=False,
             )
 
             for atom_idx, label in chiral_centers:
                 info.chiral_centers.append((atom_idx, label))
-                if label in ('R', 'S'):
+                if label in ("R", "S"):
                     info.defined_stereocenters += 1
                 else:
                     info.undefined_stereocenters += 1
@@ -120,7 +121,7 @@ class StereoTracker:
                 if bond.GetBondType() == Chem.BondType.DOUBLE:
                     stereo = bond.GetStereo()
                     if stereo != Chem.BondStereo.STEREONONE:
-                        stereo_str = str(stereo).replace('STEREO', '')
+                        stereo_str = str(stereo).replace("STEREO", "")
                         info.double_bond_stereo.append((bond.GetIdx(), stereo_str))
 
                         if stereo in defined_stereo_types:
@@ -165,9 +166,7 @@ class StereoTracker:
         # Generate warning if any defined stereochemistry was lost
         warnings = []
         if comparison.stereocenters_lost > 0:
-            warnings.append(
-                f"{comparison.stereocenters_lost} stereocenter(s) lost"
-            )
+            warnings.append(f"{comparison.stereocenters_lost} stereocenter(s) lost")
         if comparison.double_bond_stereo_lost > 0:
             warnings.append(
                 f"{comparison.double_bond_stereo_lost} E/Z stereo bond(s) lost"

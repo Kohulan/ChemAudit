@@ -11,7 +11,7 @@ async def test_health_check_endpoint(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["app_name"] == "ChemStructVal"
+    assert data["app_name"] == "ChemVault"
     assert data["app_version"] == "0.1.0"
     assert "rdkit_version" in data
     # RDKit version should be present if installed
@@ -28,7 +28,7 @@ async def test_root_endpoint(client):
     data = response.json()
     assert "name" in data
     assert "version" in data
-    assert data["name"] == "ChemStructVal"
+    assert data["name"] == "ChemVault"
     assert data["version"] == "0.1.0"
 
 

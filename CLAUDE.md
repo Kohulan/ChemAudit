@@ -1,7 +1,7 @@
-# ChemStructVal Project
+# ChemVault Project
 
 ## Overview
-ChemStructVal is a comprehensive web-based chemical structure validation suite.
+ChemVault is a comprehensive web-based chemical structure validation suite.
 React frontend + FastAPI backend for validating, standardizing, and assessing ML-readiness of chemical structures.
 
 ## Documentation Location

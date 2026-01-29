@@ -7,9 +7,10 @@ structural alert pattern catalogs.
 IMPORTANT: Alerts are warnings for investigation, not automatic rejections.
 87 FDA-approved drugs contain PAINS patterns.
 """
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
-from rdkit.Chem import Descriptors, rdMolDescriptors
+from rdkit.Chem import rdMolDescriptors
 import time
 from typing import Optional
 
@@ -23,7 +24,7 @@ from app.schemas.alerts import (
     CatalogInfoSchema,
 )
 from app.services.parser.molecule_parser import parse_molecule, MoleculeFormat
-from app.services.alerts.alert_manager import alert_manager, AlertManager
+from app.services.alerts.alert_manager import alert_manager
 from app.services.alerts.filter_catalog import AVAILABLE_CATALOGS
 from app.core.rate_limit import limiter, get_rate_limit_key
 from app.core.security import get_api_key
@@ -37,7 +38,7 @@ router = APIRouter()
 async def screen_alerts(
     request: Request,
     body: AlertScreenRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Screen a molecule for structural alerts.
@@ -62,7 +63,7 @@ async def screen_alerts(
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
-        "auto": None
+        "auto": None,
     }
     input_format = format_map.get(body.format)
 
@@ -75,8 +76,8 @@ async def screen_alerts(
                 "error": "Failed to parse molecule",
                 "errors": parse_result.errors,
                 "warnings": parse_result.warnings,
-                "format_detected": parse_result.format_detected.value
-            }
+                "format_detected": parse_result.format_detected.value,
+            },
         )
 
     mol = parse_result.mol
@@ -117,8 +118,7 @@ async def screen_alerts(
 @router.get("/alerts/catalogs", response_model=CatalogListResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def list_catalogs(
-    request: Request,
-    api_key: Optional[str] = Depends(get_api_key)
+    request: Request, api_key: Optional[str] = Depends(get_api_key)
 ):
     """
     List available structural alert catalogs.
@@ -150,7 +150,7 @@ async def list_catalogs(
 async def quick_check_alerts(
     request: Request,
     body: AlertScreenRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Quick check if molecule has any structural alerts.
@@ -169,7 +169,7 @@ async def quick_check_alerts(
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
-        "auto": None
+        "auto": None,
     }
     input_format = format_map.get(body.format)
 
@@ -181,7 +181,7 @@ async def quick_check_alerts(
             detail={
                 "error": "Failed to parse molecule",
                 "errors": parse_result.errors,
-            }
+            },
         )
 
     has_alerts = alert_manager.has_alerts(parse_result.mol, catalogs=body.catalogs)

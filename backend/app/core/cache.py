@@ -13,13 +13,17 @@ Usage:
     await set_cached_validation(redis, cache_key, result)
     return result
 """
+
 import hashlib
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from redis.asyncio import Redis
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def validation_cache_key(
@@ -51,8 +55,8 @@ def validation_cache_key(
     else:
         checks_str = ",".join(sorted(checks))
 
-    # Short hash of checks for key uniqueness
-    checks_hash = hashlib.md5(checks_str.encode()).hexdigest()[:8]
+    # Short hash of checks for key uniqueness (SHA256 for security)
+    checks_hash = hashlib.sha256(checks_str.encode()).hexdigest()[:16]
 
     return f"validation:{inchikey}:{checks_hash}"
 
@@ -81,10 +85,8 @@ async def get_cached_validation(
         cached = await redis.get(cache_key)
         if cached:
             return json.loads(cached)
-    except Exception:
-        # Cache errors should not break validation
-        # Log in production, silently fail here
-        pass
+    except Exception as e:
+        logger.warning("Cache get failed for key %s: %s", cache_key, e)
 
     return None
 
@@ -120,10 +122,8 @@ async def set_cached_validation(
         serialized = json.dumps(result)
         await redis.setex(cache_key, ttl, serialized)
         return True
-    except Exception:
-        # Cache errors should not break validation
-        # Log in production, silently fail here
-        pass
+    except Exception as e:
+        logger.warning("Cache set failed for key %s: %s", cache_key, e)
 
     return False
 
@@ -156,8 +156,8 @@ async def invalidate_cached_validation(
 
         if keys:
             return await redis.delete(*keys)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Cache invalidation failed for inchikey %s: %s", inchikey, e)
 
     return 0
 

@@ -3,24 +3,24 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: chemstructval-postgres
+    container_name: chemvault-postgres
     environment:
-      POSTGRES_USER: chemstructval
-      POSTGRES_PASSWORD: chemstructval
-      POSTGRES_DB: chemstructval
+      POSTGRES_USER: chemvault
+      POSTGRES_PASSWORD: chemvault
+      POSTGRES_DB: chemvault
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chemstructval"]
+      test: ["CMD-SHELL", "pg_isready -U chemvault"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: chemstructval-redis
+    container_name: chemvault-redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -33,14 +33,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chemstructval-backend
+    container_name: chemvault-backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://chemstructval:chemstructval@postgres:5432/chemstructval
+      - DATABASE_URL=postgresql+asyncpg://chemvault:chemvault@postgres:5432/chemvault
       - REDIS_URL=redis://redis:6379/0
       - PYTHONUNBUFFERED=1
       - ENABLE_METRICS=true
@@ -60,12 +60,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chemstructval-celery-worker
+    container_name: chemvault-celery-worker
     command: celery -A app.celery_app worker --loglevel=info --concurrency=4
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://chemstructval:chemstructval@postgres:5432/chemstructval
+      - DATABASE_URL=postgresql+asyncpg://chemvault:chemvault@postgres:5432/chemvault
       - REDIS_URL=redis://redis:6379/0
       - PYTHONUNBUFFERED=1
     depends_on:
@@ -77,7 +77,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: chemstructval-frontend
+    container_name: chemvault-frontend
     command: npm run dev -- --host
     volumes:
       - ./frontend:/app
@@ -91,7 +91,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.47.0
-    container_name: chemstructval-prometheus
+    container_name: chemvault-prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -109,10 +109,10 @@ services:
 
   grafana:
     image: grafana/grafana:10.2.0
-    container_name: chemstructval-grafana
+    container_name: chemvault-grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=chemstructval
+      - GF_SECURITY_ADMIN_PASSWORD=chemvault
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3001
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource

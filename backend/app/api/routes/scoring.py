@@ -3,6 +3,7 @@ Scoring API Routes
 
 Endpoints for molecule scoring including ML-readiness, NP-likeness, and scaffold extraction.
 """
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
@@ -36,7 +37,7 @@ router = APIRouter()
 async def score_molecule(
     request: Request,
     body: ScoringRequest,
-    api_key: Optional[str] = Depends(get_api_key)
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Calculate scores for a molecule.
@@ -62,7 +63,7 @@ async def score_molecule(
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
-        "auto": None
+        "auto": None,
     }
     input_format = format_map.get(body.format)
 
@@ -75,8 +76,8 @@ async def score_molecule(
                 "error": "Failed to parse molecule",
                 "errors": parse_result.errors,
                 "warnings": parse_result.warnings,
-                "format_detected": parse_result.format_detected.value
-            }
+                "format_detected": parse_result.format_detected.value,
+            },
         )
 
     mol = parse_result.mol

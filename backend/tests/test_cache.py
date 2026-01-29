@@ -24,10 +24,10 @@ class TestValidationCacheKey:
         key = validation_cache_key("BSYNRYMUTXBXSQ-UHFFFAOYSA-N", None)
         assert key is not None
         assert key.startswith("validation:BSYNRYMUTXBXSQ-UHFFFAOYSA-N:")
-        # Should have 8-character hash suffix
+        # Should have 16-character SHA256 hash suffix
         parts = key.split(":")
         assert len(parts) == 3
-        assert len(parts[2]) == 8
+        assert len(parts[2]) == 16
 
     def test_cache_key_with_checks(self):
         """Test cache key includes checks hash."""

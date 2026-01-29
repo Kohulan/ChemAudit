@@ -71,20 +71,22 @@ function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       className={cn(
-        'relative overflow-hidden rounded-2xl p-4',
+        'relative rounded-2xl p-4',
         'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface)]',
         'border border-[var(--color-border)]',
         'hover:border-[var(--color-primary)]/30 hover:shadow-lg hover:shadow-[var(--color-primary)]/5',
         'transition-all duration-300'
       )}
     >
-      {/* Background glow effect */}
-      <div
-        className={cn(
-          'absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20',
-          color.bg
-        )}
-      />
+      {/* Background glow effect - clipped to prevent overflow */}
+      <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+        <div
+          className={cn(
+            'absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20',
+            color.bg
+          )}
+        />
+      </div>
 
       <div className="relative">
         {/* Header */}

@@ -3,6 +3,7 @@ Stereochemistry Validation Checks
 
 Checks for undefined/conflicting stereochemistry in molecular structures.
 """
+
 from rdkit import Chem
 
 from app.schemas.common import Severity

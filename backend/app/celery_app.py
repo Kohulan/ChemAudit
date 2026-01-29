@@ -3,12 +3,13 @@ Celery Application Configuration
 
 Configures Celery for batch processing of molecules with Redis as broker/backend.
 """
+
 from celery import Celery
 
 from app.core.config import settings
 
 celery_app = Celery(
-    "chemstructval",
+    "chemvault",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
     include=["app.services.batch.tasks"],

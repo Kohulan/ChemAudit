@@ -65,6 +65,12 @@ export function BatchResultsTable({
       bVal = b.validation?.overall_score ?? -1;
     }
 
+    // Handle nested alerts count
+    if (sortField === 'alerts') {
+      aVal = a.alerts?.alert_count ?? 0;
+      bVal = b.alerts?.alert_count ?? 0;
+    }
+
     if (typeof aVal === 'string') {
       aVal = aVal.toLowerCase();
       bVal = String(bVal).toLowerCase();
@@ -170,8 +176,11 @@ export function BatchResultsTable({
               >
                 Status {sortField === 'status' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
-                Alerts
+              <th
+                className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                onClick={() => handleSort('alerts')}
+              >
+                Alerts {sortField === 'alerts' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
             </tr>
           </thead>

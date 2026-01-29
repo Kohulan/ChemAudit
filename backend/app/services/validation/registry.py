@@ -3,7 +3,8 @@ Check Registry with Decorator Pattern
 
 Allows validation checks to self-register using @CheckRegistry.register() decorator.
 """
-from typing import Dict, List, Type, Optional
+
+from typing import Type
 
 
 class CheckRegistry:
@@ -13,7 +14,7 @@ class CheckRegistry:
     Checks self-register using @CheckRegistry.register("check_name") decorator.
     """
 
-    _checks: Dict[str, Type] = {}
+    _checks: dict[str, Type] = {}
 
     @classmethod
     def register(cls, name: str):
@@ -41,7 +42,7 @@ class CheckRegistry:
         return decorator
 
     @classmethod
-    def get(cls, name: str) -> Optional[Type]:
+    def get(cls, name: str) -> Type | None:
         """
         Get a check class by name.
 
@@ -54,7 +55,7 @@ class CheckRegistry:
         return cls._checks.get(name)
 
     @classmethod
-    def get_all(cls) -> Dict[str, Type]:
+    def get_all(cls) -> dict[str, Type]:
         """
         Get all registered checks.
 
@@ -64,7 +65,7 @@ class CheckRegistry:
         return cls._checks.copy()
 
     @classmethod
-    def list_names(cls) -> List[str]:
+    def list_names(cls) -> list[str]:
         """
         Get list of all registered check names.
 

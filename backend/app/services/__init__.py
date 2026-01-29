@@ -1,5 +1,5 @@
 """
-ChemStructVal Services
+ChemVault Services
 
 Core business logic for validation, parsing, and standardization.
 """

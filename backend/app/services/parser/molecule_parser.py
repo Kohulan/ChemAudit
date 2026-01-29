@@ -4,6 +4,7 @@ Molecule Parser with Defensive Sanitization Pattern
 CRITICAL: Always use sanitize=False then explicit SanitizeMol() with error catching.
 This prevents silent failures and allows precise error detection.
 """
+
 from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
@@ -13,6 +14,7 @@ from rdkit import Chem
 
 class MoleculeFormat(str, Enum):
     """Supported molecule input formats"""
+
     SMILES = "smiles"
     INCHI = "inchi"
     MOL = "mol"
@@ -22,6 +24,7 @@ class MoleculeFormat(str, Enum):
 @dataclass
 class ParseResult:
     """Result of molecule parsing operation"""
+
     success: bool
     mol: Optional[Chem.Mol] = None
     canonical_smiles: Optional[str] = None
@@ -57,7 +60,9 @@ def detect_format(input_string: str) -> MoleculeFormat:
     return MoleculeFormat.SMILES
 
 
-def parse_molecule(input_string: str, input_format: Optional[MoleculeFormat] = None) -> ParseResult:
+def parse_molecule(
+    input_string: str, input_format: Optional[MoleculeFormat] = None
+) -> ParseResult:
     """
     Parse molecule with defensive sanitization pattern.
 

@@ -119,7 +119,7 @@ Cross-reference against major chemical databases
 git clone https://github.com/yourusername/chemvault.git
 cd chemvault
 
-# Start all services
+# Start all services (development)
 docker-compose up -d
 
 # View logs
@@ -132,6 +132,30 @@ docker-compose logs -f
 | Web UI | http://localhost:3000 |
 | API Docs | http://localhost:8000/docs |
 | Metrics | http://localhost:9090 |
+
+### Production Deployment
+
+Use the interactive deploy script to select a deployment profile:
+
+```bash
+# Interactive mode - shows profile menu
+./deploy.sh
+
+# Or specify profile directly
+./deploy.sh medium
+```
+
+**Available Profiles:**
+
+| Profile | Max Molecules | Max File Size | Workers | Use Case |
+|---------|---------------|---------------|---------|----------|
+| `small` | 1,000 | 100 MB | 2 | Development |
+| `medium` | 10,000 | 500 MB | 4 | Standard production |
+| `large` | 50,000 | 500 MB | 8 | High-throughput |
+| `xl` | 100,000 | 1 GB | 12 | Enterprise |
+| `coconut` | 1,000,000 | 1 GB | 16 | Full COCONUT DB |
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for detailed configuration.
 
 ### Manual Installation
 
@@ -190,11 +214,14 @@ Process large datasets with ease:
 
 | Feature | Specification |
 |---------|---------------|
-| **Max File Size** | 1 GB |
-| **Max Molecules** | 1,000,000 per batch |
+| **Max File Size** | Up to 1 GB (profile-dependent) |
+| **Max Molecules** | Up to 1,000,000 per batch (profile-dependent) |
 | **Supported Formats** | SDF, CSV |
 | **Progress Tracking** | Real-time WebSocket updates |
-| **Export Formats** | CSV, JSON, PDF Report |
+| **Export Formats** | CSV, JSON, Excel, SDF, PDF Report |
+
+> **Note:** Batch limits are dynamically configured based on your deployment profile.
+> The frontend automatically displays the correct limits for your deployment.
 
 ```python
 # Python client example

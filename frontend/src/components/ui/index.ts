@@ -12,6 +12,7 @@ export { Input, Textarea } from './Input';
 // Display
 export { Badge, CountBadge, StatusDot } from './Badge';
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonTile } from './Skeleton';
+export { CopyButton } from './CopyButton';
 
 // Theme
 export { ThemeToggle, ThemeSelector } from './ThemeToggle';

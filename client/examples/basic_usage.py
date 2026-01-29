@@ -1,9 +1,9 @@
 """
-Basic usage examples for ChemStructVal client.
+Basic usage examples for ChemVault client.
 
 Demonstrates single molecule validation, alert screening, standardization, and scoring.
 """
-from chemstructval import ChemStructValClient
+from chemvault import ChemVaultClient
 
 # Configuration
 API_BASE_URL = "http://localhost:8000"
@@ -11,11 +11,11 @@ API_KEY = None  # Set to your API key for higher rate limits
 
 
 def main():
-    print("ChemStructVal Client - Basic Usage Examples\n")
+    print("ChemVault Client - Basic Usage Examples\n")
     print("=" * 60)
 
     # Create client (use context manager for automatic cleanup)
-    with ChemStructValClient(base_url=API_BASE_URL, api_key=API_KEY) as client:
+    with ChemVaultClient(base_url=API_BASE_URL, api_key=API_KEY) as client:
 
         # Example 1: Simple validation
         print("\n1. Simple Validation")

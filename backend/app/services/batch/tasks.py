@@ -4,8 +4,9 @@ Celery Tasks for Batch Processing
 Implements chunk-based molecule processing with progress tracking.
 Uses chord pattern: process_molecule_chunk tasks -> aggregate_batch_results.
 """
+
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from dataclasses import asdict
 
 from celery import chord, group
@@ -119,7 +120,11 @@ def _process_single_molecule(mol_data: Dict[str, Any]) -> Dict[str, Any]:
                     {
                         "check_name": r.check_name,
                         "passed": r.passed,
-                        "severity": r.severity.value if hasattr(r.severity, "value") else str(r.severity),
+                        "severity": (
+                            r.severity.value
+                            if hasattr(r.severity, "value")
+                            else str(r.severity)
+                        ),
                         "message": r.message,
                     }
                     for r in check_results
@@ -133,13 +138,17 @@ def _process_single_molecule(mol_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             alert_result = alert_manager.screen(mol, catalogs=["PAINS", "BRENK"])
             result["alerts"] = {
-                "has_alerts": alert_result.has_alerts,
-                "alert_count": len(alert_result.alerts),
+                "has_alerts": alert_result.total_alerts > 0,
+                "alert_count": alert_result.total_alerts,
                 "alerts": [
                     {
-                        "catalog": a.catalog,
-                        "rule_name": a.rule_name,
-                        "severity": a.severity.value if hasattr(a.severity, "value") else str(a.severity),
+                        "catalog": a.catalog_source,
+                        "rule_name": a.pattern_name,
+                        "severity": (
+                            a.severity.value
+                            if hasattr(a.severity, "value")
+                            else str(a.severity)
+                        ),
                     }
                     for a in alert_result.alerts
                 ],
@@ -226,18 +235,22 @@ def process_batch_job(job_id: str, molecules: List[Dict[str, Any]]) -> str:
     # Split into chunks
     chunks = []
     for i in range(0, total_molecules, CHUNK_SIZE):
-        chunk = molecules[i : i + CHUNK_SIZE]
+        chunk = molecules[i:i + CHUNK_SIZE]
         # Convert MoleculeData objects to dicts if needed
         chunk_dicts = []
         for m in chunk:
             if hasattr(m, "__dict__"):
-                chunk_dicts.append({
-                    "smiles": m.smiles,
-                    "name": m.name,
-                    "index": m.index,
-                    "properties": m.properties if hasattr(m, "properties") else {},
-                    "parse_error": m.parse_error if hasattr(m, "parse_error") else None,
-                })
+                chunk_dicts.append(
+                    {
+                        "smiles": m.smiles,
+                        "name": m.name,
+                        "index": m.index,
+                        "properties": m.properties if hasattr(m, "properties") else {},
+                        "parse_error": (
+                            m.parse_error if hasattr(m, "parse_error") else None
+                        ),
+                    }
+                )
             else:
                 chunk_dicts.append(m)
         chunks.append(chunk_dicts)
@@ -259,7 +272,7 @@ def process_batch_job(job_id: str, molecules: List[Dict[str, Any]]) -> str:
     aggregate_task = aggregate_batch_results.s(job_id=job_id, start_time=start_time)
 
     # Execute chord
-    workflow = chord(chunk_tasks)(aggregate_task)
+    chord(chunk_tasks)(aggregate_task)
 
     return job_id
 

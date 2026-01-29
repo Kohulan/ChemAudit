@@ -1,22 +1,28 @@
 """
 API Key schemas for request/response validation.
 """
+
 from pydantic import BaseModel, Field
-from datetime import datetime
 from typing import Optional
 
 
 class APIKeyCreate(BaseModel):
     """Request to create a new API key."""
 
-    name: str = Field(..., description="Name/label for this API key", min_length=1, max_length=100)
-    description: Optional[str] = Field(None, description="Optional description", max_length=500)
+    name: str = Field(
+        ..., description="Name/label for this API key", min_length=1, max_length=100
+    )
+    description: Optional[str] = Field(
+        None, description="Optional description", max_length=500
+    )
 
 
 class APIKeyResponse(BaseModel):
     """Response when creating an API key (includes full key - shown only once)."""
 
-    key: str = Field(..., description="The API key - save this, it won't be shown again")
+    key: str = Field(
+        ..., description="The API key - save this, it won't be shown again"
+    )
     name: str = Field(..., description="Name of the API key")
     created_at: str = Field(..., description="Creation timestamp")
 

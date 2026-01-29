@@ -3,10 +3,20 @@ Batch Processing API Routes
 
 Endpoints for batch file upload, job status, and results retrieval.
 """
+
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, Request, Depends
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    Request,
+    Depends,
+)
 
 from app.core.config import settings
 from app.schemas.batch import (
@@ -220,9 +230,7 @@ async def get_batch_results(
 @router.get("/batch/{job_id}/status", response_model=BatchJobStatus)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def get_batch_status(
-    request: Request,
-    job_id: str,
-    api_key: Optional[str] = Depends(get_api_key)
+    request: Request, job_id: str, api_key: Optional[str] = Depends(get_api_key)
 ):
     """
     Get current status of a batch job.
@@ -249,9 +257,7 @@ async def get_batch_status(
 @router.get("/batch/{job_id}/stats", response_model=BatchStatistics)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def get_batch_stats(
-    request: Request,
-    job_id: str,
-    api_key: Optional[str] = Depends(get_api_key)
+    request: Request, job_id: str, api_key: Optional[str] = Depends(get_api_key)
 ):
     """
     Get statistics for a completed batch job.
@@ -281,9 +287,7 @@ async def get_batch_stats(
 @router.delete("/batch/{job_id}")
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def cancel_batch(
-    request: Request,
-    job_id: str,
-    api_key: Optional[str] = Depends(get_api_key)
+    request: Request, job_id: str, api_key: Optional[str] = Depends(get_api_key)
 ):
     """
     Cancel a batch job.

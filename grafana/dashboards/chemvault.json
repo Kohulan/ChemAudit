@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "ChemStructVal API monitoring dashboard - track validation performance, cache efficiency, and system health",
+  "description": "ChemVault API monitoring dashboard - track validation performance, cache efficiency, and system health",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -104,7 +104,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"chemstructval-backend\"}[1m]))",
+          "expr": "sum(rate(http_requests_total{job=\"chemvault-backend\"}[1m]))",
           "legendFormat": "Total Requests",
           "range": true,
           "refId": "A"
@@ -115,7 +115,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"chemstructval-backend\", status=~\"2..\"}[1m]))",
+          "expr": "sum(rate(http_requests_total{job=\"chemvault-backend\", status=~\"2..\"}[1m]))",
           "hide": false,
           "legendFormat": "2xx Success",
           "range": true,
@@ -127,7 +127,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"chemstructval-backend\", status=~\"5..\"}[1m]))",
+          "expr": "sum(rate(http_requests_total{job=\"chemvault-backend\", status=~\"5..\"}[1m]))",
           "hide": false,
           "legendFormat": "5xx Errors",
           "range": true,
@@ -226,7 +226,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"chemstructval-backend\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"chemvault-backend\"}[5m])) by (le))",
           "legendFormat": "P95 Overall",
           "range": true,
           "refId": "A"
@@ -237,7 +237,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"chemstructval-backend\", handler=~\"/api/v1/validate.*\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"chemvault-backend\", handler=~\"/api/v1/validate.*\"}[5m])) by (le))",
           "hide": false,
           "legendFormat": "P95 Validation",
           "range": true,
@@ -249,7 +249,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"chemstructval-backend\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"chemvault-backend\"}[5m])) by (le))",
           "hide": false,
           "legendFormat": "P50 Overall",
           "range": true,
@@ -319,7 +319,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "100 * sum(rate(http_requests_total{job=\"chemstructval-backend\", status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"chemstructval-backend\"}[5m]))",
+          "expr": "100 * sum(rate(http_requests_total{job=\"chemvault-backend\", status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"chemvault-backend\"}[5m]))",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
@@ -455,7 +455,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "increase(chemstructval_molecules_processed_total{job=\"chemstructval-backend\"}[1m])",
+          "expr": "increase(chemvault_molecules_processed_total{job=\"chemvault-backend\"}[1m])",
           "legendFormat": "{{status}}",
           "range": true,
           "refId": "A"
@@ -524,7 +524,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "100 * sum(rate(chemstructval_cache_hits_total{job=\"chemstructval-backend\"}[5m])) / (sum(rate(chemstructval_cache_hits_total{job=\"chemstructval-backend\"}[5m])) + sum(rate(chemstructval_cache_misses_total{job=\"chemstructval-backend\"}[5m])))",
+          "expr": "100 * sum(rate(chemvault_cache_hits_total{job=\"chemvault-backend\"}[5m])) / (sum(rate(chemvault_cache_hits_total{job=\"chemvault-backend\"}[5m])) + sum(rate(chemvault_cache_misses_total{job=\"chemvault-backend\"}[5m])))",
           "legendFormat": "Hit Rate",
           "range": true,
           "refId": "A"
@@ -593,7 +593,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "chemstructval_active_batch_jobs{job=\"chemstructval-backend\"}",
+          "expr": "chemvault_active_batch_jobs{job=\"chemvault-backend\"}",
           "legendFormat": "Active Jobs",
           "range": true,
           "refId": "A"
@@ -663,7 +663,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(increase(chemstructval_validation_duration_seconds_bucket{job=\"chemstructval-backend\"}[5m])) by (le)",
+          "expr": "sum(increase(chemvault_validation_duration_seconds_bucket{job=\"chemvault-backend\"}[5m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
           "range": true,
@@ -815,7 +815,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "increase(chemstructval_alert_matches_total{job=\"chemstructval-backend\"}[1m])",
+          "expr": "increase(chemvault_alert_matches_total{job=\"chemvault-backend\"}[1m])",
           "legendFormat": "{{alert_type}}",
           "range": true,
           "refId": "A"
@@ -829,7 +829,7 @@
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
-    "chemstructval",
+    "chemvault",
     "chemistry",
     "validation",
     "api"
@@ -875,8 +875,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "ChemStructVal Monitoring",
-  "uid": "chemstructval-main",
+  "title": "ChemVault Monitoring",
+  "uid": "chemvault-main",
   "version": 1,
   "weekStart": ""
 }

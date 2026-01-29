@@ -15,8 +15,9 @@ BRENK: 105 patterns for known problematic functional groups
 Note: Structural alerts are warnings, not automatic rejections.
 87 FDA-approved drugs contain PAINS patterns.
 """
+
 from functools import lru_cache
-from typing import Dict, List, Optional
+from typing import Dict
 from dataclasses import dataclass
 
 from rdkit.Chem.FilterCatalog import (
@@ -82,6 +83,7 @@ AVAILABLE_CATALOGS: Dict[str, Dict[str, str]] = {
 @dataclass
 class CatalogInfo:
     """Information about a loaded FilterCatalog."""
+
     catalog: FilterCatalog
     catalog_type: str
     num_entries: int
@@ -126,7 +128,9 @@ def _build_catalog_params(catalog_type: str) -> FilterCatalogParams:
         params.AddCatalog(FilterCatalogParams.FilterCatalogs.NIH)
         params.AddCatalog(FilterCatalogParams.FilterCatalogs.ZINC)
     else:
-        raise ValueError(f"Unknown catalog type: {catalog_type}. Available: {list(AVAILABLE_CATALOGS.keys())}")
+        raise ValueError(
+            f"Unknown catalog type: {catalog_type}. Available: {list(AVAILABLE_CATALOGS.keys())}"
+        )
 
     return params
 
@@ -151,7 +155,9 @@ def get_filter_catalog(catalog_type: str = "PAINS") -> CatalogInfo:
     catalog_type_upper = catalog_type.upper()
 
     if catalog_type_upper not in AVAILABLE_CATALOGS:
-        raise ValueError(f"Unknown catalog type: {catalog_type}. Available: {list(AVAILABLE_CATALOGS.keys())}")
+        raise ValueError(
+            f"Unknown catalog type: {catalog_type}. Available: {list(AVAILABLE_CATALOGS.keys())}"
+        )
 
     params = _build_catalog_params(catalog_type_upper)
     catalog = FilterCatalog(params)

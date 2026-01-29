@@ -5,6 +5,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
 import { MoleculeLoader } from './components/ui/MoleculeLoader';
 import { ErrorFallback } from './components/error/ErrorFallback';
+import { ConfigProvider } from './context/ConfigContext';
 import { useRDKit } from './hooks/useRDKit';
 import { cn } from './lib/utils';
 
@@ -183,26 +184,28 @@ function AppContent() {
  */
 function App() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <ErrorBoundary
-        FallbackComponent={ErrorFallback}
-        onError={(error, errorInfo) => {
-          console.error('Uncaught error:', error, errorInfo);
-        }}
-        onReset={() => {
-          window.location.href = '/';
+    <ConfigProvider>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
         }}
       >
-        <Layout>
-          <AppContent />
-        </Layout>
-      </ErrorBoundary>
-    </Router>
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onError={(error, errorInfo) => {
+            console.error('Uncaught error:', error, errorInfo);
+          }}
+          onReset={() => {
+            window.location.href = '/';
+          }}
+        >
+          <Layout>
+            <AppContent />
+          </Layout>
+        </ErrorBoundary>
+      </Router>
+    </ConfigProvider>
   );
 }
 

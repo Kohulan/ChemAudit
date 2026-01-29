@@ -1,7 +1,7 @@
 """
 Reference Accuracy Tests
 
-Verifies ChemStructVal validation results match RDKit reference implementation.
+Verifies ChemVault validation results match RDKit reference implementation.
 Target: 99%+ agreement with reference data.
 
 These tests ensure our validation checks produce consistent, reliable results

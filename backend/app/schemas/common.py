@@ -3,6 +3,7 @@ Common schemas shared across the application.
 
 Includes severity levels, error responses, and health check responses.
 """
+
 from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
@@ -10,6 +11,7 @@ from typing import Optional, Dict, Any
 
 class Severity(str, Enum):
     """Severity level for validation results."""
+
     CRITICAL = "critical"
     ERROR = "error"
     WARNING = "warning"
@@ -19,12 +21,16 @@ class Severity(str, Enum):
 
 class ErrorResponse(BaseModel):
     """Standard error response format."""
+
     error: str = Field(..., description="Error message")
-    details: Dict[str, Any] = Field(default_factory=dict, description="Additional error details")
+    details: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional error details"
+    )
 
 
 class HealthResponse(BaseModel):
     """Health check response with system information."""
+
     status: str = Field(..., description="Health status")
     app_name: str = Field(..., description="Application name")
     app_version: str = Field(..., description="Application version")

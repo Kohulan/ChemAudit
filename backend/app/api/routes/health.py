@@ -3,6 +3,7 @@ Health check endpoint.
 
 Provides system status, version information, and RDKit availability.
 """
+
 from fastapi import APIRouter
 from app.schemas.common import HealthResponse
 from app.core.config import settings
@@ -22,6 +23,7 @@ async def health_check() -> HealthResponse:
     rdkit_version = None
     try:
         from rdkit import rdBase
+
         rdkit_version = rdBase.rdkitVersion
     except ImportError:
         pass

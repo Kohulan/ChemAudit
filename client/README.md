@@ -1,11 +1,11 @@
-# ChemStructVal Python Client
+# ChemVault Python Client
 
-Official Python client for the ChemStructVal API - comprehensive chemical structure validation, standardization, and ML-readiness assessment.
+Official Python client for the ChemVault API - comprehensive chemical structure validation, standardization, and ML-readiness assessment.
 
 ## Installation
 
 ```bash
-pip install chemstructval-client
+pip install chemvault-client
 ```
 
 Or install from source:
@@ -18,10 +18,10 @@ pip install -e .
 ## Quick Start
 
 ```python
-from chemstructval import ChemStructValClient
+from chemvault import ChemVaultClient
 
 # Create client (optional API key for higher rate limits)
-client = ChemStructValClient(
+client = ChemVaultClient(
     base_url="http://localhost:8000",
     api_key="your-api-key",  # Optional
 )
@@ -65,10 +65,10 @@ This client is **intentionally synchronous-only** using `httpx.Client`. This des
 ```python
 # Async usage example
 import asyncio
-from chemstructval import ChemStructValClient
+from chemvault import ChemVaultClient
 
 async def validate_async():
-    client = ChemStructValClient()
+    client = ChemVaultClient()
     result = await asyncio.to_thread(client.validate, "CCO")
     return result
 ```
@@ -158,7 +158,7 @@ print(f"Alert Distribution: {stats.alert_summary}")
 
 ```python
 # Automatic cleanup
-with ChemStructValClient() as client:
+with ChemVaultClient() as client:
     result = client.validate("CCO")
     print(result.overall_score)
 # Client automatically closed
@@ -166,11 +166,11 @@ with ChemStructValClient() as client:
 
 ## API Reference
 
-### ChemStructValClient
+### ChemVaultClient
 
 **Constructor:**
 ```python
-ChemStructValClient(
+ChemVaultClient(
     base_url: str = "http://localhost:8000",
     api_key: Optional[str] = None,
     timeout: float = 30.0,
@@ -209,7 +209,7 @@ ChemStructValClient(
 
 ### Exceptions
 
-- `ChemStructValError` - Base exception
+- `ChemVaultError` - Base exception
 - `APIError` - API returned error
 - `RateLimitError` - Rate limit exceeded
 - `AuthenticationError` - Invalid API key
@@ -230,15 +230,15 @@ The client automatically retries on rate limit errors (429) with exponential bac
 ## Error Handling
 
 ```python
-from chemstructval import (
-    ChemStructValClient,
+from chemvault import (
+    ChemVaultClient,
     ValidationError,
     RateLimitError,
     AuthenticationError,
     APIError,
 )
 
-client = ChemStructValClient()
+client = ChemVaultClient()
 
 try:
     result = client.validate("invalid-smiles")
@@ -280,6 +280,6 @@ MIT License
 
 ## Links
 
-- **Documentation:** https://github.com/yourusername/chemstructval#readme
-- **Issue Tracker:** https://github.com/yourusername/chemstructval/issues
+- **Documentation:** https://github.com/yourusername/chemvault#readme
+- **Issue Tracker:** https://github.com/yourusername/chemvault/issues
 - **API Documentation:** http://localhost:8000/docs (when server is running)

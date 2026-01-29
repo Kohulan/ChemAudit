@@ -102,7 +102,7 @@
 - `REDIS_URL` - Redis connection (required)
 - `CELERY_BROKER_URL` - Celery broker URL (required for batch)
 - `CORS_ORIGINS` - Allowed frontend origins (required)
-- `APP_NAME` - Application name (default: ChemStructVal)
+- `APP_NAME` - Application name (default: ChemVault)
 - `DEBUG` - Debug mode (default: false)
 - `MAX_BATCH_SIZE` - Max molecules per batch (default: 100000)
 - `MAX_FILE_SIZE_MB` - Max upload size (default: 100)
@@ -126,7 +126,7 @@
 ## WebSocket Connections
 
 **Real-time Updates:**
-- Endpoint: `ws://api.chemstructval.com/ws/jobs/{job_id}`
+- Endpoint: `ws://api.chemvault.com/ws/jobs/{job_id}`
 - Purpose: Batch job progress updates
 - Protocol: JSON messages (progress, completed, error)
 - Implementation: FastAPI WebSocket support

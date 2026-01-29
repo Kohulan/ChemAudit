@@ -1,7 +1,9 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Atom, Grid3X3, Info, BookOpen, ExternalLink } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { SplashScreen } from '../ui/SplashScreen';
 import { cn } from '../../lib/utils';
 import { API_DOCS_URL } from '../../services/api';
 
@@ -9,57 +11,86 @@ import { API_DOCS_URL } from '../../services/api';
  * Premium header with glassmorphism, refined navigation, and gradient accents
  */
 export function Header() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(false);
+
+  // Handle logo click - show splash if not on home page
+  const handleLogoClick = useCallback((e: React.MouseEvent) => {
+    // If already on home page, let NavLink handle it normally
+    if (location.pathname === '/') {
+      return;
+    }
+
+    // Prevent default navigation
+    e.preventDefault();
+
+    // Show splash screen
+    setShowSplash(true);
+  }, [location.pathname]);
+
+  // Handle splash complete - navigate to home
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+    navigate('/');
+  }, [navigate]);
+
   return (
-    <header className="sticky top-0 z-50">
-      {/* Glass background with enhanced blur */}
-      <div
-        className={cn(
-          'absolute inset-0',
-          'bg-[var(--color-surface-overlay)]',
-          'backdrop-blur-xl backdrop-saturate-150',
-          'border-b border-[var(--color-border)]'
-        )}
-      />
+    <>
+      {/* Splash Screen */}
+      <SplashScreen isVisible={showSplash} onComplete={handleSplashComplete} />
 
-      {/* Gradient accent line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--color-primary)]/50 to-transparent" />
+      <header className="sticky top-0 z-50">
+        {/* Glass background with enhanced blur */}
+        <div
+          className={cn(
+            'absolute inset-0',
+            'bg-[var(--color-surface-overlay)]',
+            'backdrop-blur-xl backdrop-saturate-150',
+            'border-b border-[var(--color-border)]'
+          )}
+        />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-[72px]">
-          {/* Logo and branding */}
-          <NavLink
-            to="/"
-            className="flex items-center gap-3.5 group"
-          >
-            <motion.div
-              className={cn(
-                'w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden',
-                'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface-sunken)]',
-                'border border-[var(--color-border)]',
-                'shadow-[0_2px_12px_var(--glow-soft)]',
-                'group-hover:shadow-[0_4px_20px_var(--glow-primary)]',
-                'group-hover:border-[var(--color-primary)]/30',
-                'transition-all duration-300'
-              )}
-              whileHover={{ scale: 1.05, rotate: -2 }}
-              whileTap={{ scale: 0.95 }}
+        {/* Gradient accent line at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--color-primary)]/50 to-transparent" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-[72px]">
+            {/* Logo and branding */}
+            <NavLink
+              to="/"
+              onClick={handleLogoClick}
+              className="flex items-center gap-3.5 group"
             >
-              <img
-                src="/logo.png"
-                alt="ChemVault Logo"
-                className="w-full h-full object-contain"
-              />
-            </motion.div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
-                <span className="font-extrabold text-[var(--color-primary)]">Chem</span>
-                <span className="font-semibold">Vault</span>
-              </h1>
-              <p className="text-[10px] text-[var(--color-text-muted)] -mt-0.5 tracking-widest uppercase font-medium">
-                Structure Validation
-              </p>
-            </div>
-          </NavLink>
+              <motion.div
+                className={cn(
+                  'w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden',
+                  'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface-sunken)]',
+                  'border border-[var(--color-border)]',
+                  'shadow-[0_2px_12px_var(--glow-soft)]',
+                  'group-hover:shadow-[0_4px_20px_var(--glow-primary)]',
+                  'group-hover:border-[var(--color-primary)]/30',
+                  'transition-all duration-300'
+                )}
+                whileHover={{ scale: 1.05, rotate: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <img
+                  src="/logo.png"
+                  alt="ChemVault Logo"
+                  className="w-full h-full object-contain"
+                />
+              </motion.div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
+                  <span className="font-extrabold text-[var(--color-primary)]">Chem</span>
+                  <span className="font-semibold">Vault</span>
+                </h1>
+                <p className="text-[10px] text-[var(--color-text-muted)] -mt-0.5 tracking-widest uppercase font-medium">
+                  Structure Validation
+                </p>
+              </div>
+            </NavLink>
 
           {/* Main Navigation */}
           <nav className="flex items-center gap-1.5">
@@ -93,6 +124,7 @@ export function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }
 

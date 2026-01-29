@@ -3,9 +3,10 @@ Base Check Classes
 
 Abstract base class and result dataclass for validation checks.
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 
 from rdkit import Chem
 

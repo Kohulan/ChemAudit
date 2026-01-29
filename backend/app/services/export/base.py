@@ -3,10 +3,68 @@ Base Exporter and Factory Pattern
 
 Provides abstract base class for exporters and factory for creating exporters.
 """
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from io import BytesIO
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Tuple
+
+
+# Alert catalog names used across exporters
+ALERT_CATALOGS = ["pains", "brenk", "nih", "glaxo"]
+
+
+def analyze_alerts(alerts: Dict[str, Any]) -> Tuple[int, Dict[str, int], List[str]]:
+    """
+    Analyze alerts dictionary and return all needed data in a single pass.
+
+    Args:
+        alerts: Alerts dictionary from batch result
+
+    Returns:
+        Tuple of (total_count, distribution_by_catalog, alert_names)
+    """
+    if not alerts:
+        return 0, {}, []
+
+    total_count = 0
+    distribution: Dict[str, int] = {}
+    names: List[str] = []
+
+    for catalog in ALERT_CATALOGS:
+        catalog_data = alerts.get(catalog, {})
+        if not isinstance(catalog_data, dict):
+            continue
+
+        matches = catalog_data.get("matches", [])
+        count = len(matches)
+        total_count += count
+
+        if count > 0:
+            distribution[catalog] = count
+            for match in matches:
+                pattern_name = match.get("pattern_name", "unknown")
+                names.append(f"{catalog.upper()}:{pattern_name}")
+
+    return total_count, distribution, names
+
+
+def count_alerts(alerts: Dict[str, Any]) -> int:
+    """Count total alerts from an alerts dictionary."""
+    total, _, _ = analyze_alerts(alerts)
+    return total
+
+
+def count_alerts_by_catalog(alerts: Dict[str, Any]) -> Dict[str, int]:
+    """Count alerts grouped by catalog."""
+    _, distribution, _ = analyze_alerts(alerts)
+    return distribution
+
+
+def extract_alert_names(alerts: Dict[str, Any]) -> List[str]:
+    """Extract alert names in 'CATALOG:pattern_name' format."""
+    _, _, names = analyze_alerts(alerts)
+    return names
 
 
 class ExportFormat(str, Enum):

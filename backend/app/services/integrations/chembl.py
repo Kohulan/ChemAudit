@@ -7,6 +7,7 @@ https://www.ebi.ac.uk/chembl/
 
 This client provides bioactivity data lookup functionality.
 """
+
 import httpx
 from typing import Optional, List
 from rdkit import Chem
@@ -209,9 +210,17 @@ async def get_bioactivity(request: ChEMBLRequest) -> ChEMBLResult:
         pref_name=molecule_data.get("pref_name"),
         molecule_type=molecule_data.get("molecule_type"),
         max_phase=molecule_data.get("max_phase"),
-        molecular_formula=molecule_data.get("molecule_properties", {}).get("full_molecular_formula"),
-        molecular_weight=molecule_data.get("molecule_properties", {}).get("molecular_weight"),
+        molecular_formula=molecule_data.get("molecule_properties", {}).get(
+            "full_molecular_formula"
+        ),
+        molecular_weight=molecule_data.get("molecule_properties", {}).get(
+            "molecular_weight"
+        ),
         bioactivities=bioactivities,
         bioactivity_count=len(bioactivities),
-        url=f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}" if chembl_id else None,
+        url=(
+            f"https://www.ebi.ac.uk/chembl/compound_report_card/{chembl_id}"
+            if chembl_id
+            else None
+        ),
     )

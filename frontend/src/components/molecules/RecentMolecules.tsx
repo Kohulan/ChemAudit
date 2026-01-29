@@ -49,16 +49,18 @@ export function RecentMolecules({
 
   return (
     <div className="relative">
-      {/* Trigger button */}
+      {/* Trigger button - Distinct style with amber accent */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
-          'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
-          'text-[var(--color-text-secondary)]',
-          'hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]',
-          'hover:shadow-[0_0_12px_var(--glow-primary)]',
-          isOpen && 'border-[var(--color-primary)] text-[var(--color-primary)]'
+          'flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all',
+          'bg-gradient-to-r from-amber-500/10 to-orange-500/10',
+          'border border-amber-500/30',
+          'text-amber-700 dark:text-amber-400',
+          'hover:from-amber-500/20 hover:to-orange-500/20',
+          'hover:border-amber-500/50',
+          'hover:shadow-[0_0_16px_rgba(217,119,6,0.2)]',
+          isOpen && 'from-amber-500/20 to-orange-500/20 border-amber-500/50 shadow-[0_0_16px_rgba(217,119,6,0.25)]'
         )}
       >
         <History className="w-4 h-4" />

@@ -6,6 +6,7 @@ interface MoleculeViewerProps {
   width?: number;
   height?: number;
   className?: string;
+  showCIP?: boolean;  // Show R/S and E/Z stereochemistry labels
 }
 
 export function MoleculeViewer({
@@ -13,12 +14,14 @@ export function MoleculeViewer({
   highlightAtoms = [],
   width = 300,
   height = 200,
-  className = ''
+  className = '',
+  showCIP = false
 }: MoleculeViewerProps) {
   const { svg, isLoading, error, isValid } = useMolecule(smiles, {
     width,
     height,
-    highlightAtoms
+    highlightAtoms,
+    showCIP
   });
 
   if (!smiles) {
@@ -50,7 +53,8 @@ export function MoleculeViewer({
 
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}
+      className={`bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center ${className}`}
+      style={{ width, height }}
       dangerouslySetInnerHTML={{ __html: svg || '' }}
     />
   );

@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "chemstructval-client"
+name = "chemvault-client"
 version = "0.1.0"
-description = "Python client for ChemStructVal API - chemical structure validation"
+description = "Python client for ChemVault API - chemical structure validation"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    { name = "ChemStructVal Team" }
+    { name = "ChemVault Team" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -33,9 +33,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/chemstructval"
-Documentation = "https://github.com/yourusername/chemstructval#readme"
-Repository = "https://github.com/yourusername/chemstructval"
+Homepage = "https://github.com/yourusername/chemvault"
+Documentation = "https://github.com/yourusername/chemvault#readme"
+Repository = "https://github.com/yourusername/chemvault"
 
 [tool.hatch.build.targets.wheel]
-packages = ["chemstructval"]
+packages = ["chemvault"]

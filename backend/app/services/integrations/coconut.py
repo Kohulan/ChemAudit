@@ -6,6 +6,7 @@ https://coconut.naturalproducts.net/
 
 This client uses COCONUT API v2 which requires authentication.
 """
+
 import httpx
 from typing import Optional
 from rdkit import Chem
@@ -54,11 +55,11 @@ class COCONUTClient:
                         {
                             "field": "standard_inchi_key",
                             "operator": "=",
-                            "value": inchikey
+                            "value": inchikey,
                         }
                     ],
                     "page": 1,
-                    "limit": 10
+                    "limit": 10,
                 }
             }
 
@@ -95,14 +96,10 @@ class COCONUTClient:
             payload = {
                 "search": {
                     "filters": [
-                        {
-                            "field": "canonical_smiles",
-                            "operator": "=",
-                            "value": smiles
-                        }
+                        {"field": "canonical_smiles", "operator": "=", "value": smiles}
                     ],
                     "page": 1,
-                    "limit": 10
+                    "limit": 10,
                 }
             }
 
@@ -184,5 +181,9 @@ def _parse_coconut_result(data: dict, found: bool) -> COCONUTResult:
         organism=data.get("organism") or data.get("biological_source"),
         organism_type=data.get("organism_type"),
         nplikeness=data.get("np_likeness_score"),
-        url=f"https://coconut.naturalproducts.net/compound/{coconut_id}" if coconut_id else None,
+        url=(
+            f"https://coconut.naturalproducts.net/compounds/{coconut_id}"
+            if coconut_id
+            else None
+        ),
     )

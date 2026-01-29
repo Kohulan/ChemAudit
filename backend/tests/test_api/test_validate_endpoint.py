@@ -4,16 +4,9 @@ Tests for /api/v1/validate endpoint.
 Tests single molecule validation API.
 """
 import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
 
 
-@pytest.fixture
-async def client():
-    """Create async test client."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+# Uses shared 'client' fixture from conftest.py
 
 
 class TestValidateEndpoint:

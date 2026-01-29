@@ -3,6 +3,7 @@ Result Aggregator Module
 
 Computes statistics from batch processing results.
 """
+
 import json
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional
@@ -70,7 +71,9 @@ def compute_statistics(results: List[Dict[str, Any]]) -> BatchStatisticsData:
 
     # Calculate averages
     if validation_scores:
-        stats.avg_validation_score = round(sum(validation_scores) / len(validation_scores), 1)
+        stats.avg_validation_score = round(
+            sum(validation_scores) / len(validation_scores), 1
+        )
 
     if ml_readiness_scores:
         stats.avg_ml_readiness_score = round(
@@ -205,7 +208,9 @@ class ResultStorage:
 
         # Paginate
         total_results = len(filtered)
-        total_pages = (total_results + page_size - 1) // page_size if total_results > 0 else 0
+        total_pages = (
+            (total_results + page_size - 1) // page_size if total_results > 0 else 0
+        )
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
         page_results = filtered[start_idx:end_idx]
@@ -240,7 +245,9 @@ class ResultStorage:
             if status_filter == "success":
                 filtered = [r for r in filtered if r.get("status") == "success"]
             elif status_filter == "error":
-                filtered = [r for r in filtered if r.get("status") == "error" or r.get("error")]
+                filtered = [
+                    r for r in filtered if r.get("status") == "error" or r.get("error")
+                ]
 
         if min_score is not None:
             filtered = [

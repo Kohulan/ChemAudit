@@ -1,13 +1,14 @@
 """
 Core application components: configuration, exceptions, utilities.
 """
+
 from app.core.config import settings
 from app.core.exceptions import (
-    ChemStructValException,
+    ChemVaultException,
     ParseError,
     ValidationError,
     NotFoundError,
-    chemstructval_exception_handler,
+    chemvault_exception_handler,
     generic_exception_handler,
 )
 from app.core.cache import (
@@ -20,11 +21,11 @@ from app.core.cache import (
 
 __all__ = [
     "settings",
-    "ChemStructValException",
+    "ChemVaultException",
     "ParseError",
     "ValidationError",
     "NotFoundError",
-    "chemstructval_exception_handler",
+    "chemvault_exception_handler",
     "generic_exception_handler",
     "validation_cache_key",
     "get_cached_validation",

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Info,
   Share2,
+  ChevronDown,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -30,6 +31,7 @@ import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
+import { InfoTooltip } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -85,6 +87,21 @@ const TABS: TabConfig[] = [
     description: 'Normalize structure representation and remove salts/solvents',
   },
 ];
+
+// Descriptions for each validation check
+const CHECK_DESCRIPTIONS: Record<string, string> = {
+  parsability: 'Verifies the input string can be parsed into a valid molecular structure by RDKit.',
+  sanitization: 'Checks if RDKit can sanitize the molecule (assign aromaticity, add implicit hydrogens, validate bonds).',
+  valence: 'Validates that all atoms have chemically valid valence states (e.g., carbon with 4 bonds, nitrogen with 3).',
+  aromaticity: 'Confirms aromatic ring systems are properly defined and assigned by RDKit\'s aromaticity model.',
+  connectivity: 'Checks molecular connectivity - ensures the structure is a single connected component without fragments.',
+  undefined_stereocenters: 'Identifies chiral centers (sp3 carbons with 4 different substituents) that lack R/S stereochemistry assignment.',
+  undefined_doublebond_stereo: 'Finds double bonds that could have E/Z isomerism but lack defined geometry.',
+  conflicting_stereo: 'Detects contradictory stereochemistry assignments that cannot exist in a real molecule.',
+  smiles_roundtrip: 'Tests if converting SMILES → molecule → SMILES preserves the structure identity.',
+  inchi_generation: 'Verifies that a valid InChI identifier can be generated for the molecule.',
+  inchi_roundtrip: 'Tests if converting to InChI and back preserves the molecular structure.',
+};
 
 export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -150,6 +167,9 @@ export function SingleValidationPage() {
 
   // CIP stereochemistry labels toggle
   const [showCIP, setShowCIP] = useState(false);
+
+  // All checks collapsible section
+  const [showAllChecks, setShowAllChecks] = useState(false);
 
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
@@ -1026,6 +1046,39 @@ export function SingleValidationPage() {
                 )}
               </div>
 
+              {/* Validation Issues - Show right after molecule viewer */}
+              <AnimatePresence>
+                {result && validationIssues.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="card p-5 sm:p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
+                        Validation Issues
+                      </h4>
+                      <Badge variant="warning">{validationIssues.length} found</Badge>
+                    </div>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {validationIssues.map((issue, index) => (
+                        <IssueCard
+                          key={`${issue.check_name}-${index}`}
+                          issue={issue}
+                          onAtomHover={setHighlightedAtoms}
+                        />
+                      ))}
+                    </div>
+                    {result && (
+                      <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
+                        Completed in {result.execution_time_ms.toFixed(0)}ms
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Score Tiles - Only show after validation/scoring */}
               <AnimatePresence>
                 {hasScores && (
@@ -1095,38 +1148,8 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
-              {/* Issues / Alerts Panel */}
+              {/* Other results panels */}
               <AnimatePresence>
-                {/* Validation Issues */}
-                {result && validationIssues.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                        Validation Issues
-                      </h4>
-                      <Badge variant="warning">{validationIssues.length} found</Badge>
-                    </div>
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                      {validationIssues.map((issue, index) => (
-                        <IssueCard
-                          key={`${issue.check_name}-${index}`}
-                          issue={issue}
-                          onAtomHover={setHighlightedAtoms}
-                        />
-                      ))}
-                    </div>
-                    {result && (
-                      <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
-                        Completed in {result.execution_time_ms.toFixed(0)}ms
-                      </p>
-                    )}
-                  </motion.div>
-                )}
 
                 {/* Validation Success - no issues */}
                 {result && validationIssues.length === 0 && (
@@ -1146,6 +1169,81 @@ export function SingleValidationPage() {
                     <p className="mt-3 text-xs text-[var(--color-text-muted)]">
                       Completed in {result.execution_time_ms.toFixed(0)}ms
                     </p>
+                  </motion.div>
+                )}
+
+                {/* All Checks - Collapsible */}
+                {result && result.all_checks && result.all_checks.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="card p-5 sm:p-6 overflow-visible"
+                  >
+                    <button
+                      onClick={() => setShowAllChecks(!showAllChecks)}
+                      className="w-full flex items-center justify-between text-left"
+                    >
+                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
+                        All Checks ({result.all_checks.length})
+                      </h4>
+                      <ChevronDown
+                        className={cn(
+                          'w-5 h-5 text-[var(--color-text-muted)] transition-transform',
+                          showAllChecks && 'rotate-180'
+                        )}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {showAllChecks && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="mt-4 space-y-2"
+                        >
+                          {result.all_checks.map((check, index) => (
+                            <div
+                              key={`${check.check_name}-${index}`}
+                              className="flex items-center justify-between py-2 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
+                                  {check.passed ? '✓' : '✗'}
+                                </span>
+                                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                  {check.check_name.replace(/_/g, ' ')}
+                                </span>
+                                {CHECK_DESCRIPTIONS[check.check_name] && (
+                                  <InfoTooltip
+                                    content={CHECK_DESCRIPTIONS[check.check_name]}
+                                    position="right"
+                                  />
+                                )}
+                              </div>
+                              <span
+                                className={cn(
+                                  'text-xs px-2 py-1 rounded-md font-medium',
+                                  check.passed
+                                    ? 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400'
+                                    : check.severity === 'critical'
+                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                    : check.severity === 'error'
+                                    ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                                    : check.severity === 'warning'
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    : 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
+                                )}
+                              >
+                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
+                              </span>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
 

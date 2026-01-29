@@ -4,10 +4,11 @@ Progress Tracker Module
 Tracks batch job progress in Redis with throttling to prevent message flooding.
 Uses moving average for ETA calculation.
 """
+
 import json
 import time
 from dataclasses import dataclass, asdict
-from typing import Optional, List
+from typing import Optional
 from collections import deque
 
 import redis

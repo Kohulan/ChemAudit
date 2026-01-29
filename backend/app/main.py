@@ -1,6 +1,7 @@
 """
-ChemStructVal API - Chemical Structure Validation Suite
+ChemVault API - Chemical Structure Validation Suite
 """
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,12 +10,23 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import (
-    ChemStructValException,
-    chemstructval_exception_handler,
+    ChemVaultException,
+    chemvault_exception_handler,
     generic_exception_handler,
 )
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
-from app.api.routes import alerts, api_keys, batch, export, health, integrations, scoring, standardization, validation
+from app.api.routes import (
+    alerts,
+    api_keys,
+    batch,
+    config,
+    export,
+    health,
+    integrations,
+    scoring,
+    standardization,
+    validation,
+)
 from app.websockets import manager
 
 # Conditional Prometheus imports
@@ -44,7 +56,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="ChemStructVal API",
+    title="ChemVault API",
     description="Chemical Structure Validation and Standardization API",
     version=settings.APP_VERSION,
     lifespan=lifespan,
@@ -67,7 +79,7 @@ app.add_middleware(SlowAPIMiddleware)
 
 # Register exception handlers
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-app.add_exception_handler(ChemStructValException, chemstructval_exception_handler)
+app.add_exception_handler(ChemVaultException, chemvault_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # Include routers
@@ -80,6 +92,7 @@ app.include_router(batch.router, prefix="/api/v1", tags=["batch"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
+app.include_router(config.router, prefix="/api/v1", tags=["config"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
@@ -89,7 +102,7 @@ if settings.ENABLE_METRICS:
         should_respect_env_var=True,
         should_instrument_requests_inprogress=True,
         excluded_handlers=["/metrics", "/health", "/api/v1/health"],
-        inprogress_name="chemstructval_inprogress_requests",
+        inprogress_name="chemvault_inprogress_requests",
         inprogress_labels=True,
     )
     instrumentator.instrument(app).expose(app, endpoint="/metrics")

@@ -1,5 +1,5 @@
 """
-ChemStructVal Client Models
+ChemVault Client Models
 
 Pydantic models for API requests and responses.
 """

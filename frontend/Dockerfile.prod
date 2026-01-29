@@ -1,4 +1,4 @@
-# Multi-stage production build for ChemStructVal frontend
+# Multi-stage production build for ChemVault frontend
 # Stage 1: Builder - Build the React application
 FROM node:20-alpine AS builder
 

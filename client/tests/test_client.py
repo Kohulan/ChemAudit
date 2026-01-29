@@ -1,5 +1,5 @@
 """
-Tests for ChemStructVal API client.
+Tests for ChemVault API client.
 
 Uses respx for HTTP mocking to test client behavior without a live server.
 """
@@ -7,8 +7,8 @@ import pytest
 import httpx
 import respx
 from pathlib import Path
-from chemstructval import ChemStructValClient
-from chemstructval.exceptions import (
+from chemvault import ChemVaultClient
+from chemvault.exceptions import (
     APIError,
     RateLimitError,
     AuthenticationError,
@@ -27,7 +27,7 @@ def base_url():
 @pytest.fixture
 def client(base_url):
     """Create test client."""
-    return ChemStructValClient(base_url=base_url, api_key="test-key")
+    return ChemVaultClient(base_url=base_url, api_key="test-key")
 
 
 @pytest.fixture
@@ -471,7 +471,7 @@ def test_context_manager(base_url, mock_validation_response):
         return_value=httpx.Response(200, json=mock_validation_response)
     )
 
-    with ChemStructValClient(base_url=base_url) as client:
+    with ChemVaultClient(base_url=base_url) as client:
         result = client.validate("CCO")
         assert result.overall_score == 95
 

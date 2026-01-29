@@ -7,6 +7,8 @@ interface MoleculeInfo {
   numAtoms: number;
   numBonds: number;
   numRings: number;
+  numStereocenters: number;
+  hasStereochemistry: boolean;
   isValid: boolean;
 }
 
@@ -173,12 +175,22 @@ export function useMoleculeInfo(smiles: string | null): UseMoleculeInfoResult {
             numRings = ringMatches ? Math.floor(ringMatches.length / 2) : 0;
           }
 
+          // Detect stereochemistry from SMILES
+          // @ or @@ indicates tetrahedral stereocenters
+          // / or \ indicates E/Z double bond stereochemistry
+          const stereoMatches = canonicalSmiles.match(/@+/g);
+          const numStereocenters = stereoMatches ? stereoMatches.length : 0;
+          const hasEZStereo = /[/\\]/.test(canonicalSmiles);
+          const hasStereochemistry = numStereocenters > 0 || hasEZStereo;
+
           setInfo({
             canonicalSmiles,
             kekulizedSmiles,
             numAtoms,
             numBonds,
             numRings,
+            numStereocenters,
+            hasStereochemistry,
             isValid: true,
           });
           setError(null);

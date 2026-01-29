@@ -1,5 +1,5 @@
 """
-Prometheus metrics for ChemStructVal monitoring.
+Prometheus metrics for ChemVault monitoring.
 
 Provides custom metrics for validation performance, cache efficiency,
 batch processing, and alert matching. These metrics enable:
@@ -23,6 +23,7 @@ Usage:
     # Or use convenience function
     record_validation(duration=0.5, status="success", batch_size=100)
 """
+
 from prometheus_client import Counter, Gauge, Histogram, Info
 
 from app.core.config import settings
@@ -30,18 +31,20 @@ from app.core.config import settings
 
 # Application info metric
 APP_INFO = Info(
-    "chemstructval",
-    "ChemStructVal application information",
+    "chemvault",
+    "ChemVault application information",
 )
-APP_INFO.info({
-    "version": settings.APP_VERSION,
-    "app_name": settings.APP_NAME,
-})
+APP_INFO.info(
+    {
+        "version": settings.APP_VERSION,
+        "app_name": settings.APP_NAME,
+    }
+)
 
 # Validation timing histogram
 # Buckets chosen for typical validation times: 10ms to 30s
 VALIDATION_DURATION = Histogram(
-    "chemstructval_validation_duration_seconds",
+    "chemvault_validation_duration_seconds",
     "Time spent validating molecules",
     ["validation_type"],  # single, batch
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0),
@@ -49,7 +52,7 @@ VALIDATION_DURATION = Histogram(
 
 # Molecules processed counter with status label
 MOLECULES_PROCESSED = Counter(
-    "chemstructval_molecules_processed_total",
+    "chemvault_molecules_processed_total",
     "Total number of molecules processed",
     ["status"],  # success, error, invalid
 )
@@ -57,51 +60,51 @@ MOLECULES_PROCESSED = Counter(
 # Batch size histogram
 # Buckets for typical batch sizes: 1 to 10000
 BATCH_SIZE = Histogram(
-    "chemstructval_batch_size",
+    "chemvault_batch_size",
     "Distribution of batch job sizes",
     buckets=(1, 10, 50, 100, 250, 500, 1000, 2500, 5000, 10000),
 )
 
 # Cache metrics
 CACHE_HITS = Counter(
-    "chemstructval_cache_hits_total",
+    "chemvault_cache_hits_total",
     "Total number of cache hits",
 )
 
 CACHE_MISSES = Counter(
-    "chemstructval_cache_misses_total",
+    "chemvault_cache_misses_total",
     "Total number of cache misses",
 )
 
 # Active batch jobs gauge
 ACTIVE_BATCH_JOBS = Gauge(
-    "chemstructval_active_batch_jobs",
+    "chemvault_active_batch_jobs",
     "Number of currently active batch processing jobs",
 )
 
 # Alert matches counter by alert type
 ALERT_MATCHES = Counter(
-    "chemstructval_alert_matches_total",
+    "chemvault_alert_matches_total",
     "Total number of structural alert matches",
     ["alert_type"],  # PAINS, BRENK, NIH, ZINC
 )
 
 # Standardization counter
 STANDARDIZATIONS_PERFORMED = Counter(
-    "chemstructval_standardizations_total",
+    "chemvault_standardizations_total",
     "Total number of molecule standardizations performed",
     ["status"],  # success, error
 )
 
 # External API calls
 EXTERNAL_API_CALLS = Counter(
-    "chemstructval_external_api_calls_total",
+    "chemvault_external_api_calls_total",
     "Total number of external API calls",
     ["api", "status"],  # api: pubchem, chembl, coconut; status: success, error
 )
 
 EXTERNAL_API_DURATION = Histogram(
-    "chemstructval_external_api_duration_seconds",
+    "chemvault_external_api_duration_seconds",
     "Time spent calling external APIs",
     ["api"],
     buckets=(0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0),

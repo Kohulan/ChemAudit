@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
+import { Upload, X } from 'lucide-react';
 import { batchApi } from '../../services/api';
+import { useLimits } from '../../context/ConfigContext';
+import { ClayButton } from '../ui/ClayButton';
 import type { CSVColumnsResponse } from '../../types/batch';
 
 interface BatchUploadProps {
@@ -17,6 +20,7 @@ export function BatchUpload({
   onUploadError,
   disabled = false,
 }: BatchUploadProps) {
+  const limits = useLimits();
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -47,9 +51,8 @@ export function BatchUpload({
     if (!name.endsWith('.sdf') && !name.endsWith('.csv')) {
       return 'Invalid file type. Please upload an SDF or CSV file.';
     }
-    // Max 1GB
-    if (file.size > 1024 * 1024 * 1024) {
-      return 'File too large. Maximum size is 1GB.';
+    if (file.size > limits.max_file_size_bytes) {
+      return `File too large. Maximum size is ${limits.max_file_size_mb}MB.`;
     }
     return null;
   };
@@ -151,7 +154,9 @@ export function BatchUpload({
         className={`
           border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
           transition-colors duration-200
-          ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+          ${isDragging
+            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
+            : 'border-[var(--color-border-strong)] hover:border-[var(--color-text-muted)]'}
           ${disabled || isUploading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
@@ -164,9 +169,9 @@ export function BatchUpload({
           disabled={disabled || isUploading}
         />
 
-        <div className="text-gray-600">
+        <div className="text-[var(--color-text-secondary)]">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            className="mx-auto h-12 w-12 text-[var(--color-text-muted)] mb-4"
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"
@@ -178,56 +183,47 @@ export function BatchUpload({
               d="M8 14v20c0 4.418 7.163 8 16 8s16-3.582 16-8V14m-32 0c0 4.418 7.163 8 16 8s16-3.582 16-8m-32 0c0-4.418 7.163-8 16-8s16 3.582 16 8"
             />
           </svg>
-          <p className="text-lg font-medium">
+          <p className="text-lg font-medium text-[var(--color-text-primary)]">
             {isDragging ? 'Drop file here' : 'Drop file here or click to browse'}
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Supports SDF and CSV files (up to 1,000,000 molecules)
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            Supports SDF and CSV files (up to {limits.max_batch_size.toLocaleString()} molecules)
           </p>
         </div>
       </div>
 
       {/* Selected file info */}
       {selectedFile && (
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-[var(--color-surface-sunken)] rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">{selectedFile.name}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-[var(--color-text-primary)]">{selectedFile.name}</p>
+              <p className="text-sm text-[var(--color-text-muted)]">
                 {formatFileSize(selectedFile.size)}
                 {csvColumns && ` | ~${csvColumns.row_count_estimate} molecules`}
               </p>
             </div>
-            <button
+            <ClayButton
+              variant="ghost"
+              size="icon"
               onClick={handleReset}
               disabled={isUploading}
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <X className="h-5 w-5" />
+            </ClayButton>
           </div>
 
           {/* CSV column selector */}
           {csvColumns && (
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                 Select SMILES column:
               </label>
               <select
                 value={selectedSmilesColumn}
                 onChange={(e) => setSelectedSmilesColumn(e.target.value)}
                 disabled={isUploading}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-primary)] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               >
                 {csvColumns.columns.map((col) => (
                   <option key={col} value={col}>
@@ -242,46 +238,17 @@ export function BatchUpload({
       )}
 
       {/* Upload button */}
-      <button
+      <ClayButton
+        variant="primary"
+        size="lg"
         onClick={handleUpload}
         disabled={!selectedFile || isUploading || disabled}
-        className={`
-          w-full py-3 px-4 rounded-lg font-medium text-white
-          transition-colors duration-200
-          ${
-            selectedFile && !isUploading && !disabled
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-gray-300 cursor-not-allowed'
-          }
-        `}
+        loading={isUploading}
+        leftIcon={!isUploading ? <Upload className="w-5 h-5" /> : undefined}
+        className="w-full"
       >
-        {isUploading ? (
-          <span className="flex items-center justify-center">
-            <svg
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            Uploading...
-          </span>
-        ) : (
-          'Upload and Process'
-        )}
-      </button>
+        {isUploading ? 'Uploading...' : 'Upload and Process'}
+      </ClayButton>
     </div>
   );
 }

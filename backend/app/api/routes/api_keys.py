@@ -3,20 +3,21 @@ API Key Management Routes
 
 Endpoints for creating, listing, and revoking API keys.
 """
+
 from fastapi import APIRouter, HTTPException, status
 from datetime import datetime, timezone
 import secrets
-import redis.asyncio as redis
 from typing import List
 
 from app.schemas.api_key import APIKeyCreate, APIKeyResponse, APIKeyInfo
-from app.core.config import settings
 from app.core.security import hash_api_key, get_redis_client
 
 router = APIRouter()
 
 
-@router.post("/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_api_key(request: APIKeyCreate):
     """
     Create a new API key.
@@ -47,18 +48,14 @@ async def create_api_key(request: APIKeyCreate):
                 "created_at": created_at,
                 "last_used": "",
                 "request_count": "0",
-            }
+            },
         )
         # Add to index for listing
         await client.sadd("apikey:index", key_hash)
     finally:
         await client.aclose()
 
-    return APIKeyResponse(
-        key=api_key,
-        name=request.name,
-        created_at=created_at
-    )
+    return APIKeyResponse(key=api_key, name=request.name, created_at=created_at)
 
 
 @router.get("/api-keys", response_model=List[APIKeyInfo])
@@ -78,14 +75,16 @@ async def list_api_keys():
         for key_hash in key_hashes:
             key_data = await client.hgetall(f"apikey:{key_hash}")
             if key_data:
-                keys_info.append(APIKeyInfo(
-                    key_id=key_hash[:12],  # Show first 12 chars as identifier
-                    name=key_data.get("name", ""),
-                    description=key_data.get("description") or None,
-                    created_at=key_data.get("created_at", ""),
-                    last_used=key_data.get("last_used") or None,
-                    request_count=int(key_data.get("request_count", 0))
-                ))
+                keys_info.append(
+                    APIKeyInfo(
+                        key_id=key_hash[:12],  # Show first 12 chars as identifier
+                        name=key_data.get("name", ""),
+                        description=key_data.get("description") or None,
+                        created_at=key_data.get("created_at", ""),
+                        last_used=key_data.get("last_used") or None,
+                        request_count=int(key_data.get("request_count", 0)),
+                    )
+                )
 
         return keys_info
     finally:
@@ -115,8 +114,7 @@ async def revoke_api_key(key_id: str):
 
         if not matching_hash:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API key not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
             )
 
         # Delete key data and remove from index

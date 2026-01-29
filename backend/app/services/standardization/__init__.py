@@ -1,5 +1,5 @@
 """
-Standardization services for ChemStructVal.
+Standardization services for ChemVault.
 
 Provides ChEMBL-compatible standardization pipeline with:
 - Checker: Detect structure issues before standardization
@@ -7,6 +7,7 @@ Provides ChEMBL-compatible standardization pipeline with:
 - GetParent: Extract parent molecule, remove salts/solvents
 - Stereocenter tracking: Monitor stereochemistry changes
 """
+
 from app.services.standardization.chembl_pipeline import (
     StandardizationPipeline,
     standardize_molecule,

@@ -5,6 +5,7 @@ Generates professional PDF reports from batch validation results using WeasyPrin
 Includes summary statistics, score distribution chart, critical issues table,
 and molecule structure images for flagged compounds.
 """
+
 import base64
 from datetime import datetime
 from io import BytesIO
@@ -16,7 +17,26 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from weasyprint import HTML
 
-from app.services.export.base import BaseExporter
+from app.services.export.base import BaseExporter, ExportFormat, ExporterFactory
+
+
+def _extract_validation_scores(results: List[Dict[str, Any]]) -> List[int]:
+    """Extract validation scores from results."""
+    return [
+        r["validation"]["overall_score"]
+        for r in results
+        if r.get("validation") and r["validation"].get("overall_score") is not None
+    ]
+
+
+def _calculate_score_distribution(scores: List[int]) -> Dict[str, int]:
+    """Calculate score distribution buckets from validation scores."""
+    return {
+        "excellent": sum(1 for s in scores if s >= 90),
+        "good": sum(1 for s in scores if 70 <= s < 90),
+        "moderate": sum(1 for s in scores if 50 <= s < 70),
+        "poor": sum(1 for s in scores if s < 50),
+    }
 
 
 class PDFReportGenerator(BaseExporter):
@@ -31,8 +51,15 @@ class PDFReportGenerator(BaseExporter):
         """Initialize PDF generator with template environment."""
         # Find templates directory relative to this file
         template_dir = Path(__file__).parent.parent.parent / "templates" / "reports"
+        if not template_dir.exists():
+            raise FileNotFoundError(f"Template directory not found: {template_dir}")
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
-        self.template = self.env.get_template("batch_report.html")
+        try:
+            self.template = self.env.get_template("batch_report.html")
+        except Exception as e:
+            raise FileNotFoundError(
+                f"PDF report template 'batch_report.html' not found: {e}"
+            )
 
     @property
     def media_type(self) -> str:
@@ -68,7 +95,7 @@ class PDFReportGenerator(BaseExporter):
 
         # Render HTML template
         html_content = self.template.render(
-            job_id=self._extract_job_id(results),
+            job_id="batch_results",
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             stats=stats,
             chart_data=chart_data,
@@ -78,7 +105,9 @@ class PDFReportGenerator(BaseExporter):
 
         # Convert HTML to PDF
         pdf_buffer = BytesIO()
-        HTML(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(pdf_buffer)
+        HTML(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(
+            pdf_buffer
+        )
         pdf_buffer.seek(0)
 
         return pdf_buffer
@@ -98,13 +127,11 @@ class PDFReportGenerator(BaseExporter):
         errors = total - successful
 
         # Calculate average scores
-        validation_scores = [
-            r["validation"]["overall_score"]
-            for r in results
-            if r.get("validation") and r["validation"].get("overall_score") is not None
-        ]
+        validation_scores = _extract_validation_scores(results)
         avg_validation_score = (
-            sum(validation_scores) / len(validation_scores) if validation_scores else None
+            sum(validation_scores) / len(validation_scores)
+            if validation_scores
+            else None
         )
 
         ml_scores = [
@@ -116,11 +143,8 @@ class PDFReportGenerator(BaseExporter):
         ]
         avg_ml_readiness_score = sum(ml_scores) / len(ml_scores) if ml_scores else None
 
-        # Score distribution (90-100, 70-89, 50-69, 0-49)
-        excellent = sum(1 for s in validation_scores if s >= 90)
-        good = sum(1 for s in validation_scores if 70 <= s < 90)
-        moderate = sum(1 for s in validation_scores if 50 <= s < 70)
-        poor = sum(1 for s in validation_scores if s < 50)
+        # Score distribution
+        score_dist = _calculate_score_distribution(validation_scores)
 
         # Alert summary
         alert_summary = {}
@@ -136,12 +160,7 @@ class PDFReportGenerator(BaseExporter):
             "errors": errors,
             "avg_validation_score": avg_validation_score,
             "avg_ml_readiness_score": avg_ml_readiness_score,
-            "score_distribution": {
-                "excellent": excellent,
-                "good": good,
-                "moderate": moderate,
-                "poor": poor,
-            },
+            "score_distribution": score_dist,
             "alert_summary": alert_summary,
             "processing_time_seconds": None,  # Not available in results
         }
@@ -156,29 +175,23 @@ class PDFReportGenerator(BaseExporter):
         Returns:
             Base64-encoded SVG string
         """
-        # Extract validation scores
-        scores = [
-            r["validation"]["overall_score"]
-            for r in results
-            if r.get("validation") and r["validation"].get("overall_score") is not None
-        ]
-
+        # Extract validation scores and calculate distribution
+        scores = _extract_validation_scores(results)
         if not scores:
             return ""
 
-        # Count distribution
-        excellent = sum(1 for s in scores if s >= 90)
-        good = sum(1 for s in scores if 70 <= s < 90)
-        moderate = sum(1 for s in scores if 50 <= s < 70)
-        poor = sum(1 for s in scores if s < 50)
-
-        total = len(scores)
+        dist = _calculate_score_distribution(scores)
+        excellent, good, moderate, poor = (
+            dist["excellent"],
+            dist["good"],
+            dist["moderate"],
+            dist["poor"],
+        )
 
         # Generate simple SVG bar chart
         svg_width = 600
         svg_height = 300
         bar_width = 120
-        bar_spacing = 30
         max_height = 220
 
         # Calculate bar heights (proportional to count)
@@ -205,7 +218,12 @@ class PDFReportGenerator(BaseExporter):
 
         # Draw bars
         x_positions = [40, 190, 340, 490]
-        labels = ["Excellent\n(90-100)", "Good\n(70-89)", "Moderate\n(50-69)", "Poor\n(0-49)"]
+        labels = [
+            "Excellent\n(90-100)",
+            "Good\n(70-89)",
+            "Moderate\n(50-69)",
+            "Poor\n(0-49)",
+        ]
         counts = [excellent, good, moderate, poor]
         categories = ["excellent", "good", "moderate", "poor"]
 
@@ -334,7 +352,9 @@ class PDFReportGenerator(BaseExporter):
 
         return molecules
 
-    def _mol_to_base64_png(self, smiles: str, width: int = 200, height: int = 200) -> Optional[str]:
+    def _mol_to_base64_png(
+        self, smiles: str, width: int = 200, height: int = 200
+    ) -> Optional[str]:
         """
         Convert SMILES to base64-encoded PNG image.
 
@@ -365,21 +385,6 @@ class PDFReportGenerator(BaseExporter):
         except Exception:
             return None
 
-    def _extract_job_id(self, results: List[Dict[str, Any]]) -> str:
-        """
-        Extract job ID from results (if available).
-
-        Args:
-            results: List of batch result dictionaries
-
-        Returns:
-            Job ID string or "unknown"
-        """
-        # Job ID not stored in individual results, use placeholder
-        return "batch_results"
-
 
 # Register PDF exporter
-from app.services.export.base import ExportFormat, ExporterFactory
-
 ExporterFactory.register(ExportFormat.PDF, PDFReportGenerator)

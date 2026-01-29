@@ -3,6 +3,7 @@ Rate limiting configuration using SlowAPI with Redis storage.
 
 Provides different rate limits for anonymous users vs API key users.
 """
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
@@ -23,6 +24,9 @@ def get_rate_limit_key(request: Request) -> str:
     Get rate limit key - API key if present, else IP address.
 
     This allows API key users to get a higher rate limit tier.
+
+    Returns:
+        Rate limit key string based on API key or IP address.
     """
     api_key = request.headers.get("X-API-Key")
     if api_key:
@@ -40,7 +44,9 @@ limiter = Limiter(
 )
 
 
-def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+def rate_limit_exceeded_handler(
+    request: Request, exc: RateLimitExceeded
+) -> JSONResponse:
     """
     Custom handler for rate limit exceeded.
 
@@ -48,7 +54,7 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     """
     # Get rate limit info
     rate_limit = "unknown"
-    if hasattr(request.state, 'view_rate_limit'):
+    if hasattr(request.state, "view_rate_limit"):
         limit_value = request.state.view_rate_limit
         if isinstance(limit_value, tuple):
             rate_limit = str(limit_value[0])
@@ -60,10 +66,10 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         content={
             "error": "rate_limit_exceeded",
             "message": f"Rate limit exceeded: {exc.detail}",
-            "retry_after": getattr(exc, 'retry_after', 60),
+            "retry_after": getattr(exc, "retry_after", 60),
         },
         headers={
-            "Retry-After": str(getattr(exc, 'retry_after', 60)),
+            "Retry-After": str(getattr(exc, "retry_after", 60)),
             "X-RateLimit-Limit": rate_limit,
-        }
+        },
     )

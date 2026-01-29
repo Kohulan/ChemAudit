@@ -3,13 +3,14 @@ SDF Exporter
 
 Exports batch results to SDF format using RDKit SDWriter.
 """
-from io import BytesIO, StringIO
-from typing import List, Dict, Any
+
 import logging
+from io import BytesIO, StringIO
+from typing import Any, Dict, List
 
 from rdkit import Chem
 
-from .base import BaseExporter, ExportFormat, ExporterFactory
+from .base import BaseExporter, ExportFormat, ExporterFactory, extract_alert_names
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,9 @@ class SDFExporter(BaseExporter):
         for idx, result in enumerate(results):
             # Get SMILES - prefer standardized, fallback to canonical
             validation = result.get("validation", {})
-            smiles = result.get("standardized_smiles") or validation.get("canonical_smiles")
+            smiles = result.get("standardized_smiles") or validation.get(
+                "canonical_smiles"
+            )
 
             if not smiles:
                 logger.warning(f"Skipping molecule at index {idx}: no valid SMILES")
@@ -49,11 +52,15 @@ class SDFExporter(BaseExporter):
             try:
                 mol = Chem.MolFromSmiles(smiles)
                 if mol is None:
-                    logger.warning(f"Skipping molecule at index {idx}: invalid SMILES '{smiles}'")
+                    logger.warning(
+                        f"Skipping molecule at index {idx}: invalid SMILES '{smiles}'"
+                    )
                     skipped_count += 1
                     continue
             except Exception as e:
-                logger.warning(f"Skipping molecule at index {idx}: error parsing SMILES: {e}")
+                logger.warning(
+                    f"Skipping molecule at index {idx}: error parsing SMILES: {e}"
+                )
                 skipped_count += 1
                 continue
 
@@ -77,19 +84,9 @@ class SDFExporter(BaseExporter):
                 mol.SetProp("inchikey", inchikey)
 
             # Add alerts (comma-separated)
-            alerts = result.get("alerts", {})
-            if alerts:
-                alert_names = []
-                for catalog in ["pains", "brenk", "nih", "glaxo"]:
-                    catalog_data = alerts.get(catalog, {})
-                    if isinstance(catalog_data, dict):
-                        matches = catalog_data.get("matches", [])
-                        for match in matches:
-                            pattern_name = match.get("pattern_name", "unknown")
-                            alert_names.append(f"{catalog.upper()}:{pattern_name}")
-
-                if alert_names:
-                    mol.SetProp("alerts", ", ".join(alert_names))
+            alert_names = extract_alert_names(result.get("alerts", {}))
+            if alert_names:
+                mol.SetProp("alerts", ", ".join(alert_names))
 
             # Write molecule
             try:

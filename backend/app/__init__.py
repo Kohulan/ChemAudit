@@ -1,1 +1,1 @@
-# ChemStructVal Backend Application
+# ChemVault Backend Application

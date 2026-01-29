@@ -3,6 +3,7 @@ Batch Processing Schemas
 
 Pydantic models for batch upload, job status, and results.
 """
+
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
@@ -12,7 +13,9 @@ class BatchUploadResponse(BaseModel):
 
     job_id: str = Field(..., description="Unique job identifier for tracking")
     status: str = Field(default="pending", description="Initial job status")
-    total_molecules: int = Field(..., description="Number of molecules detected in file")
+    total_molecules: int = Field(
+        ..., description="Number of molecules detected in file"
+    )
     message: str = Field(default="Job submitted successfully")
 
 
@@ -24,7 +27,9 @@ class BatchJobStatus(BaseModel):
     progress: int = Field(..., ge=0, le=100, description="Progress percentage")
     processed: int = Field(..., description="Number of molecules processed")
     total: int = Field(..., description="Total number of molecules")
-    eta_seconds: Optional[int] = Field(None, description="Estimated time remaining in seconds")
+    eta_seconds: Optional[int] = Field(
+        None, description="Estimated time remaining in seconds"
+    )
     error_message: Optional[str] = Field(None, description="Error message if failed")
 
 

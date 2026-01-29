@@ -3,15 +3,20 @@ API Key authentication and validation.
 
 Provides optional API key authentication with usage tracking.
 """
-from fastapi import Depends, HTTPException, status, Security, Request
-from fastapi.security import APIKeyHeader
-import secrets
+
+import asyncio
 import hashlib
+import logging
 from datetime import datetime, timezone
 from typing import Optional
+
 import redis.asyncio as redis
+from fastapi import HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -50,8 +55,7 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
 
 
 async def get_api_key(
-    request: Request,
-    api_key: Optional[str] = Security(api_key_header)
+    request: Request, api_key: Optional[str] = Security(api_key_header)
 ) -> Optional[str]:
     """
     Validate API key if provided. Returns None for anonymous access.
@@ -77,14 +81,23 @@ async def get_api_key(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key",
-            headers={"WWW-Authenticate": "ApiKey"}
+            headers={"WWW-Authenticate": "ApiKey"},
         )
 
-    # Update usage stats (async, don't wait)
-    import asyncio
-    asyncio.create_task(_update_usage_stats(api_key))
+    # Update usage stats (async, don't wait) with error handling
+    task = asyncio.create_task(_update_usage_stats(api_key))
+    task.add_done_callback(_handle_task_exception)
 
     return api_key
+
+
+def _handle_task_exception(task: asyncio.Task) -> None:
+    """Handle exceptions from background tasks."""
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.warning("Background task failed: %s", exc)
 
 
 async def _update_usage_stats(api_key: str):
@@ -97,9 +110,7 @@ async def _update_usage_stats(api_key: str):
     try:
         key_hash = hash_api_key(api_key)
         await client.hset(
-            f"apikey:{key_hash}",
-            "last_used",
-            datetime.now(timezone.utc).isoformat()
+            f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
         )
         await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
     finally:

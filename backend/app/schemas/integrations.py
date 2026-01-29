@@ -3,6 +3,7 @@ Schemas for external integration requests and responses.
 
 Covers COCONUT, PubChem, and ChEMBL integrations.
 """
+
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -10,12 +11,14 @@ from typing import Optional, List
 # COCONUT Natural Products Database
 class COCONUTRequest(BaseModel):
     """Request for COCONUT lookup."""
+
     smiles: Optional[str] = None
     inchikey: Optional[str] = None
 
 
 class COCONUTResult(BaseModel):
     """COCONUT natural product result."""
+
     found: bool
     coconut_id: Optional[str] = None
     name: Optional[str] = None
@@ -32,12 +35,14 @@ class COCONUTResult(BaseModel):
 # PubChem Cross-Reference
 class PubChemRequest(BaseModel):
     """Request for PubChem lookup."""
+
     smiles: Optional[str] = None
     inchikey: Optional[str] = None
 
 
 class PubChemResult(BaseModel):
     """PubChem compound result."""
+
     found: bool
     cid: Optional[int] = None
     iupac_name: Optional[str] = None
@@ -53,12 +58,14 @@ class PubChemResult(BaseModel):
 # ChEMBL Bioactivity Data
 class ChEMBLRequest(BaseModel):
     """Request for ChEMBL bioactivity lookup."""
+
     smiles: Optional[str] = None
     inchikey: Optional[str] = None
 
 
 class BioactivityData(BaseModel):
     """ChEMBL bioactivity record."""
+
     target_chembl_id: str
     target_name: Optional[str] = None
     target_type: Optional[str] = None
@@ -71,6 +78,7 @@ class BioactivityData(BaseModel):
 
 class ChEMBLResult(BaseModel):
     """ChEMBL molecule and bioactivity result."""
+
     found: bool
     chembl_id: Optional[str] = None
     pref_name: Optional[str] = None

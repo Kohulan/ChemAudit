@@ -1,9 +1,9 @@
 """
-ChemStructVal Python Client
+ChemVault Python Client
 
-Official Python client for the ChemStructVal API.
+Official Python client for the ChemVault API.
 """
-from .client import ChemStructValClient
+from .client import ChemVaultClient
 from .models import (
     ValidationResult,
     AlertScreeningResult,
@@ -21,7 +21,7 @@ from .models import (
     Severity,
 )
 from .exceptions import (
-    ChemStructValError,
+    ChemVaultError,
     APIError,
     RateLimitError,
     AuthenticationError,
@@ -32,7 +32,7 @@ from .exceptions import (
 
 __version__ = "0.1.0"
 __all__ = [
-    "ChemStructValClient",
+    "ChemVaultClient",
     "ValidationResult",
     "AlertScreeningResult",
     "ScoreResult",
@@ -47,7 +47,7 @@ __all__ = [
     "AlertResult",
     "MoleculeInfo",
     "Severity",
-    "ChemStructValError",
+    "ChemVaultError",
     "APIError",
     "RateLimitError",
     "AuthenticationError",

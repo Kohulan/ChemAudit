@@ -4,10 +4,10 @@
 apiVersion: 1
 
 providers:
-  - name: 'ChemStructVal Dashboards'
+  - name: 'ChemVault Dashboards'
     orgId: 1
-    folder: 'ChemStructVal'
-    folderUid: 'chemstructval'
+    folder: 'ChemVault'
+    folderUid: 'chemvault'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

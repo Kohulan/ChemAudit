@@ -126,7 +126,7 @@ class TestPDFReportGenerator:
         # Verify first page has content
         first_page = reader.pages[0]
         text = first_page.extract_text()
-        assert "ChemStructVal" in text
+        assert "ChemVault" in text
         assert "Batch Validation Report" in text
 
     def test_calculate_statistics(self):
