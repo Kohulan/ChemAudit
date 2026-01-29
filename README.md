@@ -400,6 +400,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **[⬆ Back to Top](#-chemvault)**
 
-Made with 🧬 for the cheminformatics community
+Made with ☕ by [Kohulan.R](https://github.com/Kohulan) at [FSU Jena](https://www.uni-jena.de/)
 
 </div>
