@@ -17,18 +17,18 @@ interface MLReadinessScoreProps {
  */
 function getScoreColor(percentage: number) {
   if (percentage >= 80) return {
-    gradient: 'from-emerald-500 to-emerald-400',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-500',
-    border: 'border-emerald-500/20',
-    glow: 'shadow-emerald-500/20',
+    gradient: 'from-yellow-500 to-amber-400',
+    bg: 'bg-yellow-500/10',
+    text: 'text-amber-500 dark:text-yellow-400',
+    border: 'border-yellow-500/20',
+    glow: 'shadow-yellow-500/20',
   };
   if (percentage >= 50) return {
-    gradient: 'from-amber-500 to-amber-400',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-500',
-    border: 'border-amber-500/20',
-    glow: 'shadow-amber-500/20',
+    gradient: 'from-orange-500 to-orange-400',
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-500',
+    border: 'border-orange-500/20',
+    glow: 'shadow-orange-500/20',
   };
   return {
     gradient: 'from-red-500 to-red-400',

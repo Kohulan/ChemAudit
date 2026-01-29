@@ -158,7 +158,7 @@ describe('ScoreIndicator', () => {
     const { container } = render(<ScoreIndicator score={90} />);
 
     const indicator = container.firstChild;
-    expect(indicator).toHaveClass('bg-emerald-500/10');
+    expect(indicator).toHaveClass('bg-yellow-500/10');
   });
 
   it('applies correct color for fair scores', () => {

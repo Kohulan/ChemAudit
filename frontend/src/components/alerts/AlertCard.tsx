@@ -117,7 +117,7 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
           )}
 
           {approvedDrugNote && (
-            <div className="text-xs text-green-700 bg-green-50 rounded px-2 py-1 inline-block">
+            <div className="text-xs text-amber-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 rounded px-2 py-1 inline-block">
               {approvedDrugNote}
             </div>
           )}

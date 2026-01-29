@@ -40,9 +40,9 @@ export function AlertResults({
   // No alerts found
   if (alerts.length === 0) {
     return (
-      <div className={`bg-green-50 border border-green-200 rounded-lg p-6 ${className}`}>
+      <div className={`bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 ${className}`}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-amber-600 dark:text-yellow-400">
             <svg
               className="w-6 h-6"
               fill="none"
@@ -58,10 +58,10 @@ export function AlertResults({
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-green-900">
+            <h3 className="text-lg font-semibold text-amber-900 dark:text-yellow-400">
               No Structural Alerts Detected
             </h3>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-amber-700 dark:text-yellow-500">
               Screened against: {screenedCatalogs.join(', ')}
             </p>
           </div>

@@ -95,12 +95,12 @@ export function ValidationResults({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl p-6 text-center bg-emerald-500/10 border border-emerald-500/20">
+        <div className="rounded-xl p-6 text-center bg-yellow-500/10 border border-yellow-500/20">
           <div className="text-4xl mb-2">✓</div>
-          <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+          <h3 className="text-lg font-semibold text-amber-600 dark:text-yellow-400 mb-1">
             No Issues Found
           </h3>
-          <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80">
+          <p className="text-sm text-amber-600/80 dark:text-yellow-400/80">
             All validation checks passed successfully
           </p>
         </div>
@@ -131,7 +131,7 @@ export function ValidationResults({
                 className="flex items-center justify-between py-2 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
               >
                 <div className="flex items-center gap-2">
-                  <span className={check.passed ? 'text-emerald-500' : 'text-red-500'}>
+                  <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
                     {check.passed ? '✓' : '✗'}
                   </span>
                   <span className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -142,7 +142,7 @@ export function ValidationResults({
                   className={cn(
                     'text-xs px-2 py-1 rounded-md font-medium',
                     check.passed
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      ? 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400'
                       : check.severity === 'critical'
                       ? 'bg-red-500/10 text-red-600 dark:text-red-400'
                       : check.severity === 'error'

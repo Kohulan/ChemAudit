@@ -30,7 +30,7 @@ export function ComparisonView({
             className="border-2 border-gray-200 rounded-lg"
           />
           {isIdentical && standardizedSmiles && (
-            <div className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
+            <div className="absolute top-2 right-2 bg-yellow-100 dark:bg-yellow-900/30 text-amber-800 dark:text-yellow-400 text-xs font-medium px-2 py-1 rounded">
               No changes needed
             </div>
           )}

@@ -73,13 +73,13 @@ export function BatchProgress({
   const getStatusColor = () => {
     switch (progress?.status) {
       case 'complete':
-        return 'bg-green-500';
+        return 'bg-yellow-500';
       case 'failed':
         return 'bg-red-500';
       case 'cancelled':
-        return 'bg-yellow-500';
+        return 'bg-amber-500';
       default:
-        return 'bg-blue-500';
+        return 'bg-[var(--color-primary)]';
     }
   };
 
@@ -101,18 +101,18 @@ export function BatchProgress({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+    <div className="bg-[var(--color-surface-elevated)] rounded-lg shadow-md border border-[var(--color-border)] p-6 space-y-4">
       {/* Status header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Batch Processing</h3>
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Batch Processing</h3>
         {/* Connection indicator */}
         <div className="flex items-center space-x-2">
           <span
             className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-gray-300'
+              isConnected ? 'bg-yellow-500' : 'bg-[var(--color-text-muted)]'
             }`}
           />
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-[var(--color-text-muted)]">
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
@@ -120,7 +120,7 @@ export function BatchProgress({
 
       {/* Progress bar */}
       <div className="space-y-2">
-        <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-4 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-300 ease-out ${getStatusColor()}`}
             style={{ width: `${Math.max(0, Math.min(100, displayProgress))}%` }}
@@ -128,8 +128,8 @@ export function BatchProgress({
         </div>
 
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">{getStatusText()}</span>
-          <span className="font-medium text-gray-900">
+          <span className="text-[var(--color-text-secondary)]">{getStatusText()}</span>
+          <span className="font-medium text-[var(--color-text-primary)]">
             {Math.round(displayProgress)}%
           </span>
         </div>
@@ -137,32 +137,32 @@ export function BatchProgress({
 
       {/* Stats row */}
       {progress && progress.status === 'processing' && (
-        <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-gray-100">
+        <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-[var(--color-border)]">
           <div className="text-center">
-            <p className="text-2xl font-semibold text-gray-900">
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
               {progress.processed}
             </p>
-            <p className="text-xs text-gray-500">Processed</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Processed</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-semibold text-gray-900">
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
               {progress.total - progress.processed}
             </p>
-            <p className="text-xs text-gray-500">Remaining</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Remaining</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-semibold text-gray-900">
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
               {formatETA(progress.eta_seconds)}
             </p>
-            <p className="text-xs text-gray-500">ETA</p>
+            <p className="text-xs text-[var(--color-text-muted)]">ETA</p>
           </div>
         </div>
       )}
 
       {/* Error message */}
       {progress?.status === 'failed' && progress.error_message && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-700">{progress.error_message}</p>
+        <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+          <p className="text-sm text-red-600 dark:text-red-400">{progress.error_message}</p>
         </div>
       )}
 
@@ -170,8 +170,8 @@ export function BatchProgress({
       {progress?.status === 'processing' && (
         <button
           onClick={onCancel}
-          className="w-full py-2 px-4 border border-red-300 text-red-600 rounded-lg
-                     hover:bg-red-50 transition-colors duration-200"
+          className="w-full py-2 px-4 border border-red-500/50 text-red-600 dark:text-red-400 rounded-lg
+                     hover:bg-red-500/10 transition-colors duration-200"
         >
           Cancel Processing
         </button>
@@ -179,9 +179,9 @@ export function BatchProgress({
 
       {/* Completion message */}
       {progress?.status === 'complete' && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+        <div className="bg-yellow-500/10 dark:bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-center">
           <svg
-            className="w-8 h-8 text-green-500 mx-auto mb-2"
+            className="w-8 h-8 text-yellow-500 mx-auto mb-2"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -191,10 +191,10 @@ export function BatchProgress({
           >
             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-green-700 font-medium">
+          <p className="text-amber-700 dark:text-yellow-400 font-medium">
             Successfully processed {progress.total} molecules!
           </p>
-          <p className="text-green-600 text-sm mt-1">Loading results...</p>
+          <p className="text-amber-600 dark:text-yellow-500 text-sm mt-1">Loading results...</p>
         </div>
       )}
     </div>

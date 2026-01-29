@@ -258,10 +258,10 @@ export function SingleValidationPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
           Molecule Validation
         </h1>
-        <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto">
+        <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
           Comprehensive validation, scoring, and standardization for chemical structures
         </p>
       </motion.div>
@@ -614,7 +614,7 @@ export function SingleValidationPage() {
                             <strong className="text-[var(--color-text-primary)]">ChEMBL</strong> — Bioactivity and drug data
                           </li>
                           <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             <strong className="text-[var(--color-text-primary)]">COCONUT</strong> — Natural products database
                           </li>
                         </ul>
@@ -987,13 +987,13 @@ export function SingleValidationPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="rounded-xl p-5 text-center bg-emerald-500/10 border border-emerald-500/20"
+                    className="rounded-xl p-5 text-center bg-yellow-500/10 border border-yellow-500/20"
                   >
                     <div className="text-4xl mb-2">✓</div>
-                    <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                    <h3 className="text-lg font-semibold text-amber-600 dark:text-yellow-400 mb-1">
                       No Issues Found
                     </h3>
-                    <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80">
+                    <p className="text-sm text-amber-600/80 dark:text-yellow-400/80">
                       All validation checks passed successfully
                     </p>
                     <p className="mt-3 text-xs text-[var(--color-text-muted)]">
@@ -1035,9 +1035,9 @@ export function SingleValidationPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl p-4 text-center bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="rounded-xl p-4 text-center bg-yellow-500/10 border border-yellow-500/20">
                         <div className="text-2xl mb-1">✓</div>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                        <p className="text-sm text-amber-600 dark:text-yellow-400">
                           No structural alerts detected
                         </p>
                       </div>

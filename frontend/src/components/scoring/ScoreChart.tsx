@@ -32,13 +32,13 @@ function getScoreColor(score: number, isDark: boolean): {
 } {
   if (score >= 80) {
     return {
-      fill: isDark ? '#34d399' : '#059669',
-      text: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
+      fill: isDark ? '#fcd34d' : '#b45309',
+      text: 'text-amber-600 dark:text-yellow-400',
+      bg: 'bg-yellow-500/10 dark:bg-yellow-400/15',
       label: 'Excellent',
       gradientId: 'scoreGradientExcellent',
-      startColor: isDark ? '#34d399' : '#10b981',
-      endColor: isDark ? '#10b981' : '#059669',
+      startColor: isDark ? '#fde68a' : '#fcd34d',
+      endColor: isDark ? '#fbbf24' : '#b45309',
     };
   }
   if (score >= 50) {
@@ -93,8 +93,8 @@ export function ScoreChart({
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="scoreGradientExcellent" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.startColor : '#10b981'} />
-            <stop offset="100%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.endColor : '#059669'} />
+            <stop offset="0%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.startColor : '#fcd34d'} />
+            <stop offset="100%" stopColor={color.gradientId === 'scoreGradientExcellent' ? color.endColor : '#b45309'} />
           </linearGradient>
           <linearGradient id="scoreGradientFair" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={color.gradientId === 'scoreGradientFair' ? color.startColor : '#fbbf24'} />

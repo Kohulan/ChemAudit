@@ -28,15 +28,15 @@ export function StepsList({
               key={index}
               className={`flex items-start gap-3 p-3 rounded-lg border ${
                 step.applied
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-gray-200 bg-gray-50'
+                  ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20'
+                  : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50'
               }`}
             >
               {/* Status Icon */}
               <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
                 step.applied
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-300 text-white'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-gray-300 dark:bg-gray-600 text-white'
               }`}>
                 {step.applied ? '✓' : '−'}
               </div>

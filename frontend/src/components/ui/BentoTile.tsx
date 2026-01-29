@@ -122,7 +122,7 @@ export function TileValue({
         {trend && (
           <span className={cn(
             'text-sm font-medium',
-            trend === 'up' && 'text-emerald-500',
+            trend === 'up' && 'text-amber-500 dark:text-yellow-400',
             trend === 'down' && 'text-red-500',
             trend === 'neutral' && 'text-[var(--color-text-muted)]'
           )}>

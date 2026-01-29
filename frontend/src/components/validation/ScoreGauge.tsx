@@ -23,9 +23,9 @@ export function ScoreGauge({ score, size = 140, className = '', showCalculation 
   // Determine color based on score
   const getColor = (score: number) => {
     if (score >= 80) return {
-      fill: '#059669',
-      text: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
+      fill: '#b45309',
+      text: 'text-amber-600 dark:text-yellow-400',
+      bg: 'bg-yellow-500/10 dark:bg-yellow-400/15',
       label: 'Excellent',
       gradientId: 'gaugeExcellent',
     };
@@ -71,8 +71,8 @@ Clamped to range 0-100`;
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="gaugeExcellent" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={isDark ? '#34d399' : '#10b981'} />
-            <stop offset="100%" stopColor={isDark ? '#10b981' : '#059669'} />
+            <stop offset="0%" stopColor={isDark ? '#fde68a' : '#fcd34d'} />
+            <stop offset="100%" stopColor={isDark ? '#fbbf24' : '#b45309'} />
           </linearGradient>
           <linearGradient id="gaugeFair" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={isDark ? '#fcd34d' : '#fbbf24'} />

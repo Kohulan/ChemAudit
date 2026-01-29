@@ -125,8 +125,8 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
             onClick={handleCopySmiles}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               copied
-                ? 'bg-green-100 text-green-800 border border-green-300'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-amber-800 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
+                : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white'
             }`}
           >
             {copied ? '✓ Copied!' : 'Copy Standardized SMILES'}

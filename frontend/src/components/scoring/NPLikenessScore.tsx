@@ -14,11 +14,11 @@ function getScoreCategory(score: number) {
   if (score >= 1.0) return {
     label: 'Natural Product-like',
     icon: Leaf,
-    gradient: 'from-emerald-500 to-green-400',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-500',
-    border: 'border-emerald-500/20',
-    glow: 'shadow-emerald-500/30',
+    gradient: 'from-yellow-500 to-amber-400',
+    bg: 'bg-yellow-500/10',
+    text: 'text-amber-500 dark:text-yellow-400',
+    border: 'border-yellow-500/20',
+    glow: 'shadow-yellow-500/30',
     description: 'Structural features commonly found in natural products',
   };
   if (score >= -0.3) return {
@@ -115,7 +115,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               <div
                 className="absolute inset-0 opacity-80"
                 style={{
-                  background: 'linear-gradient(to right, #f59e0b 0%, #fbbf24 20%, #94a3b8 50%, #4ade80 80%, #10b981 100%)'
+                  background: 'linear-gradient(to right, #ea580c 0%, #f59e0b 20%, #94a3b8 50%, #fbbf24 80%, #eab308 100%)'
                 }}
               />
             </div>
@@ -154,7 +154,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               Synthetic
             </span>
             <span className="text-[var(--color-text-muted)]">Mixed</span>
-            <span className="text-emerald-500 font-medium flex items-center gap-1">
+            <span className="text-amber-500 dark:text-yellow-400 font-medium flex items-center gap-1">
               <Leaf className="w-3 h-3" />
               Natural
             </span>

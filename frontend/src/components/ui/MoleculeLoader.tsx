@@ -118,7 +118,7 @@ export function MoleculeLoader({ size = 'md', text, className }: MoleculeLoaderP
           }}
         >
           <div
-            className="absolute rounded-full bg-emerald-400"
+            className="absolute rounded-full bg-amber-400"
             style={{
               width: config.atom * 0.8,
               height: config.atom * 0.8,
