@@ -1,13 +1,10 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, Home, RotateCcw } from 'lucide-react';
+import { FallbackProps } from 'react-error-boundary';
 import { cn } from '../../lib/utils';
 
-interface ErrorFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
-}
-
-export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
+export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -34,7 +31,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
         {/* Error details (collapsible in production) */}
         {import.meta.env.DEV && (
           <pre className="text-left text-xs bg-[var(--color-surface-sunken)] rounded-lg p-4 mb-6 overflow-auto max-h-32 text-red-500">
-            {error.message}
+            {errorMessage}
           </pre>
         )}
 
