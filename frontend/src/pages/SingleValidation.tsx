@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom,
@@ -14,6 +15,7 @@ import {
   Zap,
   CheckCircle2,
   Info,
+  Share2,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -26,6 +28,7 @@ import { DatabaseLookupResults } from '../components/integrations/DatabaseLookup
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
+import { CopyButton } from '../components/ui/CopyButton';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
@@ -38,9 +41,10 @@ import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../types/integr
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
   { name: 'Caffeine', smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C' },
-  { name: 'Ethanol', smiles: 'CCO' },
-  { name: 'Rhodanine (PAINS)', smiles: 'O=C1NC(=S)SC1' },
+  { name: 'L-Alanine (chiral)', smiles: 'C[C@H](N)C(=O)O' },
+  { name: 'E-Stilbene (E/Z)', smiles: 'C(/c1ccccc1)=C/c1ccccc1' },
   { name: 'Morphine', smiles: 'CN1CCC23C4=C5C=CC(O)=C4OC2C(O)C=CC3C1C5' },
+  { name: 'Rhodanine (PAINS)', smiles: 'O=C1NC(=S)SC1' },
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
@@ -81,10 +85,29 @@ const TABS: TabConfig[] = [
 ];
 
 export function SingleValidationPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [molecule, setMolecule] = useState('');
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset } = useValidation();
+  // @ts-expect-error - Used later in event handlers
+  const [shareToastVisible, setShareToastVisible] = useState(false);
+
+  // Load molecule from URL on mount
+  useEffect(() => {
+    const smilesFromUrl = searchParams.get('smiles');
+    if (smilesFromUrl) {
+      setMolecule(decodeURIComponent(smilesFromUrl));
+      // Auto-validate after loading from URL
+      setTimeout(() => {
+        validate({
+          molecule: decodeURIComponent(smilesFromUrl),
+          format: 'auto',
+          preserve_aromatic: false,
+        });
+      }, 100);
+    }
+  }, []); // Only run on mount
 
   // Get molecule info immediately when molecule is entered
   const { info: moleculeInfo, isLoading: moleculeInfoLoading, error: moleculeInfoError } = useMoleculeInfo(molecule);
@@ -114,6 +137,9 @@ export function SingleValidationPage() {
 
   // SMILES display preference
   const [showKekulized, setShowKekulized] = useState(false);
+
+  // CIP stereochemistry labels toggle
+  const [showCIP, setShowCIP] = useState(false);
 
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
@@ -214,11 +240,30 @@ export function SingleValidationPage() {
     setStandardizationError(null);
     setDatabaseResults(null);
     setHighlightedAtoms([]);
+    setShowCIP(false);
   };
 
   const handleReset = () => {
     setMolecule('');
     resetAll();
+    // Clear URL params
+    setSearchParams({});
+  };
+
+  const handleShare = async () => {
+    if (!molecule.trim()) return;
+
+    // Update URL with encoded SMILES
+    setSearchParams({ smiles: encodeURIComponent(molecule.trim()) });
+
+    // Copy URL to clipboard
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareToastVisible(true);
+      setTimeout(() => setShareToastVisible(false), 3000);
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
+    }
   };
 
   const toggleCatalog = (catalog: string) => {
@@ -327,6 +372,13 @@ export function SingleValidationPage() {
                 leftIcon={<RotateCcw className="w-4 h-4" />}
               >
                 Reset
+              </ClayButton>
+              <ClayButton
+                onClick={handleShare}
+                disabled={!molecule.trim()}
+                leftIcon={<Share2 className="w-4 h-4" />}
+              >
+                Share
               </ClayButton>
             </div>
 
@@ -440,23 +492,26 @@ export function SingleValidationPage() {
                               <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
                                 {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
                               </span>
-                              {moleculeInfo?.kekulizedSmiles && (
-                                <button
-                                  onClick={() => setShowKekulized(!showKekulized)}
-                                  className={cn(
-                                    'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
-                                    'border shadow-sm',
-                                    showKekulized
-                                      ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
-                                      : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
-                                  )}
-                                >
-                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                  </svg>
-                                  {showKekulized ? 'Canonical' : 'Kekulize'}
-                                </button>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {moleculeInfo?.kekulizedSmiles && (
+                                  <button
+                                    onClick={() => setShowKekulized(!showKekulized)}
+                                    className={cn(
+                                      'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                                      'border shadow-sm',
+                                      showKekulized
+                                        ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
+                                        : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                                    )}
+                                  >
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                    {showKekulized ? 'Canonical' : 'Kekulize'}
+                                  </button>
+                                )}
+                                <CopyButton text={showKekulized && moleculeInfo?.kekulizedSmiles ? moleculeInfo.kekulizedSmiles : (result.molecule_info.canonical_smiles || '')} />
+                              </div>
                             </div>
                             <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded-lg px-3 py-2">
                               {showKekulized && moleculeInfo?.kekulizedSmiles
@@ -465,9 +520,23 @@ export function SingleValidationPage() {
                             </code>
                           </div>
                         )}
+                        {result.molecule_info.inchi && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">InChI</span>
+                              <CopyButton text={result.molecule_info.inchi} />
+                            </div>
+                            <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded px-2 py-1.5 max-h-16 overflow-y-auto">
+                              {result.molecule_info.inchi}
+                            </code>
+                          </div>
+                        )}
                         {result.molecule_info.inchikey && (
                           <div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1">InChIKey</div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">InChIKey</span>
+                              <CopyButton text={result.molecule_info.inchikey} />
+                            </div>
                             <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded px-2 py-1.5">
                               {result.molecule_info.inchikey}
                             </code>
@@ -496,23 +565,26 @@ export function SingleValidationPage() {
                           <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
                             {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
                           </span>
-                          {moleculeInfo.kekulizedSmiles && (
-                            <button
-                              onClick={() => setShowKekulized(!showKekulized)}
-                              className={cn(
-                                'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
-                                'border shadow-sm',
-                                showKekulized
-                                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
-                                  : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
-                              )}
-                            >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                              </svg>
-                              {showKekulized ? 'Canonical' : 'Kekulize'}
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {moleculeInfo.kekulizedSmiles && (
+                              <button
+                                onClick={() => setShowKekulized(!showKekulized)}
+                                className={cn(
+                                  'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                                  'border shadow-sm',
+                                  showKekulized
+                                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
+                                    : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                                )}
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                                {showKekulized ? 'Canonical' : 'Kekulize'}
+                              </button>
+                            )}
+                            <CopyButton text={showKekulized && moleculeInfo.kekulizedSmiles ? moleculeInfo.kekulizedSmiles : moleculeInfo.canonicalSmiles} />
+                          </div>
                         </div>
                         <code className="text-xs text-[var(--color-text-secondary)] font-mono break-all block bg-[var(--color-surface-sunken)] rounded-lg px-3 py-2">
                           {showKekulized && moleculeInfo.kekulizedSmiles
@@ -851,7 +923,7 @@ export function SingleValidationPage() {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                     <Atom className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Structure Preview
                     </h4>
@@ -859,6 +931,26 @@ export function SingleValidationPage() {
                       {molecule ? 'Rendered with RDKit.js' : 'Enter a SMILES to preview'}
                     </p>
                   </div>
+                  {/* CIP Labels Toggle - Show when molecule has stereochemistry */}
+                  {moleculeInfo?.hasStereochemistry && (
+                    <button
+                      onClick={() => setShowCIP(!showCIP)}
+                      className={cn(
+                        'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                        'border shadow-sm',
+                        showCIP
+                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
+                          : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                      )}
+                      title="Show R/S and E/Z stereochemistry labels"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                      </svg>
+                      {showCIP ? 'Hide CIP' : 'Show CIP'}
+                    </button>
+                  )}
                 </div>
                 <div className="molecule-preview rounded-xl min-h-[280px] flex items-center justify-center">
                   <MoleculeViewer
@@ -866,6 +958,7 @@ export function SingleValidationPage() {
                     highlightAtoms={highlightedAtoms}
                     width={380}
                     height={280}
+                    showCIP={showCIP}
                   />
                 </div>
                 {highlightedAtoms.length > 0 && (
@@ -876,6 +969,30 @@ export function SingleValidationPage() {
                   >
                     Highlighting atoms: {highlightedAtoms.join(', ')}
                   </motion.p>
+                )}
+                {/* Stereochemistry info indicator */}
+                {moleculeInfo?.hasStereochemistry && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-3 flex items-center justify-center gap-2"
+                  >
+                    <div className="flex items-center gap-1.5 text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded-lg">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                      </svg>
+                      <span>
+                        {moleculeInfo.numStereocenters > 0 && `${moleculeInfo.numStereocenters} stereocenter${moleculeInfo.numStereocenters > 1 ? 's' : ''}`}
+                        {moleculeInfo.numStereocenters > 0 && /[/\\]/.test(moleculeInfo.canonicalSmiles) && ' + '}
+                        {/[/\\]/.test(moleculeInfo.canonicalSmiles) && 'E/Z bonds'}
+                      </span>
+                    </div>
+                    {showCIP && (
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        (CIP labels shown)
+                      </span>
+                    )}
+                  </motion.div>
                 )}
               </div>
 
@@ -1065,6 +1182,25 @@ export function SingleValidationPage() {
             className="card p-6 sm:p-8"
           >
             <ScoringResults scoringResponse={scoringResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share URL Toast */}
+      <AnimatePresence>
+        {shareToastVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border-strong)] shadow-2xl">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                Share URL copied to clipboard!
+              </span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
