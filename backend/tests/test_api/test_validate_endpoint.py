@@ -3,6 +3,7 @@ Tests for /api/v1/validate endpoint.
 
 Tests single molecule validation API.
 """
+
 import pytest
 
 # Uses shared 'client' fixture from conftest.py
@@ -15,8 +16,7 @@ class TestValidateEndpoint:
     async def test_validate_valid_smiles(self, client):
         """Should validate a valid SMILES string"""
         response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "CCO", "format": "smiles"}
+            "/api/v1/validate", json={"molecule": "CCO", "format": "smiles"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -45,10 +45,7 @@ class TestValidateEndpoint:
     @pytest.mark.asyncio
     async def test_validate_benzene(self, client):
         """Should validate benzene"""
-        response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "c1ccccc1"}
-        )
+        response = await client.post("/api/v1/validate", json={"molecule": "c1ccccc1"})
         assert response.status_code == 200
         data = response.json()
         # By default, API kekulizes SMILES (explicit double bonds)
@@ -60,8 +57,7 @@ class TestValidateEndpoint:
     async def test_validate_invalid_smiles(self, client):
         """Should return 400 for invalid SMILES"""
         response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "invalid_smiles_xyz"}
+            "/api/v1/validate", json={"molecule": "invalid_smiles_xyz"}
         )
         assert response.status_code == 400
         data = response.json()
@@ -71,10 +67,7 @@ class TestValidateEndpoint:
     @pytest.mark.asyncio
     async def test_validate_empty_molecule(self, client):
         """Should return 422 for empty molecule string"""
-        response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": ""}
-        )
+        response = await client.post("/api/v1/validate", json={"molecule": ""})
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -82,10 +75,7 @@ class TestValidateEndpoint:
         """Should run only specified checks"""
         response = await client.post(
             "/api/v1/validate",
-            json={
-                "molecule": "CCO",
-                "checks": ["parsability", "valence"]
-            }
+            json={"molecule": "CCO", "checks": ["parsability", "valence"]},
         )
         assert response.status_code == 200
         data = response.json()
@@ -99,10 +89,7 @@ class TestValidateEndpoint:
     @pytest.mark.asyncio
     async def test_validate_returns_all_checks(self, client):
         """Should return all check results"""
-        response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "CCO"}
-        )
+        response = await client.post("/api/v1/validate", json={"molecule": "CCO"})
         assert response.status_code == 200
         data = response.json()
 
@@ -111,21 +98,26 @@ class TestValidateEndpoint:
         check_names = {c["check_name"] for c in data["all_checks"]}
         expected_checks = {
             # Basic checks
-            "parsability", "sanitization", "valence", "aromaticity", "connectivity",
+            "parsability",
+            "sanitization",
+            "valence",
+            "aromaticity",
+            "connectivity",
             # Representation checks
-            "smiles_roundtrip", "inchi_generation", "inchi_roundtrip",
+            "smiles_roundtrip",
+            "inchi_generation",
+            "inchi_roundtrip",
             # Stereochemistry checks
-            "undefined_stereocenters", "undefined_doublebond_stereo", "conflicting_stereo",
+            "undefined_stereocenters",
+            "undefined_doublebond_stereo",
+            "conflicting_stereo",
         }
         assert check_names == expected_checks
 
     @pytest.mark.asyncio
     async def test_validate_separates_issues(self, client):
         """Should separate failed checks into issues"""
-        response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "CCO"}
-        )
+        response = await client.post("/api/v1/validate", json={"molecule": "CCO"})
         assert response.status_code == 200
         data = response.json()
 
@@ -138,10 +130,7 @@ class TestValidateEndpoint:
         """Should validate InChI format"""
         response = await client.post(
             "/api/v1/validate",
-            json={
-                "molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
-                "format": "inchi"
-            }
+            json={"molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3", "format": "inchi"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -151,21 +140,14 @@ class TestValidateEndpoint:
     async def test_validate_auto_format_detection(self, client):
         """Should auto-detect format"""
         response = await client.post(
-            "/api/v1/validate",
-            json={
-                "molecule": "CCO",
-                "format": "auto"
-            }
+            "/api/v1/validate", json={"molecule": "CCO", "format": "auto"}
         )
         assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_validate_returns_execution_time(self, client):
         """Should return execution time"""
-        response = await client.post(
-            "/api/v1/validate",
-            json={"molecule": "CCO"}
-        )
+        response = await client.post("/api/v1/validate", json={"molecule": "CCO"})
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data["execution_time_ms"], int)
@@ -192,7 +174,13 @@ class TestListChecksEndpoint:
 
         # Basic category should have 5 checks
         assert len(data["basic"]) == 5
-        expected_basic = {"parsability", "sanitization", "valence", "aromaticity", "connectivity"}
+        expected_basic = {
+            "parsability",
+            "sanitization",
+            "valence",
+            "aromaticity",
+            "connectivity",
+        }
         assert set(data["basic"]) == expected_basic
 
         # Representation category should have 3 checks
@@ -202,5 +190,9 @@ class TestListChecksEndpoint:
 
         # Stereochemistry category should have 3 checks
         assert len(data["stereochemistry"]) == 3
-        expected_stereo = {"undefined_stereocenters", "undefined_doublebond_stereo", "conflicting_stereo"}
+        expected_stereo = {
+            "undefined_stereocenters",
+            "undefined_doublebond_stereo",
+            "conflicting_stereo",
+        }
         assert set(data["stereochemistry"]) == expected_stereo

@@ -3,17 +3,24 @@
 interface ImportMetaEnv {
   /**
    * API Base URL
-   * - Development: http://localhost:8000/api/v1
+   * - Development: http://localhost:8001/api/v1
    * - Production: /api/v1 (relative, same-origin)
    */
   readonly VITE_API_URL: string;
 
   /**
    * API Documentation URL
-   * - Development: http://localhost:8000/docs
+   * - Development: http://localhost:8001/docs
    * - Production: /api/v1/docs
    */
   readonly VITE_API_DOCS_URL: string;
+
+  /**
+   * Backend port for WebSocket connections
+   * - Development: 8001
+   * - Production: same as window.location.port
+   */
+  readonly VITE_BACKEND_PORT: string;
 
   /**
    * Debug mode flag

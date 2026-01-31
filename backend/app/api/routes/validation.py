@@ -2,12 +2,13 @@
 Validation API Routes
 
 Endpoints for single molecule validation with Redis caching support.
+Supports both synchronous and async (Celery priority queue) validation.
 """
 
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 from rdkit.Chem import inchi as rdkit_inchi
@@ -27,6 +28,7 @@ from app.schemas.validation import (
     ValidationRequest,
     ValidationResponse,
 )
+from app.services.batch.tasks import validate_single_molecule
 from app.services.parser.molecule_parser import MoleculeFormat, parse_molecule
 from app.services.validation.engine import validation_engine
 
@@ -151,6 +153,95 @@ async def validate_molecule(
         await set_cached_validation(redis, cache_key, cache_data)
 
     return response
+
+
+@router.post("/validate/async")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def validate_molecule_async(
+    request: Request,
+    body: ValidationRequest,
+    timeout: int = Query(default=30, ge=1, le=60, description="Timeout in seconds"),
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Validate a molecule using the Celery priority queue.
+
+    This endpoint submits validation to the high_priority Celery queue,
+    ensuring it won't be blocked by large batch processing jobs.
+    Use this when batch jobs are running and you need responsive single validation.
+
+    Args:
+        request: FastAPI request
+        body: Validation request with molecule and options
+        timeout: Maximum time to wait for result (1-60 seconds)
+        api_key: Optional API key for higher rate limits
+
+    Returns:
+        Validation results from the priority queue worker
+
+    Raises:
+        HTTPException: If validation times out or fails
+    """
+    start_time = time.time()
+
+    # Parse molecule to get canonical SMILES
+    format_map = {
+        "smiles": MoleculeFormat.SMILES,
+        "inchi": MoleculeFormat.INCHI,
+        "mol": MoleculeFormat.MOL,
+        "auto": None,
+    }
+    input_format = format_map.get(body.format)
+
+    parse_result = parse_molecule(body.molecule, input_format)
+
+    if not parse_result.success or parse_result.mol is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Failed to parse molecule",
+                "errors": parse_result.errors,
+            },
+        )
+
+    # Get canonical SMILES for the task
+    canonical_smiles = Chem.MolToSmiles(parse_result.mol)
+
+    # Submit to priority queue
+    task = validate_single_molecule.delay(canonical_smiles, body.checks)
+
+    try:
+        # Wait for result with timeout
+        result = task.get(timeout=timeout)
+
+        # Extract molecule info from the parsed molecule
+        mol_info = extract_molecule_info(
+            parse_result.mol, body.molecule, body.preserve_aromatic
+        )
+
+        execution_time = int((time.time() - start_time) * 1000)
+
+        return {
+            "molecule_info": (
+                mol_info.model_dump()
+                if hasattr(mol_info, "model_dump")
+                else mol_info.__dict__
+            ),
+            "overall_score": result.get("validation", {}).get("overall_score", 0),
+            "issues": result.get("validation", {}).get("issues", []),
+            "alerts": result.get("alerts"),
+            "scoring": result.get("scoring"),
+            "execution_time_ms": execution_time,
+            "queue": "high_priority",
+        }
+
+    except Exception as e:
+        # Revoke the task if it's still running
+        task.revoke(terminate=True)
+        raise HTTPException(
+            status_code=504,
+            detail=f"Validation timed out or failed: {str(e)}",
+        )
 
 
 @router.get("/checks")

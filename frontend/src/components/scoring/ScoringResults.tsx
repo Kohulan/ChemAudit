@@ -3,6 +3,10 @@ import { TrendingUp, Clock } from 'lucide-react';
 import { MLReadinessScore } from './MLReadinessScore';
 import { NPLikenessScore } from './NPLikenessScore';
 import { ScaffoldDisplay } from './ScaffoldDisplay';
+import { DrugLikenessScore } from './DrugLikenessScore';
+import { SafetyFiltersScore } from './SafetyFiltersScore';
+import { ADMETScore } from './ADMETScore';
+import { AggregatorScore } from './AggregatorScore';
 import type { ScoringResponse } from '../../types/scoring';
 import { cn } from '../../lib/utils';
 
@@ -10,11 +14,37 @@ interface ScoringResultsProps {
   scoringResponse: ScoringResponse;
 }
 
+interface AnimatedSectionProps {
+  children: React.ReactNode;
+  delay: number;
+}
+
+function AnimatedSection({ children, delay }: AnimatedSectionProps): JSX.Element {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /**
  * Combined display for all scoring results.
  */
 export function ScoringResults({ scoringResponse }: ScoringResultsProps) {
-  const { ml_readiness, np_likeness, scaffold, execution_time_ms } = scoringResponse;
+  const {
+    ml_readiness,
+    np_likeness,
+    scaffold,
+    druglikeness,
+    safety_filters,
+    admet,
+    aggregator,
+    execution_time_ms
+  } = scoringResponse;
 
   return (
     <div className="space-y-6">
@@ -37,7 +67,7 @@ export function ScoringResults({ scoringResponse }: ScoringResultsProps) {
               Scoring Results
             </h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              ML readiness and molecular properties
+              Comprehensive molecular analysis
             </p>
           </div>
         </div>
@@ -52,26 +82,48 @@ export function ScoringResults({ scoringResponse }: ScoringResultsProps) {
         <MLReadinessScore result={ml_readiness} breakdownOnly />
       )}
 
-      {/* Additional scores grid */}
+      {/* Drug-likeness and Safety Filters grid */}
+      {(druglikeness || safety_filters) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {druglikeness && (
+            <AnimatedSection delay={0.2}>
+              <DrugLikenessScore result={druglikeness} />
+            </AnimatedSection>
+          )}
+          {safety_filters && (
+            <AnimatedSection delay={0.25}>
+              <SafetyFiltersScore result={safety_filters} />
+            </AnimatedSection>
+          )}
+        </div>
+      )}
+
+      {/* ADMET Predictions */}
+      {admet && (
+        <AnimatedSection delay={0.3}>
+          <ADMETScore result={admet} />
+        </AnimatedSection>
+      )}
+
+      {/* Aggregator Likelihood */}
+      {aggregator && (
+        <AnimatedSection delay={0.32}>
+          <AggregatorScore result={aggregator} />
+        </AnimatedSection>
+      )}
+
+      {/* NP-Likeness and Scaffold grid */}
       {(np_likeness || scaffold) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {np_likeness && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <AnimatedSection delay={0.35}>
               <NPLikenessScore result={np_likeness} />
-            </motion.div>
+            </AnimatedSection>
           )}
           {scaffold && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
+            <AnimatedSection delay={0.4}>
               <ScaffoldDisplay result={scaffold} />
-            </motion.div>
+            </AnimatedSection>
           )}
         </div>
       )}

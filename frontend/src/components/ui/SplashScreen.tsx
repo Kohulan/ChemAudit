@@ -8,8 +8,7 @@ interface SplashScreenProps {
 }
 
 /**
- * Theme-aware splash screen with elegant logo reveal
- * Uses app's core colors: crimson/rose primary + amber accent
+ * Stunning splash screen with logo reveal and molecular animations
  */
 export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
   const { resolvedTheme } = useThemeContext();
@@ -20,11 +19,11 @@ export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
     if (isVisible) {
       setPhase('enter');
       const revealTimer = setTimeout(() => setPhase('reveal'), 100);
-      const exitTimer = setTimeout(() => setPhase('exit'), 1000);
+      const exitTimer = setTimeout(() => setPhase('exit'), 1200);
       const completeTimer = setTimeout(() => {
         onComplete();
         setPhase('enter');
-      }, 1400);
+      }, 1600);
 
       return () => {
         clearTimeout(revealTimer);
@@ -37,31 +36,35 @@ export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
   // Theme-aware colors
   const colors = isDark
     ? {
-        bg: 'from-slate-950 via-slate-900 to-slate-950',
-        glow: 'rgba(248,113,113,0.2)', // primary-rgb for dark
-        glowAccent: 'rgba(251,191,36,0.15)',
-        primary: '#f87171',
-        primaryDark: '#ef4444',
-        accent: '#fbbf24',
-        accentDark: '#f59e0b',
+        bg: '#0a0a0f',
+        bgGradient: 'from-slate-950 via-slate-900 to-slate-950',
+        primary: '#dc2626',
+        primaryGlow: 'rgba(220, 38, 38, 0.4)',
+        accent: '#f59e0b',
+        accentGlow: 'rgba(245, 158, 11, 0.3)',
         text: '#ffffff',
-        textMuted: 'rgba(255,255,255,0.6)',
-        cardBg: 'rgba(30,30,40,0.95)',
-        cardBorder: 'rgba(255,255,255,0.1)',
+        textMuted: 'rgba(255,255,255,0.5)',
       }
     : {
-        bg: 'from-stone-100 via-amber-50/30 to-rose-50/20',
-        glow: 'rgba(196,30,58,0.12)', // primary-rgb for light
-        glowAccent: 'rgba(217,119,6,0.1)',
-        primary: '#c41e3a',
-        primaryDark: '#9d1830',
+        bg: '#fafaf9',
+        bgGradient: 'from-stone-50 via-amber-50/20 to-rose-50/20',
+        primary: '#dc2626',
+        primaryGlow: 'rgba(220, 38, 38, 0.25)',
         accent: '#d97706',
-        accentDark: '#b45309',
+        accentGlow: 'rgba(217, 119, 6, 0.2)',
         text: '#1a1a1a',
-        textMuted: 'rgba(0,0,0,0.5)',
-        cardBg: 'rgba(255,255,255,0.95)',
-        cardBorder: 'rgba(196,30,58,0.15)',
+        textMuted: 'rgba(0,0,0,0.45)',
       };
+
+  // Floating particles configuration
+  const particles = Array.from({ length: 6 }, (_, i) => ({
+    id: i,
+    size: 4 + Math.random() * 4,
+    x: 20 + Math.random() * 60,
+    y: 20 + Math.random() * 60,
+    duration: 3 + Math.random() * 2,
+    delay: Math.random() * 0.5,
+  }));
 
   return (
     <AnimatePresence>
@@ -71,117 +74,196 @@ export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.3 }}
         >
           {/* Background */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${colors.bg}`} />
-
-          {/* Ambient glow - primary */}
-          <motion.div
-            className="absolute w-[500px] h-[500px] rounded-full"
-            style={{
-              background: `radial-gradient(circle, ${colors.glow} 0%, transparent 70%)`,
-            }}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{
-              scale: phase === 'exit' ? 1.8 : 1,
-              opacity: phase === 'exit' ? 0 : 1,
-            }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+          <div
+            className={`absolute inset-0 bg-gradient-to-br ${colors.bgGradient}`}
+            style={{ backgroundColor: colors.bg }}
           />
 
-          {/* Ambient glow - accent (offset) */}
-          <motion.div
-            className="absolute w-[400px] h-[400px] rounded-full translate-x-20 translate-y-10"
-            style={{
-              background: `radial-gradient(circle, ${colors.glowAccent} 0%, transparent 70%)`,
-            }}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{
-              scale: phase === 'exit' ? 1.5 : 1,
-              opacity: phase === 'exit' ? 0 : 0.8,
-            }}
-            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-          />
+          {/* Animated gradient mesh */}
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              className="absolute w-[600px] h-[600px] rounded-full blur-[100px]"
+              style={{
+                background: `radial-gradient(circle, ${colors.primaryGlow} 0%, transparent 70%)`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+              }}
+              animate={{
+                scale: phase === 'exit' ? [1, 1.5] : [0.8, 1, 0.8],
+                opacity: phase === 'exit' ? [1, 0] : [0.6, 1, 0.6],
+              }}
+              transition={{
+                duration: phase === 'exit' ? 0.4 : 3,
+                repeat: phase === 'exit' ? 0 : Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              className="absolute w-[400px] h-[400px] rounded-full blur-[80px]"
+              style={{
+                background: `radial-gradient(circle, ${colors.accentGlow} 0%, transparent 70%)`,
+                left: '60%',
+                top: '40%',
+              }}
+              animate={{
+                scale: phase === 'exit' ? [1, 1.3] : [1, 1.2, 1],
+                opacity: phase === 'exit' ? [0.8, 0] : [0.4, 0.7, 0.4],
+                x: phase === 'exit' ? 0 : [0, 30, 0],
+                y: phase === 'exit' ? 0 : [0, -20, 0],
+              }}
+              transition={{
+                duration: phase === 'exit' ? 0.4 : 4,
+                repeat: phase === 'exit' ? 0 : Infinity,
+                ease: 'easeInOut',
+                delay: 0.5,
+              }}
+            />
+          </div>
+
+          {/* Floating particles */}
+          {particles.map((particle) => (
+            <motion.div
+              key={particle.id}
+              className="absolute rounded-full"
+              style={{
+                width: particle.size,
+                height: particle.size,
+                background: particle.id % 2 === 0 ? colors.primary : colors.accent,
+                left: `${particle.x}%`,
+                top: `${particle.y}%`,
+                filter: 'blur(0.5px)',
+              }}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{
+                opacity: phase === 'exit' ? 0 : [0, 0.6, 0],
+                scale: phase === 'exit' ? 0 : [0, 1, 0],
+                y: phase === 'exit' ? 0 : [0, -40, -80],
+              }}
+              transition={{
+                duration: particle.duration,
+                repeat: phase === 'exit' ? 0 : Infinity,
+                delay: particle.delay,
+                ease: 'easeOut',
+              }}
+            />
+          ))}
 
           {/* Center content */}
           <div className="relative flex flex-col items-center">
-            {/* Rotating ring behind logo */}
+            {/* Outer rotating ring */}
             <motion.div
-              className="absolute w-36 h-36"
-              initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+              className="absolute w-44 h-44"
+              initial={{ opacity: 0, scale: 0.5 }}
               animate={{
-                opacity: phase === 'exit' ? 0 : 0.6,
+                opacity: phase === 'exit' ? 0 : 0.4,
                 scale: phase === 'exit' ? 1.5 : 1,
-                rotate: phase === 'exit' ? 90 : 0,
+                rotate: 360,
               }}
               transition={{
-                duration: phase === 'exit' ? 0.3 : 0.5,
-                ease: [0.22, 1, 0.36, 1],
+                opacity: { duration: 0.3 },
+                scale: { duration: phase === 'exit' ? 0.3 : 0.5 },
+                rotate: { duration: 8, repeat: Infinity, ease: 'linear' },
               }}
             >
-              <svg viewBox="0 0 144 144" className="w-full h-full">
+              <svg viewBox="0 0 176 176" className="w-full h-full">
                 <defs>
-                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={colors.primary} stopOpacity="0.8" />
-                    <stop offset="50%" stopColor={colors.accent} stopOpacity="0.6" />
-                    <stop offset="100%" stopColor={colors.primary} stopOpacity="0.8" />
+                  <linearGradient id="outerRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={colors.primary} stopOpacity="0.6" />
+                    <stop offset="50%" stopColor={colors.accent} stopOpacity="0.4" />
+                    <stop offset="100%" stopColor={colors.primary} stopOpacity="0.6" />
                   </linearGradient>
                 </defs>
                 <circle
-                  cx="72"
-                  cy="72"
-                  r="68"
+                  cx="88"
+                  cy="88"
+                  r="84"
                   fill="none"
-                  stroke="url(#ringGrad)"
-                  strokeWidth="2"
-                  strokeDasharray="12 8"
+                  stroke="url(#outerRingGrad)"
+                  strokeWidth="1.5"
+                  strokeDasharray="8 12"
                   strokeLinecap="round"
                 />
               </svg>
             </motion.div>
 
-            {/* Logo container */}
+            {/* Inner pulsing ring */}
             <motion.div
-              className="relative w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden z-10"
-              style={{
-                background: colors.cardBg,
-                boxShadow: isDark
-                  ? `0 0 0 1px ${colors.cardBorder}, 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 40px ${colors.glow}`
-                  : `0 0 0 1px ${colors.cardBorder}, 0 25px 50px -12px rgba(0,0,0,0.15), 0 0 40px ${colors.glow}`,
-              }}
-              initial={{ scale: 0, rotate: -90 }}
+              className="absolute w-32 h-32"
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{
-                scale: phase === 'exit' ? [1, 1.1, 0] : [0, 1.08, 1],
-                rotate: phase === 'exit' ? 90 : [-90, 5, 0],
+                opacity: phase === 'exit' ? 0 : [0.3, 0.6, 0.3],
+                scale: phase === 'exit' ? 1.3 : [0.95, 1.05, 0.95],
               }}
               transition={{
-                duration: phase === 'exit' ? 0.3 : 0.5,
+                duration: phase === 'exit' ? 0.3 : 2,
+                repeat: phase === 'exit' ? 0 : Infinity,
+                ease: 'easeInOut',
+              }}
+            >
+              <svg viewBox="0 0 128 128" className="w-full h-full">
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="60"
+                  fill="none"
+                  stroke={colors.primary}
+                  strokeWidth="2"
+                  strokeOpacity="0.3"
+                />
+              </svg>
+            </motion.div>
+
+            {/* Logo with glow - NO background */}
+            <motion.div
+              className="relative z-10"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{
+                scale: phase === 'exit' ? [1, 1.1, 0] : [0, 1.1, 1],
+                opacity: phase === 'exit' ? [1, 0] : 1,
+              }}
+              transition={{
+                duration: phase === 'exit' ? 0.3 : 0.6,
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
+              {/* Glow behind logo */}
+              <div
+                className="absolute inset-0 blur-2xl scale-150"
+                style={{
+                  background: `radial-gradient(circle, ${colors.primaryGlow} 0%, transparent 70%)`,
+                }}
+              />
               <img
                 src="/logo.png"
                 alt="ChemVault"
-                className="w-14 h-14 object-contain"
+                className="relative w-24 h-24 object-contain drop-shadow-2xl"
+                style={{
+                  filter: isDark
+                    ? `drop-shadow(0 0 20px ${colors.primaryGlow})`
+                    : `drop-shadow(0 4px 12px rgba(0,0,0,0.15))`,
+                }}
               />
             </motion.div>
 
             {/* Brand name */}
             <motion.div
-              className="mt-5 text-center"
-              initial={{ opacity: 0, y: 15 }}
+              className="mt-6 text-center"
+              initial={{ opacity: 0, y: 20 }}
               animate={{
                 opacity: phase === 'exit' ? 0 : 1,
-                y: phase === 'exit' ? -10 : 0,
+                y: phase === 'exit' ? -15 : 0,
               }}
               transition={{
-                delay: phase === 'exit' ? 0 : 0.25,
-                duration: 0.35,
+                delay: phase === 'exit' ? 0 : 0.3,
+                duration: 0.4,
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight">
                 <span style={{ color: colors.primary }} className="font-extrabold">
                   Chem
                 </span>
@@ -190,62 +272,60 @@ export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
                 </span>
               </h1>
 
-              {/* Animated line */}
+              {/* Animated underline */}
               <motion.div
-                className="h-[2px] mt-2 mx-auto rounded-full"
+                className="h-0.5 mt-3 mx-auto rounded-full"
                 style={{
                   background: `linear-gradient(90deg, transparent, ${colors.primary}, ${colors.accent}, transparent)`,
                 }}
                 initial={{ width: 0, opacity: 0 }}
                 animate={{
-                  width: phase === 'exit' ? 0 : 100,
+                  width: phase === 'exit' ? 0 : 120,
                   opacity: phase === 'exit' ? 0 : 1,
                 }}
                 transition={{
-                  delay: phase === 'exit' ? 0 : 0.35,
-                  duration: 0.3,
+                  delay: phase === 'exit' ? 0 : 0.45,
+                  duration: 0.4,
                   ease: [0.22, 1, 0.36, 1],
                 }}
               />
 
               {/* Tagline */}
               <motion.p
-                className="text-xs mt-2 tracking-widest uppercase font-medium"
+                className="text-xs mt-3 tracking-[0.2em] uppercase font-medium"
                 style={{ color: colors.textMuted }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: phase === 'exit' ? 0 : 1 }}
                 transition={{
-                  delay: phase === 'exit' ? 0 : 0.4,
-                  duration: 0.25,
+                  delay: phase === 'exit' ? 0 : 0.55,
+                  duration: 0.3,
                 }}
               >
-                Structure Validation
+                Chemical Structure Validation
               </motion.p>
             </motion.div>
 
-            {/* Orbiting dots */}
+            {/* Loading dots */}
             <motion.div
-              className="absolute w-32 h-32 pointer-events-none"
+              className="flex items-center gap-1.5 mt-8"
               initial={{ opacity: 0 }}
-              animate={{
-                opacity: phase === 'exit' ? 0 : 1,
-                rotate: 360,
-              }}
-              transition={{
-                opacity: { duration: 0.3 },
-                rotate: { duration: 4, repeat: Infinity, ease: 'linear' },
-              }}
+              animate={{ opacity: phase === 'exit' ? 0 : 1 }}
+              transition={{ delay: phase === 'exit' ? 0 : 0.6, duration: 0.3 }}
             >
-              {[0, 180].map((angle) => (
+              {[0, 1, 2].map((i) => (
                 <motion.div
-                  key={angle}
-                  className="absolute w-2 h-2 rounded-full"
-                  style={{
-                    background: angle === 0 ? colors.primary : colors.accent,
-                    boxShadow: `0 0 8px ${angle === 0 ? colors.primary : colors.accent}`,
-                    top: '50%',
-                    left: '50%',
-                    transform: `rotate(${angle}deg) translateX(60px) translateY(-50%)`,
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: colors.primary }}
+                  animate={{
+                    scale: [1, 1.4, 1],
+                    opacity: [0.4, 1, 0.4],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    delay: i * 0.15,
+                    ease: 'easeInOut',
                   }}
                 />
               ))}

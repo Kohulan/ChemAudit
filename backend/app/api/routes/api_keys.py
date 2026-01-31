@@ -2,26 +2,38 @@
 API Key Management Routes
 
 Endpoints for creating, listing, and revoking API keys.
+All endpoints require admin authentication via X-Admin-Secret header.
 """
 
 import secrets
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.security import get_redis_client, hash_api_key
+from app.core.security import (
+    calculate_expiry_date,
+    get_redis_client,
+    hash_api_key_for_lookup,
+    is_key_expired,
+    require_admin_auth,
+)
 from app.schemas.api_key import APIKeyCreate, APIKeyInfo, APIKeyResponse
 
 router = APIRouter()
 
 
 @router.post(
-    "/api-keys", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED
+    "/api-keys",
+    response_model=APIKeyResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin_auth)],
 )
 async def create_api_key(request: APIKeyCreate):
     """
     Create a new API key.
+
+    Requires admin authentication via X-Admin-Secret header.
 
     The full API key is returned only in this response. Store it securely.
     Only the hash is stored in Redis, not the plain key.
@@ -34,35 +46,50 @@ async def create_api_key(request: APIKeyCreate):
     """
     # Generate secure API key
     api_key = secrets.token_urlsafe(32)
-    key_hash = hash_api_key(api_key)
+    key_hash = hash_api_key_for_lookup(api_key)
     created_at = datetime.now(timezone.utc).isoformat()
+
+    # Calculate expiry date
+    expires_at = calculate_expiry_date(request.expiry_days)
 
     # Store in Redis
     client = await get_redis_client()
     try:
         # Store key metadata
-        await client.hset(
-            f"apikey:{key_hash}",
-            mapping={
-                "name": request.name,
-                "description": request.description or "",
-                "created_at": created_at,
-                "last_used": "",
-                "request_count": "0",
-            },
-        )
+        mapping = {
+            "name": request.name,
+            "description": request.description or "",
+            "created_at": created_at,
+            "last_used": "",
+            "request_count": "0",
+        }
+        if expires_at:
+            mapping["expires_at"] = expires_at
+
+        await client.hset(f"apikey:{key_hash}", mapping=mapping)
         # Add to index for listing
         await client.sadd("apikey:index", key_hash)
     finally:
         await client.aclose()
 
-    return APIKeyResponse(key=api_key, name=request.name, created_at=created_at)
+    return APIKeyResponse(
+        key=api_key,
+        name=request.name,
+        created_at=created_at,
+        expires_at=expires_at,
+    )
 
 
-@router.get("/api-keys", response_model=List[APIKeyInfo])
+@router.get(
+    "/api-keys",
+    response_model=List[APIKeyInfo],
+    dependencies=[Depends(require_admin_auth)],
+)
 async def list_api_keys():
     """
     List all API keys (metadata only, not the actual keys).
+
+    Requires admin authentication via X-Admin-Secret header.
 
     Returns:
         List of API key metadata
@@ -84,6 +111,8 @@ async def list_api_keys():
                         created_at=key_data.get("created_at", ""),
                         last_used=key_data.get("last_used") or None,
                         request_count=int(key_data.get("request_count", 0)),
+                        expires_at=key_data.get("expires_at") or None,
+                        is_expired=is_key_expired(key_data),
                     )
                 )
 
@@ -92,10 +121,16 @@ async def list_api_keys():
         await client.aclose()
 
 
-@router.delete("/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/api-keys/{key_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin_auth)],
+)
 async def revoke_api_key(key_id: str):
     """
     Revoke an API key.
+
+    Requires admin authentication via X-Admin-Secret header.
 
     Args:
         key_id: The key hash prefix (first 12 characters)

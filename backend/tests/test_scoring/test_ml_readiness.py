@@ -3,6 +3,7 @@ Tests for ML-Readiness Scoring
 
 Tests the MLReadinessScorer for various molecule types.
 """
+
 import pytest
 from rdkit import Chem
 
@@ -184,8 +185,13 @@ class TestEnhancedFingerprints:
         result = scorer.score(mol)
 
         expected_fps = [
-            "morgan", "morgan_features", "maccs", "atompair",
-            "topological_torsion", "rdkit_fp", "avalon"
+            "morgan",
+            "morgan_features",
+            "maccs",
+            "atompair",
+            "topological_torsion",
+            "rdkit_fp",
+            "avalon",
         ]
         for fp in expected_fps:
             assert fp in result.breakdown.fingerprints_successful, f"{fp} not generated"
@@ -261,9 +267,9 @@ class TestAdditionalDescriptors:
         result = scorer.score(mol)
 
         total = (
-            result.breakdown.descriptors_total +
-            result.breakdown.autocorr2d_total +
-            result.breakdown.mqn_total
+            result.breakdown.descriptors_total
+            + result.breakdown.autocorr2d_total
+            + result.breakdown.mqn_total
         )
         assert total == 451  # 217 + 192 + 42
 
@@ -285,7 +291,9 @@ class TestInterpretation:
         mol = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")  # Aspirin
         result = scorer.score(mol)
 
-        assert "7/7" in result.interpretation or "7 fingerprint" in result.interpretation
+        assert (
+            "7/7" in result.interpretation or "7 fingerprint" in result.interpretation
+        )
 
 
 class TestScoreDistribution:
@@ -304,9 +312,9 @@ class TestScoreDistribution:
         result = scorer.score(mol)
 
         component_sum = (
-            result.breakdown.descriptors_score +
-            result.breakdown.additional_descriptors_score +
-            result.breakdown.fingerprints_score +
-            result.breakdown.size_score
+            result.breakdown.descriptors_score
+            + result.breakdown.additional_descriptors_score
+            + result.breakdown.fingerprints_score
+            + result.breakdown.size_score
         )
         assert abs(component_sum - result.score) < 1  # Allow for rounding

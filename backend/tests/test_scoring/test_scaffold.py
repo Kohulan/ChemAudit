@@ -3,6 +3,7 @@ Tests for Scaffold Extraction
 
 Tests the extract_scaffold function for various molecule types.
 """
+
 from rdkit import Chem
 
 from app.services.scoring.scaffold import ScaffoldResult, extract_scaffold
@@ -21,8 +22,10 @@ class TestScaffoldExtraction:
         assert result.scaffold_smiles != ""
         assert result.generic_scaffold_smiles != ""
         # Should contain benzene ring
-        assert "c1ccccc1" in result.scaffold_smiles.lower() or \
-               "C1=CC=CC=C1" in result.scaffold_smiles
+        assert (
+            "c1ccccc1" in result.scaffold_smiles.lower()
+            or "C1=CC=CC=C1" in result.scaffold_smiles
+        )
 
     def test_caffeine_scaffold(self):
         """Test scaffold extraction for caffeine (fused ring system)."""
@@ -50,7 +53,9 @@ class TestScaffoldExtraction:
         result = extract_scaffold(mol)
 
         assert result.has_scaffold is False
-        assert "acyclic" in result.message.lower() or "no ring" in result.message.lower()
+        assert (
+            "acyclic" in result.message.lower() or "no ring" in result.message.lower()
+        )
 
     def test_generic_scaffold_is_different(self):
         """Test that generic scaffold differs from standard scaffold."""
@@ -220,9 +225,9 @@ class TestGenericScaffoldCorrectness:
 
         # All atoms should be carbon in generic scaffold
         for atom in generic_mol.GetAtoms():
-            assert atom.GetSymbol() == "C", (
-                f"Generic scaffold should have all carbons, found {atom.GetSymbol()}"
-            )
+            assert (
+                atom.GetSymbol() == "C"
+            ), f"Generic scaffold should have all carbons, found {atom.GetSymbol()}"
 
 
 class TestEdgeCases:

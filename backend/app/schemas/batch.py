@@ -91,13 +91,20 @@ class BatchResultsResponse(BaseModel):
 
 
 class CSVColumnsResponse(BaseModel):
-    """Response with detected CSV columns for SMILES selection."""
+    """Response with detected CSV columns for SMILES and Name selection."""
 
     columns: List[str] = Field(..., description="Available column names")
     suggested_smiles: Optional[str] = Field(
         None, description="Suggested SMILES column based on name"
     )
+    suggested_name: Optional[str] = Field(
+        None, description="Suggested Name/ID column based on name"
+    )
+    column_samples: Dict[str, str] = Field(
+        default_factory=dict, description="Sample values for each column"
+    )
     row_count_estimate: int = Field(..., description="Estimated number of rows")
+    file_size_mb: float = Field(default=0, description="File size in MB")
 
 
 class BatchProgressMessage(BaseModel):

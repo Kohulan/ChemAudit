@@ -29,6 +29,7 @@ def _get_weasyprint_html():
     if _HTML is None:
         try:
             from weasyprint import HTML
+
             _HTML = HTML
         except OSError as e:
             raise ImportError(

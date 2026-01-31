@@ -16,6 +16,12 @@ class APIKeyCreate(BaseModel):
     description: Optional[str] = Field(
         None, description="Optional description", max_length=500
     )
+    expiry_days: Optional[int] = Field(
+        None,
+        description="Days until key expires (default: 90, max: 365, 0 for no expiry)",
+        ge=0,
+        le=365,
+    )
 
 
 class APIKeyResponse(BaseModel):
@@ -26,6 +32,7 @@ class APIKeyResponse(BaseModel):
     )
     name: str = Field(..., description="Name of the API key")
     created_at: str = Field(..., description="Creation timestamp")
+    expires_at: Optional[str] = Field(None, description="Expiration timestamp")
 
 
 class APIKeyInfo(BaseModel):
@@ -37,6 +44,8 @@ class APIKeyInfo(BaseModel):
     created_at: str = Field(..., description="Creation timestamp")
     last_used: Optional[str] = Field(None, description="Last used timestamp")
     request_count: int = Field(0, description="Total requests made with this key")
+    expires_at: Optional[str] = Field(None, description="Expiration timestamp")
+    is_expired: bool = Field(False, description="Whether the key has expired")
 
 
 class APIKeyUsage(BaseModel):

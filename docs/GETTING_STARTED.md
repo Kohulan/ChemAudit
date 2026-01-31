@@ -41,8 +41,8 @@ docker-compose logs -f
 
 | Service | URL |
 |---------|-----|
-| **Web Interface** | http://localhost:3000 |
-| **API Documentation** | http://localhost:8000/docs |
+| **Web Interface** | http://localhost:3002 |
+| **API Documentation** | http://localhost:8001/docs |
 
 ### Option 1b: Production Deployment
 
@@ -102,7 +102,7 @@ npm run dev
 
 ### Using the Web Interface
 
-1. **Open** http://localhost:3000
+1. **Open** http://localhost:3002
 2. **Enter** a SMILES string in the input field:
    ```
    CC(=O)Oc1ccccc1C(=O)O

@@ -1,6 +1,7 @@
 """
 Tests for API key management functionality.
 """
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,6 +12,7 @@ from fastapi.testclient import TestClient
 def client():
     """Create test client."""
     from app.main import app
+
     return TestClient(app)
 
 
@@ -23,15 +25,11 @@ def mock_redis():
 
 def test_create_api_key_success(client, mock_redis):
     """Test creating a new API key."""
-    with patch('app.core.security.get_redis_client') as mock_get_redis:
+    with patch("app.core.security.get_redis_client") as mock_get_redis:
         mock_get_redis.return_value = mock_redis
 
         response = client.post(
-            "/api/v1/api-keys",
-            json={
-                "name": "Test Key",
-                "description": "Test API key"
-            }
+            "/api/v1/api-keys", json={"name": "Test Key", "description": "Test API key"}
         )
 
         assert response.status_code == 201
@@ -50,13 +48,10 @@ def test_create_api_key_success(client, mock_redis):
 
 def test_create_api_key_minimal(client, mock_redis):
     """Test creating API key with minimal data (no description)."""
-    with patch('app.core.security.get_redis_client') as mock_get_redis:
+    with patch("app.core.security.get_redis_client") as mock_get_redis:
         mock_get_redis.return_value = mock_redis
 
-        response = client.post(
-            "/api/v1/api-keys",
-            json={"name": "Minimal Key"}
-        )
+        response = client.post("/api/v1/api-keys", json={"name": "Minimal Key"})
 
         assert response.status_code == 201
         data = response.json()
@@ -66,17 +61,14 @@ def test_create_api_key_minimal(client, mock_redis):
 def test_create_api_key_validation_error(client):
     """Test validation errors when creating API key."""
     # Missing required name field
-    response = client.post(
-        "/api/v1/api-keys",
-        json={}
-    )
+    response = client.post("/api/v1/api-keys", json={})
 
     assert response.status_code == 422  # Validation error
 
 
 def test_list_api_keys(client, mock_redis):
     """Test listing API keys."""
-    with patch('app.api.routes.api_keys.get_redis_client') as mock_get_redis:
+    with patch("app.api.routes.api_keys.get_redis_client") as mock_get_redis:
         mock_redis.smembers.return_value = {"hash1", "hash2"}
         mock_redis.hgetall.side_effect = [
             {
@@ -84,15 +76,15 @@ def test_list_api_keys(client, mock_redis):
                 "description": "First key",
                 "created_at": "2026-01-23T00:00:00Z",
                 "last_used": "2026-01-23T01:00:00Z",
-                "request_count": "42"
+                "request_count": "42",
             },
             {
                 "name": "Key 2",
                 "description": "",
                 "created_at": "2026-01-23T00:00:00Z",
                 "last_used": "",
-                "request_count": "0"
-            }
+                "request_count": "0",
+            },
         ]
         mock_get_redis.return_value = mock_redis
 
@@ -117,7 +109,7 @@ def test_list_api_keys(client, mock_redis):
 
 def test_revoke_api_key(client, mock_redis):
     """Test revoking an API key."""
-    with patch('app.api.routes.api_keys.get_redis_client') as mock_get_redis:
+    with patch("app.api.routes.api_keys.get_redis_client") as mock_get_redis:
         mock_redis.smembers.return_value = {"abcd123456789012"}
         mock_get_redis.return_value = mock_redis
 
@@ -128,7 +120,7 @@ def test_revoke_api_key(client, mock_redis):
 
 def test_revoke_nonexistent_key(client, mock_redis):
     """Test revoking a key that doesn't exist."""
-    with patch('app.api.routes.api_keys.get_redis_client') as mock_get_redis:
+    with patch("app.api.routes.api_keys.get_redis_client") as mock_get_redis:
         mock_redis.smembers.return_value = set()  # No keys
         mock_get_redis.return_value = mock_redis
 
@@ -141,17 +133,14 @@ def test_revoke_nonexistent_key(client, mock_redis):
 
 def test_validate_api_key_success(client):
     """Test successful API key validation."""
-    with patch('app.core.security.validate_api_key') as mock_validate:
+    with patch("app.core.security.validate_api_key") as mock_validate:
         mock_validate.return_value = {
             "name": "Valid Key",
             "created_at": "2026-01-23T00:00:00Z",
         }
 
         # Use API key in a request
-        response = client.get(
-            "/api/v1/checks",
-            headers={"X-API-Key": "valid_key"}
-        )
+        response = client.get("/api/v1/checks", headers={"X-API-Key": "valid_key"})
 
         # Should succeed (or fail for other reasons, but not auth)
         assert response.status_code != 401
@@ -159,13 +148,10 @@ def test_validate_api_key_success(client):
 
 def test_validate_api_key_failure(client):
     """Test API key validation failure."""
-    with patch('app.core.security.validate_api_key') as mock_validate:
+    with patch("app.core.security.validate_api_key") as mock_validate:
         mock_validate.return_value = None  # Invalid key
 
-        response = client.get(
-            "/api/v1/checks",
-            headers={"X-API-Key": "invalid_key"}
-        )
+        response = client.get("/api/v1/checks", headers={"X-API-Key": "invalid_key"})
 
         assert response.status_code == 401
         data = response.json()

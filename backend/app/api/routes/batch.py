@@ -29,7 +29,12 @@ from app.schemas.batch import (
     BatchUploadResponse,
     CSVColumnsResponse,
 )
-from app.services.batch.file_parser import detect_csv_columns, parse_csv, parse_sdf
+from app.services.batch.file_parser import (
+    detect_csv_columns,
+    parse_csv,
+    parse_sdf,
+    validate_file_content_type,
+)
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import result_storage
 from app.services.batch.tasks import cancel_batch_job, process_batch_job
@@ -46,6 +51,10 @@ async def upload_batch(
         default="SMILES",
         description="Column name containing SMILES (for CSV files)",
     ),
+    name_column: Optional[str] = Form(
+        default=None,
+        description="Column name containing molecule names/IDs (for CSV files)",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -56,6 +65,7 @@ async def upload_batch(
 
     - **file**: SDF (.sdf) or CSV (.csv) file
     - **smiles_column**: For CSV files, the column containing SMILES strings
+    - **name_column**: For CSV files, the column containing molecule names/IDs
 
     Returns job_id immediately. Use `/batch/{job_id}` to check status
     and `/ws/batch/{job_id}` for real-time progress via WebSocket.
@@ -73,24 +83,46 @@ async def upload_batch(
     # Read file content
     try:
         content = await file.read()
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to read file: {str(e)}",
+            detail="Failed to read file",
+        )
+
+    # Security: Check file size
+    file_size_mb = len(content) / (1024 * 1024)
+    if file_size_mb > settings.MAX_FILE_SIZE_MB:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large: {file_size_mb:.1f}MB exceeds limit of {settings.MAX_FILE_SIZE_MB}MB",
+        )
+
+    # Security: Validate file content matches extension
+    expected_type = "sdf" if filename_lower.endswith(".sdf") else "csv"
+    is_valid, error_msg = validate_file_content_type(content, expected_type, filename)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=error_msg or "Invalid file content",
         )
 
     # Parse file
     try:
         if filename_lower.endswith(".sdf"):
-            molecules = parse_sdf(content)
+            molecules = parse_sdf(content, max_file_size_mb=settings.MAX_FILE_SIZE_MB)
         else:
-            molecules = parse_csv(content, smiles_column=smiles_column)
+            molecules = parse_csv(
+                content,
+                smiles_column=smiles_column or "SMILES",
+                name_column=name_column,
+                max_file_size_mb=settings.MAX_FILE_SIZE_MB,
+            )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to parse file: {str(e)}",
+            detail="Failed to parse file. Please check the file format.",
         )
 
     # Validate molecule count
@@ -320,9 +352,9 @@ async def detect_columns(
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
-    Detect columns in a CSV file for SMILES selection.
+    Detect columns in a CSV file for SMILES and Name/ID selection.
 
-    Returns list of column names and suggested SMILES column.
+    Returns list of column names, suggested columns, and sample values.
     """
     filename = file.filename or ""
     if not filename.lower().endswith(".csv"):
@@ -333,11 +365,23 @@ async def detect_columns(
 
     try:
         content = await file.read()
-        result = detect_csv_columns(content)
+
+        # Security: Check file size before processing
+        file_size_mb = len(content) / (1024 * 1024)
+        if file_size_mb > settings.MAX_FILE_SIZE_MB:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: {file_size_mb:.1f}MB exceeds limit",
+            )
+
+        result = detect_csv_columns(content, max_file_size_mb=settings.MAX_FILE_SIZE_MB)
         return CSVColumnsResponse(
             columns=result["columns"],
             suggested_smiles=result.get("suggested_smiles"),
+            suggested_name=result.get("suggested_name"),
+            column_samples=result.get("column_samples", {}),
             row_count_estimate=result.get("row_count_estimate", 0),
+            file_size_mb=result.get("file_size_mb", 0),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

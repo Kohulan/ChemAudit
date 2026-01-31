@@ -106,7 +106,7 @@ curl http://localhost:8000/api/v1/health
 
 **Check CORS settings in `.env`:**
 ```env
-CORS_ORIGINS=["http://localhost:3000"]
+CORS_ORIGINS=["http://localhost:3002"]
 ```
 
 </details>

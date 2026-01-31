@@ -1,6 +1,7 @@
 """
 Tests for structural alert screening API endpoints.
 """
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -11,8 +12,7 @@ from app.main import app
 async def client():
     """Create async test client."""
     async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
+        transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
 
@@ -27,8 +27,8 @@ class TestAlertEndpoint:
             "/api/v1/alerts",
             json={
                 "molecule": "O=C1NC(=S)SC1",  # Rhodanine (rhod_sat_A pattern)
-                "catalogs": ["PAINS"]
-            }
+                "catalogs": ["PAINS"],
+            },
         )
 
         assert response.status_code == 200
@@ -50,11 +50,7 @@ class TestAlertEndpoint:
     async def test_screen_clean_molecule(self, client: AsyncClient):
         """Test screening clean molecule (no alerts)."""
         response = await client.post(
-            "/api/v1/alerts",
-            json={
-                "molecule": "CCO",  # Ethanol
-                "catalogs": ["PAINS"]
-            }
+            "/api/v1/alerts", json={"molecule": "CCO", "catalogs": ["PAINS"]}  # Ethanol
         )
 
         assert response.status_code == 200
@@ -71,8 +67,8 @@ class TestAlertEndpoint:
             "/api/v1/alerts",
             json={
                 "molecule": "CCBr",  # Bromoethane (BRENK alert)
-                "catalogs": ["PAINS", "BRENK"]
-            }
+                "catalogs": ["PAINS", "BRENK"],
+            },
         )
 
         assert response.status_code == 200
@@ -88,10 +84,7 @@ class TestAlertEndpoint:
         """Test screening with invalid molecule."""
         response = await client.post(
             "/api/v1/alerts",
-            json={
-                "molecule": "not_a_valid_smiles",
-                "catalogs": ["PAINS"]
-            }
+            json={"molecule": "not_a_valid_smiles", "catalogs": ["PAINS"]},
         )
 
         assert response.status_code == 400
@@ -106,7 +99,7 @@ class TestAlertEndpoint:
             json={
                 "molecule": "O=C1NC(=S)SC1"  # Rhodanine (rhod_sat_A pattern)
                 # No catalogs specified - should default to PAINS
-            }
+            },
         )
 
         assert response.status_code == 200
@@ -120,10 +113,7 @@ class TestAlertEndpoint:
         """Test that response includes molecule information."""
         response = await client.post(
             "/api/v1/alerts",
-            json={
-                "molecule": "c1ccccc1",  # Benzene
-                "catalogs": ["PAINS"]
-            }
+            json={"molecule": "c1ccccc1", "catalogs": ["PAINS"]},  # Benzene
         )
 
         assert response.status_code == 200
@@ -138,11 +128,7 @@ class TestAlertEndpoint:
     async def test_response_includes_educational_note(self, client: AsyncClient):
         """Test that response includes educational context."""
         response = await client.post(
-            "/api/v1/alerts",
-            json={
-                "molecule": "CCO",
-                "catalogs": ["PAINS"]
-            }
+            "/api/v1/alerts", json={"molecule": "CCO", "catalogs": ["PAINS"]}
         )
 
         assert response.status_code == 200
@@ -158,8 +144,8 @@ class TestAlertEndpoint:
             "/api/v1/alerts",
             json={
                 "molecule": "O=C1NC(=S)SC1",  # Rhodanine (rhod_sat_A pattern)
-                "catalogs": ["PAINS"]
-            }
+                "catalogs": ["PAINS"],
+            },
         )
 
         assert response.status_code == 200
@@ -211,8 +197,8 @@ class TestQuickCheckEndpoint:
             "/api/v1/alerts/quick-check",
             json={
                 "molecule": "O=C1NC(=S)SC1",  # Rhodanine (rhod_sat_A pattern)
-                "catalogs": ["PAINS"]
-            }
+                "catalogs": ["PAINS"],
+            },
         )
 
         assert response.status_code == 200
@@ -226,10 +212,7 @@ class TestQuickCheckEndpoint:
         """Test quick check on clean molecule."""
         response = await client.post(
             "/api/v1/alerts/quick-check",
-            json={
-                "molecule": "CCO",  # Ethanol
-                "catalogs": ["PAINS"]
-            }
+            json={"molecule": "CCO", "catalogs": ["PAINS"]},  # Ethanol
         )
 
         assert response.status_code == 200

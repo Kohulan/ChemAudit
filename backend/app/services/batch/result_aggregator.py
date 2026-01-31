@@ -23,6 +23,10 @@ class BatchStatisticsData:
     errors: int = 0
     avg_validation_score: Optional[float] = None
     avg_ml_readiness_score: Optional[float] = None
+    avg_qed_score: Optional[float] = None
+    avg_sa_score: Optional[float] = None
+    lipinski_pass_rate: Optional[float] = None
+    safety_pass_rate: Optional[float] = None
     score_distribution: Dict[str, int] = field(default_factory=dict)
     alert_summary: Dict[str, int] = field(default_factory=dict)
     processing_time_seconds: Optional[float] = None
@@ -43,6 +47,12 @@ def compute_statistics(results: List[Dict[str, Any]]) -> BatchStatisticsData:
 
     validation_scores = []
     ml_readiness_scores = []
+    qed_scores = []
+    sa_scores = []
+    lipinski_passes = 0
+    lipinski_total = 0
+    safety_passes = 0
+    safety_total = 0
     alert_counts: Counter = Counter()
 
     for result in results:
@@ -57,11 +67,42 @@ def compute_statistics(results: List[Dict[str, Any]]) -> BatchStatisticsData:
                 if score is not None:
                     validation_scores.append(score)
 
-            # Collect ML-readiness scores
+            # Collect scoring data
             if "scoring" in result and result["scoring"]:
-                ml_score = result["scoring"].get("ml_readiness", {}).get("score")
+                scoring = result["scoring"]
+
+                # ML-readiness scores
+                ml_score = scoring.get("ml_readiness", {}).get("score")
                 if ml_score is not None:
                     ml_readiness_scores.append(ml_score)
+
+                # Drug-likeness scores
+                druglikeness = scoring.get("druglikeness", {})
+                if druglikeness and "error" not in druglikeness:
+                    qed = druglikeness.get("qed_score")
+                    if qed is not None:
+                        qed_scores.append(qed)
+                    lipinski_passed = druglikeness.get("lipinski_passed")
+                    if lipinski_passed is not None:
+                        lipinski_total += 1
+                        if lipinski_passed:
+                            lipinski_passes += 1
+
+                # Safety filter scores
+                safety = scoring.get("safety_filters", {})
+                if safety and "error" not in safety:
+                    all_passed = safety.get("all_passed")
+                    if all_passed is not None:
+                        safety_total += 1
+                        if all_passed:
+                            safety_passes += 1
+
+                # ADMET scores
+                admet = scoring.get("admet", {})
+                if admet and "error" not in admet:
+                    sa = admet.get("sa_score")
+                    if sa is not None:
+                        sa_scores.append(sa)
 
             # Count alerts
             if "alerts" in result and result["alerts"]:
@@ -79,6 +120,19 @@ def compute_statistics(results: List[Dict[str, Any]]) -> BatchStatisticsData:
         stats.avg_ml_readiness_score = round(
             sum(ml_readiness_scores) / len(ml_readiness_scores), 1
         )
+
+    if qed_scores:
+        stats.avg_qed_score = round(sum(qed_scores) / len(qed_scores), 2)
+
+    if sa_scores:
+        stats.avg_sa_score = round(sum(sa_scores) / len(sa_scores), 1)
+
+    # Calculate pass rates
+    if lipinski_total > 0:
+        stats.lipinski_pass_rate = round((lipinski_passes / lipinski_total) * 100, 1)
+
+    if safety_total > 0:
+        stats.safety_pass_rate = round((safety_passes / safety_total) * 100, 1)
 
     # Score distribution buckets
     stats.score_distribution = _compute_score_distribution(validation_scores)

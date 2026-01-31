@@ -1,6 +1,7 @@
 """
 Tests for FilterCatalog singleton and pattern loading.
 """
+
 import pytest
 from rdkit import Chem
 

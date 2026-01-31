@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for backend tests
 """
+
 import os
 
 import pytest
@@ -16,7 +17,6 @@ from app.main import app
 async def client():
     """Create async test client"""
     async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
+        transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac

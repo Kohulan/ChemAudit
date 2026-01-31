@@ -3,6 +3,7 @@ Tests for standardization API endpoint.
 
 Tests the POST /api/v1/standardize endpoint.
 """
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -13,8 +14,7 @@ from app.main import app
 async def client():
     """Create async test client."""
     async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test/api/v1"
+        transport=ASGITransport(app=app), base_url="http://test/api/v1"
     ) as ac:
         yield ac
 
@@ -25,10 +25,7 @@ class TestStandardizeEndpoint:
     @pytest.mark.asyncio
     async def test_standardize_simple_molecule(self, client):
         """Simple molecule should be standardized successfully."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "CCO"}
-        )
+        response = await client.post("/standardize", json={"molecule": "CCO"})
 
         assert response.status_code == 200
         data = response.json()
@@ -44,10 +41,7 @@ class TestStandardizeEndpoint:
     @pytest.mark.asyncio
     async def test_standardize_salt_form(self, client):
         """Salt form should have counterion stripped."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "CCN.Cl"}
-        )
+        response = await client.post("/standardize", json={"molecule": "CCN.Cl"})
 
         assert response.status_code == 200
         data = response.json()
@@ -59,17 +53,16 @@ class TestStandardizeEndpoint:
     @pytest.mark.asyncio
     async def test_standardize_returns_steps(self, client):
         """Response should include pipeline steps."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "CCO"}
-        )
+        response = await client.post("/standardize", json={"molecule": "CCO"})
 
         assert response.status_code == 200
         data = response.json()
 
         result = data["result"]
         assert "steps_applied" in result
-        assert len(result["steps_applied"]) >= 4  # checker, standardizer, get_parent, tautomer
+        assert (
+            len(result["steps_applied"]) >= 4
+        )  # checker, standardizer, get_parent, tautomer
 
         step_names = [s["step_name"] for s in result["steps_applied"]]
         assert "checker" in step_names
@@ -79,10 +72,7 @@ class TestStandardizeEndpoint:
     @pytest.mark.asyncio
     async def test_standardize_returns_stereo_comparison(self, client):
         """Response should include stereochemistry comparison."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "C[C@H](O)CC"}
-        )
+        response = await client.post("/standardize", json={"molecule": "C[C@H](O)CC"})
 
         assert response.status_code == 200
         data = response.json()
@@ -97,19 +87,13 @@ class TestStandardizeEndpoint:
         # Without tautomer (default)
         response_no_taut = await client.post(
             "/standardize",
-            json={
-                "molecule": "CCO",
-                "options": {"include_tautomer": False}
-            }
+            json={"molecule": "CCO", "options": {"include_tautomer": False}},
         )
 
         # With tautomer
         response_with_taut = await client.post(
             "/standardize",
-            json={
-                "molecule": "CCO",
-                "options": {"include_tautomer": True}
-            }
+            json={"molecule": "CCO", "options": {"include_tautomer": True}},
         )
 
         assert response_no_taut.status_code == 200
@@ -120,11 +104,13 @@ class TestStandardizeEndpoint:
         data_yes = response_with_taut.json()
 
         taut_step_no = next(
-            s for s in data_no["result"]["steps_applied"]
+            s
+            for s in data_no["result"]["steps_applied"]
             if s["step_name"] == "tautomer_canonicalization"
         )
         taut_step_yes = next(
-            s for s in data_yes["result"]["steps_applied"]
+            s
+            for s in data_yes["result"]["steps_applied"]
             if s["step_name"] == "tautomer_canonicalization"
         )
 
@@ -135,8 +121,7 @@ class TestStandardizeEndpoint:
     async def test_standardize_invalid_molecule(self, client):
         """Invalid molecule should return 400 error."""
         response = await client.post(
-            "/standardize",
-            json={"molecule": "this-is-not-a-valid-smiles"}
+            "/standardize", json={"molecule": "this-is-not-a-valid-smiles"}
         )
 
         assert response.status_code == 400
@@ -146,10 +131,7 @@ class TestStandardizeEndpoint:
     @pytest.mark.asyncio
     async def test_standardize_excluded_fragments(self, client):
         """Excluded fragments should be listed."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "CCN.Cl"}
-        )
+        response = await client.post("/standardize", json={"molecule": "CCN.Cl"})
 
         assert response.status_code == 200
         data = response.json()
@@ -157,17 +139,14 @@ class TestStandardizeEndpoint:
         result = data["result"]
         # Should have excluded fragments or no chloride in result
         assert (
-            len(result["excluded_fragments"]) > 0 or
-            "Cl" not in result["standardized_smiles"]
+            len(result["excluded_fragments"]) > 0
+            or "Cl" not in result["standardized_smiles"]
         )
 
     @pytest.mark.asyncio
     async def test_standardize_structure_comparison(self, client):
         """Response should include structure comparison."""
-        response = await client.post(
-            "/standardize",
-            json={"molecule": "CC(=O)O.[Na]"}
-        )
+        response = await client.post("/standardize", json={"molecule": "CC(=O)O.[Na]"})
 
         assert response.status_code == 200
         data = response.json()
@@ -220,10 +199,7 @@ class TestMoleculeFormats:
         """InChI input should be supported."""
         response = await client.post(
             "/standardize",
-            json={
-                "molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
-                "format": "inchi"
-            }
+            json={"molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3", "format": "inchi"},
         )
 
         assert response.status_code == 200
@@ -235,17 +211,13 @@ class TestMoleculeFormats:
         """Auto format detection should work."""
         # SMILES
         response_smiles = await client.post(
-            "/standardize",
-            json={"molecule": "CCO", "format": "auto"}
+            "/standardize", json={"molecule": "CCO", "format": "auto"}
         )
         assert response_smiles.status_code == 200
 
         # InChI
         response_inchi = await client.post(
             "/standardize",
-            json={
-                "molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
-                "format": "auto"
-            }
+            json={"molecule": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3", "format": "auto"},
         )
         assert response_inchi.status_code == 200

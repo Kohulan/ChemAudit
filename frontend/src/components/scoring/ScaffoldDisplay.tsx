@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import type { ScaffoldResult } from '../../types/scoring';
+import { InfoTooltip } from '../ui/Tooltip';
 
 interface ScaffoldDisplayProps {
   result: ScaffoldResult;
@@ -22,7 +23,22 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Murcko Scaffold</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900">Murcko Scaffold</h3>
+          <InfoTooltip
+            title="Murcko Scaffold Analysis"
+            content={
+              <div className="text-xs space-y-2">
+                <p>The Murcko scaffold is the core ring structure of a molecule with linkers, removing all side chains.</p>
+                <ul className="list-disc list-inside space-y-1 text-white/80">
+                  <li><strong>Standard:</strong> Preserves atom types and bond orders</li>
+                  <li><strong>Generic:</strong> Converts all atoms to carbon, all bonds to single (framework)</li>
+                </ul>
+                <p className="text-white/60">Useful for analyzing structural similarity and compound series.</p>
+              </div>
+            }
+          />
+        </div>
         {has_scaffold && (
           <span className="text-sm text-gray-500">
             {details.scaffold_rings as number || 0} ring(s)

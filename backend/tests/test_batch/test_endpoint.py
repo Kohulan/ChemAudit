@@ -3,6 +3,7 @@ Tests for batch API endpoints.
 
 These tests use mocked Celery tasks to avoid requiring Redis.
 """
+
 from unittest.mock import MagicMock, patch
 
 import pytest

@@ -1,6 +1,7 @@
 """
 Tests for stereochemistry validation checks.
 """
+
 from rdkit import Chem
 
 from app.schemas.common import Severity

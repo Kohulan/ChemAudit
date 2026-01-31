@@ -7,13 +7,16 @@ Custom exceptions for the ChemVault API client.
 
 class ChemVaultError(Exception):
     """Base exception for all ChemVault client errors."""
+
     pass
 
 
 class APIError(ChemVaultError):
     """Raised when the API returns an error response."""
 
-    def __init__(self, message: str, status_code: int = None, response_data: dict = None):
+    def __init__(
+        self, message: str, status_code: int = None, response_data: dict = None
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.response_data = response_data or {}
@@ -46,6 +49,7 @@ class AuthenticationError(APIError):
 
 class ValidationError(ChemVaultError):
     """Raised when request validation fails."""
+
     pass
 
 
@@ -59,4 +63,5 @@ class BatchJobNotFoundError(APIError):
 
 class TimeoutError(ChemVaultError):
     """Raised when batch job times out."""
+
     pass

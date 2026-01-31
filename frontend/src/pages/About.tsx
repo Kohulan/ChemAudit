@@ -11,12 +11,21 @@ import {
   Layout,
   TestTube,
   Heart,
+  Coffee,
   ExternalLink,
   MapPin,
   Sparkles,
   Zap,
   Shield,
   BarChart3,
+  Pill,
+  Beaker,
+  AlertTriangle,
+  ShieldCheck,
+  FlaskConical,
+  Activity,
+  Target,
+  Brain,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -105,12 +114,12 @@ export function AboutPage() {
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section with parallax */}
-        <motion.div style={{ y: heroY }} className="mb-16">
+        <motion.div style={{ y: heroY }} className="mb-10">
           <HeroSection />
         </motion.div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
           {/* What is ChemVault - Large card spanning 8 columns */}
           <AnimatedCard className="lg:col-span-8" delay={0.1}>
             <WhatIsChemVault />
@@ -127,35 +136,51 @@ export function AboutPage() {
           </AnimatedCard>
         </div>
 
-        {/* Bottom row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          <AnimatedCard delay={0.4}>
-            <SourceCode />
-          </AnimatedCard>
-          <AnimatedCard delay={0.5}>
-            <Contact />
-          </AnimatedCard>
-          <AnimatedCard delay={0.6} className="md:col-span-2 lg:col-span-1">
-            <QuickStats />
-          </AnimatedCard>
-        </div>
+        {/* At a Glance Stats - Full width */}
+        <AnimatedCard delay={0.35} className="mb-6">
+          <QuickStats />
+        </AnimatedCard>
+
+        {/* Advanced Scoring Section - Full width */}
+        <AnimatedCard delay={0.4} className="mb-6">
+          <AdvancedScoring />
+        </AnimatedCard>
 
         {/* Acknowledgments - Full width */}
-        <AnimatedCard delay={0.7} className="mb-12">
+        <AnimatedCard delay={0.5} className="mb-6">
           <Acknowledgments />
+        </AnimatedCard>
+
+        {/* Connect Section - Combined Source & Contact */}
+        <AnimatedCard delay={0.6} className="mb-6">
+          <ConnectSection />
         </AnimatedCard>
 
         {/* License Footer */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-center text-sm text-[var(--color-text-muted)]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
+          className={cn(
+            'text-center py-8 px-6 rounded-2xl',
+            'bg-gradient-to-r from-[var(--color-surface-sunken)]/50 via-transparent to-[var(--color-surface-sunken)]/50'
+          )}
         >
-          <p>
+          <div className="flex items-center justify-center gap-1.5 mb-2">
+            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+              Made with
+            </span>
+            <Coffee className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+              for the chemistry community
+            </span>
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)]">
             ChemVault is open-source software released under the{' '}
             <a
               href="https://opensource.org/licenses/MIT"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[var(--color-primary)] hover:underline transition-colors"
             >
               MIT License
@@ -403,6 +428,8 @@ function WhatIsChemVault() {
     { icon: <Shield className="w-4 h-4" />, title: '15+ Validation Checks', desc: 'Comprehensive analysis' },
     { icon: <Zap className="w-4 h-4" />, title: 'ChEMBL Standardization', desc: 'Trusted pipeline' },
     { icon: <BarChart3 className="w-4 h-4" />, title: 'ML-Readiness Scoring', desc: 'Dataset quality' },
+    { icon: <Pill className="w-4 h-4" />, title: 'Drug-Likeness Analysis', desc: 'Lipinski, QED & more' },
+    { icon: <Activity className="w-4 h-4" />, title: 'ADMET Predictions', desc: 'Pharmacokinetics' },
     { icon: <Sparkles className="w-4 h-4" />, title: 'Batch Processing', desc: 'Millions of molecules' },
   ];
 
@@ -423,7 +450,7 @@ function WhatIsChemVault() {
         </p>
 
         {/* Feature grid with staggered animation */}
-        <div className="grid grid-cols-2 gap-3 pt-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-4">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
@@ -462,45 +489,59 @@ function WhatIsChemVault() {
 // ============================================================================
 
 function ResearchGroup() {
+  const mapUrl = 'https://www.google.com/maps/place/Lessingstra%C3%9Fe+8,+07743+Jena,+Germany';
+
   return (
     <div className="h-full flex flex-col">
       <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Research Group" />
 
-      {/* Group Logo */}
-      <motion.a
+      {/* Logo */}
+      <a
         href="http://cheminf.uni-jena.de/"
         target="_blank"
         rel="noopener noreferrer"
         className="block mb-4 group"
-        whileHover={{ scale: 1.02 }}
       >
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-white/10 p-4">
+        <div className="rounded-xl bg-white dark:bg-white/10 p-4 transition-shadow hover:shadow-md">
           <img
             src="/cheminf-logo.png"
-            alt="Cheminformatics and Computational Metabolomics"
-            className="h-20 mx-auto object-contain group-hover:scale-105 transition-transform duration-300"
+            alt="Natural Products Cheminformatics"
+            className="h-14 mx-auto object-contain"
           />
         </div>
-      </motion.a>
+      </a>
 
-      <div className="text-center mb-4">
-        <h3 className="font-semibold text-[var(--color-text-primary)]">
-          Cheminformatics and Computational Metabolomics
-        </h3>
-        <p className="text-sm text-[var(--color-text-muted)]">Prof. Dr. Christoph Steinbeck</p>
-      </div>
+      {/* Title */}
+      <h3 className="font-semibold text-[var(--color-text-primary)] text-center mb-3">
+        Natural Products Cheminformatics
+      </h3>
 
-      <p className="text-sm text-[var(--color-text-secondary)] mb-4 flex-1">
+      {/* Description */}
+      <p className="text-sm text-[var(--color-text-secondary)] mb-4">
         Research focus on chemical structure annotation, deep learning for chemical
         information mining, and development of open-source cheminformatics tools.
       </p>
 
+      {/* Map - fills remaining space */}
+      <a
+        href={mapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block flex-1 min-h-[100px] rounded-xl overflow-hidden mb-4 border border-[var(--color-border)]/50 hover:border-[var(--color-primary)]/30 transition-colors"
+      >
+        <iframe
+          src="https://www.openstreetmap.org/export/embed.html?bbox=11.5825%2C50.9245%2C11.5955%2C50.9305&layer=mapnik&marker=50.9275%2C11.589"
+          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          title="Location Map"
+        />
+      </a>
+
+      {/* Address & Links */}
       <div className="space-y-3 pt-4 border-t border-[var(--color-border)]/50">
         <div className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
           <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
           <span>
             Friedrich Schiller University Jena<br />
-            Institute for Inorganic and Analytical Chemistry<br />
             Lessingstr 8, 07743 Jena, Germany
           </span>
         </div>
@@ -509,8 +550,8 @@ function ResearchGroup() {
           <ExternalLinkButton href="http://cheminf.uni-jena.de/" icon={<Globe className="w-4 h-4" />}>
             Group Website
           </ExternalLinkButton>
-          <ExternalLinkButton href="https://www.uni-jena.de" icon={<Building2 className="w-4 h-4" />}>
-            University Website
+          <ExternalLinkButton href="https://github.com/Steinbeck-Lab" icon={<Github className="w-4 h-4" />}>
+            Steinbeck-Lab GitHub
           </ExternalLinkButton>
         </div>
       </div>
@@ -586,72 +627,112 @@ function TechStack() {
 }
 
 // ============================================================================
-// SOURCE CODE
+// CONNECT SECTION (Combined Source Code & Contact)
 // ============================================================================
 
-function SourceCode() {
+function ConnectSection() {
+  const links = [
+    {
+      icon: <Github className="w-5 h-5" />,
+      title: 'ChemVault',
+      description: 'Source Code on GitHub',
+      href: 'https://github.com/Kohulan/ChemVault',
+      color: 'from-gray-600 to-gray-800',
+      hoverColor: 'hover:border-gray-500/50',
+    },
+    {
+      icon: <Github className="w-5 h-5" />,
+      title: 'Steinbeck Lab',
+      description: 'Organization GitHub',
+      href: 'https://github.com/Steinbeck-Lab',
+      color: 'from-purple-500 to-pink-500',
+      hoverColor: 'hover:border-purple-500/50',
+    },
+    {
+      icon: <Mail className="w-5 h-5" />,
+      title: 'Email',
+      description: 'kohulan.rajan@uni-jena.de',
+      href: 'mailto:kohulan.rajan@uni-jena.de',
+      color: 'from-blue-500 to-cyan-500',
+      hoverColor: 'hover:border-blue-500/50',
+    },
+    {
+      icon: <Globe className="w-5 h-5" />,
+      title: 'Research Group',
+      description: 'cheminf.uni-jena.de',
+      href: 'http://cheminf.uni-jena.de/',
+      color: 'from-emerald-500 to-teal-500',
+      hoverColor: 'hover:border-emerald-500/50',
+    },
+  ];
+
   return (
     <>
-      <SectionHeader icon={<Github className="w-5 h-5" />} title="Source Code" />
-      <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-        ChemVault is open-source software. Contributions, bug reports, and feature
-        requests are welcome!
+      <SectionHeader icon={<Zap className="w-5 h-5" />} title="Connect With Us" />
+      <p className="text-[var(--color-text-secondary)] mb-5">
+        ChemVault is open-source software. Contributions, bug reports, and feature requests are welcome!
       </p>
-      <motion.a
-        href="https://github.com/Kohulan/ChemVault"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(
-          'flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl',
-          'bg-gradient-to-r from-[var(--color-surface-sunken)] to-[var(--color-surface-sunken)]',
-          'border border-[var(--color-border)]/50',
-          'text-[var(--color-text-primary)] font-medium',
-          'hover:from-[var(--color-primary)]/10 hover:to-[var(--color-accent)]/10',
-          'hover:border-[var(--color-primary)]/30',
-          'transition-all duration-300'
-        )}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <Github className="w-5 h-5" />
-        View on GitHub
-        <ExternalLink className="w-4 h-4 opacity-50" />
-      </motion.a>
-    </>
-  );
-}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {links.map((link, i) => (
+          <motion.a
+            key={link.title}
+            href={link.href}
+            target={link.href.startsWith('mailto') ? undefined : '_blank'}
+            rel={link.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              'relative overflow-hidden',
+              'flex flex-col items-center text-center p-5 rounded-2xl',
+              'bg-[var(--color-surface-sunken)]',
+              'border border-[var(--color-border)]/30',
+              link.hoverColor,
+              'transition-all duration-300',
+              'group'
+            )}
+          >
+            {/* Background glow */}
+            <div
+              className={cn(
+                'absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300',
+                'bg-gradient-to-br',
+                link.color,
+                'opacity-5'
+              )}
+            />
 
-// ============================================================================
-// CONTACT
-// ============================================================================
+            {/* Icon */}
+            <div
+              className={cn(
+                'relative w-12 h-12 rounded-2xl mb-3',
+                'flex items-center justify-center',
+                'bg-gradient-to-br',
+                link.color,
+                'text-white shadow-lg',
+                'group-hover:scale-110 group-hover:shadow-xl transition-all duration-300'
+              )}
+            >
+              {link.icon}
+            </div>
 
-function Contact() {
-  return (
-    <>
-      <SectionHeader icon={<Mail className="w-5 h-5" />} title="Contact" />
-      <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-        Have questions, suggestions, or want to contribute? We'd love to hear from you!
-      </p>
-      <motion.a
-        href="mailto:kohulan.rajan@uni-jena.de"
-        className={cn(
-          'flex items-center gap-3 p-3 rounded-2xl',
-          'bg-[var(--color-surface-sunken)]',
-          'border border-[var(--color-border)]/30',
-          'hover:border-[var(--color-primary)]/30',
-          'hover:bg-[var(--color-primary)]/5',
-          'transition-all duration-300',
-          'group'
-        )}
-        whileHover={{ x: 4 }}
-      >
-        <div className="p-2 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-          <Mail className="w-4 h-4" />
-        </div>
-        <span className="text-sm text-[var(--color-text-secondary)] group-hover:text-[var(--color-primary)] transition-colors">
-          kohulan.rajan@uni-jena.de
-        </span>
-      </motion.a>
+            {/* Text */}
+            <div className="relative">
+              <div className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">
+                {link.title}
+              </div>
+              <div className="text-xs text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors">
+                {link.description}
+              </div>
+            </div>
+
+            {/* External link indicator */}
+            <ExternalLink className="absolute top-3 right-3 w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+          </motion.a>
+        ))}
+      </div>
     </>
   );
 }
@@ -662,28 +743,262 @@ function Contact() {
 
 function QuickStats() {
   const stats = [
-    { label: 'Validation Checks', value: '15+' },
-    { label: 'Export Formats', value: '5' },
-    { label: 'Open Source', value: 'MIT' },
+    {
+      label: 'Validation Checks',
+      value: '15+',
+      icon: <Shield className="w-4 h-4" />,
+      color: 'from-blue-500 to-cyan-500',
+      bgColor: 'from-blue-500/10 to-cyan-500/10',
+    },
+    {
+      label: 'Scoring Modules',
+      value: '6',
+      icon: <FlaskConical className="w-4 h-4" />,
+      color: 'from-purple-500 to-pink-500',
+      bgColor: 'from-purple-500/10 to-pink-500/10',
+    },
+    {
+      label: 'Safety Filters',
+      value: '480+',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      color: 'from-red-500 to-orange-500',
+      bgColor: 'from-red-500/10 to-orange-500/10',
+    },
+    {
+      label: 'Descriptors',
+      value: '451',
+      icon: <Brain className="w-4 h-4" />,
+      color: 'from-emerald-500 to-teal-500',
+      bgColor: 'from-emerald-500/10 to-teal-500/10',
+    },
+    {
+      label: 'Export Formats',
+      value: '5',
+      icon: <Database className="w-4 h-4" />,
+      color: 'from-amber-500 to-yellow-500',
+      bgColor: 'from-amber-500/10 to-yellow-500/10',
+    },
+    {
+      label: 'License',
+      value: 'MIT',
+      icon: <Heart className="w-4 h-4" />,
+      color: 'from-rose-500 to-pink-500',
+      bgColor: 'from-rose-500/10 to-pink-500/10',
+    },
   ];
 
   return (
     <>
       <SectionHeader icon={<Sparkles className="w-5 h-5" />} title="At a Glance" />
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 + i * 0.1, duration: 0.4 }}
-            className="text-center p-3 rounded-2xl bg-[var(--color-surface-sunken)]"
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{
+              delay: 0.4 + i * 0.08,
+              duration: 0.5,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
+            whileHover={{ scale: 1.05, y: -4 }}
+            className={cn(
+              'relative overflow-hidden',
+              'p-4 rounded-2xl',
+              'bg-gradient-to-br',
+              stat.bgColor,
+              'border border-[var(--color-border)]/30',
+              'hover:border-[var(--color-primary)]/40',
+              'transition-colors duration-300',
+              'group cursor-default'
+            )}
           >
-            <div className="text-2xl font-bold text-[var(--color-primary)]">{stat.value}</div>
-            <div className="text-xs text-[var(--color-text-muted)]">{stat.label}</div>
+            {/* Decorative gradient orb */}
+            <div
+              className={cn(
+                'absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-40',
+                'bg-gradient-to-br',
+                stat.color,
+                'group-hover:opacity-60 transition-opacity duration-300'
+              )}
+            />
+
+            {/* Content */}
+            <div className="relative">
+              {/* Icon badge */}
+              <div
+                className={cn(
+                  'inline-flex items-center justify-center',
+                  'w-8 h-8 rounded-xl mb-3',
+                  'bg-gradient-to-br',
+                  stat.color,
+                  'text-white shadow-lg',
+                  'group-hover:scale-110 transition-transform duration-300'
+                )}
+              >
+                {stat.icon}
+              </div>
+
+              {/* Value */}
+              <div
+                className={cn(
+                  'text-3xl font-bold mb-1',
+                  'bg-gradient-to-r bg-clip-text text-transparent',
+                  stat.color
+                )}
+              >
+                {stat.value}
+              </div>
+
+              {/* Label */}
+              <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                {stat.label}
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
+    </>
+  );
+}
+
+// ============================================================================
+// ADVANCED SCORING
+// ============================================================================
+
+function AdvancedScoring() {
+  const scoringModules = [
+    {
+      icon: <Activity className="w-5 h-5" />,
+      title: 'ADMET Predictions',
+      description: 'Comprehensive pharmacokinetic profiling including synthetic accessibility, solubility (ESOL), CNS MPO score, molecular complexity, and bioavailability indicators.',
+      features: ['Synthetic Accessibility', 'ESOL Solubility', 'CNS MPO Score', 'Pfizer 3/75 Rule', 'GSK 4/400 Rule', 'Golden Triangle'],
+      color: 'from-emerald-500/20 to-teal-500/10',
+    },
+    {
+      icon: <Pill className="w-5 h-5" />,
+      title: 'Drug-Likeness',
+      description: 'Multi-filter assessment using established pharmaceutical rules to predict oral bioavailability and drug-like properties.',
+      features: ["Lipinski's Rule of Five", 'QED Score', 'Veber Rules', 'Rule of Three', 'Ghose Filter', 'Muegge Filter'],
+      color: 'from-blue-500/20 to-indigo-500/10',
+    },
+    {
+      icon: <Beaker className="w-5 h-5" />,
+      title: 'Aggregator Likelihood',
+      description: 'Predicts colloidal aggregation risk that causes false positives in high-throughput screening assays.',
+      features: ['LogP Analysis', 'TPSA Assessment', 'Aromatic Stacking', 'Known Scaffolds', 'Size Analysis', 'Counter-screen Recommendations'],
+      color: 'from-amber-500/20 to-orange-500/10',
+    },
+    {
+      icon: <ShieldCheck className="w-5 h-5" />,
+      title: 'Safety Filters',
+      description: 'Structural alert screening using 480+ PAINS patterns and multiple ChEMBL sources to identify potentially problematic compounds.',
+      features: ['PAINS (480 patterns)', 'Brenk Alerts', 'NIH Filters', 'ZINC Filters', 'ChEMBL Alerts (7 sources)', 'BMS/GSK/Dundee Rules'],
+      color: 'from-red-500/20 to-rose-500/10',
+    },
+    {
+      icon: <Brain className="w-5 h-5" />,
+      title: 'ML-Readiness',
+      description: 'Evaluates molecular suitability for machine learning with 451 descriptors and 7 fingerprint types for QSAR/QSPR models.',
+      features: ['217 Standard Descriptors', 'AUTOCORR2D (192)', 'MQN (42)', '7 Fingerprint Types', 'Size Assessment', 'Dataset Quality Score'],
+      color: 'from-purple-500/20 to-violet-500/10',
+    },
+    {
+      icon: <Target className="w-5 h-5" />,
+      title: 'NP-Likeness',
+      description: 'Natural product-likeness scoring to assess similarity to natural product chemical space for drug discovery.',
+      features: ['NP-likeness Score', 'Scaffold Analysis', 'Fragment Matching', 'Chemical Space', 'Lead-likeness', 'Bioactivity Potential'],
+      color: 'from-lime-500/20 to-green-500/10',
+    },
+  ];
+
+  return (
+    <>
+      <SectionHeader icon={<FlaskConical className="w-5 h-5" />} title="Advanced Molecular Scoring" />
+      <p className="text-[var(--color-text-secondary)] mb-6">
+        ChemVault provides comprehensive molecular assessment through six specialized scoring modules,
+        implementing industry-standard rules from Pfizer, GSK, Abbott, and academic research to evaluate
+        compounds for drug discovery and ML applications.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {scoringModules.map((module, i) => (
+          <motion.div
+            key={module.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
+            className={cn(
+              'p-5 rounded-2xl',
+              'bg-gradient-to-br',
+              module.color,
+              'border border-[var(--color-border)]/20',
+              'hover:border-[var(--color-primary)]/30',
+              'transition-all duration-300',
+              'group'
+            )}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={cn(
+                'p-2 rounded-xl',
+                'bg-[var(--color-surface-elevated)]',
+                'text-[var(--color-primary)]',
+                'group-hover:scale-110 transition-transform'
+              )}>
+                {module.icon}
+              </div>
+              <h3 className="font-semibold text-[var(--color-text-primary)]">{module.title}</h3>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-3 leading-relaxed">
+              {module.description}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {module.features.map((feature) => (
+                <span
+                  key={feature}
+                  className={cn(
+                    'inline-flex items-center px-2 py-0.5 rounded-md text-xs',
+                    'bg-[var(--color-surface-elevated)]/80',
+                    'text-[var(--color-text-muted)]',
+                    'border border-[var(--color-border)]/30'
+                  )}
+                >
+                  {feature}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Industrial Rules Highlight */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
+        className={cn(
+          'mt-6 p-4 rounded-2xl',
+          'bg-gradient-to-r from-[var(--color-primary)]/5 via-[var(--color-accent)]/5 to-[var(--color-primary)]/5',
+          'border border-[var(--color-primary)]/10'
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-[var(--color-primary)]/10">
+            <AlertTriangle className="w-4 h-4 text-[var(--color-primary)]" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">
+              Industry-Standard Rules & Filters
+            </h4>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Implements validated pharmaceutical guidelines including Lipinski's Rule of Five,
+              Pfizer's 3/75 and CNS MPO rules, GSK's 4/400 rule, Abbott's Golden Triangle,
+              and comprehensive PAINS filtering with 480+ structural alert patterns from ChEMBL,
+              NIH, and major pharmaceutical companies.
+            </p>
+          </div>
+        </div>
+      </motion.div>
     </>
   );
 }
@@ -694,20 +1009,55 @@ function QuickStats() {
 
 function Acknowledgments() {
   const acknowledgments = [
-    { name: 'RDKit', description: 'Cheminformatics toolkit', href: 'https://www.rdkit.org/' },
-    { name: 'ChEMBL', description: 'Bioactivity database', href: 'https://www.ebi.ac.uk/chembl/' },
-    { name: 'PubChem', description: 'Chemical database', href: 'https://pubchem.ncbi.nlm.nih.gov/' },
-    { name: 'COCONUT', description: 'Natural products DB', href: 'https://coconut.naturalproducts.net/' },
+    {
+      name: 'RDKit',
+      description: 'Open-source cheminformatics toolkit powering molecular operations',
+      href: 'https://www.rdkit.org/',
+      logo: 'https://www.rdkit.org/Images/logo.png',
+      color: 'from-blue-600 to-blue-800',
+    },
+    {
+      name: 'ChEMBL',
+      description: 'Bioactivity database for drug discovery from EMBL-EBI',
+      href: 'https://www.ebi.ac.uk/chembl/',
+      logo: 'https://cfde-gene-pages.cloud/logos/chEMBL_logo.png',
+      color: 'from-teal-600 to-cyan-700',
+    },
+    {
+      name: 'PubChem',
+      description: 'World\'s largest collection of freely accessible chemical information',
+      href: 'https://pubchem.ncbi.nlm.nih.gov/',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/PubChem_logo.svg/1280px-PubChem_logo.svg.png',
+      color: 'from-blue-500 to-indigo-600',
+    },
+    {
+      name: 'COCONUT',
+      description: 'Collection of Open Natural Products database',
+      href: 'https://coconut.naturalproducts.net/',
+      logo: 'https://raw.githubusercontent.com/Steinbeck-Lab/coconut/main/public/img/logo.svg',
+      color: 'from-green-600 to-emerald-700',
+    },
+  ];
+
+  const additionalThanks = [
+    { name: 'FastAPI', href: 'https://fastapi.tiangolo.com/' },
+    { name: 'React', href: 'https://react.dev/' },
+    { name: 'Tailwind CSS', href: 'https://tailwindcss.com/' },
+    { name: 'Framer Motion', href: 'https://www.framer.com/motion/' },
+    { name: 'MolVS', href: 'https://github.com/mcs07/MolVS' },
+    { name: 'Celery', href: 'https://docs.celeryq.dev/' },
   ];
 
   return (
     <>
       <SectionHeader icon={<Heart className="w-5 h-5 text-red-500" />} title="Acknowledgments" />
       <p className="text-[var(--color-text-secondary)] mb-6">
-        ChemVault is built upon the shoulders of giants. We gratefully acknowledge the
-        following open-source projects and communities:
+        ChemVault is built upon the shoulders of giants. We gratefully acknowledge these
+        amazing open-source projects and communities:
       </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+      {/* Main acknowledgments with logos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         {acknowledgments.map((ack, i) => (
           <motion.a
             key={ack.name}
@@ -716,30 +1066,102 @@ function Acknowledgments() {
             rel="noopener noreferrer"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 + i * 0.1, duration: 0.4 }}
+            transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+            whileHover={{ scale: 1.03, y: -4 }}
             className={cn(
-              'p-4 rounded-2xl transition-all duration-300',
+              'relative overflow-hidden',
+              'flex flex-col p-4 rounded-2xl',
               'bg-[var(--color-surface-sunken)]',
               'border border-[var(--color-border)]/30',
-              'hover:border-[var(--color-primary)]/30',
-              'hover:bg-[var(--color-primary)]/5',
-              'hover:-translate-y-1',
+              'hover:border-[var(--color-primary)]/40',
+              'hover:shadow-lg hover:shadow-[var(--color-primary)]/10',
+              'transition-all duration-300',
               'group'
             )}
-            whileHover={{ scale: 1.02 }}
           >
-            <div className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] flex items-center gap-1 mb-1">
-              {ack.name}
-              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* Logo container with gradient fallback */}
+            <div
+              className={cn(
+                'relative w-full h-14 rounded-xl mb-3 flex items-center justify-center',
+                'bg-white dark:bg-white/95',
+                'overflow-hidden',
+                'group-hover:shadow-md transition-shadow duration-300'
+              )}
+            >
+              <img
+                src={ack.logo}
+                alt={`${ack.name} logo`}
+                className="max-h-10 max-w-[85%] object-contain group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  // Fallback to styled gradient text
+                  const target = e.target as HTMLImageElement;
+                  const parent = target.parentElement as HTMLDivElement;
+                  target.style.display = 'none';
+                  parent.className = cn(
+                    parent.className.replace('bg-white dark:bg-white/95', ''),
+                    'bg-gradient-to-br',
+                    ack.color
+                  );
+                  parent.innerHTML = `<span class="text-lg font-bold text-white drop-shadow-sm">${ack.name}</span>`;
+                }}
+              />
             </div>
-            <div className="text-xs text-[var(--color-text-muted)]">{ack.description}</div>
+
+            {/* Text content */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                  {ack.name}
+                </h4>
+                <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                {ack.description}
+              </p>
+            </div>
           </motion.a>
         ))}
       </div>
-      <p className="text-sm text-[var(--color-text-muted)] pt-4 border-t border-[var(--color-border)]/50">
-        Special thanks to the open-source cheminformatics community for their continuous
-        contributions to making chemical data more accessible and usable.
-      </p>
+
+      {/* Additional thanks */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.4 }}
+        className={cn(
+          'p-4 rounded-2xl',
+          'bg-gradient-to-r from-[var(--color-primary)]/5 via-transparent to-[var(--color-accent)]/5',
+          'border border-[var(--color-border)]/20'
+        )}
+      >
+        <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+          Also powered by:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {additionalThanks.map((item) => (
+            <motion.a
+              key={item.name}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={cn(
+                'inline-flex items-center gap-1 px-3 py-1.5 rounded-full',
+                'bg-[var(--color-surface-elevated)]',
+                'border border-[var(--color-border)]/30',
+                'text-xs font-medium text-[var(--color-text-secondary)]',
+                'hover:border-[var(--color-primary)]/40',
+                'hover:text-[var(--color-primary)]',
+                'transition-all duration-200'
+              )}
+            >
+              {item.name}
+              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+            </motion.a>
+          ))}
+        </div>
+      </motion.div>
     </>
   );
 }

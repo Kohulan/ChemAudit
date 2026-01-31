@@ -3,6 +3,7 @@ API Tests for Export Endpoints
 
 Tests export API endpoint functionality.
 """
+
 import json
 import os
 from unittest.mock import MagicMock, patch
@@ -51,9 +52,9 @@ class TestExportEndpoint:
     async def test_export_csv_success(self, sample_results):
         """Test successful CSV export."""
         # Mock progress_tracker and result_storage
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             # Setup mocks
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
@@ -89,9 +90,9 @@ class TestExportEndpoint:
 
     async def test_export_excel_success(self, sample_results):
         """Test successful Excel export."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
                 status="complete",
@@ -118,9 +119,9 @@ class TestExportEndpoint:
 
     async def test_export_sdf_success(self, sample_results):
         """Test successful SDF export."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
                 status="complete",
@@ -147,9 +148,9 @@ class TestExportEndpoint:
 
     async def test_export_json_success(self, sample_results):
         """Test successful JSON export."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
                 status="complete",
@@ -197,9 +198,9 @@ class TestExportEndpoint:
 
     async def test_export_no_results(self):
         """Test export with no matching results."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
                 status="complete",
@@ -225,9 +226,9 @@ class TestExportEndpoint:
 
     async def test_export_with_filters(self, sample_results):
         """Test export with score and status filters."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job",
                 status="complete",
@@ -283,9 +284,9 @@ class TestExportEndpoint:
 
     async def test_export_content_disposition_header(self, sample_results):
         """Test that Content-Disposition header is properly formatted."""
-        with patch("app.api.routes.export.progress_tracker") as mock_progress, \
-             patch("app.api.routes.export.result_storage") as mock_storage:
-
+        with patch("app.api.routes.export.progress_tracker") as mock_progress, patch(
+            "app.api.routes.export.result_storage"
+        ) as mock_storage:
             mock_progress.get_progress.return_value = MagicMock(
                 job_id="test-job-12345678",
                 status="complete",

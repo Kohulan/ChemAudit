@@ -59,11 +59,15 @@ export function ScoreGauge({ score, size = 140, className = '', showCalculation 
   const calculation = `Score = 100 - (CRITICAL * 50 + ERROR * 20 + WARNING * 5)
 Clamped to range 0-100`;
 
-  const interpretation = clampedScore >= 80
-    ? 'This molecule passes all critical validation checks and has minimal issues. It is suitable for most applications.'
-    : clampedScore >= 50
-    ? 'This molecule has some validation issues that may need attention. Review the warnings and errors below.'
-    : 'This molecule has significant validation problems. Critical issues must be resolved before use.';
+  // Determine interpretation based on score thresholds
+  let interpretation: string;
+  if (clampedScore >= 80) {
+    interpretation = 'This molecule passes all critical validation checks and has minimal issues. It is suitable for most applications.';
+  } else if (clampedScore >= 50) {
+    interpretation = 'This molecule has some validation issues that may need attention. Review the warnings and errors below.';
+  } else {
+    interpretation = 'This molecule has significant validation problems. Critical issues must be resolved before use.';
+  }
 
   const chartContent = (
     <div className={cn('relative', className)} style={{ width: size, height: size }}>
@@ -86,7 +90,7 @@ Clamped to range 0-100`;
       </svg>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <RadialBarChart
           innerRadius="65%"
           outerRadius="100%"

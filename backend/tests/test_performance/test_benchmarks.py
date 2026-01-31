@@ -35,7 +35,7 @@ HAS_BENCHMARK = importlib.util.find_spec("pytest_benchmark") is not None
 # Skip all tests in this module if pytest-benchmark is not installed
 pytestmark = pytest.mark.skipif(
     not HAS_BENCHMARK,
-    reason="pytest-benchmark not installed. Install with: pip install pytest-benchmark"
+    reason="pytest-benchmark not installed. Install with: pip install pytest-benchmark",
 )
 
 # Performance targets documented for automated CI checks
@@ -73,9 +73,9 @@ class TestParserPerformance:
         # Verify performance (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["parser_ms"], (
-                f"Parser mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['parser_ms']}ms target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["parser_ms"]
+            ), f"Parser mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['parser_ms']}ms target"
 
     def test_parse_complex_smiles(self, benchmark):
         """
@@ -99,8 +99,12 @@ class TestParserPerformance:
         Target: >100 molecules/second.
         """
         smiles_list = [
-            "CCO", "c1ccccc1", "CC(=O)O", "c1ccncc1",
-            "CC(=O)OC1=CC=CC=C1C(=O)O", "CN1C=NC2=C1C(=O)N(C)C(=O)N2C",
+            "CCO",
+            "c1ccccc1",
+            "CC(=O)O",
+            "c1ccncc1",
+            "CC(=O)OC1=CC=CC=C1C(=O)O",
+            "CN1C=NC2=C1C(=O)N(C)C(=O)N2C",
         ] * 20  # 120 molecules
 
         def parse_batch():
@@ -171,9 +175,9 @@ class TestValidationEnginePerformance:
         # Check P95 target (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["p95_validation_ms"], (
-                f"Validation mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['p95_validation_ms']}ms P95 target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["p95_validation_ms"]
+            ), f"Validation mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['p95_validation_ms']}ms P95 target"
 
     def test_validation_throughput(self, benchmark, test_molecules):
         """
@@ -181,6 +185,7 @@ class TestValidationEnginePerformance:
 
         Target: >100 molecules/second.
         """
+
         def validate_all():
             results = []
             for name, mol in test_molecules:
@@ -237,9 +242,9 @@ class TestAlertScreeningPerformance:
         # Check performance (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["alert_screening_ms"], (
-                f"Alert screening mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['alert_screening_ms']}ms target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["alert_screening_ms"]
+            ), f"Alert screening mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['alert_screening_ms']}ms target"
 
     def test_alert_screening_complex(self, benchmark, warmed_filter_catalogs):
         """
@@ -276,9 +281,9 @@ class TestAlertScreeningPerformance:
         # Cached access should be very fast (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < 1.0, (
-                f"Cached catalog access {mean_ms:.3f}ms should be <1ms"
-            )
+            assert (
+                mean_ms < 1.0
+            ), f"Cached catalog access {mean_ms:.3f}ms should be <1ms"
 
 
 class TestMLReadinessPerformance:
@@ -319,9 +324,9 @@ class TestMLReadinessPerformance:
         # Check performance (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["ml_readiness_ms"], (
-                f"ML-readiness mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['ml_readiness_ms']}ms target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["ml_readiness_ms"]
+            ), f"ML-readiness mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['ml_readiness_ms']}ms target"
 
     def test_ml_readiness_complex(self, benchmark):
         """
@@ -379,9 +384,9 @@ class TestStandardizationPerformance:
         # Check performance (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["standardization_ms"], (
-                f"Standardization mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['standardization_ms']}ms target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["standardization_ms"]
+            ), f"Standardization mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['standardization_ms']}ms target"
 
     def test_standardize_complex(self, benchmark):
         """
@@ -510,9 +515,9 @@ class TestEndToEndPerformance:
         # Check performance (only when benchmark stats available)
         if benchmark.stats and benchmark.stats.stats:
             mean_ms = benchmark.stats.stats.mean * 1000
-            assert mean_ms < PERF_TARGETS["p95_validation_ms"], (
-                f"Full pipeline mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['p95_validation_ms']}ms P95 target"
-            )
+            assert (
+                mean_ms < PERF_TARGETS["p95_validation_ms"]
+            ), f"Full pipeline mean {mean_ms:.2f}ms exceeds {PERF_TARGETS['p95_validation_ms']}ms P95 target"
 
     def test_batch_throughput(self, benchmark, test_molecules, warmed_filter_catalogs):
         """
@@ -520,18 +525,21 @@ class TestEndToEndPerformance:
 
         Target: >100 molecules/second for complete pipeline.
         """
+
         def process_batch():
             results = []
             for name, mol in test_molecules:
                 check_results, score = validation_engine.validate(mol)
                 alerts = alert_manager.screen(mol, catalogs=["PAINS", "BRENK"])
                 ml_score = calculate_ml_readiness(mol)
-                results.append({
-                    "name": name,
-                    "score": score,
-                    "alerts": len(alerts.alerts),
-                    "ml_score": ml_score.score,
-                })
+                results.append(
+                    {
+                        "name": name,
+                        "score": score,
+                        "alerts": len(alerts.alerts),
+                        "ml_score": ml_score.score,
+                    }
+                )
             return results
 
         results = benchmark(process_batch)
@@ -543,7 +551,9 @@ class TestEndToEndPerformance:
             print(f"\nBatch throughput: {throughput:.1f} molecules/second")
             # Target verification (soft check - may vary by environment)
             if throughput < PERF_TARGETS["throughput_mol_per_sec"]:
-                print(f"WARNING: Throughput {throughput:.1f} below {PERF_TARGETS['throughput_mol_per_sec']} target")
+                print(
+                    f"WARNING: Throughput {throughput:.1f} below {PERF_TARGETS['throughput_mol_per_sec']} target"
+                )
 
 
 class TestPerformanceRegression:

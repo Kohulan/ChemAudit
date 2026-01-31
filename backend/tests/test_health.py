@@ -1,6 +1,7 @@
 """
 Test health check endpoint
 """
+
 import pytest
 
 

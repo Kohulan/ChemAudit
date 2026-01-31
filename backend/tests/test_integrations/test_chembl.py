@@ -1,6 +1,7 @@
 """
 Tests for ChEMBL integration client.
 """
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -19,16 +20,14 @@ class TestChEMBLClient:
         client = ChEMBLClient()
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "molecules": [
-                {
-                    "molecule_chembl_id": "CHEMBL25"
-                }
-            ]
+            "molecules": [{"molecule_chembl_id": "CHEMBL25"}]
         }
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.search_by_smiles("CC(=O)Oc1ccccc1C(=O)O")
 
@@ -40,19 +39,18 @@ class TestChEMBLClient:
         client = ChEMBLClient()
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "molecules": [
-                {
-                    "molecule_chembl_id": "CHEMBL25",
-                    "pref_name": "ASPIRIN"
-                }
-            ]
+            "molecules": [{"molecule_chembl_id": "CHEMBL25", "pref_name": "ASPIRIN"}]
         }
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
-            result = await client.get_molecule_by_inchikey("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")
+            result = await client.get_molecule_by_inchikey(
+                "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+            )
 
             assert result is not None
             assert result["molecule_chembl_id"] == "CHEMBL25"
@@ -70,7 +68,9 @@ class TestChEMBLClient:
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.get_molecule("CHEMBL25")
 
@@ -97,7 +97,9 @@ class TestChEMBLClient:
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.get_bioactivities("CHEMBL25")
 
@@ -115,7 +117,9 @@ class TestChEMBLClient:
         )
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.get_molecule("INVALID")
 
@@ -134,8 +138,8 @@ class TestGetBioactivity:
             "max_phase": 4,
             "molecule_properties": {
                 "full_molecular_formula": "C9H8O4",
-                "molecular_weight": 180.16
-            }
+                "molecular_weight": 180.16,
+            },
         }
 
         mock_bioactivities = [
@@ -149,7 +153,9 @@ class TestGetBioactivity:
             }
         ]
 
-        with patch("app.services.integrations.chembl.ChEMBLClient") as mock_client_class:
+        with patch(
+            "app.services.integrations.chembl.ChEMBLClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client.get_molecule_by_inchikey = AsyncMock(return_value=mock_molecule)
             mock_client.get_bioactivities = AsyncMock(return_value=mock_bioactivities)
@@ -166,7 +172,9 @@ class TestGetBioactivity:
     @pytest.mark.asyncio
     async def test_get_bioactivity_not_found(self):
         """Test getting bioactivity when not found."""
-        with patch("app.services.integrations.chembl.ChEMBLClient") as mock_client_class:
+        with patch(
+            "app.services.integrations.chembl.ChEMBLClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client.get_molecule_by_inchikey = AsyncMock(return_value=None)
             mock_client.search_by_smiles = AsyncMock(return_value=None)
@@ -187,7 +195,9 @@ class TestGetBioactivity:
             "pref_name": "Test Compound",
         }
 
-        with patch("app.services.integrations.chembl.ChEMBLClient") as mock_client_class:
+        with patch(
+            "app.services.integrations.chembl.ChEMBLClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client.get_molecule_by_inchikey = AsyncMock(return_value=mock_molecule)
             mock_client.get_bioactivities = AsyncMock(return_value=[])

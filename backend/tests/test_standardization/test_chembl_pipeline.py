@@ -6,6 +6,7 @@ Tests the three-stage workflow:
 2. Standardizer - fix common issues
 3. GetParent - extract parent, remove salts
 """
+
 import pytest
 from rdkit import Chem
 
@@ -111,8 +112,12 @@ class TestTautomerCanonicalization:
 
         # Check that tautomer step was skipped
         taut_step = next(
-            (s for s in result.steps_applied if s.step_name == "tautomer_canonicalization"),
-            None
+            (
+                s
+                for s in result.steps_applied
+                if s.step_name == "tautomer_canonicalization"
+            ),
+            None,
         )
         assert taut_step is not None
         assert taut_step.applied is False
@@ -127,8 +132,12 @@ class TestTautomerCanonicalization:
 
         # Check that tautomer step was applied
         taut_step = next(
-            (s for s in result.steps_applied if s.step_name == "tautomer_canonicalization"),
-            None
+            (
+                s
+                for s in result.steps_applied
+                if s.step_name == "tautomer_canonicalization"
+            ),
+            None,
         )
         assert taut_step is not None
         assert taut_step.applied is True

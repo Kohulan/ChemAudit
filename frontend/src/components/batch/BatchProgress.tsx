@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { XCircle } from 'lucide-react';
 import { ProcessingLogo } from './ProcessingLogo';
@@ -21,45 +21,30 @@ export function BatchProgress({
   onCancel,
   onComplete,
 }: BatchProgressProps) {
-  // Smooth progress animation
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const animationRef = useRef<number | null>(null);
+  // Use the actual progress value directly - let CSS handle the animation
+  // This avoids the runaway requestAnimationFrame loop that was causing unresponsiveness
+  const displayProgress = progress?.progress ?? 0;
 
+  // Track if we've already called onComplete to prevent multiple calls
+  const hasCompletedRef = useRef(false);
+
+  // Call onComplete when status changes to complete (only once)
   useEffect(() => {
-    const targetProgress = progress?.progress ?? 0;
-
-    // Animate progress smoothly
-    const animate = () => {
-      setDisplayProgress((current) => {
-        const diff = targetProgress - current;
-        if (Math.abs(diff) < 0.5) {
-          return targetProgress;
-        }
-        // Ease-out animation
-        const step = diff * 0.1;
-        animationRef.current = requestAnimationFrame(animate);
-        return current + step;
-      });
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [progress?.progress]);
-
-  // Call onComplete when status changes to complete
-  useEffect(() => {
-    if (progress?.status === 'complete') {
+    if (progress?.status === 'complete' && !hasCompletedRef.current) {
+      hasCompletedRef.current = true;
       onComplete();
     }
   }, [progress?.status, onComplete]);
 
-  const formatETA = (seconds: number | null): string => {
-    if (seconds === null || seconds <= 0) return 'Calculating...';
+  // Reset completion flag when job changes
+  useEffect(() => {
+    if (progress?.status === 'pending' || progress?.status === 'processing') {
+      hasCompletedRef.current = false;
+    }
+  }, [progress?.status]);
+
+  const formatETA = (seconds: number | null | undefined): string => {
+    if (seconds === null || seconds === undefined || seconds <= 0) return 'Calculating...';
 
     if (seconds < 60) {
       return `${Math.ceil(seconds)} seconds`;
@@ -74,7 +59,8 @@ export function BatchProgress({
     return `${hours}:${mins.toString().padStart(2, '0')}:00`;
   };
 
-  const getStatusTitle = (): string => {
+  // Memoize status strings to prevent unnecessary re-renders
+  const statusTitle = useMemo(() => {
     switch (progress?.status) {
       case 'complete': return 'Processing Complete!';
       case 'failed': return 'Processing Failed';
@@ -82,9 +68,9 @@ export function BatchProgress({
       case 'pending': return 'Preparing...';
       default: return 'Processing Molecules';
     }
-  };
+  }, [progress?.status]);
 
-  const getStatusSubtitle = (): string => {
+  const statusSubtitle = useMemo(() => {
     if (progress?.status === 'processing' && progress.processed > 0) {
       return `${progress.processed.toLocaleString()} of ${progress.total.toLocaleString()} molecules analyzed`;
     }
@@ -95,9 +81,9 @@ export function BatchProgress({
       return 'Initializing batch job...';
     }
     return 'Connecting to server...';
-  };
+  }, [progress?.status, progress?.processed, progress?.total]);
 
-  const getStatusText = () => {
+  const statusText = useMemo(() => {
     switch (progress?.status) {
       case 'pending':
         return 'Waiting to start...';
@@ -112,7 +98,20 @@ export function BatchProgress({
       default:
         return 'Connecting...';
     }
-  };
+  }, [progress?.status, progress?.processed, progress?.total, progress?.error_message]);
+
+  // Progress bar style with gradient
+  const progressBarStyle = useMemo(() => {
+    let background: string;
+    if (progress?.status === 'complete') {
+      background = 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)';
+    } else if (progress?.status === 'failed') {
+      background = 'linear-gradient(90deg, #EF4444, #DC2626)';
+    } else {
+      background = 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)';
+    }
+    return { background };
+  }, [progress?.status]);
 
   return (
     <motion.div
@@ -135,18 +134,14 @@ export function BatchProgress({
         />
 
         {/* Status text below logo */}
-        <motion.div
-          className="text-center"
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
+        <div className="text-center">
           <h2 className="text-xl font-bold text-[var(--color-text-primary)] font-display mb-1">
-            {getStatusTitle()}
+            {statusTitle}
           </h2>
           <p className="text-[var(--color-text-secondary)] text-sm">
-            {getStatusSubtitle()}
+            {statusSubtitle}
           </p>
-        </motion.div>
+        </div>
       </motion.div>
 
       {/* Status header */}
@@ -154,12 +149,10 @@ export function BatchProgress({
         <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Batch Processing</h3>
         {/* Connection indicator */}
         <div className="flex items-center space-x-2">
-          <motion.span
+          <span
             className={`w-2 h-2 rounded-full ${
               isConnected ? 'bg-yellow-500' : 'bg-[var(--color-text-muted)]'
             }`}
-            animate={isConnected ? { scale: [1, 1.2, 1] } : {}}
-            transition={{ duration: 2, repeat: Infinity }}
           />
           <span className="text-xs text-[var(--color-text-muted)]">
             {isConnected ? 'Connected' : 'Disconnected'}
@@ -167,7 +160,7 @@ export function BatchProgress({
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar - use CSS transition instead of JS animation */}
       <div className="space-y-2">
         <div className="h-3 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden relative">
           {/* Animated background shimmer */}
@@ -178,32 +171,27 @@ export function BatchProgress({
               transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
             />
           )}
-          {/* Progress fill with gradient - crimson to amber */}
-          <motion.div
-            className="h-full relative overflow-hidden"
+          {/* Progress fill with CSS transition for smooth animation */}
+          <div
+            className="h-full relative overflow-hidden transition-all duration-300 ease-out"
             style={{
               width: `${Math.max(0, Math.min(100, displayProgress))}%`,
-              background: progress?.status === 'complete'
-                ? 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)'
-                : progress?.status === 'failed'
-                ? 'linear-gradient(90deg, #EF4444, #DC2626)'
-                : 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)',
+              ...progressBarStyle,
             }}
-            initial={false}
-            animate={{ width: `${Math.max(0, Math.min(100, displayProgress))}%` }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
           >
             {/* Shimmer overlay on progress */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            />
-          </motion.div>
+            {progress?.status === 'processing' && (
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between text-sm">
-          <span className="text-[var(--color-text-secondary)]">{getStatusText()}</span>
+          <span className="text-[var(--color-text-secondary)]">{statusText}</span>
           <span className="font-semibold text-[var(--color-text-primary)]">
             {Math.round(displayProgress)}%
           </span>
@@ -212,45 +200,26 @@ export function BatchProgress({
 
       {/* Stats row */}
       {progress && progress.status === 'processing' && (
-        <motion.div
-          className="grid grid-cols-3 gap-4 py-4 px-2 border-t border-b border-[var(--color-border)] bg-gradient-to-r from-transparent via-[var(--color-surface-sunken)]/50 to-transparent rounded-lg"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50"
-            whileHover={{ scale: 1.02 }}
-          >
-            <motion.p
-              className="text-2xl font-bold bg-gradient-to-r from-[#c41e3a] to-[#d97706] bg-clip-text text-transparent"
-              key={progress.processed}
-              initial={{ scale: 1.1 }}
-              animate={{ scale: 1 }}
-            >
+        <div className="grid grid-cols-3 gap-4 py-4 px-2 border-t border-b border-[var(--color-border)] bg-gradient-to-r from-transparent via-[var(--color-surface-sunken)]/50 to-transparent rounded-lg">
+          <div className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50">
+            <p className="text-2xl font-bold bg-gradient-to-r from-[#c41e3a] to-[#d97706] bg-clip-text text-transparent">
               {progress.processed.toLocaleString()}
-            </motion.p>
+            </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Processed</p>
-          </motion.div>
-          <motion.div
-            className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50"
-            whileHover={{ scale: 1.02 }}
-          >
+          </div>
+          <div className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50">
             <p className="text-2xl font-bold text-[var(--color-text-primary)]">
               {(progress.total - progress.processed).toLocaleString()}
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Remaining</p>
-          </motion.div>
-          <motion.div
-            className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50"
-            whileHover={{ scale: 1.02 }}
-          >
+          </div>
+          <div className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50">
             <p className="text-2xl font-bold text-amber-500 dark:text-amber-400">
               {formatETA(progress.eta_seconds)}
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">ETA</p>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
 
       {/* Error message */}
@@ -316,13 +285,9 @@ export function BatchProgress({
           <p className="text-amber-700 dark:text-yellow-400 font-semibold text-lg font-display">
             Successfully processed {progress.total.toLocaleString()} molecules!
           </p>
-          <motion.p
-            className="text-amber-600 dark:text-yellow-500 text-sm mt-2"
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
+          <p className="text-amber-600 dark:text-yellow-500 text-sm mt-2">
             Loading results...
-          </motion.p>
+          </p>
         </motion.div>
       )}
     </motion.div>

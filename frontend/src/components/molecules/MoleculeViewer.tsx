@@ -1,4 +1,5 @@
 import { useMolecule } from '../../hooks/useMolecule';
+import { sanitizeSvg } from '../../lib/sanitize';
 
 interface MoleculeViewerProps {
   smiles: string | null;
@@ -51,11 +52,14 @@ export function MoleculeViewer({
     );
   }
 
+  // Sanitize SVG to prevent XSS attacks
+  const sanitizedSvg = sanitizeSvg(svg);
+
   return (
     <div
       className={`bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center ${className}`}
       style={{ width, height }}
-      dangerouslySetInnerHTML={{ __html: svg || '' }}
+      dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
     />
   );
 }

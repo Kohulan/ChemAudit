@@ -32,8 +32,8 @@ docker-compose up -d
 ```
 
 **Access:**
-- 🌐 Web UI: http://localhost:3000
-- 📖 API Docs: http://localhost:8000/docs
+- 🌐 Web UI: http://localhost:3002
+- 📖 API Docs: http://localhost:8001/docs
 
 ---
 

@@ -3,6 +3,7 @@ Basic usage examples for ChemVault client.
 
 Demonstrates single molecule validation, alert screening, standardization, and scoring.
 """
+
 from chemvault import ChemVaultClient
 
 # Configuration
@@ -16,7 +17,6 @@ def main():
 
     # Create client (use context manager for automatic cleanup)
     with ChemVaultClient(base_url=API_BASE_URL, api_key=API_KEY) as client:
-
         # Example 1: Simple validation
         print("\n1. Simple Validation")
         print("-" * 60)

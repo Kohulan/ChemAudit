@@ -3,6 +3,7 @@ Tests for NP-Likeness Scoring
 
 Tests the NPLikenessScorer for natural product-like vs synthetic molecules.
 """
+
 import pytest
 from rdkit import Chem
 
@@ -59,8 +60,10 @@ class TestNPLikenessScorer:
         )  # Testosterone-like
         result = scorer.score(mol)
 
-        assert "natural product" in result.interpretation.lower() or \
-               "mixed" in result.interpretation.lower()
+        assert (
+            "natural product" in result.interpretation.lower()
+            or "mixed" in result.interpretation.lower()
+        )
 
     def test_interpretation_for_negative_score(self, scorer):
         """Test interpretation text for synthetic molecules."""

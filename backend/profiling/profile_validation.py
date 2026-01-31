@@ -35,20 +35,22 @@ TEST_MOLECULES: List[Tuple[str, str]] = [
     ("aspirin", "CC(=O)OC1=CC=CC=C1C(=O)O"),
     ("caffeine", "CN1C=NC2=C1C(=O)N(C)C(=O)N2C"),
     ("ibuprofen", "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"),
-
     # Complex drug-like molecules
-    ("atorvastatin", "CC(C)C1=C(C(=C(N1CCC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4"),
-    ("ritonavir", "CC(C)C(NC(=O)N(C)CC1=CSC(=N1)C(C)C)C(=O)NC(CC(O)C(CC2=CC=CC=C2)NC(=O)OCC3=CN=CS3)CC4=CC=CC=C4"),
-
+    (
+        "atorvastatin",
+        "CC(C)C1=C(C(=C(N1CCC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4",
+    ),
+    (
+        "ritonavir",
+        "CC(C)C(NC(=O)N(C)CC1=CSC(=N1)C(C)C)C(=O)NC(CC(O)C(CC2=CC=CC=C2)NC(=O)OCC3=CN=CS3)CC4=CC=CC=C4",
+    ),
     # Natural products
     ("quercetin", "OC1=CC(=C2C(=O)C(=C(OC2=C1)C3=CC=C(O)C(=C3)O)O)O"),
     ("resveratrol", "OC1=CC=C(C=C1)/C=C/C2=CC(=CC(=C2)O)O"),
-
     # Challenging structures
     ("metal_complex", "[Na+].[O-]C(=O)C1=CC=CC=C1"),  # Sodium benzoate
     ("stereochemistry", "C[C@H](O)[C@@H](O)C"),  # Meso compound
     ("macrocycle", "C1CCCCCCCCCCCC1"),  # 13-membered ring
-
     # Edge cases
     ("single_atom", "[Fe]"),
     ("small_fragment", "C"),
@@ -98,11 +100,11 @@ def profile_single_validation(smiles: str, name: str) -> dict:
 
     # Total
     timings["total_ms"] = (
-        timings["parse_ms"] +
-        timings["validation_ms"] +
-        timings["alerts_ms"] +
-        timings["ml_scoring_ms"] +
-        timings["standardization_ms"]
+        timings["parse_ms"]
+        + timings["validation_ms"]
+        + timings["alerts_ms"]
+        + timings["ml_scoring_ms"]
+        + timings["standardization_ms"]
     )
 
     return timings
@@ -119,7 +121,9 @@ def run_benchmark(iterations: int = 3, warmup: int = 1) -> dict:
     Returns:
         Benchmark results dictionary
     """
-    print(f"Running benchmark: {len(TEST_MOLECULES)} molecules x {iterations} iterations")
+    print(
+        f"Running benchmark: {len(TEST_MOLECULES)} molecules x {iterations} iterations"
+    )
     print(f"Warmup iterations: {warmup}")
     print("-" * 60)
 
@@ -152,12 +156,16 @@ def run_benchmark(iterations: int = 3, warmup: int = 1) -> dict:
                 "validation_ms": mean([t["validation_ms"] for t in molecule_timings]),
                 "alerts_ms": mean([t["alerts_ms"] for t in molecule_timings]),
                 "ml_scoring_ms": mean([t["ml_scoring_ms"] for t in molecule_timings]),
-                "standardization_ms": mean([t["standardization_ms"] for t in molecule_timings]),
+                "standardization_ms": mean(
+                    [t["standardization_ms"] for t in molecule_timings]
+                ),
                 "total_ms": mean([t["total_ms"] for t in molecule_timings]),
             }
             all_timings.append(avg_timing)
-            print(f"  {name}: {avg_timing['total_ms']:.2f}ms (parse: {avg_timing['parse_ms']:.2f}, "
-                  f"validate: {avg_timing['validation_ms']:.2f}, alerts: {avg_timing['alerts_ms']:.2f})")
+            print(
+                f"  {name}: {avg_timing['total_ms']:.2f}ms (parse: {avg_timing['parse_ms']:.2f}, "
+                f"validate: {avg_timing['validation_ms']:.2f}, alerts: {avg_timing['alerts_ms']:.2f})"
+            )
 
     # Calculate aggregate statistics
     if not all_timings:
@@ -228,7 +236,9 @@ def print_results(results: dict):
     print(f"  P95 met: {'YES' if tp['p95_met'] else 'NO'}")
 
     print("\n--- Slowest Molecules ---")
-    sorted_mols = sorted(results["per_molecule"], key=lambda x: x["total_ms"], reverse=True)
+    sorted_mols = sorted(
+        results["per_molecule"], key=lambda x: x["total_ms"], reverse=True
+    )
     for mol in sorted_mols[:5]:
         print(f"  {mol['name']:20s}: {mol['total_ms']:.2f} ms")
 
@@ -271,9 +281,13 @@ def profile_with_pyinstrument(output_dir: Path = None):
 
 def main():
     parser = argparse.ArgumentParser(description="Profile validation performance")
-    parser.add_argument("--iterations", type=int, default=3, help="Iterations per molecule")
+    parser.add_argument(
+        "--iterations", type=int, default=3, help="Iterations per molecule"
+    )
     parser.add_argument("--output-dir", type=str, help="Output directory for reports")
-    parser.add_argument("--pyinstrument", action="store_true", help="Use pyinstrument profiler")
+    parser.add_argument(
+        "--pyinstrument", action="store_true", help="Use pyinstrument profiler"
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else Path(__file__).parent

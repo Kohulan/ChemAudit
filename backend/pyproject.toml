@@ -33,6 +33,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=6.1.0",
     "prometheus-client>=0.20.0",
     "httpx>=0.27.0",
+    "argon2-cffi>=23.1.0",
 ]
 
 [project.optional-dependencies]

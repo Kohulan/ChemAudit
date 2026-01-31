@@ -219,7 +219,24 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
               <Sparkles className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">ML Readiness Analysis</h4>
+              <div className="flex items-center gap-1.5 mb-1">
+                <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">ML Readiness Analysis</h4>
+                <InfoTooltip
+                  title="What is ML Readiness?"
+                  content={
+                    <div className="text-xs space-y-2">
+                      <p>ML Readiness measures how suitable a molecule is for machine learning applications in cheminformatics.</p>
+                      <p className="text-white/80">A high ML Readiness score indicates:</p>
+                      <ul className="list-disc list-inside space-y-1 text-white/70">
+                        <li><strong>Descriptor Coverage:</strong> Most molecular descriptors (physical, topological, electronic properties) can be calculated without errors</li>
+                        <li><strong>Fingerprint Generation:</strong> Multiple fingerprint types (Morgan, MACCS, etc.) can be successfully generated for similarity searches and model training</li>
+                        <li><strong>Appropriate Size:</strong> The molecule is within typical size ranges for drug-like or lead-like compounds</li>
+                      </ul>
+                      <p className="text-white/60 mt-2">Molecules with low ML Readiness may cause issues in QSAR/QSPR models, virtual screening, or property prediction pipelines.</p>
+                    </div>
+                  }
+                />
+              </div>
               <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{interpretation}</p>
             </div>
           </div>
@@ -412,7 +429,24 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-chem-dark">ML-Readiness Score</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-lg font-semibold text-chem-dark">ML-Readiness Score</h3>
+              <InfoTooltip
+                title="What is ML Readiness?"
+                content={
+                  <div className="text-xs space-y-2">
+                    <p>ML Readiness measures how suitable a molecule is for machine learning applications in cheminformatics.</p>
+                    <p className="text-white/80">A high ML Readiness score indicates:</p>
+                    <ul className="list-disc list-inside space-y-1 text-white/70">
+                      <li><strong>Descriptor Coverage:</strong> Most molecular descriptors can be calculated without errors</li>
+                      <li><strong>Fingerprint Generation:</strong> Multiple fingerprint types can be successfully generated</li>
+                      <li><strong>Appropriate Size:</strong> The molecule is within typical size ranges</li>
+                    </ul>
+                    <p className="text-white/60 mt-2">Low scores may cause issues in QSAR models, virtual screening, or property prediction.</p>
+                  </div>
+                }
+              />
+            </div>
             <p className="text-sm text-chem-dark/50">Suitability for machine learning models</p>
           </div>
         </div>

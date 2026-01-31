@@ -6,6 +6,7 @@ Uses moving average for ETA calculation.
 """
 
 import json
+import logging
 import time
 from collections import deque
 from dataclasses import asdict, dataclass
@@ -14,6 +15,8 @@ from typing import Optional
 import redis
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -75,8 +78,24 @@ class ProgressTracker:
             started_at=time.time(),
         )
         r.set(f"batch:job:{job_id}", json.dumps(asdict(progress)), ex=3600)
+        # Initialize atomic counter for parallel chunk processing
+        r.set(f"batch:counter:{job_id}", 0, ex=3600)
         self._chunk_times[job_id] = deque(maxlen=self.ETA_WINDOW_SIZE)
         self._last_update_times[job_id] = 0
+
+    def increment_processed(self, job_id: str, count: int = 1) -> int:
+        """
+        Atomically increment processed count for parallel chunk processing.
+
+        Args:
+            job_id: Job identifier
+            count: Number to increment by
+
+        Returns:
+            New processed count after increment
+        """
+        r = self._get_redis()
+        return r.incrby(f"batch:counter:{job_id}", count)
 
     def update_progress(
         self,
@@ -184,7 +203,18 @@ class ProgressTracker:
             progress["eta_seconds"] = 0
 
             r.set(f"batch:job:{job_id}", json.dumps(progress), ex=3600)
-            r.publish(f"batch:progress:{job_id}", json.dumps(progress))
+
+            # Publish completion message
+            publish_count = r.publish(f"batch:progress:{job_id}", json.dumps(progress))
+            logger.info(
+                f"Job {job_id} marked complete. "
+                f"Published to {publish_count} subscriber(s). "
+                f"Processed: {progress.get('processed')}/{progress.get('total')}"
+            )
+        else:
+            logger.warning(
+                f"Cannot mark job {job_id} as complete: no progress data found"
+            )
 
         # Cleanup
         self._cleanup_job(job_id)
@@ -233,6 +263,12 @@ class ProgressTracker:
         """Clean up in-memory tracking for a job."""
         self._last_update_times.pop(job_id, None)
         self._chunk_times.pop(job_id, None)
+        # Clean up atomic counter
+        try:
+            r = self._get_redis()
+            r.delete(f"batch:counter:{job_id}")
+        except Exception:
+            pass  # Ignore cleanup errors
 
 
 # Singleton instance

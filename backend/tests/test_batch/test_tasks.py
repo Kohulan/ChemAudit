@@ -113,9 +113,27 @@ class TestProcessSingleMolecule:
     def test_failure_isolation(self):
         """Test that one molecule failure doesn't affect others."""
         molecules = [
-            {"smiles": "CCO", "name": "Ethanol", "index": 0, "properties": {}, "parse_error": None},
-            {"smiles": "INVALID", "name": "Bad", "index": 1, "properties": {}, "parse_error": None},
-            {"smiles": "C", "name": "Methane", "index": 2, "properties": {}, "parse_error": None},
+            {
+                "smiles": "CCO",
+                "name": "Ethanol",
+                "index": 0,
+                "properties": {},
+                "parse_error": None,
+            },
+            {
+                "smiles": "INVALID",
+                "name": "Bad",
+                "index": 1,
+                "properties": {},
+                "parse_error": None,
+            },
+            {
+                "smiles": "C",
+                "name": "Methane",
+                "index": 2,
+                "properties": {},
+                "parse_error": None,
+            },
         ]
 
         results = [_process_single_molecule(m) for m in molecules]
@@ -133,9 +151,25 @@ class TestResultAggregation:
         from app.services.batch.result_aggregator import compute_statistics
 
         results = [
-            {"status": "success", "validation": {"overall_score": 90}, "alerts": {"alerts": []}, "scoring": {"ml_readiness": {"score": 85}}},
-            {"status": "success", "validation": {"overall_score": 70}, "alerts": {"alerts": []}, "scoring": {"ml_readiness": {"score": 75}}},
-            {"status": "error", "error": "Parse failed", "validation": None, "alerts": None, "scoring": None},
+            {
+                "status": "success",
+                "validation": {"overall_score": 90},
+                "alerts": {"alerts": []},
+                "scoring": {"ml_readiness": {"score": 85}},
+            },
+            {
+                "status": "success",
+                "validation": {"overall_score": 70},
+                "alerts": {"alerts": []},
+                "scoring": {"ml_readiness": {"score": 75}},
+            },
+            {
+                "status": "error",
+                "error": "Parse failed",
+                "validation": None,
+                "alerts": None,
+                "scoring": None,
+            },
         ]
 
         stats = compute_statistics(results)
@@ -151,10 +185,30 @@ class TestResultAggregation:
         from app.services.batch.result_aggregator import compute_statistics
 
         results = [
-            {"status": "success", "validation": {"overall_score": 95}, "alerts": {}, "scoring": {}},
-            {"status": "success", "validation": {"overall_score": 85}, "alerts": {}, "scoring": {}},
-            {"status": "success", "validation": {"overall_score": 60}, "alerts": {}, "scoring": {}},
-            {"status": "success", "validation": {"overall_score": 40}, "alerts": {}, "scoring": {}},
+            {
+                "status": "success",
+                "validation": {"overall_score": 95},
+                "alerts": {},
+                "scoring": {},
+            },
+            {
+                "status": "success",
+                "validation": {"overall_score": 85},
+                "alerts": {},
+                "scoring": {},
+            },
+            {
+                "status": "success",
+                "validation": {"overall_score": 60},
+                "alerts": {},
+                "scoring": {},
+            },
+            {
+                "status": "success",
+                "validation": {"overall_score": 40},
+                "alerts": {},
+                "scoring": {},
+            },
         ]
 
         stats = compute_statistics(results)

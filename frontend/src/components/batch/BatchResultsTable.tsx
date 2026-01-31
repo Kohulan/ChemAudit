@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { BatchResult, BatchResultsFilters } from '../../types/batch';
 
 interface BatchResultsTableProps {
@@ -170,6 +170,12 @@ export function BatchResultsTable({
               >
                 Score {sortField === 'score' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                QED
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                Safety
+              </th>
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
                 onClick={() => handleSort('status')}
@@ -187,22 +193,21 @@ export function BatchResultsTable({
           <tbody className="divide-y divide-[var(--color-border)]">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={8} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto mb-2" />
                   Loading results...
                 </td>
               </tr>
             ) : sortedResults.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={8} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   No results match the current filters.
                 </td>
               </tr>
             ) : (
               sortedResults.map((result) => (
-                <>
+                <Fragment key={result.index}>
                   <tr
-                    key={result.index}
                     className={`
                       hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
                       ${result.status === 'error' ? 'bg-red-500/5' : ''}
@@ -231,6 +236,28 @@ export function BatchResultsTable({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
+                      {result.scoring?.druglikeness ? (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          {result.scoring.druglikeness.qed_score.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--color-text-muted)]">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {result.scoring?.safety_filters ? (
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          result.scoring.safety_filters.all_passed
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                        }`}>
+                          {result.scoring.safety_filters.all_passed ? '✓' : result.scoring.safety_filters.total_alerts}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--color-text-muted)]">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
                           result.status === 'success'
@@ -254,8 +281,8 @@ export function BatchResultsTable({
 
                   {/* Expanded details */}
                   {expandedRow === result.index && (
-                    <tr key={`${result.index}-detail`}>
-                      <td colSpan={6} className="px-4 py-4 bg-[var(--color-surface-sunken)]">
+                    <tr>
+                      <td colSpan={8} className="px-4 py-4 bg-[var(--color-surface-sunken)]">
                         <div className="space-y-3">
                           {/* Full SMILES */}
                           <div>
@@ -309,22 +336,74 @@ export function BatchResultsTable({
                             </div>
                           )}
 
-                          {/* ML-Readiness */}
-                          {result.scoring?.ml_readiness && (
-                            <div>
-                              <p className="text-xs text-[var(--color-text-muted)] mb-1">
-                                ML-Readiness Score: {result.scoring.ml_readiness.score}
-                              </p>
-                              <p className="text-sm text-[var(--color-text-secondary)]">
-                                {result.scoring.ml_readiness.interpretation}
-                              </p>
+                          {/* Scoring Section */}
+                          {result.scoring && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-[var(--color-text-muted)] font-medium">Scoring:</p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {/* ML-Readiness */}
+                                {result.scoring.ml_readiness && (
+                                  <div className="bg-[var(--color-surface-elevated)] rounded-lg p-2 border border-[var(--color-border)]">
+                                    <p className="text-xs text-[var(--color-text-muted)]">ML-Readiness</p>
+                                    <p className="text-lg font-bold text-[var(--color-primary)]">
+                                      {result.scoring.ml_readiness.score}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Drug-likeness */}
+                                {result.scoring.druglikeness && (
+                                  <div className="bg-[var(--color-surface-elevated)] rounded-lg p-2 border border-[var(--color-border)]">
+                                    <p className="text-xs text-[var(--color-text-muted)]">QED Score</p>
+                                    <p className="text-lg font-bold text-purple-500">
+                                      {result.scoring.druglikeness.qed_score.toFixed(2)}
+                                    </p>
+                                    <p className={`text-xs ${result.scoring.druglikeness.lipinski_passed ? 'text-emerald-500' : 'text-red-500'}`}>
+                                      Lipinski: {result.scoring.druglikeness.lipinski_passed ? 'Pass' : 'Fail'}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Safety */}
+                                {result.scoring.safety_filters && (
+                                  <div className="bg-[var(--color-surface-elevated)] rounded-lg p-2 border border-[var(--color-border)]">
+                                    <p className="text-xs text-[var(--color-text-muted)]">Safety</p>
+                                    <p className={`text-lg font-bold ${result.scoring.safety_filters.all_passed ? 'text-emerald-500' : 'text-red-500'}`}>
+                                      {result.scoring.safety_filters.all_passed ? 'Clear' : `${result.scoring.safety_filters.total_alerts} alerts`}
+                                    </p>
+                                    <p className="text-xs text-[var(--color-text-muted)]">
+                                      PAINS: {result.scoring.safety_filters.pains_passed ? '✓' : '✗'} | Brenk: {result.scoring.safety_filters.brenk_passed ? '✓' : '✗'}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* ADMET */}
+                                {result.scoring.admet && (
+                                  <div className="bg-[var(--color-surface-elevated)] rounded-lg p-2 border border-[var(--color-border)]">
+                                    <p className="text-xs text-[var(--color-text-muted)]">ADMET</p>
+                                    <p className="text-lg font-bold text-cyan-500">
+                                      SA: {result.scoring.admet.sa_score.toFixed(1)}
+                                    </p>
+                                    <p className="text-xs text-[var(--color-text-muted)]">
+                                      {result.scoring.admet.sa_classification} | Fsp3: {result.scoring.admet.fsp3.toFixed(2)}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Interpretation */}
+                              {result.scoring.ml_readiness?.interpretation && (
+                                <p className="text-sm text-[var(--color-text-secondary)] mt-2">
+                                  {result.scoring.ml_readiness.interpretation}
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </tbody>

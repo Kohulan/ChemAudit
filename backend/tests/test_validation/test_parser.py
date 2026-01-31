@@ -3,6 +3,7 @@ Molecule Parser Tests
 
 Tests defensive sanitization pattern and format detection.
 """
+
 from app.services.parser import detect_format, parse_molecule
 from app.services.parser.molecule_parser import MoleculeFormat
 
@@ -17,7 +18,9 @@ class TestFormatDetection:
 
     def test_detect_inchi(self):
         """Should detect InChI format"""
-        assert detect_format("InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3") == MoleculeFormat.INCHI
+        assert (
+            detect_format("InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3") == MoleculeFormat.INCHI
+        )
 
     def test_detect_mol(self):
         """Should detect MOL format"""
@@ -133,4 +136,6 @@ class TestStereochemistry:
         assert result.success is True
         assert result.canonical_smiles is not None
         # Should preserve stereochemistry
-        assert "@" in result.canonical_smiles or result.canonical_smiles == "CC(O)C(=O)O"
+        assert (
+            "@" in result.canonical_smiles or result.canonical_smiles == "CC(O)C(=O)O"
+        )

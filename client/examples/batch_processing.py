@@ -3,6 +3,7 @@ Batch processing examples for ChemVault client.
 
 Demonstrates batch file submission, waiting for completion, and iterating results.
 """
+
 import time
 from pathlib import Path
 from chemvault import ChemVaultClient
@@ -38,7 +39,6 @@ def main():
         create_sample_csv()
 
     with ChemVaultClient(base_url=API_BASE_URL, api_key=API_KEY) as client:
-
         # Example 1: Submit batch job
         print("\n1. Submit Batch Job")
         print("-" * 60)

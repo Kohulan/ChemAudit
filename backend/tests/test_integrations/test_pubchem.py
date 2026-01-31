@@ -1,6 +1,7 @@
 """
 Tests for PubChem integration client.
 """
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -18,15 +19,13 @@ class TestPubChemClient:
         """Test successful search by SMILES."""
         client = PubChemClient()
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "IdentifierList": {
-                "CID": [702]
-            }
-        }
+        mock_response.json.return_value = {"IdentifierList": {"CID": [702]}}
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.search_by_smiles("CCO")
 
@@ -37,15 +36,13 @@ class TestPubChemClient:
         """Test successful search by InChIKey."""
         client = PubChemClient()
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "IdentifierList": {
-                "CID": [702]
-            }
-        }
+        mock_response.json.return_value = {"IdentifierList": {"CID": [702]}}
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.search_by_inchikey("LFQSCWFLJHTTHZ-UHFFFAOYSA-N")
 
@@ -71,7 +68,9 @@ class TestPubChemClient:
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.get_compound_properties(702)
 
@@ -85,17 +84,15 @@ class TestPubChemClient:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "InformationList": {
-                "Information": [
-                    {
-                        "Synonym": ["ethanol", "ethyl alcohol", "alcohol"]
-                    }
-                ]
+                "Information": [{"Synonym": ["ethanol", "ethyl alcohol", "alcohol"]}]
             }
         }
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.get_synonyms(702, max_synonyms=3)
 
@@ -112,7 +109,9 @@ class TestPubChemClient:
         )
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
 
             result = await client.search_by_inchikey("INVALID")
 
@@ -132,10 +131,14 @@ class TestGetCompoundInfo:
             "IUPACName": "ethanol",
         }
 
-        with patch("app.services.integrations.pubchem.PubChemClient") as mock_client_class:
+        with patch(
+            "app.services.integrations.pubchem.PubChemClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client.search_by_inchikey = AsyncMock(return_value=702)
-            mock_client.get_compound_properties = AsyncMock(return_value=mock_properties)
+            mock_client.get_compound_properties = AsyncMock(
+                return_value=mock_properties
+            )
             mock_client.get_synonyms = AsyncMock(return_value=["ethanol"])
             mock_client_class.return_value = mock_client
 
@@ -149,7 +152,9 @@ class TestGetCompoundInfo:
     @pytest.mark.asyncio
     async def test_get_compound_info_not_found(self):
         """Test getting compound info when not found."""
-        with patch("app.services.integrations.pubchem.PubChemClient") as mock_client_class:
+        with patch(
+            "app.services.integrations.pubchem.PubChemClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client.search_by_inchikey = AsyncMock(return_value=None)
             mock_client.search_by_smiles = AsyncMock(return_value=None)

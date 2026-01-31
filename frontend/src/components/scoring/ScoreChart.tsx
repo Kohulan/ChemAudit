@@ -108,7 +108,7 @@ export function ScoreChart({
       </svg>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <RadialBarChart
           innerRadius="70%"
           outerRadius="100%"

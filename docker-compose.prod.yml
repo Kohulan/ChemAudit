@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chemvault}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-chemvault}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -51,8 +51,8 @@ services:
     container_name: chemvault-backend-prod
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemvault}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chemvault}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemvault}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemvault}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
@@ -61,6 +61,15 @@ services:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - DEPLOYMENT_PROFILE=${DEPLOYMENT_PROFILE:-medium}
       - GUNICORN_WORKERS=${GUNICORN_WORKERS:-4}
+      # Security settings (REQUIRED)
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
+      - API_KEY_DEFAULT_EXPIRY_DAYS=${API_KEY_DEFAULT_EXPIRY_DAYS:-90}
+      - API_KEY_MAX_EXPIRY_DAYS=${API_KEY_MAX_EXPIRY_DAYS:-365}
+      - RATE_LIMIT_BAN_THRESHOLD=${RATE_LIMIT_BAN_THRESHOLD:-100}
+      - RATE_LIMIT_BAN_DURATION_MINUTES=${RATE_LIMIT_BAN_DURATION_MINUTES:-60}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS:?CORS_ORIGINS is required for production}
     deploy:
       resources:
         limits:
@@ -80,17 +89,17 @@ services:
       retries: 3
       start_period: 40s
 
-  # Celery worker for batch processing
+  # Celery worker for large batch jobs (default queue)
   celery-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
     container_name: chemvault-celery-worker-prod
     restart: unless-stopped
-    command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS:-4}
+    command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS:-4} -Q default -n worker-default@%h
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemvault}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chemvault}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemvault}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemvault}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
@@ -107,7 +116,40 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping || exit 1"]
+      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping -d worker-default@$HOSTNAME || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Celery worker for small/priority jobs (high_priority queue)
+  celery-worker-priority:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: chemvault-celery-worker-priority-prod
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS_PRIORITY:-2} -Q high_priority -n worker-priority@%h
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemvault}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemvault}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+    deploy:
+      resources:
+        limits:
+          memory: ${CELERY_PRIORITY_MEMORY_LIMIT:-1g}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping -d worker-priority@$HOSTNAME || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -171,7 +213,7 @@ services:
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?GRAFANA_PASSWORD is required}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=${GRAFANA_URL:-http://localhost:3001}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource

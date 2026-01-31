@@ -4,8 +4,9 @@ ChemVault API - Chemical Structure Validation Suite
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -27,7 +28,12 @@ from app.core.exceptions import (
     chemvault_exception_handler,
     generic_exception_handler,
 )
-from app.core.rate_limit import limiter, rate_limit_exceeded_handler
+from app.core.rate_limit import (
+    check_ip_ban_middleware,
+    limiter,
+    rate_limit_exceeded_handler,
+)
+from app.core.security import generate_csrf_token, verify_csrf_token
 from app.websockets import manager
 
 # Conditional Prometheus imports
@@ -66,17 +72,76 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 
-# Configure CORS
+# Configure CORS with explicit methods and headers (not wildcards)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
 # Add SlowAPI middleware for rate limiting
 app.add_middleware(SlowAPIMiddleware)
+
+
+# =============================================================================
+# Security Middleware
+# =============================================================================
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    """
+    Security middleware that runs on every request.
+
+    - Checks IP ban status
+    - Validates CSRF tokens for browser requests
+    """
+    # Check IP ban status early
+    try:
+        check_ip_ban_middleware(request)
+    except Exception as e:
+        # If IP is banned, return error
+        if hasattr(e, "status_code") and e.status_code == 403:
+            return JSONResponse(
+                status_code=403,
+                content=e.detail if hasattr(e, "detail") else {"error": "ip_banned"},
+            )
+        raise
+
+    # CSRF validation for state-changing requests from browsers
+    # Skip for:
+    # - Safe methods (GET, HEAD, OPTIONS)
+    # - API key authenticated requests
+    # - WebSocket connections
+    # - Health check endpoints
+    if (
+        request.method not in ("GET", "HEAD", "OPTIONS")
+        and not request.headers.get("X-API-Key")
+        and not request.url.path.startswith("/ws/")
+        and not request.url.path.endswith("/health")
+        and not request.url.path == "/api/v1/csrf-token"
+    ):
+        # Check for CSRF token in header
+        csrf_token = request.headers.get("X-CSRF-Token")
+
+        # For browser requests (with cookies/credentials), require CSRF token
+        # Check for origin header to identify browser requests
+        origin = request.headers.get("origin")
+        if origin and origin in settings.CORS_ORIGINS:
+            if not csrf_token or not verify_csrf_token(csrf_token):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": "csrf_validation_failed",
+                        "message": "Invalid or missing CSRF token",
+                    },
+                )
+
+    response = await call_next(request)
+    return response
+
 
 # Register exception handlers
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
@@ -109,6 +174,31 @@ if settings.ENABLE_METRICS:
     instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
 
+# =============================================================================
+# CSRF Token Endpoint
+# =============================================================================
+
+
+@app.get("/api/v1/csrf-token")
+async def get_csrf_token():
+    """
+    Get a CSRF token for browser-based requests.
+
+    Frontend should call this endpoint on page load and include
+    the token in X-CSRF-Token header for all state-changing requests.
+
+    Returns:
+        JSON with csrf_token field
+    """
+    token = generate_csrf_token()
+    return {"csrf_token": token}
+
+
+# =============================================================================
+# WebSocket Endpoint
+# =============================================================================
+
+
 @app.websocket("/ws/batch/{job_id}")
 async def batch_progress_websocket(websocket: WebSocket, job_id: str):
     """
@@ -127,9 +217,12 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
         "eta_seconds": int|null
     }
     """
-    await manager.connect(job_id, websocket)
+    # Connect and wait for subscription to be ready before sending initial status
+    connected = await manager.connect(job_id, websocket)
+    if not connected:
+        return
 
-    # Send initial status
+    # Send initial status after subscription is ready
     await manager.send_initial_status(job_id, websocket)
 
     try:

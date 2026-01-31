@@ -1,6 +1,7 @@
 """
 Tests for rate limiting functionality.
 """
+
 import time
 from unittest.mock import MagicMock, patch
 
@@ -12,13 +13,14 @@ from fastapi.testclient import TestClient
 def client():
     """Create test client."""
     from app.main import app
+
     return TestClient(app)
 
 
 @pytest.fixture
 def mock_redis():
     """Mock Redis to avoid real connection in tests."""
-    with patch('app.core.rate_limit.limiter') as mock:
+    with patch("app.core.rate_limit.limiter") as mock:
         # Configure mock to not actually rate limit in tests
         mock.enabled = False
         yield mock
@@ -50,8 +52,9 @@ def test_anonymous_rate_limit_triggers(client):
     status_codes = [r.status_code for r in responses]
 
     # Either all succeeded (rate limiting disabled in tests) or one was rate limited
-    assert all(code in [200, 429] for code in status_codes), \
-        f"Unexpected status codes: {status_codes}"
+    assert all(
+        code in [200, 429] for code in status_codes
+    ), f"Unexpected status codes: {status_codes}"
 
     # If rate limiting is enabled, the last request should be 429
     if any(code == 429 for code in status_codes):
@@ -77,7 +80,7 @@ def test_api_key_allows_higher_limit(client, mock_redis):
     # Mock API key validation
     test_api_key = "test_key_12345"
 
-    with patch('app.core.security.validate_api_key') as mock_validate:
+    with patch("app.core.security.validate_api_key") as mock_validate:
         mock_validate.return_value = {
             "name": "test_key",
             "created_at": "2026-01-23T00:00:00Z",
@@ -85,10 +88,7 @@ def test_api_key_allows_higher_limit(client, mock_redis):
         }
 
         # Make request with API key
-        response = client.get(
-            "/api/v1/checks",
-            headers={"X-API-Key": test_api_key}
-        )
+        response = client.get("/api/v1/checks", headers={"X-API-Key": test_api_key})
 
         # Should succeed (not testing actual limit, just that key is accepted)
         assert response.status_code in [200, 401]  # 401 if Redis not available
@@ -96,13 +96,10 @@ def test_api_key_allows_higher_limit(client, mock_redis):
 
 def test_invalid_api_key_returns_401(client):
     """Test that invalid API key returns 401 Unauthorized."""
-    with patch('app.core.security.validate_api_key') as mock_validate:
+    with patch("app.core.security.validate_api_key") as mock_validate:
         mock_validate.return_value = None  # Invalid key
 
-        response = client.get(
-            "/api/v1/checks",
-            headers={"X-API-Key": "invalid_key"}
-        )
+        response = client.get("/api/v1/checks", headers={"X-API-Key": "invalid_key"})
 
         assert response.status_code == 401
         data = response.json()
@@ -129,7 +126,7 @@ def test_rate_limit_key_function():
     mock_request_anonymous.client.host = "127.0.0.1"
 
     # Would normally return IP, but we need to patch get_remote_address
-    with patch('app.core.rate_limit.get_remote_address') as mock_get_ip:
+    with patch("app.core.rate_limit.get_remote_address") as mock_get_ip:
         mock_get_ip.return_value = "127.0.0.1"
         key = get_rate_limit_key(mock_request_anonymous)
         assert key == "127.0.0.1"

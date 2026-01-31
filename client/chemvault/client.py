@@ -3,6 +3,7 @@ ChemVault API Client
 
 Synchronous Python client for the ChemVault API.
 """
+
 import time
 from typing import Optional, List, Dict, Any, Iterator
 from pathlib import Path
@@ -122,9 +123,7 @@ class ChemVaultClient:
                         method, path, retry_count=retry_count + 1, **kwargs
                     )
                 else:
-                    raise RateLimitError(
-                        "Rate limit exceeded", retry_after=retry_after
-                    )
+                    raise RateLimitError("Rate limit exceeded", retry_after=retry_after)
 
             # Handle authentication errors
             if response.status_code == 401:
@@ -142,9 +141,7 @@ class ChemVaultClient:
             # Handle validation errors
             if response.status_code == 422:
                 error_data = response.json() if response.text else {}
-                raise ValidationError(
-                    error_data.get("detail", "Validation error")
-                )
+                raise ValidationError(error_data.get("detail", "Validation error"))
 
             # Handle other client/server errors
             if response.status_code >= 400:

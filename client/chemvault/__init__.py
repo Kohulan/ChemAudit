@@ -3,6 +3,7 @@ ChemVault Python Client
 
 Official Python client for the ChemVault API.
 """
+
 from .client import ChemVaultClient
 from .models import (
     ValidationResult,

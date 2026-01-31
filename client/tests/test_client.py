@@ -3,6 +3,7 @@ Tests for ChemVault API client.
 
 Uses respx for HTTP mocking to test client behavior without a live server.
 """
+
 import pytest
 import httpx
 import respx
@@ -224,9 +225,7 @@ def test_authentication_error(client, base_url):
 def test_validation_error(client, base_url):
     """Test validation error (422)."""
     route = respx.post(f"{base_url}/api/v1/validate").mock(
-        return_value=httpx.Response(
-            422, json={"detail": "Invalid SMILES string"}
-        )
+        return_value=httpx.Response(422, json={"detail": "Invalid SMILES string"})
     )
 
     with pytest.raises(ValidationError):
@@ -489,7 +488,9 @@ def test_export_batch(client, base_url, tmp_path):
     )
 
     output_path = tmp_path / "export.csv"
-    path = client.export_batch("test-job-123", format="csv", output_path=str(output_path))
+    path = client.export_batch(
+        "test-job-123", format="csv", output_path=str(output_path)
+    )
 
     assert route.called
     assert Path(path).exists()

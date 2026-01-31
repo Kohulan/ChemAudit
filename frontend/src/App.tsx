@@ -1,18 +1,19 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
 import { MoleculeLoader } from './components/ui/MoleculeLoader';
+import { SplashScreen } from './components/ui/SplashScreen';
 import { ErrorFallback } from './components/error/ErrorFallback';
 import { ConfigProvider } from './context/ConfigContext';
 import { useRDKit } from './hooks/useRDKit';
 import { cn } from './lib/utils';
 
-// Lazy-loaded page components for code splitting
-const SingleValidationPage = lazy(() =>
-  import('./pages/SingleValidation').then(module => ({ default: module.SingleValidationPage }))
-);
+// Eagerly import the home page to avoid Suspense flash after splash
+import { SingleValidationPage } from './pages/SingleValidation';
+
+// Lazy-loaded page components for code splitting (non-initial pages)
 const BatchValidationPage = lazy(() =>
   import('./pages/BatchValidation').then(module => ({ default: module.BatchValidationPage }))
 );
@@ -37,16 +38,6 @@ function PageLoaderFallback() {
   );
 }
 
-/**
- * RDKit loading state component
- */
-function RDKitLoadingState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <MoleculeLoader size="lg" text="Loading RDKit.js..." />
-    </div>
-  );
-}
 
 /**
  * RDKit error state component
@@ -82,22 +73,9 @@ function RDKitErrorState({ error }: { error: string }) {
 }
 
 /**
- * App content - handles RDKit loading states and routing
+ * App routes - rendered after RDKit is loaded
  */
-function AppContent() {
-  const { loading, error } = useRDKit();
-
-  // Show loading state
-  if (loading) {
-    return <RDKitLoadingState />;
-  }
-
-  // Show error state
-  if (error) {
-    return <RDKitErrorState error={error} />;
-  }
-
-  // RDKit loaded - show routes
+function AppRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Suspense fallback={<PageLoaderFallback />}>
@@ -179,6 +157,62 @@ function AppContent() {
 }
 
 /**
+ * App content with splash screen - handles RDKit loading states
+ */
+function AppWithSplash() {
+  const { loading, error } = useRDKit();
+  const [showSplash, setShowSplash] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+
+  // Ensure splash shows for minimum time (matches splash animation duration)
+  useEffect(() => {
+    const timer = setTimeout(() => setMinTimeElapsed(true), 1600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    if (!loading && minTimeElapsed) {
+      setShowSplash(false);
+    }
+  }, [loading, minTimeElapsed]);
+
+  // Auto-hide splash when both loading is done and min time elapsed
+  useEffect(() => {
+    if (!loading && minTimeElapsed) {
+      // Small delay for smooth transition
+      const timer = setTimeout(() => setShowSplash(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, minTimeElapsed]);
+
+  // Show splash screen while loading or during minimum display time
+  if (showSplash) {
+    return (
+      <SplashScreen
+        isVisible={true}
+        onComplete={handleSplashComplete}
+      />
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Layout>
+        <RDKitErrorState error={error} />
+      </Layout>
+    );
+  }
+
+  // RDKit loaded - show app
+  return (
+    <Layout>
+      <AppRoutes />
+    </Layout>
+  );
+}
+
+/**
  * Main application component
  * Router wraps everything so Header can use useLocation
  */
@@ -200,9 +234,7 @@ function App() {
             window.location.href = '/';
           }}
         >
-          <Layout>
-            <AppContent />
-          </Layout>
+          <AppWithSplash />
         </ErrorBoundary>
       </Router>
     </ConfigProvider>

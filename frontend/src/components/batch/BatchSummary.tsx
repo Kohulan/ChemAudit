@@ -72,11 +72,11 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
       </div>
 
       {/* Score averages */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
-          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg Validation Score</p>
+          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg Validation</p>
           <p
-            className={`text-4xl font-bold ${getScoreColor(
+            className={`text-3xl font-bold ${getScoreColor(
               statistics.avg_validation_score
             )}`}
           >
@@ -84,16 +84,62 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
           </p>
         </div>
         <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
-          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg ML-Readiness Score</p>
+          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg ML-Readiness</p>
           <p
-            className={`text-4xl font-bold ${getScoreColor(
+            className={`text-3xl font-bold ${getScoreColor(
               statistics.avg_ml_readiness_score
             )}`}
           >
             {statistics.avg_ml_readiness_score?.toFixed(1) ?? '-'}
           </p>
         </div>
+        <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
+          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg QED Score</p>
+          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+            {statistics.avg_qed_score?.toFixed(2) ?? '-'}
+          </p>
+        </div>
+        <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
+          <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg SA Score</p>
+          <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+            {statistics.avg_sa_score?.toFixed(1) ?? '-'}
+          </p>
+        </div>
       </div>
+
+      {/* Pass rates */}
+      {(statistics.lipinski_pass_rate !== undefined || statistics.safety_pass_rate !== undefined) && (
+        <div className="grid grid-cols-2 gap-4">
+          {statistics.lipinski_pass_rate !== undefined && (
+            <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
+              <p className="text-sm text-[var(--color-text-muted)] mb-1">Lipinski Pass Rate</p>
+              <p className={`text-3xl font-bold ${
+                (statistics.lipinski_pass_rate ?? 0) >= 80
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : (statistics.lipinski_pass_rate ?? 0) >= 50
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-red-600 dark:text-red-400'
+              }`}>
+                {statistics.lipinski_pass_rate?.toFixed(0) ?? '-'}%
+              </p>
+            </div>
+          )}
+          {statistics.safety_pass_rate !== undefined && (
+            <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
+              <p className="text-sm text-[var(--color-text-muted)] mb-1">Safety Pass Rate</p>
+              <p className={`text-3xl font-bold ${
+                (statistics.safety_pass_rate ?? 0) >= 80
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : (statistics.safety_pass_rate ?? 0) >= 50
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-red-600 dark:text-red-400'
+              }`}>
+                {statistics.safety_pass_rate?.toFixed(0) ?? '-'}%
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Score distribution chart */}
       <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">

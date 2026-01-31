@@ -3,6 +3,7 @@ Tests for stereocenter tracking.
 
 Tests detection and comparison of stereocenters before/after standardization.
 """
+
 import pytest
 from rdkit import Chem
 

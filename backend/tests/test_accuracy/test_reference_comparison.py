@@ -7,6 +7,7 @@ Target: 99%+ agreement with reference data.
 These tests ensure our validation checks produce consistent, reliable results
 that match expected RDKit behavior across diverse molecule types.
 """
+
 import json
 from pathlib import Path
 from typing import Any, Dict, List
@@ -32,8 +33,12 @@ REFERENCE_MOLECULES = load_reference_data()
 
 
 # Group molecules by category for organized testing
-VALID_MOLECULES = [m for m in REFERENCE_MOLECULES if m["expected"].get("parsable", True)]
-INVALID_MOLECULES = [m for m in REFERENCE_MOLECULES if not m["expected"].get("parsable", True)]
+VALID_MOLECULES = [
+    m for m in REFERENCE_MOLECULES if m["expected"].get("parsable", True)
+]
+INVALID_MOLECULES = [
+    m for m in REFERENCE_MOLECULES if not m["expected"].get("parsable", True)
+]
 
 
 class TestReferenceDataIntegrity:
@@ -87,9 +92,9 @@ class TestParsabilityAccuracy:
         """Valid molecules should parse successfully."""
         result = parse_molecule(molecule["smiles"])
 
-        assert result.success is True, (
-            f"Failed to parse {molecule['name']}: {result.errors}"
-        )
+        assert (
+            result.success is True
+        ), f"Failed to parse {molecule['name']}: {result.errors}"
         assert result.mol is not None
 
     @pytest.mark.parametrize(
@@ -103,7 +108,9 @@ class TestParsabilityAccuracy:
 
         # Empty input should definitely fail
         if molecule["smiles"] == "":
-            assert result.success is False, f"{molecule['name']} should fail on empty input"
+            assert (
+                result.success is False
+            ), f"{molecule['name']} should fail on empty input"
         elif "unclosed_ring" in molecule["expected"].get("parse_error", ""):
             # Unclosed ring should fail
             assert result.success is False or len(result.errors) > 0
@@ -125,9 +132,9 @@ class TestAtomCountAccuracy:
         expected = molecule["expected"]["num_atoms"]
         actual = result.mol.GetNumAtoms()
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected {expected} atoms, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected {expected} atoms, got {actual}"
 
 
 class TestBondCountAccuracy:
@@ -146,9 +153,9 @@ class TestBondCountAccuracy:
         expected = molecule["expected"]["num_bonds"]
         actual = result.mol.GetNumBonds()
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected {expected} bonds, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected {expected} bonds, got {actual}"
 
 
 class TestAromaticityAccuracy:
@@ -167,9 +174,9 @@ class TestAromaticityAccuracy:
         expected = molecule["expected"]["has_aromatic"]
         actual = any(atom.GetIsAromatic() for atom in result.mol.GetAtoms())
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected aromatic={expected}, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected aromatic={expected}, got {actual}"
 
 
 class TestFragmentCountAccuracy:
@@ -189,9 +196,9 @@ class TestFragmentCountAccuracy:
         frags = Chem.GetMolFrags(result.mol, asMols=False, sanitizeFrags=False)
         actual = len(frags)
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected {expected} fragments, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected {expected} fragments, got {actual}"
 
 
 class TestStereocenterAccuracy:
@@ -213,9 +220,9 @@ class TestStereocenterAccuracy:
         )
         actual = len(chiral_centers)
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected {expected} stereocenters, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected {expected} stereocenters, got {actual}"
 
     @pytest.mark.parametrize(
         "molecule",
@@ -234,9 +241,9 @@ class TestStereocenterAccuracy:
         undefined = [c for c in chiral_centers if c[1] == "?"]
         actual = len(undefined)
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected {expected} undefined stereocenters, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected {expected} undefined stereocenters, got {actual}"
 
 
 class TestSanitizationAccuracy:
@@ -259,13 +266,13 @@ class TestSanitizationAccuracy:
             mol_copy = Chem.Mol(result.mol)
             try:
                 san_result = Chem.SanitizeMol(mol_copy, catchErrors=True)
-                actual = (san_result == Chem.SanitizeFlags.SANITIZE_NONE)
+                actual = san_result == Chem.SanitizeFlags.SANITIZE_NONE
             except Exception:
                 actual = False
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected sanitization={expected}, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected sanitization={expected}, got {actual}"
 
 
 class TestInChIGenerationAccuracy:
@@ -290,9 +297,9 @@ class TestInChIGenerationAccuracy:
             except Exception:
                 actual = False
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected InChI generatable={expected}, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected InChI generatable={expected}, got {actual}"
 
 
 class TestSMILESRoundtripAccuracy:
@@ -324,13 +331,13 @@ class TestSMILESRoundtripAccuracy:
                         actual = False
                     else:
                         roundtrip_key = Chem.MolToInchiKey(roundtrip_mol)
-                        actual = (original_key == roundtrip_key)
+                        actual = original_key == roundtrip_key
             except Exception:
                 actual = False
 
-        assert actual == expected, (
-            f"{molecule['name']}: expected roundtrip consistent={expected}, got {actual}"
-        )
+        assert (
+            actual == expected
+        ), f"{molecule['name']}: expected roundtrip consistent={expected}, got {actual}"
 
 
 class TestValidationEngineAccuracy:
@@ -386,7 +393,11 @@ class TestValidationEngineAccuracy:
 
     @pytest.mark.parametrize(
         "molecule",
-        [m for m in VALID_MOLECULES if m["expected"].get("undefined_stereocenters", 0) > 0],
+        [
+            m
+            for m in VALID_MOLECULES
+            if m["expected"].get("undefined_stereocenters", 0) > 0
+        ],
         ids=lambda m: m["name"],
     )
     def test_stereo_check_detects_undefined(self, molecule: Dict[str, Any]):
@@ -628,6 +639,6 @@ class TestOverallAccuracy:
                 print(f"  {name}: {acc:.1f}% ({m['correct']}/{m['total']})")
         print(f"  OVERALL: {overall_accuracy:.1f}% ({total_correct}/{total_tests})")
 
-        assert overall_accuracy >= 99.0, (
-            f"Overall accuracy {overall_accuracy:.1f}% below 99% target"
-        )
+        assert (
+            overall_accuracy >= 99.0
+        ), f"Overall accuracy {overall_accuracy:.1f}% below 99% target"

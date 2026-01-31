@@ -129,8 +129,8 @@ docker-compose logs -f
 🌐 **Access Points:**
 | Service | URL |
 |---------|-----|
-| Web UI | http://localhost:3000 |
-| API Docs | http://localhost:8000/docs |
+| Web UI | http://localhost:3002 |
+| API Docs | http://localhost:8001/docs |
 | Metrics | http://localhost:9090 |
 
 ### Production Deployment

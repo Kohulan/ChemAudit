@@ -52,11 +52,11 @@ print_warning() {
 # Function to display profile selection menu
 show_menu() {
     echo -e "${BOLD}Select a deployment profile:${NC}\n"
-    echo -e "  ${CYAN}1)${NC} small    - Dev/light use (1K molecules, 2 workers)"
-    echo -e "  ${CYAN}2)${NC} medium   - Moderate workloads (10K molecules, 4 workers) ${GREEN}[default]${NC}"
-    echo -e "  ${CYAN}3)${NC} large    - High-throughput (50K molecules, 8 workers)"
-    echo -e "  ${CYAN}4)${NC} xl       - Enterprise-scale (100K molecules, 12 workers)"
-    echo -e "  ${CYAN}5)${NC} coconut  - Full COCONUT DB (1M molecules, 16 workers)"
+    echo -e "  ${CYAN}1)${NC} small    - Dev/light use (1K molecules, 2+1 workers)"
+    echo -e "  ${CYAN}2)${NC} medium   - Moderate workloads (10K molecules, 4+2 workers) ${GREEN}[default]${NC}"
+    echo -e "  ${CYAN}3)${NC} large    - High-throughput (50K molecules, 8+2 workers)"
+    echo -e "  ${CYAN}4)${NC} xl       - Enterprise-scale (100K molecules, 12+3 workers)"
+    echo -e "  ${CYAN}5)${NC} coconut  - Full COCONUT DB (1M molecules, 16+4 workers)"
     echo -e "  ${CYAN}q)${NC} quit\n"
 
     read -p "Enter choice [1-5, or q to quit]: " choice
@@ -120,14 +120,72 @@ parse_and_export_yaml() {
 show_config_summary() {
     echo -e "\n${BOLD}Configuration Summary:${NC}"
     echo -e "────────────────────────────────────"
-    echo -e "  Max Batch Size:    ${CYAN}$(printf "%'d" $MAX_BATCH_SIZE)${NC} molecules"
-    echo -e "  Max File Size:     ${CYAN}${MAX_FILE_SIZE_MB}${NC} MB"
-    echo -e "  Celery Workers:    ${CYAN}${CELERY_WORKERS}${NC}"
-    echo -e "  Gunicorn Workers:  ${CYAN}${GUNICORN_WORKERS}${NC}"
-    echo -e "  Redis Memory:      ${CYAN}${REDIS_MAXMEMORY}${NC}"
+    echo -e "  Max Batch Size:       ${CYAN}$(printf "%'d" $MAX_BATCH_SIZE)${NC} molecules"
+    echo -e "  Max File Size:        ${CYAN}${MAX_FILE_SIZE_MB}${NC} MB"
+    echo -e "  Celery Workers:       ${CYAN}${CELERY_WORKERS}${NC} (large jobs)"
+    echo -e "  Priority Workers:     ${CYAN}${CELERY_WORKERS_PRIORITY:-2}${NC} (small jobs)"
+    echo -e "  Gunicorn Workers:     ${CYAN}${GUNICORN_WORKERS}${NC}"
+    echo -e "  Redis Memory:         ${CYAN}${REDIS_MAXMEMORY}${NC}"
 
     if [[ "${MAX_BATCH_SIZE}" -ge 50000 ]]; then
         echo -e "\n${YELLOW}⚠  Large batch processing enabled. Ensure adequate system resources.${NC}"
+    fi
+}
+
+# Function to generate a secure random secret
+generate_secret() {
+    local length=${1:-64}
+    openssl rand -hex $length 2>/dev/null || head -c $((length*2)) /dev/urandom | xxd -p | tr -d '\n'
+}
+
+# Function to generate secure secrets if they have placeholder values
+generate_secrets() {
+    local env_file=$1
+    local secrets_generated=false
+
+    echo -e "\n${BOLD}Checking security secrets...${NC}"
+
+    # List of secrets that need to be generated
+    # Format: VAR_NAME:LENGTH:PLACEHOLDER_PATTERN
+    local secrets=(
+        "SECRET_KEY:64:CHANGE_ME"
+        "API_KEY_ADMIN_SECRET:32:CHANGE_ME"
+        "CSRF_SECRET_KEY:32:CHANGE_ME"
+        "POSTGRES_PASSWORD:24:CHANGE_ME"
+        "GRAFANA_PASSWORD:16:CHANGE_ME"
+    )
+
+    for secret_spec in "${secrets[@]}"; do
+        IFS=':' read -r var_name length placeholder <<< "$secret_spec"
+
+        # Get current value
+        current_value=$(grep "^${var_name}=" "$env_file" 2>/dev/null | cut -d'=' -f2-)
+
+        # Check if it contains placeholder text or is empty
+        if [[ -z "$current_value" ]] || [[ "$current_value" == *"$placeholder"* ]]; then
+            local new_secret=$(generate_secret $length)
+
+            if grep -q "^${var_name}=" "$env_file" 2>/dev/null; then
+                # Update existing
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    sed -i '' "s|^${var_name}=.*|${var_name}=${new_secret}|" "$env_file"
+                else
+                    sed -i "s|^${var_name}=.*|${var_name}=${new_secret}|" "$env_file"
+                fi
+            else
+                # Append
+                echo "${var_name}=${new_secret}" >> "$env_file"
+            fi
+
+            print_success "Generated secure ${var_name}"
+            secrets_generated=true
+        else
+            echo -e "  ${GREEN}✓${NC} ${var_name} already configured"
+        fi
+    done
+
+    if [[ "$secrets_generated" == true ]]; then
+        echo -e "\n${YELLOW}⚠  New secrets generated. Keep your .env file secure!${NC}"
     fi
 }
 
@@ -140,7 +198,13 @@ update_env_file() {
     if [[ ! -f "$env_file" ]] && [[ -f "$env_example" ]]; then
         cp "$env_example" "$env_file"
         print_success "Created .env from .env.example"
+    elif [[ ! -f "$env_file" ]]; then
+        print_error ".env.example not found. Cannot create .env"
+        exit 1
     fi
+
+    # Generate secure secrets if needed
+    generate_secrets "$env_file"
 
     # Update or append profile settings
     local vars=(
@@ -148,8 +212,10 @@ update_env_file() {
         "MAX_BATCH_SIZE"
         "MAX_FILE_SIZE_MB"
         "CELERY_WORKERS"
+        "CELERY_WORKERS_PRIORITY"
         "GUNICORN_WORKERS"
         "REDIS_MAXMEMORY"
+        "CELERY_PRIORITY_MEMORY_LIMIT"
     )
 
     for var in "${vars[@]}"; do

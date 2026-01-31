@@ -3,6 +3,7 @@ ChemVault Client Models
 
 Pydantic models for API requests and responses.
 """
+
 from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -10,6 +11,7 @@ from enum import Enum
 
 class Severity(str, Enum):
     """Severity level for validation issues."""
+
     CRITICAL = "CRITICAL"
     ERROR = "ERROR"
     WARNING = "WARNING"
@@ -18,6 +20,7 @@ class Severity(str, Enum):
 
 class CheckResult(BaseModel):
     """Result from a single validation check."""
+
     check_name: str
     passed: bool
     severity: Severity
@@ -28,6 +31,7 @@ class CheckResult(BaseModel):
 
 class MoleculeInfo(BaseModel):
     """Molecule information."""
+
     input_smiles: str
     canonical_smiles: Optional[str] = None
     inchi: Optional[str] = None
@@ -39,6 +43,7 @@ class MoleculeInfo(BaseModel):
 
 class ValidationResult(BaseModel):
     """Complete validation result for a molecule."""
+
     status: str = "completed"
     molecule_info: MoleculeInfo
     overall_score: int = Field(ge=0, le=100)
@@ -49,6 +54,7 @@ class ValidationResult(BaseModel):
 
 class AlertResult(BaseModel):
     """Structural alert screening result."""
+
     catalog: str
     smarts_pattern: str
     description: str
@@ -58,6 +64,7 @@ class AlertResult(BaseModel):
 
 class AlertScreeningResult(BaseModel):
     """Complete alert screening result."""
+
     status: str = "completed"
     smiles: str
     catalogs_screened: List[str]
@@ -69,6 +76,7 @@ class AlertScreeningResult(BaseModel):
 
 class ScoreResult(BaseModel):
     """ML-readiness and other scoring results."""
+
     status: str = "completed"
     smiles: str
     scores: Dict[str, Any]
@@ -77,6 +85,7 @@ class ScoreResult(BaseModel):
 
 class StandardizationResult(BaseModel):
     """Molecule standardization result."""
+
     status: str = "completed"
     input_smiles: str
     standardized_smiles: str
@@ -88,6 +97,7 @@ class StandardizationResult(BaseModel):
 
 class BatchJobStatus(str, Enum):
     """Batch job status."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETE = "complete"
@@ -97,6 +107,7 @@ class BatchJobStatus(str, Enum):
 
 class BatchJob(BaseModel):
     """Batch job status information."""
+
     job_id: str
     status: BatchJobStatus
     progress: int = Field(ge=0, le=100)
@@ -108,6 +119,7 @@ class BatchJob(BaseModel):
 
 class BatchResultItem(BaseModel):
     """Single molecule result in batch."""
+
     smiles: str
     name: Optional[str] = None
     index: int
@@ -120,6 +132,7 @@ class BatchResultItem(BaseModel):
 
 class BatchStatistics(BaseModel):
     """Aggregate statistics for batch job."""
+
     total: int
     successful: int
     errors: int
@@ -132,6 +145,7 @@ class BatchStatistics(BaseModel):
 
 class BatchResult(BaseModel):
     """Batch processing results with pagination."""
+
     job_id: str
     status: BatchJobStatus
     statistics: Optional[BatchStatistics] = None
@@ -144,6 +158,7 @@ class BatchResult(BaseModel):
 
 class BatchUploadResponse(BaseModel):
     """Response from batch upload."""
+
     job_id: str
     status: str = "pending"
     total_molecules: int

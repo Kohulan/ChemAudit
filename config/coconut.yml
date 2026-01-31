@@ -7,7 +7,8 @@ MAX_BATCH_SIZE: 1000000
 MAX_FILE_SIZE_MB: 1024
 
 # Worker configuration
-CELERY_WORKERS: 16
+CELERY_WORKERS: 16              # Workers for large batch jobs
+CELERY_WORKERS_PRIORITY: 4      # Workers for small/priority jobs
 GUNICORN_WORKERS: 8
 
 # Redis memory limit
@@ -16,3 +17,4 @@ REDIS_MAXMEMORY: 4gb
 # Container memory limits (optional, for docker-compose)
 BACKEND_MEMORY_LIMIT: 16g
 CELERY_MEMORY_LIMIT: 16g
+CELERY_PRIORITY_MEMORY_LIMIT: 4g

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Leaf, FlaskConical, Sparkles } from 'lucide-react';
 import type { NPLikenessResult } from '../../types/scoring';
 import { cn } from '../../lib/utils';
+import { InfoTooltip } from '../ui/Tooltip';
 
 interface NPLikenessScoreProps {
   result: NPLikenessResult;
@@ -86,9 +87,25 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               <IconComponent className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                NP-Likeness
-              </h4>
+              <div className="flex items-center gap-1.5">
+                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
+                  NP-Likeness
+                </h4>
+                <InfoTooltip
+                  title="Natural Product Likeness Score"
+                  content={
+                    <div className="text-xs space-y-2">
+                      <p>Measures how similar a molecule's structure is to known natural products.</p>
+                      <ul className="list-disc list-inside space-y-1 text-white/80">
+                        <li><strong>Score ≥ 1.0:</strong> Natural product-like</li>
+                        <li><strong>Score -0.3 to 1.0:</strong> Mixed character</li>
+                        <li><strong>Score &lt; -0.3:</strong> Synthetic-like</li>
+                      </ul>
+                      <p className="text-white/60">Based on fragment analysis comparing to the COCONUT natural products database.</p>
+                    </div>
+                  }
+                />
+              </div>
               <p className="text-xs text-[var(--color-text-muted)]">
                 Natural product similarity
               </p>

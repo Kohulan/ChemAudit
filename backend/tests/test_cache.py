@@ -3,6 +3,7 @@ Tests for validation caching functionality.
 
 Tests the Redis-based caching layer for validation results.
 """
+
 import json
 from unittest.mock import AsyncMock
 

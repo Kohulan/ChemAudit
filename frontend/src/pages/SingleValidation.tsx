@@ -1153,6 +1153,7 @@ export function SingleValidationPage() {
                 {/* Validation Success - no issues */}
                 {result && validationIssues.length === 0 && (
                   <motion.div
+                    key="validation-success"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
@@ -1174,6 +1175,7 @@ export function SingleValidationPage() {
                 {/* All Checks - Collapsible */}
                 {result && result.all_checks && result.all_checks.length > 0 && (
                   <motion.div
+                    key="all-checks"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
@@ -1249,6 +1251,7 @@ export function SingleValidationPage() {
                 {/* Alert Screening Results */}
                 {alertResult && (
                   <motion.div
+                    key="alert-results"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
