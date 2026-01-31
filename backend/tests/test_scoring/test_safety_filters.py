@@ -131,13 +131,17 @@ class TestOverallResults:
     def test_total_alerts_count(self):
         """total_alerts should be sum of all alerts."""
         mol = Chem.MolFromSmiles("CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin
-        result = calculate_safety_filters(mol, include_extended=True)
+        result = calculate_safety_filters(
+            mol, include_extended=True, include_chembl=True
+        )
 
         expected_total = result.pains.alert_count + result.brenk.alert_count
         if result.nih:
             expected_total += result.nih.alert_count
         if result.zinc:
             expected_total += result.zinc.alert_count
+        if result.chembl:
+            expected_total += result.chembl.total_alerts
 
         assert result.total_alerts == expected_total
 

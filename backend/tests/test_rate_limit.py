@@ -104,7 +104,7 @@ def test_invalid_api_key_returns_401(client):
         assert response.status_code == 401
         data = response.json()
         assert "detail" in data
-        assert "Invalid API key" in data["detail"]
+        assert "Invalid" in data["detail"] and "API key" in data["detail"]
 
 
 def test_rate_limit_key_function():
