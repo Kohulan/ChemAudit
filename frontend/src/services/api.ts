@@ -52,13 +52,6 @@ function parseDelimitedLine(line: string, delimiter: string = ','): string[] {
 }
 
 /**
- * Legacy function for backwards compatibility - uses comma delimiter.
- */
-function parseCSVLine(line: string): string[] {
-  return parseDelimitedLine(line, ',');
-}
-
-/**
  * Escape a value for CSV output.
  */
 function escapeCSVValue(value: string): string {

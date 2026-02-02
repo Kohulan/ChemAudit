@@ -51,7 +51,6 @@ export function BatchUpload({
 
   const isLargeFile = csvColumns && csvColumns.row_count_estimate > LARGE_FILE_THRESHOLD;
   const isSDF = selectedFile?.name.toLowerCase().endsWith('.sdf');
-  const isDelimitedText = selectedFile ? isTextFormat(selectedFile.name) : false;
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
