@@ -1,9 +1,22 @@
 import axios, { AxiosError } from 'axios';
 
 /**
- * Parse a single CSV line, handling quoted fields correctly.
+ * Detect the delimiter used in a text file (comma or tab).
+ * Examines the first line to determine the delimiter.
  */
-function parseCSVLine(line: string): string[] {
+function detectDelimiter(text: string): string {
+  const firstLine = text.split('\n')[0] || '';
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  // Prefer tab if there are tabs, as tabs are less common in data values
+  return tabCount > 0 && tabCount >= commaCount ? '\t' : ',';
+}
+
+/**
+ * Parse a single line from a delimited text file, handling quoted fields correctly.
+ * Supports both comma and tab delimiters.
+ */
+function parseDelimitedLine(line: string, delimiter: string = ','): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -25,7 +38,7 @@ function parseCSVLine(line: string): string[] {
     } else {
       if (char === '"') {
         inQuotes = true;
-      } else if (char === ',') {
+      } else if (char === delimiter) {
         result.push(current.trim());
         current = '';
       } else {
@@ -36,6 +49,13 @@ function parseCSVLine(line: string): string[] {
 
   result.push(current.trim());
   return result;
+}
+
+/**
+ * Legacy function for backwards compatibility - uses comma delimiter.
+ */
+function parseCSVLine(line: string): string[] {
+  return parseDelimitedLine(line, ',');
 }
 
 /**
@@ -322,8 +342,9 @@ export const batchApi = {
   },
 
   /**
-   * Detect columns in a CSV file locally (no server call).
+   * Detect columns in a delimited text file locally (no server call).
    * Reads only the first few KB to get header and samples.
+   * Supports CSV (comma-separated), TSV (tab-separated), and TXT files.
    */
   detectColumnsLocal: async (file: File): Promise<CSVColumnsResponse> => {
     return new Promise((resolve, reject) => {
@@ -338,12 +359,15 @@ export const batchApi = {
           const lines = text.split('\n').filter(line => line.trim());
 
           if (lines.length < 1) {
-            reject(new Error('CSV file appears to be empty'));
+            reject(new Error('File appears to be empty'));
             return;
           }
 
+          // Detect delimiter (comma or tab)
+          const delimiter = detectDelimiter(text);
+
           // Parse header (handle quoted columns)
-          const header = parseCSVLine(lines[0]);
+          const header = parseDelimitedLine(lines[0], delimiter);
           const columns = header.filter(col => col && col.length <= 256);
 
           if (columns.length === 0) {
@@ -358,7 +382,7 @@ export const batchApi = {
           for (const col of columns.slice(0, 20)) {
             const colIndex = header.indexOf(col);
             for (const row of sampleRows) {
-              const values = parseCSVLine(row);
+              const values = parseDelimitedLine(row, delimiter);
               if (values[colIndex] && values[colIndex].trim()) {
                 columnSamples[col] = values[colIndex].trim().slice(0, 100);
                 break;
@@ -410,7 +434,7 @@ export const batchApi = {
             file_size_mb: Math.round(fileSizeMb * 100) / 100,
           });
         } catch (err) {
-          reject(new Error('Failed to parse CSV file'));
+          reject(new Error('Failed to parse file'));
         }
       };
 
@@ -420,8 +444,8 @@ export const batchApi = {
   },
 
   /**
-   * Extract only selected columns from CSV and create a new file.
-   * Uses streaming to handle large files efficiently.
+   * Extract only selected columns from a delimited text file and create a new CSV file.
+   * Supports CSV, TSV, and TXT files. Output is always CSV format.
    */
   extractColumns: async (
     file: File,
@@ -437,12 +461,15 @@ export const batchApi = {
           const lines = text.split('\n');
 
           if (lines.length < 1) {
-            reject(new Error('CSV file is empty'));
+            reject(new Error('File is empty'));
             return;
           }
 
+          // Detect delimiter (comma or tab)
+          const delimiter = detectDelimiter(text);
+
           // Parse header to find column indices
-          const header = parseCSVLine(lines[0]);
+          const header = parseDelimitedLine(lines[0], delimiter);
           const smilesIndex = header.findIndex(
             col => col.toLowerCase() === smilesColumn.toLowerCase()
           );
@@ -456,7 +483,7 @@ export const batchApi = {
             ? header.findIndex(col => col.toLowerCase() === nameColumn.toLowerCase())
             : -1;
 
-          // Build new CSV with only selected columns
+          // Build new CSV with only selected columns (always output as CSV)
           const outputLines: string[] = [];
 
           // Header
@@ -470,14 +497,14 @@ export const batchApi = {
             const line = lines[i].trim();
             if (!line) continue;
 
-            const values = parseCSVLine(line);
+            const values = parseDelimitedLine(line, delimiter);
             const smiles = values[smilesIndex] || '';
 
             if (!smiles.trim()) continue; // Skip empty SMILES
 
             const name = nameIndex !== -1 ? (values[nameIndex] || '') : '';
 
-            // Escape values for CSV
+            // Escape values for CSV output
             const escapedSmiles = escapeCSVValue(smiles);
             const newLine = nameIndex !== -1
               ? `${escapedSmiles},${escapeCSVValue(name)}`
@@ -488,11 +515,13 @@ export const batchApi = {
 
           const csvContent = outputLines.join('\n');
           const blob = new Blob([csvContent], { type: 'text/csv' });
-          const newFile = new File([blob], file.name, { type: 'text/csv' });
+          // Always output as .csv regardless of input format
+          const outputName = file.name.replace(/\.(tsv|txt)$/i, '.csv');
+          const newFile = new File([blob], outputName, { type: 'text/csv' });
 
           resolve(newFile);
         } catch (err) {
-          reject(new Error('Failed to process CSV file'));
+          reject(new Error('Failed to process file'));
         }
       };
 

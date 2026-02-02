@@ -175,6 +175,34 @@ CCO,ETH001
 
         assert molecules[0].name == "ETH001"
 
+    def test_parse_tsv_content(self):
+        """Test parsing tab-separated content (TSV format)."""
+        tsv_content = b"""SMILES\tName\tMolWeight
+CCO\tEthanol\t46.07
+C\tMethane\t16.04
+CC(=O)O\tAceticAcid\t60.05
+"""
+        molecules = parse_csv(tsv_content)
+
+        assert len(molecules) == 3
+        assert molecules[0].smiles == "CCO"
+        assert molecules[0].name == "Ethanol"
+        assert molecules[1].smiles == "C"
+        assert molecules[1].name == "Methane"
+
+    def test_parse_mixed_delimiter_preference(self):
+        """Test that pandas correctly handles tab-separated data."""
+        # Tab-separated with no commas in data
+        tsv_content = b"""SMILES\tID
+CCO\tETH001
+C\tMTH001
+"""
+        molecules = parse_csv(tsv_content)
+
+        assert len(molecules) == 2
+        assert molecules[0].smiles == "CCO"
+        assert molecules[0].name == "ETH001"
+
 
 class TestDetectCSVColumns:
     """Tests for CSV column detection."""

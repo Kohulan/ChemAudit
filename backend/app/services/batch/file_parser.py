@@ -276,6 +276,42 @@ def _validate_column_name(name: str) -> bool:
     return True
 
 
+def _detect_delimiter(content: bytes) -> str:
+    """
+    Detect the delimiter used in a delimited text file.
+
+    Examines the first line (header) to determine if the file uses
+    tabs or commas as delimiters.
+
+    Args:
+        content: Raw file bytes
+
+    Returns:
+        Delimiter character ('\\t' for tab, ',' for comma)
+    """
+    # Get the first line
+    try:
+        # Try UTF-8 first
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = content.decode("latin-1")
+        except UnicodeDecodeError:
+            return ","  # Default to comma
+
+    first_line = text.split("\n")[0] if "\n" in text else text
+
+    # Count delimiters in the first line
+    tab_count = first_line.count("\t")
+    comma_count = first_line.count(",")
+
+    # Use the more common delimiter, preferring tab if equal
+    # (since tabs are less likely to appear in data)
+    if tab_count > 0 and tab_count >= comma_count:
+        return "\t"
+    return ","
+
+
 def _validate_smiles_format(smiles: str) -> Tuple[bool, Optional[str]]:
     """
     Basic validation of SMILES string format before RDKit parsing.
@@ -392,10 +428,12 @@ def parse_csv(
     max_file_size_mb: int = 500,
 ) -> List[MoleculeData]:
     """
-    Parse a CSV file into a list of molecule data.
+    Parse a CSV/TSV/TXT file into a list of molecule data.
+
+    Automatically detects whether the file uses comma or tab delimiters.
 
     Args:
-        file_content: Raw bytes of the CSV file
+        file_content: Raw bytes of the delimited text file
         smiles_column: Name of the column containing SMILES strings
         name_column: Optional name of the column containing molecule names
         max_file_size_mb: Maximum file size in MB
@@ -416,9 +454,12 @@ def parse_csv(
             f"File too large: {file_size_mb:.1f}MB exceeds limit of {max_file_size_mb}MB"
         )
 
+    # Detect delimiter (comma or tab)
+    delimiter = _detect_delimiter(file_content)
+
     # First, read just the header to find column names
     try:
-        df_header = pd.read_csv(io.BytesIO(file_content), nrows=0)
+        df_header = pd.read_csv(io.BytesIO(file_content), nrows=0, sep=delimiter)
         all_columns = df_header.columns.tolist()
     except Exception as e:
         raise ValueError(f"Failed to parse CSV file: {str(e)[:200]}")
@@ -470,7 +511,11 @@ def parse_csv(
 
     try:
         df = pd.read_csv(
-            io.BytesIO(file_content), usecols=cols_to_read, dtype=str, na_filter=False
+            io.BytesIO(file_content),
+            usecols=cols_to_read,
+            dtype=str,
+            na_filter=False,
+            sep=delimiter,
         )
     except Exception as e:
         raise ValueError(f"Failed to parse CSV file: {str(e)[:200]}")
@@ -515,10 +560,12 @@ def detect_csv_columns(
     max_file_size_mb: int = 500,
 ) -> Dict[str, Any]:
     """
-    Detect column names in a CSV file for user selection.
+    Detect column names in a delimited text file for user selection.
+
+    Automatically detects whether the file uses comma or tab delimiters.
 
     Args:
-        file_content: Raw bytes of the CSV file
+        file_content: Raw bytes of the delimited text file
         max_file_size_mb: Maximum file size in MB
 
     Returns:
@@ -534,9 +581,14 @@ def detect_csv_columns(
             f"File too large: {file_size_mb:.1f}MB exceeds limit of {max_file_size_mb}MB"
         )
 
+    # Detect delimiter (comma or tab)
+    delimiter = _detect_delimiter(file_content)
+
     try:
         # Read only first few rows for column detection
-        df_preview = pd.read_csv(io.BytesIO(file_content), nrows=5, dtype=str)
+        df_preview = pd.read_csv(
+            io.BytesIO(file_content), nrows=5, dtype=str, sep=delimiter
+        )
         columns = [
             col for col in df_preview.columns.tolist() if _validate_column_name(col)
         ]

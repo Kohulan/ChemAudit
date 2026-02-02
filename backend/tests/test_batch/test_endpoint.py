@@ -93,17 +93,55 @@ $$$$
         assert data["total_molecules"] == 1
 
     async def test_upload_invalid_extension_rejected(self):
-        """Test that non-SDF/CSV files are rejected."""
+        """Test that unsupported file types are rejected."""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
                 "/api/v1/batch/upload",
-                files={"file": ("test.txt", b"some content", "text/plain")},
+                files={
+                    "file": ("test.xlsx", b"some content", "application/vnd.ms-excel")
+                },
             )
 
         assert response.status_code == 400
         assert "Invalid file type" in response.json()["detail"]
+
+    async def test_upload_tsv_returns_job_id(self, sample_csv_content, mock_celery):
+        """Test that TSV upload returns a job_id."""
+        # TSV content uses tab separators
+        tsv_content = b"SMILES\tName\nCCO\tEthanol\nC\tMethane\nCC\tEthane\n"
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/batch/upload",
+                files={"file": ("test.tsv", tsv_content, "text/tab-separated-values")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert data["status"] == "pending"
+        assert data["total_molecules"] == 3
+
+    async def test_upload_txt_returns_job_id(self, sample_csv_content, mock_celery):
+        """Test that TXT upload with delimited content returns a job_id."""
+        # TXT file with comma-separated content
+        txt_content = b"SMILES,Name\nCCO,Ethanol\nC,Methane\n"
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/batch/upload",
+                files={"file": ("test.txt", txt_content, "text/plain")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert data["status"] == "pending"
+        assert data["total_molecules"] == 2
 
     async def test_upload_csv_with_missing_smiles_column(self):
         """Test error when SMILES column not found."""
@@ -250,8 +288,8 @@ class TestDetectColumns:
         assert "SMILES" in data["columns"]
         assert data["suggested_smiles"] == "SMILES"
 
-    async def test_detect_columns_rejects_non_csv(self):
-        """Test that non-CSV files are rejected."""
+    async def test_detect_columns_rejects_non_text_files(self):
+        """Test that non-delimited text files are rejected."""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
@@ -261,3 +299,37 @@ class TestDetectColumns:
             )
 
         assert response.status_code == 400
+
+    async def test_detect_columns_accepts_tsv(self):
+        """Test column detection for TSV files."""
+        tsv_content = b"SMILES\tName\tMW\nCCO\tEthanol\t46\n"
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/batch/detect-columns",
+                files={"file": ("test.tsv", tsv_content, "text/tab-separated-values")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "SMILES" in data["columns"]
+        assert data["suggested_smiles"] == "SMILES"
+
+    async def test_detect_columns_accepts_txt(self):
+        """Test column detection for TXT files."""
+        txt_content = b"SMILES,Name,MW\nCCO,Ethanol,46\n"
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/batch/detect-columns",
+                files={"file": ("test.txt", txt_content, "text/plain")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "SMILES" in data["columns"]
+        assert data["suggested_smiles"] == "SMILES"

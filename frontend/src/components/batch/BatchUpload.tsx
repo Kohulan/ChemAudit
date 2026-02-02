@@ -14,9 +14,20 @@ interface BatchUploadProps {
 // Threshold for showing confirmation before processing
 const LARGE_FILE_THRESHOLD = 1000;
 
+// Supported text-based formats for delimited data (CSV, TSV, TXT)
+const TEXT_FORMATS = ['.csv', '.tsv', '.txt'];
+
+/**
+ * Check if a filename has a text-based delimited format extension.
+ */
+const isTextFormat = (filename: string): boolean => {
+  const lower = filename.toLowerCase();
+  return TEXT_FORMATS.some(ext => lower.endsWith(ext));
+};
+
 /**
  * File upload component with drag-and-drop support.
- * Accepts SDF and CSV files, allows column selection for CSV.
+ * Accepts SDF and delimited text files (CSV, TSV, TXT), allows column selection for text files.
  * Shows preview and confirmation for larger files.
  */
 export function BatchUpload({
@@ -40,6 +51,7 @@ export function BatchUpload({
 
   const isLargeFile = csvColumns && csvColumns.row_count_estimate > LARGE_FILE_THRESHOLD;
   const isSDF = selectedFile?.name.toLowerCase().endsWith('.sdf');
+  const isDelimitedText = selectedFile ? isTextFormat(selectedFile.name) : false;
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -60,8 +72,8 @@ export function BatchUpload({
 
   const validateFile = (file: File): string | null => {
     const name = file.name.toLowerCase();
-    if (!name.endsWith('.sdf') && !name.endsWith('.csv')) {
-      return 'Invalid file type. Please upload an SDF or CSV file.';
+    if (!name.endsWith('.sdf') && !isTextFormat(name)) {
+      return 'Invalid file type. Please upload an SDF, CSV, TSV, or TXT file.';
     }
     if (file.size > limits.max_file_size_bytes) {
       return `File too large. Maximum size is ${limits.max_file_size_mb}MB.`;
@@ -81,8 +93,8 @@ export function BatchUpload({
     setSelectedSmilesColumn('');
     setSelectedNameColumn('');
 
-    // If CSV, detect columns locally (no server call)
-    if (file.name.toLowerCase().endsWith('.csv')) {
+    // If delimited text file (CSV, TSV, TXT), detect columns locally (no server call)
+    if (isTextFormat(file.name)) {
       setIsAnalyzing(true);
       try {
         // Use local detection - reads only first 50KB, instant
@@ -91,7 +103,7 @@ export function BatchUpload({
         setSelectedSmilesColumn(columns.suggested_smiles || columns.columns[0] || '');
         setSelectedNameColumn(columns.suggested_name || '');
       } catch (e: any) {
-        const errorMessage = e.message || 'Failed to read CSV columns';
+        const errorMessage = e.message || 'Failed to read file columns';
         onUploadError(errorMessage);
         setSelectedFile(null);
       } finally {
@@ -229,7 +241,7 @@ export function BatchUpload({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".sdf,.csv"
+            accept=".sdf,.csv,.tsv,.txt"
             onChange={handleFileSelect}
             className="hidden"
             disabled={disabled || isUploading}
@@ -243,7 +255,7 @@ export function BatchUpload({
               {isDragging ? 'Drop file here' : 'Drop file here or click to browse'}
             </p>
             <p className="text-sm text-[var(--color-text-muted)] mt-2">
-              Supports <span className="font-medium">SDF</span> and <span className="font-medium">CSV</span> files
+              Supports <span className="font-medium">SDF</span>, <span className="font-medium">CSV</span>, <span className="font-medium">TSV</span>, and <span className="font-medium">TXT</span> files
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
               Up to {limits.max_batch_size.toLocaleString()} molecules • Max {limits.max_file_size_mb}MB

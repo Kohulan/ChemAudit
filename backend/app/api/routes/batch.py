@@ -74,10 +74,12 @@ async def upload_batch(
     filename = file.filename or ""
     filename_lower = filename.lower()
 
-    if not (filename_lower.endswith(".sdf") or filename_lower.endswith(".csv")):
+    # Supported text-based formats: .csv, .tsv, .txt (all parsed as delimited text)
+    text_formats = (".csv", ".tsv", ".txt")
+    if not (filename_lower.endswith(".sdf") or filename_lower.endswith(text_formats)):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file type. Supported formats: .sdf, .csv",
+            detail="Invalid file type. Supported formats: .sdf, .csv, .tsv, .txt",
         )
 
     # Read file content
@@ -98,6 +100,7 @@ async def upload_batch(
         )
 
     # Security: Validate file content matches extension
+    # .csv, .tsv, and .txt are all treated as delimited text files
     expected_type = "sdf" if filename_lower.endswith(".sdf") else "csv"
     is_valid, error_msg = validate_file_content_type(content, expected_type, filename)
     if not is_valid:
@@ -110,7 +113,7 @@ async def upload_batch(
     try:
         if filename_lower.endswith(".sdf"):
             molecules = parse_sdf(content, max_file_size_mb=settings.MAX_FILE_SIZE_MB)
-        else:
+        else:  # .csv, .tsv, .txt - all parsed as delimited text
             molecules = parse_csv(
                 content,
                 smiles_column=smiles_column or "SMILES",
@@ -352,15 +355,17 @@ async def detect_columns(
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
-    Detect columns in a CSV file for SMILES and Name/ID selection.
+    Detect columns in a delimited text file for SMILES and Name/ID selection.
 
     Returns list of column names, suggested columns, and sample values.
+    Accepts .csv, .tsv, and .txt files.
     """
     filename = file.filename or ""
-    if not filename.lower().endswith(".csv"):
+    text_formats = (".csv", ".tsv", ".txt")
+    if not filename.lower().endswith(text_formats):
         raise HTTPException(
             status_code=400,
-            detail="This endpoint only accepts CSV files",
+            detail="This endpoint only accepts delimited text files (.csv, .tsv, .txt)",
         )
 
     try:
