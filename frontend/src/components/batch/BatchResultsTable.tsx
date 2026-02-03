@@ -71,6 +71,18 @@ export function BatchResultsTable({
       bVal = b.alerts?.alert_count ?? 0;
     }
 
+    // Handle QED score
+    if (sortField === 'qed') {
+      aVal = a.scoring?.druglikeness?.qed_score ?? -1;
+      bVal = b.scoring?.druglikeness?.qed_score ?? -1;
+    }
+
+    // Handle Safety filters
+    if (sortField === 'safety') {
+      aVal = a.scoring?.safety_filters?.total_alerts ?? 999;
+      bVal = b.scoring?.safety_filters?.total_alerts ?? 999;
+    }
+
     if (typeof aVal === 'string') {
       aVal = aVal.toLowerCase();
       bVal = String(bVal).toLowerCase();
@@ -161,8 +173,11 @@ export function BatchResultsTable({
               >
                 Name {sortField === 'name' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase">
-                SMILES
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                onClick={() => handleSort('smiles')}
+              >
+                SMILES {sortField === 'smiles' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
@@ -170,11 +185,17 @@ export function BatchResultsTable({
               >
                 Score {sortField === 'score' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
-                QED
+              <th
+                className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                onClick={() => handleSort('qed')}
+              >
+                QED {sortField === 'qed' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
-                Safety
+              <th
+                className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                onClick={() => handleSort('safety')}
+              >
+                Safety {sortField === 'safety' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
