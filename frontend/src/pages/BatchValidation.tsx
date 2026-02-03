@@ -14,6 +14,7 @@ import type {
   BatchPageState,
   BatchResultsResponse,
   BatchResultsFilters,
+  SortField,
 } from '../types/batch';
 
 /**
@@ -34,6 +35,9 @@ export function BatchValidationPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [filters, setFilters] = useState<BatchResultsFilters>({});
+  const [sortBy, setSortBy] = useState<SortField>('index');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
   // WebSocket progress
   const { progress, isConnected } = useBatchProgress(
@@ -88,7 +92,8 @@ export function BatchValidationPage() {
 
       setResultsLoading(true);
       try {
-        const data = await batchApi.getBatchResults(jobId, newPage, pageSize, filters);
+        const filtersWithSort = { ...filters, sort_by: sortBy, sort_dir: sortDir };
+        const data = await batchApi.getBatchResults(jobId, newPage, pageSize, filtersWithSort);
         setResultsData(data);
         setPage(newPage);
       } catch (e: any) {
@@ -97,7 +102,7 @@ export function BatchValidationPage() {
         setResultsLoading(false);
       }
     },
-    [jobId, pageSize, filters]
+    [jobId, pageSize, filters, sortBy, sortDir]
   );
 
   // Handle page size change
@@ -107,7 +112,8 @@ export function BatchValidationPage() {
 
       setResultsLoading(true);
       try {
-        const data = await batchApi.getBatchResults(jobId, 1, newSize, filters);
+        const filtersWithSort = { ...filters, sort_by: sortBy, sort_dir: sortDir };
+        const data = await batchApi.getBatchResults(jobId, 1, newSize, filtersWithSort);
         setResultsData(data);
         setPage(1);
         setPageSize(newSize);
@@ -117,7 +123,7 @@ export function BatchValidationPage() {
         setResultsLoading(false);
       }
     },
-    [jobId, filters]
+    [jobId, filters, sortBy, sortDir]
   );
 
   // Handle filter change
@@ -127,9 +133,33 @@ export function BatchValidationPage() {
 
       setResultsLoading(true);
       try {
+        const filtersWithSort = { ...newFilters, sort_by: sortBy, sort_dir: sortDir };
+        const data = await batchApi.getBatchResults(jobId, 1, pageSize, filtersWithSort);
+        setResultsData(data);
+        setPage(1);
+        setFilters(filtersWithSort);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load results');
+      } finally {
+        setResultsLoading(false);
+      }
+    },
+    [jobId, pageSize, sortBy, sortDir]
+  );
+
+  // Handle sort change
+  const handleSortChange = useCallback(
+    async (newSortBy: SortField, newSortDir: 'asc' | 'desc') => {
+      if (!jobId) return;
+
+      setResultsLoading(true);
+      try {
+        const newFilters = { ...filters, sort_by: newSortBy, sort_dir: newSortDir };
         const data = await batchApi.getBatchResults(jobId, 1, pageSize, newFilters);
         setResultsData(data);
         setPage(1);
+        setSortBy(newSortBy);
+        setSortDir(newSortDir);
         setFilters(newFilters);
       } catch (e: any) {
         setError(e.message || 'Failed to load results');
@@ -137,8 +167,18 @@ export function BatchValidationPage() {
         setResultsLoading(false);
       }
     },
-    [jobId, pageSize]
+    [jobId, pageSize, filters]
   );
+
+  // Handle selection change
+  const handleSelectionChange = useCallback((indices: Set<number>) => {
+    setSelectedIndices(indices);
+  }, []);
+
+  // Handle clear selection
+  const handleClearSelection = useCallback(() => {
+    setSelectedIndices(new Set());
+  }, []);
 
   // Reset to upload state
   const handleStartNew = useCallback(() => {
@@ -148,10 +188,16 @@ export function BatchValidationPage() {
     setResultsData(null);
     setPage(1);
     setFilters({});
+    setSortBy('index');
+    setSortDir('asc');
+    setSelectedIndices(new Set());
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6">
+    <div className={cn(
+      "mx-auto space-y-8 px-4 sm:px-6",
+      pageState === 'results' ? 'max-w-[1600px]' : 'max-w-7xl'
+    )}>
       {/* Hero Header */}
       <motion.div
         className="text-center pt-4"
@@ -320,7 +366,12 @@ export function BatchValidationPage() {
                     </p>
                   </div>
                 </div>
-                <BatchSummary jobId={jobId} statistics={resultsData.statistics} />
+                <BatchSummary
+                  jobId={jobId}
+                  statistics={resultsData.statistics}
+                  selectedIndices={selectedIndices}
+                  onClearSelection={handleClearSelection}
+                />
               </div>
             )}
 
@@ -346,10 +397,15 @@ export function BatchValidationPage() {
                 totalResults={resultsData.total_results}
                 totalPages={resultsData.total_pages}
                 filters={filters}
+                sortBy={sortBy}
+                sortDir={sortDir}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
                 onFiltersChange={handleFiltersChange}
+                onSortChange={handleSortChange}
                 isLoading={resultsLoading}
+                selectedIndices={selectedIndices}
+                onSelectionChange={handleSelectionChange}
               />
             </div>
           </motion.div>
