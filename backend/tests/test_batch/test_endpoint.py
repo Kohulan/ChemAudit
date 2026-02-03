@@ -232,8 +232,13 @@ class TestBatchResults:
         mock_stats.errors = 1
         mock_stats.avg_validation_score = 85.0
         mock_stats.avg_ml_readiness_score = 80.0
+        mock_stats.avg_qed_score = 0.75
+        mock_stats.avg_sa_score = 3.2
+        mock_stats.lipinski_pass_rate = 100.0
+        mock_stats.safety_pass_rate = 90.0
         mock_stats.score_distribution = {"excellent": 1, "good": 1}
         mock_stats.alert_summary = {}
+        mock_stats.issue_summary = {}
         mock_stats.processing_time_seconds = 2.5
         mock_result_storage.get_statistics.return_value = mock_stats
 
