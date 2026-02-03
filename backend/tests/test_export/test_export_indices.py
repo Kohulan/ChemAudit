@@ -5,6 +5,7 @@ Tests the indices filtering functionality for both GET and POST export endpoints
 """
 
 import os
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -119,7 +120,7 @@ class TestExportIndices:
 
             # Mock exporter to capture what gets passed to export()
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
@@ -164,7 +165,7 @@ class TestExportIndices:
             }
 
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
@@ -206,7 +207,7 @@ class TestExportIndices:
             }
 
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
@@ -251,7 +252,7 @@ class TestExportIndices:
             }
 
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
@@ -295,7 +296,7 @@ class TestExportIndices:
             }
 
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
@@ -376,7 +377,7 @@ class TestExportIndices:
             }
 
             mock_exporter = MagicMock()
-            mock_exporter.export.return_value = MagicMock()
+            mock_exporter.export.return_value = BytesIO(b"test,data\n")
             mock_exporter.media_type = "text/csv"
             mock_exporter.file_extension = "csv"
             mock_factory.create.return_value = mock_exporter
