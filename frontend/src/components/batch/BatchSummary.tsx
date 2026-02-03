@@ -7,13 +7,16 @@ import { ClayButton } from '../ui/ClayButton';
 interface BatchSummaryProps {
   jobId: string;
   statistics: BatchStatistics;
+  selectedIndices?: Set<number>;
+  onClearSelection?: () => void;
 }
 
 /**
  * Summary statistics display with cards and charts.
  */
-export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
+export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelection }: BatchSummaryProps) {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportSelectedIndices, setExportSelectedIndices] = useState<Set<number> | undefined>(undefined);
   const formatTime = (seconds: number | null): string => {
     if (seconds === null) return '-';
     if (seconds < 60) return `${seconds.toFixed(1)}s`;
@@ -108,9 +111,9 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
       </div>
 
       {/* Pass rates */}
-      {(statistics.lipinski_pass_rate !== undefined || statistics.safety_pass_rate !== undefined) && (
+      {(statistics.lipinski_pass_rate !== null || statistics.safety_pass_rate !== null) && (
         <div className="grid grid-cols-2 gap-4">
-          {statistics.lipinski_pass_rate !== undefined && (
+          {statistics.lipinski_pass_rate !== null && (
             <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
               <p className="text-sm text-[var(--color-text-muted)] mb-1">Lipinski Pass Rate</p>
               <p className={`text-3xl font-bold ${
@@ -124,7 +127,7 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
               </p>
             </div>
           )}
-          {statistics.safety_pass_rate !== undefined && (
+          {statistics.safety_pass_rate !== null && (
             <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
               <p className="text-sm text-[var(--color-text-muted)] mb-1">Safety Pass Rate</p>
               <p className={`text-3xl font-bold ${
@@ -225,14 +228,62 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
         </div>
       )}
 
-      {/* Export button */}
-      <div className="flex justify-end">
+      {/* Issue summary */}
+      {Object.keys(statistics.issue_summary).length > 0 && (
+        <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+          <h4 className="font-medium text-red-800 dark:text-red-400 mb-3">Structural Issues</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(statistics.issue_summary)
+              .sort(([, a], [, b]) => b - a)
+              .map(([checkName, count]) => (
+              <div key={checkName} className="text-center">
+                <p className="text-2xl font-semibold text-red-700 dark:text-red-400">{count}</p>
+                <p className="text-xs text-red-600 dark:text-red-500">
+                  {checkName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Export buttons */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {selectedIndices && selectedIndices.size > 0 && (
+          <>
+            <div className="px-3 py-1.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-sm font-medium">
+              {selectedIndices.size} selected
+            </div>
+            <ClayButton
+              variant="primary"
+              onClick={() => {
+                setExportSelectedIndices(selectedIndices);
+                setIsExportDialogOpen(true);
+              }}
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              Export Selected ({selectedIndices.size})
+            </ClayButton>
+            {onClearSelection && (
+              <button
+                onClick={onClearSelection}
+                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </>
+        )}
         <ClayButton
-          variant="primary"
-          onClick={() => setIsExportDialogOpen(true)}
+          variant={selectedIndices && selectedIndices.size > 0 ? 'default' : 'primary'}
+          onClick={() => {
+            setExportSelectedIndices(undefined);
+            setIsExportDialogOpen(true);
+          }}
           leftIcon={<Download className="w-4 h-4" />}
+          className={selectedIndices && selectedIndices.size > 0 ? 'ml-auto' : 'ml-auto'}
         >
-          Export Results
+          Export All
         </ClayButton>
       </div>
 
@@ -240,7 +291,11 @@ export function BatchSummary({ jobId, statistics }: BatchSummaryProps) {
       <ExportDialog
         jobId={jobId}
         isOpen={isExportDialogOpen}
-        onClose={() => setIsExportDialogOpen(false)}
+        onClose={() => {
+          setIsExportDialogOpen(false);
+          setExportSelectedIndices(undefined);
+        }}
+        selectedIndices={exportSelectedIndices}
       />
     </div>
   );

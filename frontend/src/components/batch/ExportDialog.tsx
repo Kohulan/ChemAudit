@@ -11,6 +11,7 @@ interface ExportDialogProps {
   jobId: string;
   isOpen: boolean;
   onClose: () => void;
+  selectedIndices?: Set<number>;
 }
 
 /**
@@ -23,23 +24,47 @@ interface ExportDialogProps {
  * - JSON: Programmatic access with full metadata
  * - PDF: Professional report with charts and images
  */
-export function ExportDialog({ jobId, isOpen, onClose }: ExportDialogProps) {
+export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: ExportDialogProps) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('csv');
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const isSelectedMode = selectedIndices && selectedIndices.size > 0;
+
   const handleExport = async () => {
     setIsExporting(true);
     setError(null);
 
     try {
-      // Build export URL
-      const url = `/api/v1/batch/${jobId}/export?format=${selectedFormat}`;
+      let response: Response;
 
-      // Fetch file
-      const response = await fetch(url);
+      if (!isSelectedMode) {
+        // Export all: use GET request
+        const url = `/api/v1/batch/${jobId}/export?format=${selectedFormat}`;
+        response = await fetch(url);
+      } else {
+        // Export selected: use GET for small selections, POST for large
+        const indicesArray = Array.from(selectedIndices).sort((a, b) => a - b);
+
+        if (indicesArray.length <= 200) {
+          // Small selection: use GET with query parameter
+          const indicesParam = indicesArray.join(',');
+          const url = `/api/v1/batch/${jobId}/export?format=${selectedFormat}&indices=${indicesParam}`;
+          response = await fetch(url);
+        } else {
+          // Large selection: use POST with JSON body
+          const url = `/api/v1/batch/${jobId}/export?format=${selectedFormat}`;
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ indices: indicesArray }),
+          });
+        }
+      }
 
       if (!response.ok) {
         const data = await response.json();
@@ -119,7 +144,11 @@ export function ExportDialog({ jobId, isOpen, onClose }: ExportDialogProps) {
         <div className="border-b border-[var(--color-border)] px-6 py-4">
           <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Export Results</h2>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Choose a format to download batch validation results
+            {isSelectedMode ? (
+              <>Export Selected ({selectedIndices.size} molecules)</>
+            ) : (
+              <>Choose a format to download batch validation results</>
+            )}
           </p>
         </div>
 
