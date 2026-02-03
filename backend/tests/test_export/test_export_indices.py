@@ -4,7 +4,6 @@ Tests for Export Endpoint with Indices Filtering
 Tests the indices filtering functionality for both GET and POST export endpoints.
 """
 
-import json
 import os
 from unittest.mock import MagicMock, patch
 
