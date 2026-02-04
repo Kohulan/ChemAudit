@@ -11,11 +11,11 @@ const config: Config = {
   url: 'https://kohulan.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/ChemVault/',
+  baseUrl: '/ChemAudit/',
 
   // GitHub pages deployment config.
   organizationName: 'Kohulan',
-  projectName: 'ChemVault',
+  projectName: 'ChemAudit',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
@@ -78,7 +78,7 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          href: 'https://github.com/Kohulan/ChemVault',
+          href: 'https://github.com/Kohulan/ChemAudit',
           label: 'GitHub',
           position: 'right',
         },
@@ -109,7 +109,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/Kohulan/ChemVault',
+              href: 'https://github.com/Kohulan/ChemAudit',
             },
           ],
         },
