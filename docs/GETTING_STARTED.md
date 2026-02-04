@@ -10,16 +10,16 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Installation](#-installation)
-- [Your First Validation](#-your-first-validation)
-- [Understanding Results](#-understanding-results)
-- [Next Steps](#-next-steps)
+- [Installation](#installation)
+- [Your First Validation](#your-first-validation)
+- [Understanding Results](#understanding-results)
+- [Next Steps](#next-steps)
 
 ---
 
-## 💻 Installation
+## Installation
 
 ### Option 1: Docker (Recommended)
 
@@ -30,19 +30,24 @@ The fastest way to get started:
 git clone https://github.com/yourusername/chemaudit.git
 cd chemaudit
 
+# Create a .env file with required secrets
+cp .env.example .env
+# Edit .env to set POSTGRES_PASSWORD, SECRET_KEY, API_KEY_ADMIN_SECRET, CSRF_SECRET_KEY, GRAFANA_PASSWORD
+
 # Start all services (development mode)
 docker-compose up -d
 
-# Wait for services to be ready (~30 seconds)
+# Wait for services to be ready
 docker-compose logs -f
 ```
 
-🌐 **Access Points:**
+**Access Points:**
 
 | Service | URL |
 |---------|-----|
 | **Web Interface** | http://localhost:3002 |
-| **API Documentation** | http://localhost:8001/docs |
+| **API Documentation** | http://localhost:8001/api/v1/docs |
+| **API ReDoc** | http://localhost:8001/api/v1/redoc |
 
 ### Option 1b: Production Deployment
 
@@ -65,16 +70,23 @@ See [Deployment Guide](DEPLOYMENT.md) for full production setup.
 <details>
 <summary><b>Backend Setup</b></summary>
 
-**Requirements:** Python 3.11+, Poetry
+**Requirements:** Python 3.11+, PostgreSQL, Redis
 
 ```bash
 cd backend
 
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # Install dependencies
-poetry install
+pip install -e .
+
+# Install dev dependencies (optional)
+pip install -e ".[dev]"
 
 # Start development server
-poetry run uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 </details>
@@ -94,11 +106,13 @@ npm install
 npm run dev
 ```
 
+Frontend runs on port 3002 by default.
+
 </details>
 
 ---
 
-## 🧪 Your First Validation
+## Your First Validation
 
 ### Using the Web Interface
 
@@ -109,12 +123,12 @@ npm run dev
    ```
    *(This is Aspirin)*
 3. **Click** "Validate"
-4. **View** your results!
+4. **View** your results including validation score, structural checks, alerts, scoring, and standardization.
 
 ### Using the API
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/validate \
+curl -X POST http://localhost:8001/api/v1/validate \
   -H "Content-Type: application/json" \
   -d '{
     "molecule": "CC(=O)Oc1ccccc1C(=O)O",
@@ -123,29 +137,34 @@ curl -X POST http://localhost:8000/api/v1/validate \
 ```
 
 <details>
-<summary><b>📄 Example Response</b></summary>
+<summary><b>Example Response</b></summary>
 
 ```json
 {
-  "valid": true,
-  "validation_score": 95,
-  "checks": [
+  "status": "completed",
+  "molecule_info": {
+    "input_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "canonical_smiles": "CC(=O)OC1=CC=CC=C1C(O)=O",
+    "inchi": "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)",
+    "inchikey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    "molecular_formula": "C9H8O4",
+    "molecular_weight": 180.16,
+    "num_atoms": 13
+  },
+  "overall_score": 95,
+  "issues": [],
+  "all_checks": [
     {
-      "name": "valence",
+      "check_name": "valence_check",
       "passed": true,
       "severity": "critical",
-      "message": "All atoms have valid valence"
-    },
-    {
-      "name": "aromaticity",
-      "passed": true,
-      "severity": "warning",
-      "message": "Aromatic system is valid"
+      "message": "All atoms have valid valence",
+      "affected_atoms": [],
+      "details": {}
     }
   ],
-  "standardized_smiles": "CC(=O)Oc1ccccc1C(=O)O",
-  "inchi": "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)",
-  "inchi_key": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+  "execution_time_ms": 12,
+  "cached": false
 }
 ```
 
@@ -157,7 +176,7 @@ curl -X POST http://localhost:8000/api/v1/validate \
 import requests
 
 response = requests.post(
-    "http://localhost:8000/api/v1/validate",
+    "http://localhost:8001/api/v1/validate",
     json={
         "molecule": "CC(=O)Oc1ccccc1C(=O)O",
         "format": "smiles"
@@ -165,44 +184,45 @@ response = requests.post(
 )
 
 result = response.json()
-print(f"Valid: {result['valid']}")
-print(f"Score: {result['validation_score']}")
+print(f"Score: {result['overall_score']}")
+print(f"Issues: {len(result['issues'])}")
+print(f"Formula: {result['molecule_info']['molecular_formula']}")
 ```
 
 ---
 
-## 📊 Understanding Results
+## Understanding Results
 
 ### Validation Score
 
 | Score Range | Quality | Recommendation |
 |-------------|---------|----------------|
-| **90-100** | 🟢 Excellent | Ready for use |
-| **70-89** | 🟡 Good | Minor issues, review recommended |
-| **50-69** | 🟠 Fair | Needs attention |
-| **0-49** | 🔴 Poor | Significant issues |
+| **90-100** | Excellent | Ready for use |
+| **70-89** | Good | Minor issues, review recommended |
+| **50-69** | Fair | Needs attention |
+| **0-49** | Poor | Significant issues |
 
 ### Check Severities
 
-| Severity | Icon | Meaning |
-|----------|------|---------|
-| **Critical** | 🔴 | Must be fixed - structure is invalid |
-| **Warning** | 🟡 | Should be reviewed - may affect results |
-| **Info** | 🔵 | Informational - no action required |
+| Severity | Meaning |
+|----------|---------|
+| **Critical** | Must be fixed - structure is invalid |
+| **Warning** | Should be reviewed - may affect results |
+| **Info** | Informational - no action required |
 
 ### Common Validation Checks
 
 | Check | What It Does |
 |-------|--------------|
 | **Valence** | Verifies all atoms have correct number of bonds |
-| **Aromaticity** | Validates aromatic ring systems |
-| **Stereochemistry** | Checks stereo centers and E/Z bonds |
 | **Kekulization** | Tests if aromatic rings can be kekulized |
-| **Connectivity** | Ensures molecule is properly connected |
+| **Sanitization** | Validates RDKit can sanitize the molecule |
+| **Stereochemistry** | Checks undefined stereocenters and consistency |
+| **Representation** | Validates SMILES length and InChI generation |
 
 ---
 
-## 🎓 Next Steps
+## Next Steps
 
 Now that you've completed your first validation, explore more features:
 
@@ -210,7 +230,7 @@ Now that you've completed your first validation, explore more features:
 <tr>
 <td width="50%" valign="top">
 
-### 📚 Learn More
+### Learn More
 
 - [User Guide](USER_GUIDE.md) - Complete feature walkthrough
 - [API Reference](API_REFERENCE.md) - Full API documentation
@@ -219,12 +239,14 @@ Now that you've completed your first validation, explore more features:
 </td>
 <td width="50%" valign="top">
 
-### 🚀 Try Features
+### Try Features
 
-- **Batch Processing** - Validate thousands of molecules
-- **Structural Alerts** - Screen for PAINS/BRENK
-- **ML-Readiness** - Assess ML suitability
-- **Database Lookup** - Search PubChem, ChEMBL
+- **Batch Processing** - Validate thousands of molecules at once
+- **Structural Alerts** - Screen for PAINS, BRENK, NIH, ZINC, ChEMBL
+- **Scoring** - Drug-likeness, ML-readiness, ADMET, NP-likeness
+- **Standardization** - ChEMBL-compatible structure cleanup
+- **Database Lookup** - Search PubChem, ChEMBL, COCONUT
+- **Export** - Download results as CSV, Excel, SDF, JSON, or PDF
 
 </td>
 </tr>
@@ -232,7 +254,7 @@ Now that you've completed your first validation, explore more features:
 
 ---
 
-## 🧬 Sample Molecules to Try
+## Sample Molecules to Try
 
 | Name | SMILES | Description |
 |------|--------|-------------|

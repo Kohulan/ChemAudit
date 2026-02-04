@@ -28,12 +28,36 @@
 # Clone and start
 git clone https://github.com/yourusername/chemaudit.git
 cd chemaudit
+
+# Create .env with required secrets
+cp .env.example .env
+# Edit .env to set POSTGRES_PASSWORD, SECRET_KEY, API_KEY_ADMIN_SECRET, CSRF_SECRET_KEY
+
+# Development mode
 docker-compose up -d
 ```
 
-**Access:**
+**Access (Development):**
 - 🌐 Web UI: http://localhost:3002
-- 📖 API Docs: http://localhost:8001/docs
+- 📖 API Docs: http://localhost:8001/api/v1/docs
+- 📖 API ReDoc: http://localhost:8001/api/v1/redoc
+
+**Access (Production):**
+- 🌐 Web UI + API: http://localhost (behind Nginx)
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Single Validation** | Validate SMILES, InChI, or MOL blocks with detailed structural checks |
+| **Batch Processing** | Process up to 1M molecules with real-time WebSocket progress |
+| **Structural Alerts** | Screen against PAINS, BRENK, NIH, ZINC, and ChEMBL catalogs (~1500+ patterns) |
+| **Scoring** | ML-readiness, drug-likeness (Lipinski/QED/Veber/Ghose/Egan/Muegge), ADMET, NP-likeness, scaffold analysis, aggregator likelihood |
+| **Standardization** | ChEMBL-compatible pipeline: sanitize, get parent, remove salts, optional tautomer canonicalization |
+| **Database Lookup** | Cross-reference PubChem, ChEMBL, and COCONUT |
+| **Export** | CSV, Excel, SDF, JSON, and PDF report formats |
 
 ---
 
@@ -44,15 +68,15 @@ docker-compose up -d
 | Guide | What You'll Learn |
 |-------|-------------------|
 | [Getting Started](GETTING_STARTED.md) | Install, configure, validate your first molecule |
-| [User Guide](USER_GUIDE.md) | All features: batch processing, alerts, scoring |
+| [User Guide](USER_GUIDE.md) | All features: batch processing, alerts, scoring, standardization, database lookup, export |
 | [Troubleshooting](TROUBLESHOOTING.md) | Fix common issues |
 
 ### For Developers
 
 | Guide | What You'll Learn |
 |-------|-------------------|
-| [API Reference](API_REFERENCE.md) | All endpoints, parameters, responses |
-| [Deployment](DEPLOYMENT.md) | Production setup with Docker, SSL, monitoring |
+| [API Reference](API_REFERENCE.md) | All endpoints, parameters, request/response schemas, rate limits, WebSocket, API key auth |
+| [Deployment](DEPLOYMENT.md) | Production setup with Docker, Nginx, deployment profiles, SSL, monitoring |
 
 ---
 

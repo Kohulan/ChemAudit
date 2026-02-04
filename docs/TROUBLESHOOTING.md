@@ -30,13 +30,13 @@
 
 **Symptoms:**
 ```
-Error starting userland proxy: listen tcp 0.0.0.0:8000: bind: address already in use
+Error starting userland proxy: listen tcp 0.0.0.0:8001: bind: address already in use
 ```
 
 **Solution:**
 ```bash
 # Find what's using the port
-lsof -i :8000
+lsof -i :8001
 
 # Kill the process or change the port in docker-compose.yml
 ```
@@ -101,12 +101,17 @@ npm run dev
 
 **Verify backend is running:**
 ```bash
-curl http://localhost:8000/api/v1/health
+# Dev mode (mapped to port 8001)
+curl http://localhost:8001/api/v1/health
+
+# Production (behind Nginx on port 80)
+curl http://localhost/api/v1/health
 ```
 
 **Check CORS settings in `.env`:**
 ```env
-CORS_ORIGINS=["http://localhost:3002"]
+# Comma-separated string (not JSON array)
+CORS_ORIGINS_STR=http://localhost:3002,http://127.0.0.1:3002
 ```
 
 </details>
@@ -184,12 +189,17 @@ c1ccccc1
 <details>
 <summary><b>🔴 "File too large"</b></summary>
 
-**Current limits:**
-- Maximum file size: 1 GB
-- Maximum molecules: 1,000,000
+**Default limits (configurable per deployment profile):**
+- Maximum file size: 500 MB (default), up to 1 GB
+- Maximum molecules: 10,000 (default), up to 1,000,000
+
+**Check your deployment profile limits:**
+```bash
+curl http://localhost:8001/api/v1/config
+```
 
 **If you need larger:**
-Split your file into smaller chunks:
+Use a bigger deployment profile (`./deploy.sh large`) or split your file:
 ```bash
 # Split SDF file
 split -l 10000 large_file.sdf chunk_
@@ -270,15 +280,21 @@ grep -c '$$$$' your_file.sdf  # Count molecules
 
 **You've exceeded the rate limit.**
 
-**Limits:**
+**Default anonymous limits:**
 | Endpoint | Limit |
 |----------|-------|
-| `/validate` | 100/min |
+| `/validate` | 10/min |
+| `/validate/async` | 10/min |
+| `/score` | 10/min |
+| `/alerts` | 10/min |
+| `/standardize` | 10/min |
 | `/batch/upload` | 10/min |
+| `/batch/{id}` (results) | 60/min |
+| `/integrations/*` | 30/min |
 
 **Solution:**
-- Wait and retry
-- Implement exponential backoff
+- Wait and retry with exponential backoff
+- Use an API key for higher limits
 - Use batch processing for many molecules
 
 </details>
@@ -313,7 +329,7 @@ docker-compose restart backend
 **For batch:** Normal for large files - use WebSocket for progress
 
 **Increase timeout (if needed):**
-Edit `nginx/locations.conf`:
+Edit `nginx/nginx.conf`:
 ```nginx
 proxy_read_timeout 600s;
 ```
@@ -346,14 +362,16 @@ proxy_read_timeout 600s;
 <details>
 <summary><b>🔴 Batch processing too slow</b></summary>
 
-**Scale workers:**
+**Scale workers (adjust CELERY_WORKERS in .env):**
 ```bash
-docker-compose up -d --scale celery-worker=4
+# Production uses separate default and priority worker containers
+# Increase concurrency via environment variable
+CELERY_WORKERS=8 docker-compose -f docker-compose.prod.yml up -d celery-worker
 ```
 
 **Check worker utilization:**
 ```bash
-docker-compose exec backend celery -A app.celery_app inspect active
+docker-compose exec celery-worker celery -A app.celery_app inspect active
 ```
 
 **Tune PostgreSQL:**
