@@ -79,8 +79,9 @@ const config: Config = {
         },
         {
           href: 'https://github.com/Kohulan/ChemAudit',
-          label: 'GitHub',
           position: 'right',
+          className: 'header-github-link',
+          'aria-label': 'GitHub repository',
         },
       ],
     },
