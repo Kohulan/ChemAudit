@@ -1,30 +1,110 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * ChemAudit Documentation Site Styles
+ *
+ * Combines Docusaurus theming with claymorphism design system.
+ * Material Design-inspired typography and spacing.
  */
 
-/* You can override the default Infima variables here. */
+/* Import claymorphism system */
+@import './clay.css';
+
+/* ========== Docusaurus Color Variables ========== */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  /* Laboratory Crimson primary color */
+  --ifm-color-primary: #C41E3A;
+  --ifm-color-primary-dark: #b01b34;
+  --ifm-color-primary-darker: #a61931;
+  --ifm-color-primary-darkest: #891528;
+  --ifm-color-primary-light: #ce2140;
+  --ifm-color-primary-lighter: #d42446;
+  --ifm-color-primary-lightest: #e53456;
+
+  /* Typography */
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Layout */
+  --ifm-container-width: 1400px;
+  --ifm-spacing-horizontal: 1.5rem;
+
+  /* Code */
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* ========== Dark Mode Colors ========== */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  /* Brighter primary for dark mode */
+  --ifm-color-primary: #E53456;
+  --ifm-color-primary-dark: #e21e41;
+  --ifm-color-primary-darker: #d61c3d;
+  --ifm-color-primary-darkest: #b11732;
+  --ifm-color-primary-light: #e84a6b;
+  --ifm-color-primary-lighter: #ea566f;
+  --ifm-color-primary-lightest: #ef7a8e;
+
+  /* Background colors */
+  --ifm-background-color: #1a1a24;
+  --ifm-background-surface-color: #2d2d3a;
+
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Material-Inspired Content Typography ========== */
+.markdown {
+  line-height: 1.7;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* ========== Sidebar Clay Hover Effects ========== */
+.theme-doc-sidebar-item-link {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+nav.menu .menu__link:hover {
+  background: rgba(196, 30, 58, 0.08);
+}
+
+[data-theme='dark'] nav.menu .menu__link:hover {
+  background: rgba(229, 52, 86, 0.12);
+}
+
+/* ========== Clay-Styled Admonitions ========== */
+.alert {
+  border-radius: 16px;
+  border-left-width: 4px;
+  box-shadow: inset -4px -4px 8px rgba(255, 255, 255, 0.5),
+              inset 4px 4px 8px rgba(0, 0, 0, 0.08),
+              4px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .alert {
+  box-shadow: inset -6px -6px 12px rgba(255, 255, 255, 0.03),
+              inset 4px 4px 12px rgba(0, 0, 0, 0.4),
+              6px 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Code Block Styling ========== */
+.prism-code {
+  border-radius: 12px;
+}
+
+/* ========== Navbar Enhancement ========== */
+.navbar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .navbar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }

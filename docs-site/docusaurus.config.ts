@@ -88,6 +88,23 @@ const config: Config = {
       style: 'dark',
       links: [
         {
+          title: 'Docs',
+          items: [
+            {
+              label: 'Getting Started',
+              to: '/docs/getting-started/installation',
+            },
+            {
+              label: 'User Guide',
+              to: '/docs/user-guide/single-validation',
+            },
+            {
+              label: 'API Reference',
+              to: '/docs/api/overview',
+            },
+          ],
+        },
+        {
           title: 'Community',
           items: [
             {
