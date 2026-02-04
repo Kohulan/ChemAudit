@@ -36,7 +36,7 @@ export const DEFAULT_LIMITS: DeploymentLimits = {
  */
 export const DEFAULT_CONFIG: ConfigResponse = {
   app_name: 'ChemAudit',
-  app_version: '0.1.0',
+  app_version: '1.0.0',
   deployment_profile: 'medium',
   limits: DEFAULT_LIMITS,
 };

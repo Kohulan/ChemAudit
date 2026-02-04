@@ -1,10 +1,6 @@
 version: '3.8'
 
-# Production deployment configuration for ChemAudit
-# This configuration uses production-optimized images and settings
-
 services:
-  # PostgreSQL database
   postgres:
     image: postgres:16-alpine
     container_name: chemaudit-postgres-prod
@@ -24,7 +20,6 @@ services:
       retries: 5
       start_period: 10s
 
-  # Redis for caching and Celery message broker
   redis:
     image: redis:7-alpine
     container_name: chemaudit-redis-prod
@@ -41,14 +36,21 @@ services:
       retries: 5
       start_period: 5s
 
-  # Backend API server
+  # Frontend builder - builds React app
+  frontend-builder:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    image: chemaudit-frontend:latest
+    container_name: chemaudit-frontend-builder
+    volumes:
+      - frontend_dist:/usr/share/nginx/html:ro
+    command: ["/bin/sh", "-c", "echo 'Frontend built successfully'"]
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-      args:
-        - NO_PROXY=localhost,127.0.0.1
-        - GUNICORN_WORKERS=${GUNICORN_WORKERS:-4}
     container_name: chemaudit-backend-prod
     restart: unless-stopped
     environment:
@@ -62,7 +64,6 @@ services:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - DEPLOYMENT_PROFILE=${DEPLOYMENT_PROFILE:-medium}
       - GUNICORN_WORKERS=${GUNICORN_WORKERS:-4}
-      # Security settings (REQUIRED)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
       - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
@@ -71,12 +72,7 @@ services:
       - RATE_LIMIT_BAN_THRESHOLD=${RATE_LIMIT_BAN_THRESHOLD:-100}
       - RATE_LIMIT_BAN_DURATION_MINUTES=${RATE_LIMIT_BAN_DURATION_MINUTES:-60}
       - CORS_ORIGINS_STR=${CORS_ORIGINS:?CORS_ORIGINS is required for production}
-      # External API Configuration
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
-      - COCONUT_API_URL=${COCONUT_API_URL:-https://coconut.naturalproducts.net/api}
-      - PUBCHEM_API_URL=${PUBCHEM_API_URL:-https://pubchem.ncbi.nlm.nih.gov/rest/pug}
-      - CHEMBL_API_URL=${CHEMBL_API_URL:-https://www.ebi.ac.uk/chembl/api/data}
-      - EXTERNAL_API_TIMEOUT=${EXTERNAL_API_TIMEOUT:-30}
     deploy:
       resources:
         limits:
@@ -96,7 +92,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Celery worker for large batch jobs (default queue)
   celery-worker:
     build:
       context: ./backend
@@ -129,7 +124,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Celery worker for small/priority jobs (high_priority queue)
   celery-worker-priority:
     build:
       context: ./backend
@@ -144,12 +138,6 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
-      # External API Configuration
-      - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
-      - COCONUT_API_URL=${COCONUT_API_URL:-https://coconut.naturalproducts.net/api}
-      - PUBCHEM_API_URL=${PUBCHEM_API_URL:-https://pubchem.ncbi.nlm.nih.gov/rest/pug}
-      - CHEMBL_API_URL=${CHEMBL_API_URL:-https://www.ebi.ac.uk/chembl/api/data}
-      - EXTERNAL_API_TIMEOUT=${EXTERNAL_API_TIMEOUT:-30}
     deploy:
       resources:
         limits:
@@ -168,7 +156,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Nginx reverse proxy
   nginx:
     image: nginx:1.25-alpine
     container_name: chemaudit-nginx-prod
@@ -178,10 +165,12 @@ services:
       - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend-dist:/usr/share/nginx/html:ro
+      - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
       backend:
         condition: service_healthy
+      frontend-builder:
+        condition: service_completed_successfully
     networks:
       - frontend
     healthcheck:
@@ -191,7 +180,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # Prometheus monitoring (optional - disable in production if not needed)
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: chemaudit-prometheus-prod
@@ -216,7 +204,6 @@ services:
     profiles:
       - monitoring
 
-  # Grafana dashboards (optional - disable in production if not needed)
   grafana:
     image: grafana/grafana:10.2.0
     container_name: chemaudit-grafana-prod
@@ -254,3 +241,4 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  frontend_dist:

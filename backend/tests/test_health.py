@@ -13,7 +13,7 @@ async def test_health_check_endpoint(client):
     data = response.json()
     assert data["status"] == "healthy"
     assert data["app_name"] == "ChemAudit"
-    assert data["app_version"] == "0.1.0"
+    assert data["app_version"] == "1.0.0"
     assert "rdkit_version" in data
     # RDKit version should be present if installed
     if data["rdkit_version"] is not None:
@@ -30,7 +30,7 @@ async def test_root_endpoint(client):
     assert "name" in data
     assert "version" in data
     assert data["name"] == "ChemAudit"
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "1.0.0"
 
 
 @pytest.mark.asyncio

@@ -32,7 +32,7 @@ class ConfigResponse(BaseModel):
         "json_schema_extra": {
             "example": {
                 "app_name": "ChemAudit",
-                "app_version": "0.1.0",
+                "app_version": "1.0.0",
                 "deployment_profile": "medium",
                 "limits": {
                     "max_batch_size": 10000,

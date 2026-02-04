@@ -134,7 +134,7 @@ curl http://localhost:8000/api/v1/config
 ```json
 {
   "app_name": "ChemAudit",
-  "app_version": "0.1.0",
+  "app_version": "1.0.0",
   "deployment_profile": "large",
   "limits": {
     "max_batch_size": 50000,
