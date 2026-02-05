@@ -144,7 +144,7 @@ describe('ValidationResults', () => {
             check_name: 'undefined_stereocenters',
             passed: false,
             severity: 'warning',
-            message: 'Found 1 undefined stereocenter(s)',
+            message: 'Found 1 undefined stereocenter(s) out of a total of 3 stereocenter(s)',
           }),
         ],
       });
@@ -166,7 +166,7 @@ describe('ValidationResults', () => {
             check_name: 'undefined_stereocenters',
             passed: false,
             severity: 'warning',
-            message: 'Found 1 undefined stereocenter(s)',
+            message: 'Found 1 undefined stereocenter(s) out of a total of 3 stereocenter(s)',
           }),
         ],
       });

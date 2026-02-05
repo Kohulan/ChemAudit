@@ -78,7 +78,7 @@ class UndefinedStereoCentersCheck(BaseCheck):
                 check_name=self.name,
                 passed=False,
                 severity=Severity.WARNING,
-                message=f"Found {len(undefined_centers)} undefined stereocenter(s)",
+                message=f"Found {len(undefined_centers)} undefined stereocenter(s) out of a total of {len(chiral_centers)} stereocenter(s)",
                 affected_atoms=affected_atoms,
                 details={
                     "undefined_count": len(undefined_centers),
@@ -189,7 +189,7 @@ class UndefinedDoubleBondStereoCheck(BaseCheck):
                 check_name=self.name,
                 passed=False,
                 severity=Severity.WARNING,
-                message=f"Found {len(undefined_bonds)} double bond(s) with undefined E/Z stereo",
+                message=f"Found {len(undefined_bonds)} double bond(s) with undefined E/Z stereo out of a total of {total_double_bonds} double bond(s)",
                 affected_atoms=list(set(affected_atoms)),  # Remove duplicates
                 details={
                     "undefined_count": len(undefined_bonds),

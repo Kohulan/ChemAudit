@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import type { ReactElement } from 'react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
-import type { ScaffoldResult } from '../../types/scoring';
+import { CopyButton } from '../ui/CopyButton';
 import { InfoTooltip } from '../ui/Tooltip';
+import type { ScaffoldResult } from '../../types/scoring';
 
 interface ScaffoldDisplayProps {
   result: ScaffoldResult;
@@ -12,7 +14,7 @@ type ScaffoldView = 'murcko' | 'generic';
 /**
  * Displays Murcko scaffold with toggle between standard and generic forms.
  */
-export function ScaffoldDisplay({ result }: ScaffoldDisplayProps) {
+export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement {
   const [activeView, setActiveView] = useState<ScaffoldView>('murcko');
 
   const { scaffold_smiles, generic_scaffold_smiles, has_scaffold, message, details } = result;
@@ -41,7 +43,7 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps) {
         </div>
         {has_scaffold && (
           <span className="text-sm text-gray-500">
-            {details.scaffold_rings as number || 0} ring(s)
+            {Number(details.scaffold_rings) || 0} ring(s)
           </span>
         )}
       </div>
@@ -73,18 +75,18 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps) {
           </div>
 
           {/* Scaffold viewer */}
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full min-h-[300px]">
             <MoleculeViewer
               smiles={currentSmiles}
-              width={200}
-              height={150}
-              className="border border-gray-200"
+              width={500}
+              height={350}
             />
           </div>
 
           {/* SMILES display */}
-          <div className="mt-4 p-2 bg-gray-50 rounded text-xs font-mono text-gray-600 break-all">
-            {currentSmiles}
+          <div className="mt-4 p-2 bg-gray-50 rounded text-xs font-mono text-gray-600 break-all flex items-center gap-2">
+            <span className="flex-1">{currentSmiles}</span>
+            <CopyButton text={currentSmiles || ''} size={14} />
           </div>
 
           {/* Message */}

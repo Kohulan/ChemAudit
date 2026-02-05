@@ -705,12 +705,14 @@
   .molecule-preview {
     border-radius: 20px;
     background: var(--color-surface-sunken);
-    border: 1px solid var(--color-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     position: relative;
     overflow: hidden;
+  }
+
+  /* Ensure children render above the dot-grid and gradient pseudo-elements */
+  .molecule-preview > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* Refined dot grid pattern */
@@ -734,7 +736,10 @@
 
   .dark .molecule-preview {
     background: rgba(0, 0, 0, 0.4);
-    border-color: var(--color-border-strong);
+  }
+
+  .dark .molecule-preview::after {
+    background: none;
   }
 }
 
