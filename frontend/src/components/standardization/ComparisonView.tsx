@@ -1,9 +1,8 @@
 /**
- * ComparisonView Component
- *
- * Shows side-by-side comparison of original and standardized molecules.
- * Handles different molecule sizes gracefully with proper scaling.
+ * Shows comparison of original and standardized molecules.
+ * When structures are identical, displays a single viewer with a badge.
  */
+import type { ReactElement } from 'react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
 
@@ -13,11 +12,17 @@ interface ComparisonViewProps {
   className?: string;
 }
 
+const VIEWER_WIDTH = 550;
+const VIEWER_HEIGHT = 300;
+
+const VIEWER_CONTAINER_CLASS =
+  'border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 p-2 min-h-[280px]';
+
 export function ComparisonView({
   originalSmiles,
   standardizedSmiles,
-  className = ''
-}: ComparisonViewProps) {
+  className = '',
+}: ComparisonViewProps): ReactElement {
   const isIdentical = originalSmiles === standardizedSmiles;
 
   // If identical, show single viewer with badge
@@ -40,18 +45,18 @@ export function ComparisonView({
             <CopyButton text={originalSmiles} size={12} />
           </div>
         </div>
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 p-2">
+        <div className={VIEWER_CONTAINER_CLASS}>
           <MoleculeViewer
             smiles={originalSmiles}
-            width={400}
-            height={200}
+            width={VIEWER_WIDTH}
+            height={VIEWER_HEIGHT}
           />
         </div>
       </div>
     );
   }
 
-  // Vertical (top/bottom) comparison - gives more horizontal space
+  // Vertical (top/bottom) comparison
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       {/* Original */}
@@ -65,11 +70,11 @@ export function ComparisonView({
             <CopyButton text={originalSmiles} size={12} />
           </div>
         </div>
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 p-2">
+        <div className={VIEWER_CONTAINER_CLASS}>
           <MoleculeViewer
             smiles={originalSmiles}
-            width={400}
-            height={180}
+            width={VIEWER_WIDTH}
+            height={VIEWER_HEIGHT}
           />
         </div>
       </div>
@@ -94,11 +99,11 @@ export function ComparisonView({
             <CopyButton text={standardizedSmiles} size={12} />
           </div>
         </div>
-        <div className="border-2 border-[var(--color-primary)] rounded-lg bg-[var(--color-primary)]/5 p-2">
+        <div className="border border-[var(--color-primary)] rounded-lg bg-[var(--color-primary)]/5 p-2 min-h-[280px]">
           <MoleculeViewer
             smiles={standardizedSmiles}
-            width={400}
-            height={180}
+            width={VIEWER_WIDTH}
+            height={VIEWER_HEIGHT}
           />
         </div>
       </div>

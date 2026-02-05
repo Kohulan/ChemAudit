@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import {
   Info,
   Share2,
   ChevronDown,
+  Download,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -170,6 +171,9 @@ export function SingleValidationPage() {
 
   // All checks collapsible section
   const [showAllChecks, setShowAllChecks] = useState(false);
+
+  // Molecule preview ref for image download
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
@@ -331,6 +335,31 @@ export function SingleValidationPage() {
   const validationIssues = result?.issues || [];
   const alertIssues = alertResult?.alerts || [];
 
+  const handleDownloadImage = useCallback(() => {
+    const svgEl = previewRef.current?.querySelector('svg');
+    if (!svgEl) return;
+
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.style.background = '#ffffff';
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `molecule-${(canonicalSmiles || molecule || 'structure').slice(0, 30)}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [canonicalSmiles, molecule]);
+
+  function getLoadingText(): string {
+    if (isLoading) return 'Running validation checks...';
+    if (databaseLoading) return 'Querying external databases...';
+    if (scoringLoading) return 'Calculating scores...';
+    if (standardizationLoading) return 'Running standardization pipeline...';
+    return 'Screening for structural alerts...';
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
       {/* Header */}
@@ -410,7 +439,17 @@ export function SingleValidationPage() {
                 <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                   Input Structure
                 </h4>
-                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">SMILES, InChI, or draw</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  SMILES, InChI, or{' '}
+                  <a
+                    href="https://app.naturalproducts.net/depict/structuredraw"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-primary)] hover:underline"
+                  >
+                    draw a structure here
+                  </a>
+                </p>
               </div>
             </div>
             <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
@@ -688,8 +727,8 @@ export function SingleValidationPage() {
                         <Info className="w-4 h-4" />
                       </div>
                       <p className="text-[var(--color-text-secondary)] text-sm">
-                        Validate your chemical structure for correctness and calculate
-                        ML-readiness scores for machine learning applications.
+                        Validate your chemical structure for correctness, standardize representations,
+                        and assess machine learning readiness scores to ensure your compounds are suitable for ML model training and prediction.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -893,13 +932,7 @@ export function SingleValidationPage() {
               >
                 <MoleculeLoader
                   size="md"
-                  text={
-                    isLoading ? 'Running validation checks...' :
-                    databaseLoading ? 'Querying external databases...' :
-                    scoringLoading ? 'Calculating scores...' :
-                    standardizationLoading ? 'Running standardization pipeline...' :
-                    'Screening for structural alerts...'
-                  }
+                  text={getLoadingText()}
                 />
               </motion.div>
             )}
@@ -968,8 +1001,8 @@ export function SingleValidationPage() {
           ) : (
             <>
               {/* Molecule Viewer */}
-              <div className="card-glow p-5 sm:p-6">
-                <div className="flex items-center gap-3 mb-4">
+              <div className="card-glow p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                     <Atom className="w-5 h-5" />
                   </div>
@@ -1001,13 +1034,27 @@ export function SingleValidationPage() {
                       {showCIP ? 'Hide CIP' : 'Show CIP'}
                     </button>
                   )}
+                  {molecule && (
+                    <button
+                      onClick={handleDownloadImage}
+                      className={cn(
+                        'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
+                        'border shadow-sm',
+                        'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                      )}
+                      title="Download structure as SVG"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      SVG
+                    </button>
+                  )}
                 </div>
-                <div className="molecule-preview rounded-xl min-h-[280px] flex items-center justify-center">
+                <div ref={previewRef} className="molecule-preview rounded-xl">
                   <MoleculeViewer
                     smiles={canonicalSmiles || molecule}
                     highlightAtoms={highlightedAtoms}
-                    width={380}
-                    height={280}
+                    width={700}
+                    height={500}
                     showCIP={showCIP}
                   />
                 </div>
