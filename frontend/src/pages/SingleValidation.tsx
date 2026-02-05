@@ -447,8 +447,9 @@ export function SingleValidationPage() {
                     rel="noopener noreferrer"
                     className="text-[var(--color-primary)] hover:underline"
                   >
-                    draw a structure here
+                    draw a structure
                   </a>
+                  {' '}and paste the SMILES back
                 </p>
               </div>
             </div>
