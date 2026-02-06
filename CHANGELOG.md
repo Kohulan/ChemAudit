@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/Kohulan/ChemAudit/compare/v1.0.0...v1.1.0) (2026-02-06)
+
+
+### Features
+
+* include detailed references and highlighting download option ([4bb21ea](https://github.com/Kohulan/ChemAudit/commit/4bb21eaed3349ade759acd58a560367594b84f05))
+
+
+### Bug Fixes
+
+* aethetic fixes and depictions ([1fec46d](https://github.com/Kohulan/ChemAudit/commit/1fec46d550226f8e4150e862a25a510619c6aff4))
+* aethetic fixes and depictions ([bea6200](https://github.com/Kohulan/ChemAudit/commit/bea6200ee9e145703fd976fbf869a109776382f3))
+* docker frontend build with [roxy ([bf3e075](https://github.com/Kohulan/ChemAudit/commit/bf3e07521b5c5e9b77337fe6f3e3b62d5eeae512))
+* docker frontend build with proxy ([c460c06](https://github.com/Kohulan/ChemAudit/commit/c460c06a43bf27aaba191f5577826b9490300503))
+* frontend deployment issues ([4910f3e](https://github.com/Kohulan/ChemAudit/commit/4910f3e8996bcabd04eaf5f79e6408b8e280f235))
+* frontend deployment issues ([a895034](https://github.com/Kohulan/ChemAudit/commit/a895034add369ef9b8da936a03579929dcd6f918))
+* information on drawing molecule ([83d12aa](https://github.com/Kohulan/ChemAudit/commit/83d12aadd79485e9a6dddaf7a7e1dd3de82d91b6))
+
 ## 0.1.0 (2026-02-05)
 
 
