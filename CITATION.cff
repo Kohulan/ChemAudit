@@ -4,8 +4,12 @@ authors:
   - family-names: "Rajan"
     given-names: "Kohulan"
     orcid: "https://orcid.org/0000-0003-1066-7792"
+  - family-names: "Steinbeck"
+    given-names: "Christoph"
+    orcid: "https://orcid.org/0000-0001-6966-0814"
 title: "ChemAudit"
 version: 1.0.0
+doi: "10.5281/zenodo.18492676"
 date-released: 2026-01-29
 url: "https://github.com/Kohulan/ChemAudit"
 license: MIT
