@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/Kohulan/ChemAudit/compare/v1.1.0...v1.1.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* batch validation issue nginx ([99ff3e1](https://github.com/Kohulan/ChemAudit/commit/99ff3e14481c28fa2e818f77254480425cef909c))
+* batch validation issue nginx ([b7b9f85](https://github.com/Kohulan/ChemAudit/commit/b7b9f85156103b0dd9e067c4664cfe2e0fbd7ca7))
+
 ## [1.1.0](https://github.com/Kohulan/ChemAudit/compare/v1.0.0...v1.1.0) (2026-02-06)
 
 
