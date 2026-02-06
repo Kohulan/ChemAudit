@@ -2,6 +2,50 @@ import { useState, useEffect, useRef } from 'react';
 import { getRDKit, RDKitMol } from './useRDKit';
 
 /**
+ * Add atom index labels to highlighted atoms in SVG.
+ * RDKit draws highlight ellipses in the same order as the atoms array passed to get_svg_with_highlights.
+ * We find these ellipses and add text labels showing the atom indices.
+ */
+function addAtomLabelsToSvg(svgContent: string, atomIndices: number[]): string {
+  if (atomIndices.length === 0) return svgContent;
+
+  // RDKit draws atom highlights as ellipses at the beginning of the SVG.
+  // The ellipses are drawn in the same order as atomIndices array.
+  const ellipsePattern = /<ellipse[^>]*cx=["']([^"']+)["'][^>]*cy=["']([^"']+)["'][^>]*\/>/gi;
+  const positions: Array<{ cx: number; cy: number; atomIdx: number }> = [];
+
+  let matchResult;
+  let ellipseCount = 0;
+  while ((matchResult = ellipsePattern.exec(svgContent)) !== null) {
+    // Only process ellipses up to the number of highlighted atoms
+    if (ellipseCount < atomIndices.length) {
+      positions.push({
+        cx: parseFloat(matchResult[1]),
+        cy: parseFloat(matchResult[2]),
+        atomIdx: atomIndices[ellipseCount],
+      });
+    }
+    ellipseCount++;
+  }
+
+  // If no positions found, return original
+  if (positions.length === 0) return svgContent;
+
+  // Create text labels positioned near the highlighted atoms
+  // Offset slightly up and right, with white stroke for readability
+  const labelElements = positions
+    .map(({ cx, cy, atomIdx }) => {
+      const x = cx + 12;
+      const y = cy - 12;
+      return `<text x="${x}" y="${y}" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#B45309" stroke="white" stroke-width="3" paint-order="stroke">${atomIdx}</text>`;
+    })
+    .join('');
+
+  // Insert labels before closing svg tag
+  return svgContent.replace(/<\/svg>/, `${labelElements}</svg>`);
+}
+
+/**
  * Expand SVG viewBox by adding padding to prevent molecule cutoff.
  * Parses the viewBox, expands it, and shifts content to center.
  */
@@ -152,10 +196,16 @@ export function useMolecule(
       if (highlightAtoms.length > 0) {
         const highlightDetails = JSON.stringify({
           atoms: highlightAtoms,
-          highlightColour: [1, 0.5, 0.5],
+          highlightColour: [1, 0.3, 0],  // Bright orange for better visibility
+          highlightRadius: 0.4,          // Slightly larger highlight radius
           ...drawingOptions,
         });
+
+        // Render with highlights
         svgContent = mol.get_svg_with_highlights(highlightDetails);
+
+        // Add atom index labels to highlighted atoms via post-processing
+        svgContent = addAtomLabelsToSvg(svgContent, highlightAtoms);
       } else if (showCIP) {
         try {
           svgContent = mol.get_svg_with_highlights(JSON.stringify(drawingOptions));

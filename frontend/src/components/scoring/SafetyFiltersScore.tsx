@@ -268,13 +268,13 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
       <div className="space-y-2">
         <FilterCard
           name="PAINS"
-          description="Pan Assay Interference Compounds - 480 patterns that cause false positives in HTS"
+          description="Pan Assay Interference Compounds - 480 patterns that cause false positives in HTS. 📖 Baell & Holloway. J Med Chem (2010)"
           result={pains}
           delay={0.1}
         />
         <FilterCard
           name="Brenk"
-          description="Structural alerts for toxicity and unfavorable pharmacokinetics"
+          description="Structural alerts for toxicity and unfavorable pharmacokinetics. 📖 Brenk et al. ChemMedChem (2008)"
           result={brenk}
           delay={0.15}
         />

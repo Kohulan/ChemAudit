@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import {
   Building2,
@@ -26,6 +26,7 @@ import {
   Activity,
   Target,
   Brain,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -144,6 +145,11 @@ export function AboutPage() {
         {/* Advanced Scoring Section - Full width */}
         <AnimatedCard delay={0.4} className="mb-6">
           <AdvancedScoring />
+        </AnimatedCard>
+
+        {/* Scientific References - Full width */}
+        <AnimatedCard delay={0.45} className="mb-6">
+          <ScientificReferences />
         </AnimatedCard>
 
         {/* Acknowledgments - Full width */}
@@ -995,6 +1001,319 @@ function AdvancedScoring() {
               Pfizer's 3/75 and CNS MPO rules, GSK's 4/400 rule, Abbott's Golden Triangle,
               and comprehensive PAINS filtering with 480+ structural alert patterns from ChEMBL,
               NIH, and major pharmaceutical companies.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ============================================================================
+// SCIENTIFIC REFERENCES
+// ============================================================================
+
+interface ReferenceCategory {
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+  references: {
+    method: string;
+    citation: string;
+    doi?: string;
+    tooltip: string;
+  }[];
+}
+
+function ScientificReferences() {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  const categories: ReferenceCategory[] = [
+    {
+      title: 'Drug-likeness Rules',
+      icon: <Pill className="w-4 h-4" />,
+      color: 'from-purple-500/20 to-violet-500/10',
+      references: [
+        {
+          method: "Lipinski's Rule of Five",
+          citation: 'Lipinski CA, Lombardo F, Dominy BW, Feeney PJ. Experimental and computational approaches to estimate solubility and permeability in drug discovery and development settings. Adv Drug Deliv Rev. 2001;46(1-3):3-26.',
+          doi: '10.1016/S0169-409X(00)00129-0',
+          tooltip: 'Lipinski et al. Adv Drug Deliv Rev (2001)',
+        },
+        {
+          method: 'QED (Quantitative Estimate of Drug-likeness)',
+          citation: 'Bickerton GR, Paolini GV, Besnard J, Muresan S, Hopkins AL. Quantifying the chemical beauty of drugs. Nat Chem. 2012;4(2):90-98.',
+          doi: '10.1038/nchem.1243',
+          tooltip: 'Bickerton et al. Nat Chem (2012)',
+        },
+        {
+          method: 'Veber Rules',
+          citation: 'Veber DF, Johnson SR, Cheng HY, Smith BR, Ward KW, Kopple KD. Molecular properties that influence the oral bioavailability of drug candidates. J Med Chem. 2002;45(12):2615-2623.',
+          doi: '10.1021/jm020017n',
+          tooltip: 'Veber et al. J Med Chem (2002)',
+        },
+        {
+          method: 'Rule of Three (Ro3)',
+          citation: "Congreve M, Carr R, Murray C, Jhoti H. A 'rule of three' for fragment-based lead discovery? Drug Discov Today. 2003;8(19):876-877.",
+          doi: '10.1016/S1359-6446(03)02831-9',
+          tooltip: 'Congreve et al. Drug Discov Today (2003)',
+        },
+        {
+          method: 'Ghose Filter',
+          citation: 'Ghose AK, Viswanadhan VN, Wendoloski JJ. A knowledge-based approach in designing combinatorial or medicinal chemistry libraries for drug discovery. J Comb Chem. 1999;1(1):55-68.',
+          doi: '10.1021/cc9800071',
+          tooltip: 'Ghose et al. J Comb Chem (1999)',
+        },
+        {
+          method: 'Muegge Filter',
+          citation: 'Muegge I, Heald SL, Brittelli D. Simple selection criteria for drug-like chemical matter. J Med Chem. 2001;44(12):1841-1846.',
+          doi: '10.1021/jm015507e',
+          tooltip: 'Muegge et al. J Med Chem (2001)',
+        },
+      ],
+    },
+    {
+      title: 'ADMET Predictions',
+      icon: <Activity className="w-4 h-4" />,
+      color: 'from-cyan-500/20 to-teal-500/10',
+      references: [
+        {
+          method: 'Synthetic Accessibility (SA) Score',
+          citation: 'Ertl P, Schuffenhauer A. Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions. J Cheminform. 2009;1:8.',
+          doi: '10.1186/1758-2946-1-8',
+          tooltip: 'Ertl & Schuffenhauer. J Cheminform (2009)',
+        },
+        {
+          method: 'ESOL Solubility',
+          citation: 'Delaney JS. ESOL: estimating aqueous solubility directly from molecular structure. J Chem Inf Comput Sci. 2004;44(3):1000-1005.',
+          doi: '10.1021/ci034243x',
+          tooltip: 'Delaney. J Chem Inf Comput Sci (2004)',
+        },
+        {
+          method: 'Fsp3 (3D Complexity)',
+          citation: 'Lovering F, Bikker J, Humblet C. Escape from flatland: increasing saturation as an approach to improving clinical success. J Med Chem. 2009;52(21):6752-6756.',
+          doi: '10.1021/jm901241e',
+          tooltip: 'Lovering et al. J Med Chem (2009)',
+        },
+        {
+          method: 'CNS MPO Score',
+          citation: 'Wager TT, Hou X, Verhoest PR, Villalobos A. Moving beyond rules: the development of a central nervous system multiparameter optimization (CNS MPO) approach. ACS Chem Neurosci. 2010;1(6):435-449.',
+          doi: '10.1021/cn100008c',
+          tooltip: 'Wager et al. ACS Chem Neurosci (2010)',
+        },
+        {
+          method: 'Pfizer 3/75 Rule',
+          citation: 'Hughes JD, Blagg J, Price DA, et al. Physiochemical drug properties associated with in vivo toxicological outcomes. Bioorg Med Chem Lett. 2008;18(17):4872-4875.',
+          doi: '10.1016/j.bmcl.2008.07.071',
+          tooltip: 'Hughes et al. Bioorg Med Chem Lett (2008)',
+        },
+        {
+          method: 'GSK 4/400 Rule',
+          citation: 'Gleeson MP. Generation of a set of simple, interpretable ADMET rules of thumb. J Med Chem. 2008;51(4):817-834.',
+          doi: '10.1021/jm701122q',
+          tooltip: 'Gleeson. J Med Chem (2008)',
+        },
+        {
+          method: 'Golden Triangle',
+          citation: 'Johnson TW, Dress KR, Edwards M. Using the Golden Triangle to optimize clearance and oral absorption. Bioorg Med Chem Lett. 2009;19(19):5560-5564.',
+          doi: '10.1016/j.bmcl.2009.08.045',
+          tooltip: 'Johnson et al. Bioorg Med Chem Lett (2009)',
+        },
+      ],
+    },
+    {
+      title: 'Safety Filters',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      color: 'from-red-500/20 to-rose-500/10',
+      references: [
+        {
+          method: 'PAINS (Pan-Assay Interference Compounds)',
+          citation: 'Baell JB, Holloway GA. New substructure filters for removal of pan assay interference compounds (PAINS) from screening libraries and for their exclusion in bioassays. J Med Chem. 2010;53(7):2719-2740.',
+          doi: '10.1021/jm901137j',
+          tooltip: 'Baell & Holloway. J Med Chem (2010)',
+        },
+        {
+          method: 'Brenk Alerts',
+          citation: 'Brenk R, Schipani A, James D, et al. Lessons learnt from assembling screening libraries for drug discovery for neglected diseases. ChemMedChem. 2008;3(3):435-444.',
+          doi: '10.1002/cmdc.200700139',
+          tooltip: 'Brenk et al. ChemMedChem (2008)',
+        },
+      ],
+    },
+    {
+      title: 'Scoring & Analysis',
+      icon: <Target className="w-4 h-4" />,
+      color: 'from-emerald-500/20 to-green-500/10',
+      references: [
+        {
+          method: 'NP-likeness Score',
+          citation: 'Ertl P, Roggo S, Schuffenhauer A. Natural product-likeness score and its application for prioritization of compound libraries. J Chem Inf Model. 2008;48(1):68-74.',
+          doi: '10.1021/ci700286x',
+          tooltip: 'Ertl et al. J Chem Inf Model (2008)',
+        },
+        {
+          method: 'Murcko Scaffold',
+          citation: 'Bemis GW, Murcko MA. The properties of known drugs. 1. Molecular frameworks. J Med Chem. 1996;39(15):2887-2893.',
+          doi: '10.1021/jm9602928',
+          tooltip: 'Bemis & Murcko. J Med Chem (1996)',
+        },
+        {
+          method: 'Aggregator Detection',
+          citation: 'McGovern SL, Caselli E, Grigorieff N, Shoichet BK. A common mechanism underlying promiscuous inhibitors from virtual and high-throughput screening. J Med Chem. 2002;45(8):1712-1722.',
+          doi: '10.1021/jm010533y',
+          tooltip: 'McGovern et al. J Med Chem (2002)',
+        },
+      ],
+    },
+    {
+      title: 'Software & Pipelines',
+      icon: <Code2 className="w-4 h-4" />,
+      color: 'from-blue-500/20 to-indigo-500/10',
+      references: [
+        {
+          method: 'RDKit',
+          citation: 'Landrum G. RDKit: Open-Source Cheminformatics Software.',
+          doi: undefined,
+          tooltip: 'RDKit (Landrum) - rdkit.org',
+        },
+        {
+          method: 'ChEMBL Structure Pipeline',
+          citation: 'Bento AP, Hersey A, Félix E, et al. An open source chemical structure curation pipeline using RDKit. J Cheminform. 2020;12:51.',
+          doi: '10.1186/s13321-020-00456-1',
+          tooltip: 'Bento et al. J Cheminform (2020)',
+        },
+      ],
+    },
+  ];
+
+  return (
+    <>
+      <SectionHeader icon={<BookOpen className="w-5 h-5" />} title="Methods & Scientific References" />
+      <p className="text-[var(--color-text-secondary)] mb-6">
+        ChemAudit implements well-established methods from the scientific literature. Below are the primary
+        references for the algorithms and scoring functions used throughout the platform.
+      </p>
+
+      <div className="space-y-3">
+        {categories.map((category, catIndex) => (
+          <motion.div
+            key={category.title}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + catIndex * 0.05 }}
+            className={cn(
+              'rounded-xl overflow-hidden',
+              'border border-[var(--color-border)]/30',
+              'bg-gradient-to-br',
+              category.color
+            )}
+          >
+            <button
+              onClick={() => setExpandedCategory(expandedCategory === category.title ? null : category.title)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center',
+                  'bg-[var(--color-surface-elevated)]',
+                  'text-[var(--color-primary)]'
+                )}>
+                  {category.icon}
+                </div>
+                <div>
+                  <span className="font-semibold text-sm text-[var(--color-text-primary)]">
+                    {category.title}
+                  </span>
+                  <span className="ml-2 text-xs text-[var(--color-text-muted)]">
+                    ({category.references.length} references)
+                  </span>
+                </div>
+              </div>
+              <motion.div
+                animate={{ rotate: expandedCategory === category.title ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <svg className="w-5 h-5 text-[var(--color-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </motion.div>
+            </button>
+
+            {expandedCategory === category.title && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="px-4 pb-4"
+              >
+                <div className="space-y-3">
+                  {category.references.map((ref, refIndex) => (
+                    <motion.div
+                      key={ref.method}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: refIndex * 0.05 }}
+                      className={cn(
+                        'p-3 rounded-lg',
+                        'bg-[var(--color-surface-elevated)]/80',
+                        'border border-[var(--color-border)]/20'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h4 className="font-medium text-sm text-[var(--color-text-primary)]">
+                          {ref.method}
+                        </h4>
+                        {ref.doi && (
+                          <a
+                            href={`https://doi.org/${ref.doi}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs',
+                              'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                              'hover:bg-[var(--color-primary)]/20 transition-colors'
+                            )}
+                          >
+                            DOI
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                        {ref.citation}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Note about tooltips */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className={cn(
+          'mt-5 p-4 rounded-xl',
+          'bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/10'
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-[var(--color-primary)]/10">
+            <BookOpen className="w-4 h-4 text-[var(--color-primary)]" />
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-[var(--color-text-primary)] mb-1">
+              In-App References
+            </h4>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Throughout ChemAudit, hover over the{' '}
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--color-text-muted)]/40 bg-[var(--color-surface-sunken)] text-[9px] font-semibold mx-0.5">i</span>
+              {' '}icons next to scores and metrics to see brief citations. Each tooltip includes the original
+              publication reference for that specific method.
             </p>
           </div>
         </div>

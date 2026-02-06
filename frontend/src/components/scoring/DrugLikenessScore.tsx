@@ -127,6 +127,9 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
                     <li>0.49-0.67: Moderate</li>
                     <li>&lt;0.49: Unfavorable</li>
                   </ul>
+                  <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
+                    📖 Bickerton et al. Nat Chem (2012)
+                  </p>
                 </div>
               }
             />
@@ -158,6 +161,9 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
                     <li>HBA &le; 10</li>
                   </ul>
                   <p className="mt-1">1 violation allowed</p>
+                  <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
+                    📖 Lipinski et al. Adv Drug Deliv Rev (2001)
+                  </p>
                 </div>
               }
             />

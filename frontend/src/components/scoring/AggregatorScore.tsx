@@ -103,6 +103,9 @@ export function AggregatorScore({ result }: AggregatorScoreProps) {
                       <li>Misleading SAR data</li>
                     </ul>
                     <p className="text-white/60 mt-2">High LogP and low TPSA increase aggregation risk.</p>
+                    <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
+                      📖 McGovern et al. J Med Chem (2002)
+                    </p>
                   </div>
                 }
               />
