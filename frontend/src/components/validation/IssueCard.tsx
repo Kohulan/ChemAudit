@@ -1,13 +1,16 @@
+import { Lock, Unlock } from 'lucide-react';
 import type { CheckResult, Severity } from '../../types/validation';
 import { cn } from '../../lib/utils';
 
 interface IssueCardProps {
   issue: CheckResult;
   onAtomHover?: (atoms: number[]) => void;
+  onAtomLock?: (atoms: number[]) => void;
+  isLocked?: boolean;
   className?: string;
 }
 
-export function IssueCard({ issue, onAtomHover, className = '' }: IssueCardProps) {
+export function IssueCard({ issue, onAtomHover, onAtomLock, isLocked = false, className = '' }: IssueCardProps) {
   const getSeverityStyles = (severity: Severity) => {
     switch (severity) {
       case 'critical':
@@ -57,6 +60,19 @@ export function IssueCard({ issue, onAtomHover, className = '' }: IssueCardProps
       .join(' ');
   };
 
+  const hasAffectedAtoms = issue.affected_atoms.length > 0;
+  const canLock = hasAffectedAtoms && onAtomLock;
+
+  const handleClick = () => {
+    if (!canLock) return;
+    // Toggle lock: if already locked with same atoms, unlock; otherwise lock these atoms
+    if (isLocked) {
+      onAtomLock([]);
+    } else {
+      onAtomLock(issue.affected_atoms);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -64,10 +80,13 @@ export function IssueCard({ issue, onAtomHover, className = '' }: IssueCardProps
         'border',
         styles.border,
         'rounded-xl p-4',
+        isLocked && 'ring-2 ring-orange-500/50 border-orange-500/30',
+        canLock && 'cursor-pointer',
         className
       )}
-      onMouseEnter={() => onAtomHover?.(issue.affected_atoms)}
-      onMouseLeave={() => onAtomHover?.([])}
+      onMouseEnter={() => !isLocked && onAtomHover?.(issue.affected_atoms)}
+      onMouseLeave={() => !isLocked && onAtomHover?.([])}
+      onClick={handleClick}
     >
       <div className="flex items-start gap-3">
         <span className="text-2xl mt-0.5">{styles.icon}</span>
@@ -82,8 +101,28 @@ export function IssueCard({ issue, onAtomHover, className = '' }: IssueCardProps
           </div>
           <p className="text-sm text-[var(--color-text-secondary)]">{issue.message}</p>
           {issue.affected_atoms.length > 0 && (
-            <div className="mt-2 text-xs text-[var(--color-text-muted)]">
-              Affected atoms: {issue.affected_atoms.join(', ')}
+            <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+              <span>Affected atoms: {issue.affected_atoms.join(', ')}</span>
+              {canLock && (
+                <span className={cn(
+                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                  isLocked
+                    ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400'
+                    : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]'
+                )}>
+                  {isLocked ? (
+                    <>
+                      <Lock className="w-2.5 h-2.5" />
+                      Locked
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-2.5 h-2.5" />
+                      Click to lock
+                    </>
+                  )}
+                </span>
+              )}
             </div>
           )}
           {Object.keys(issue.details).length > 0 && (

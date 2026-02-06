@@ -248,15 +248,6 @@ run_docker_compose() {
         exit 1
     fi
 
-    # Build frontend if needed
-    if [[ ! -d "${SCRIPT_DIR}/frontend-dist" ]]; then
-        print_warning "frontend-dist not found. Building frontend..."
-        cd "${SCRIPT_DIR}/frontend"
-        npm run build
-        mv dist ../frontend-dist
-        cd "${SCRIPT_DIR}"
-    fi
-
     # Pull latest images and start services
     docker-compose -f docker-compose.prod.yml pull
     docker-compose -f docker-compose.prod.yml up -d --build

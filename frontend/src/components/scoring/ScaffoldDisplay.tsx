@@ -37,6 +37,9 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement 
                   <li><strong>Generic:</strong> Converts all atoms to carbon, all bonds to single (framework)</li>
                 </ul>
                 <p className="text-white/60">Useful for analyzing structural similarity and compound series.</p>
+                <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
+                  📖 Bemis & Murcko. J Med Chem (1996)
+                </p>
               </div>
             }
           />

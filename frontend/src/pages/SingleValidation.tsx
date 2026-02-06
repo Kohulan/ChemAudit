@@ -108,6 +108,7 @@ export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [molecule, setMolecule] = useState('');
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
+  const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
@@ -281,8 +282,20 @@ export function SingleValidationPage() {
     setStandardizationError(null);
     setDatabaseResults(null);
     setHighlightedAtoms([]);
+    setHighlightLocked(false);
     setShowCIP(false);
   };
+
+  // Handler for locking atom highlighting (persists for SVG download)
+  const handleAtomLock = useCallback((atoms: number[]) => {
+    if (atoms.length > 0) {
+      setHighlightedAtoms(atoms);
+      setHighlightLocked(true);
+    } else {
+      setHighlightedAtoms([]);
+      setHighlightLocked(false);
+    }
+  }, []);
 
   const handleReset = () => {
     setMolecule('');
@@ -447,8 +460,9 @@ export function SingleValidationPage() {
                     rel="noopener noreferrer"
                     className="text-[var(--color-primary)] hover:underline"
                   >
-                    draw a structure here
+                    draw a structure
                   </a>
+                  {' '}and paste the SMILES back
                 </p>
               </div>
             </div>
@@ -1040,12 +1054,14 @@ export function SingleValidationPage() {
                       className={cn(
                         'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
                         'border shadow-sm',
-                        'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                        highlightLocked
+                          ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30 hover:bg-orange-500/20'
+                          : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                       )}
-                      title="Download structure as SVG"
+                      title={highlightLocked ? "Download SVG with highlighted atoms" : "Download structure as SVG"}
                     >
                       <Download className="w-3.5 h-3.5" />
-                      SVG
+                      {highlightLocked ? 'SVG + Highlights' : 'SVG'}
                     </button>
                   )}
                 </div>
@@ -1062,9 +1078,13 @@ export function SingleValidationPage() {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-3 text-xs text-center text-amber-500 font-medium"
+                    className={cn(
+                      'mt-3 text-xs text-center font-medium',
+                      highlightLocked ? 'text-orange-500' : 'text-amber-500'
+                    )}
                   >
-                    Highlighting atoms: {highlightedAtoms.join(', ')}
+                    {highlightLocked ? '🔒 ' : ''}Highlighting atoms: {highlightedAtoms.join(', ')}
+                    {highlightLocked && ' (locked for download)'}
                   </motion.p>
                 )}
                 {/* Stereochemistry info indicator */}
@@ -1109,13 +1129,19 @@ export function SingleValidationPage() {
                       <Badge variant="warning">{validationIssues.length} found</Badge>
                     </div>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                      {validationIssues.map((issue, index) => (
-                        <IssueCard
-                          key={`${issue.check_name}-${index}`}
-                          issue={issue}
-                          onAtomHover={setHighlightedAtoms}
-                        />
-                      ))}
+                      {validationIssues.map((issue, index) => {
+                        const isThisLocked = highlightLocked &&
+                          JSON.stringify(highlightedAtoms) === JSON.stringify(issue.affected_atoms);
+                        return (
+                          <IssueCard
+                            key={`${issue.check_name}-${index}`}
+                            issue={issue}
+                            onAtomHover={highlightLocked ? undefined : setHighlightedAtoms}
+                            onAtomLock={handleAtomLock}
+                            isLocked={isThisLocked}
+                          />
+                        );
+                      })}
                     </div>
                     {result && (
                       <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
