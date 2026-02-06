@@ -102,6 +102,9 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                         <li><strong>Score &lt; -0.3:</strong> Synthetic-like</li>
                       </ul>
                       <p className="text-white/60">Based on fragment analysis comparing to the COCONUT natural products database.</p>
+                      <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
+                        📖 Ertl et al. J Chem Inf Model (2008)
+                      </p>
                     </div>
                   }
                 />
