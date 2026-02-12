@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/Kohulan/ChemAudit/compare/v1.1.1...v1.1.2) (2026-02-12)
+
+
+### Bug Fixes
+
+* add WebSocket proxy location block for batch progress ([981cb1c](https://github.com/Kohulan/ChemAudit/commit/981cb1c1d6d3b505c8e9ee71b147031567654751))
+* add WebSocket proxy location block for batch progress ([908c424](https://github.com/Kohulan/ChemAudit/commit/908c4245c4442833daab291721da385621ae9140))
+
 ## [1.1.1](https://github.com/Kohulan/ChemAudit/compare/v1.1.0...v1.1.1) (2026-02-06)
 
 
