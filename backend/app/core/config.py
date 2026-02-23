@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     # ==========================================================================
     VALIDATION_CACHE_TTL: int = 3600  # 1 hour in seconds
     VALIDATION_CACHE_ENABLED: bool = True
+    # Batch result TTL — 24h to support analytics (INFRA-01)
+    BATCH_RESULT_TTL: int = 86400
 
     # ==========================================================================
     # Metrics

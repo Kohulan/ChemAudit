@@ -188,7 +188,7 @@ class ResultStorage:
     Results are stored with pagination support and expiration.
     """
 
-    RESULT_EXPIRY = 3600  # 1 hour
+    RESULT_EXPIRY = settings.BATCH_RESULT_TTL  # 24h to support analytics (INFRA-01)
     VIEW_CACHE_EXPIRY = 300  # 5 minutes for sorted/filtered views
     PAGE_SIZE = 50  # Default page size
 
@@ -356,6 +356,18 @@ class ResultStorage:
         if data:
             return BatchStatisticsData(**json.loads(data))
         return None
+
+    def get_all_results(self, job_id: str) -> list[dict]:
+        """Return all raw results (no pagination) for analytics computation.
+
+        Used by analytics tasks that need the full dataset.
+        Returns empty list if results have expired or don't exist.
+        """
+        r = self._get_redis()
+        data = r.get(f"batch:results:{job_id}")
+        if not data:
+            return []
+        return json.loads(data)
 
     def _apply_filters(
         self,
