@@ -170,7 +170,8 @@ def run_expensive_analytics(
 
             method = params.get("method", "pca")
             result = compute_chemical_space(results, method=method)
-            analytics_storage.store_result(job_id, "chemical_space", result.model_dump())
+            data = result.model_dump() if hasattr(result, "model_dump") else result
+            analytics_storage.store_result(job_id, "chemical_space", data)
 
         elif analysis_type == "mmp":
             from app.services.analytics.mmp import compute_mmp
@@ -180,19 +181,19 @@ def run_expensive_analytics(
             analytics_storage.store_result(job_id, "mmp", result.model_dump())
 
         elif analysis_type == "similarity_search":
-            from app.services.analytics.similarity import compute_similarity_search
+            from app.services.analytics.chemical_space import find_similar_molecules
 
             query_smiles = params.get("query_smiles")
             query_index = params.get("query_index")
             top_k = params.get("top_k", 10)
-            result = compute_similarity_search(
+            result = find_similar_molecules(
                 results,
                 query_smiles=query_smiles,
                 query_index=query_index,
                 top_k=top_k,
             )
             analytics_storage.store_result(
-                job_id, "similarity_search", result.model_dump()
+                job_id, "similarity_search", result
             )
 
         elif analysis_type == "rgroup":
