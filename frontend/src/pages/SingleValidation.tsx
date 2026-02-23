@@ -779,46 +779,31 @@ export function SingleValidationPage() {
                 {/* Deep Validation Tab */}
                 {activeTab === 'deep-validation' && (
                   <div className="space-y-4">
-                    {result ? (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <p className="text-[var(--color-text-secondary)] text-sm">
+                        Advanced structure analysis covering stereoisomer enumeration, tautomer detection,
+                        chemical composition guards, and structural complexity flags for comprehensive compound profiling.
+                      </p>
+                    </div>
+                    {!result && (
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={isLoading}
+                        leftIcon={<Play className="w-4 h-4" />}
+                      >
+                        Validate
+                      </ClayButton>
+                    )}
+                    {result && (
                       <DeepValidationTab
                         checks={result.all_checks}
                         onHighlightAtoms={setHighlightedAtoms}
                       />
-                    ) : (
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                          <Info className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                            Run a validation to see advanced structure analysis:
-                          </p>
-                          <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
-                            <li className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                              Stereo &amp; Tautomers — stereoisomer enumeration, tautomer detection
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                              Chemical Composition — mixture, solvent, inorganic, radical detection
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                              Structural Complexity — hypervalent, polymer, ring strain, macrocycle
-                            </li>
-                          </ul>
-                          <div className="mt-4">
-                            <button
-                              onClick={handleValidate}
-                              disabled={!molecule.trim() || isAnyLoading}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Play className="w-4 h-4" />
-                              Validate First
-                            </button>
-                          </div>
-                        </div>
-                      </div>
                     )}
                   </div>
                 )}
