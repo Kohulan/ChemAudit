@@ -168,6 +168,7 @@ class ProvenancePipeline:
         self,
         mol: Optional[Chem.Mol],
         options: Optional[StandardizationOptions] = None,
+        dval_results: Optional[dict] = None,
     ) -> tuple[StandardizationResult, StandardizationProvenance]:
         """
         Standardize a molecule and capture per-stage provenance records.
@@ -178,6 +179,10 @@ class ProvenancePipeline:
         Args:
             mol: RDKit molecule. If None, returns error result.
             options: Standardization options.
+            dval_results: Optional prior deep-validation results for cross-referencing.
+                Accepted keys: 'undefined_stereo' (DVAL-01), 'tautomer_detection' (DVAL-03).
+                Each value should contain a 'count' field. When None, dval_cross_refs remain
+                empty (backward compatible).
 
         Returns:
             Tuple of (StandardizationResult, StandardizationProvenance).
@@ -219,10 +224,17 @@ class ProvenancePipeline:
                 parent_mol = std_mol
 
             # Stage 4: Tautomer provenance (optional)
+            # Populate DVAL-03 cross-ref on tautomer stage when dval_results provided.
+            taut_dval_cross_refs: list[str] = []
+            if dval_results and "tautomer_detection" in dval_results:
+                count = dval_results["tautomer_detection"].get("count", 0)
+                taut_dval_cross_refs.append(f"DVAL-03: {count} tautomers enumerated")
+
             if options.include_tautomer:
                 final_mol, taut_stage, tautomer_provenance = (
                     self._capture_tautomer_provenance(parent_mol)
                 )
+                taut_stage.dval_cross_refs = taut_dval_cross_refs
                 stages.append(taut_stage)
             else:
                 stages.append(
@@ -231,6 +243,7 @@ class ProvenancePipeline:
                         input_smiles=self._safe_smiles(parent_mol),
                         output_smiles=self._safe_smiles(parent_mol),
                         applied=False,
+                        dval_cross_refs=taut_dval_cross_refs,
                     )
                 )
                 final_mol = parent_mol
@@ -255,14 +268,23 @@ class ProvenancePipeline:
                     )
                     for cd in stereo_comparison_detailed.per_center_detail
                 ]
+                # Populate DVAL cross-references when prior validation results are provided.
+                # This links standardization stereo provenance to deep-validation findings,
+                # allowing the UI to show "DVAL-01 found N undefined stereocenters" alongside
+                # the stereo summary. When dval_results is None, the list remains empty
+                # (backward compatible — same behavior as before this feature).
+                stereo_dval_cross_refs: list[str] = []
+                if dval_results and "undefined_stereo" in dval_results:
+                    count = dval_results["undefined_stereo"].get("count", 0)
+                    stereo_dval_cross_refs.append(
+                        f"DVAL-01: {count} undefined stereocenters detected"
+                    )
                 stereo_summary = StereoProvenance(
                     stereo_stripped=sc.has_stereo_loss,
                     centers_lost=sc.stereocenters_lost,
                     bonds_lost=sc.double_bond_stereo_lost,
                     per_center=per_center_schemas,
-                    # TODO: DVAL cross-refs can be populated when the frontend passes
-                    # prior DVAL results (e.g., "DVAL-01 found N undefined centers").
-                    # Documented as optional in research open questions.
+                    dval_cross_refs=stereo_dval_cross_refs,
                 )
 
         except Exception:

@@ -101,7 +101,7 @@ async def standardize_molecule(
     prov_schema: Optional[StandardizationProvenance] = None
     if body.options.include_provenance:
         pipeline_result, provenance = _provenance_pipeline.standardize_with_provenance(
-            mol, options
+            mol, options, dval_results=body.options.dval_results
         )
         prov_schema = provenance
     else:

@@ -369,6 +369,54 @@ class TestProvenancePipeline:
         assert prov is not None
         assert isinstance(prov.stages, list)
 
+    def test_dval_cross_refs_populated_with_stereo(self, pipeline):
+        """DVAL-01 cross-ref is populated on stereo_summary when dval_results provided."""
+        # Use a molecule with defined stereocenters so stereo_comparison is built
+        # (R)-Alanine has a chiral center
+        mol = Chem.MolFromSmiles("[C@@H](N)(C)C(=O)O")
+        opts = StandardizationOptions()
+        dval_results = {"undefined_stereo": {"count": 2}}
+        result, prov = pipeline.standardize_with_provenance(mol, opts, dval_results=dval_results)
+        assert result is not None
+        if prov.stereo_summary is not None:
+            cross_refs = prov.stereo_summary.dval_cross_refs
+            assert any("DVAL-01" in ref for ref in cross_refs), (
+                f"Expected DVAL-01 cross-ref in stereo_summary.dval_cross_refs, got: {cross_refs}"
+            )
+            assert any("2" in ref for ref in cross_refs), (
+                f"Expected count '2' in DVAL-01 cross-ref, got: {cross_refs}"
+            )
+
+    def test_dval_cross_refs_empty_without_dval_results(self, pipeline, opts):
+        """When dval_results is None, all dval_cross_refs are empty lists (backward compat)."""
+        mol = Chem.MolFromSmiles("CCO")
+        result, prov = pipeline.standardize_with_provenance(mol, opts)
+        for stage in prov.stages:
+            assert stage.dval_cross_refs == [], (
+                f"Expected empty dval_cross_refs for stage {stage.stage_name!r} "
+                f"when no dval_results provided, got: {stage.dval_cross_refs}"
+            )
+        if prov.stereo_summary is not None:
+            assert prov.stereo_summary.dval_cross_refs == []
+
+    def test_dval_cross_refs_tautomer(self, pipeline):
+        """DVAL-03 cross-ref is populated on tautomer stage when dval_results provided."""
+        mol = Chem.MolFromSmiles("CCO")
+        opts = StandardizationOptions(include_tautomer=True)
+        dval_results = {"tautomer_detection": {"count": 5}}
+        result, prov = pipeline.standardize_with_provenance(mol, opts, dval_results=dval_results)
+        taut_stage = next(
+            (s for s in prov.stages if s.stage_name == "tautomer_canonicalization"), None
+        )
+        assert taut_stage is not None
+        assert any("DVAL-03" in ref for ref in taut_stage.dval_cross_refs), (
+            f"Expected DVAL-03 cross-ref in tautomer stage.dval_cross_refs, "
+            f"got: {taut_stage.dval_cross_refs}"
+        )
+        assert any("5" in ref for ref in taut_stage.dval_cross_refs), (
+            f"Expected count '5' in DVAL-03 cross-ref, got: {taut_stage.dval_cross_refs}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestProvenanceEndpoint (~4 tests)

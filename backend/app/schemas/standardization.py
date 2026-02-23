@@ -4,7 +4,7 @@ Standardization Schemas
 Pydantic schemas for standardization requests and responses.
 """
 
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -147,6 +147,10 @@ class StereoProvenance(BaseModel):
         default_factory=list,
         description="Per-center stereo change detail (STD-06)",
     )
+    dval_cross_refs: List[str] = Field(
+        default_factory=list,
+        description="Cross-references to deep validation check IDs (e.g. DVAL-01)",
+    )
 
 
 class StandardizationProvenance(BaseModel):
@@ -182,6 +186,14 @@ class StandardizationOptions(BaseModel):
     include_provenance: bool = Field(
         default=False,
         description="Include detailed provenance records for each pipeline stage",
+    )
+    dval_results: Optional[dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Optional prior deep-validation results for DVAL cross-referencing in provenance. "
+            "Accepted keys: 'undefined_stereo' (DVAL-01), 'tautomer_detection' (DVAL-03). "
+            "Each value should have a 'count' field. When None, dval_cross_refs remain empty."
+        ),
     )
 
 
