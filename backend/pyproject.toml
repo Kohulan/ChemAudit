@@ -34,6 +34,7 @@ dependencies = [
     "prometheus-client>=0.20.0",
     "httpx>=0.27.0",
     "argon2-cffi>=23.1.0",
+    "openTSNE>=1.0.0",
 ]
 
 [project.optional-dependencies]
