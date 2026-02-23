@@ -60,11 +60,11 @@ Plans:
   2. The neutralization report lists each atom that changed charge, its before/after charge state, and the SMARTS pattern that triggered the change
   3. The parent extraction report names each removed fragment (by COUNTERION_NAMES dictionary lookup), its molecular weight, and its SMILES
   4. All provenance fields are additive to the existing StandardizationResponse — existing API consumers receive identical responses if they do not request provenance
-**Plans**: TBD — 2 plans (one per milestone: M2.1, M2.2)
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 02-01: Milestone 2.1 — Standardization Provenance (STD-01 through STD-04)
-- [ ] 02-02: Milestone 2.2 — Normalization & Stereo Cleanup Reports (STD-05, STD-06)
+- [ ] 02-01-PLAN.md — M2.1 Provenance Pipeline: ProvenancePipeline wrapper, fragment dictionary, schema extension, route integration, tests (STD-01, STD-02, STD-03, STD-04)
+- [ ] 02-02-PLAN.md — M2.2 Ring/Stereo Tracking + Frontend: ring aromaticity tracking, per-center stereo detail, ProvenanceTimeline UI, ProvenanceStageCard (STD-05, STD-06)
 
 ### Phase 3: Batch Analytics
 **Goal**: A completed batch job exposes a second analytics layer — multi-level deduplication groups, scaffold families, chemical space projections, MMP pairs, and statistical summaries — all computed asynchronously by a post-aggregation Celery chord, accessible via a dedicated analytics endpoint
