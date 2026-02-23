@@ -118,6 +118,15 @@ None - no external service configuration required.
 - Activity cliff and LLE are guarded by `activity_column` parameter — safe to call without activity data
 - All 14 tests green; service importable without Redis/Celery
 
+## Self-Check: PASSED
+
+- FOUND: backend/app/services/analytics/mmp.py
+- FOUND: backend/tests/test_analytics_mmp.py
+- FOUND: .planning/phases/03-batch-analytics/03-05-SUMMARY.md
+- FOUND: commit d6c4b1b (Task 1)
+- FOUND: commit 13b12e3 (Task 2 + fix)
+- FOUND: commit 6ff6dc0 (docs metadata)
+
 ---
 *Phase: 03-batch-analytics*
 *Completed: 2026-02-23*
