@@ -12,6 +12,12 @@ from .basic import (
     SanitizationCheck,
     ValenceCheck,
 )
+from .deep_stereo_tautomer import (
+    AromaticSystemValidationCheck,
+    CoordinateDimensionCheck,
+    StereoisomerEnumerationCheck,
+    TautomerDetectionCheck,
+)
 from .representation import (
     InchiGenerationCheck,
     InchiRoundtripCheck,
@@ -37,4 +43,8 @@ __all__ = [
     "SmilesRoundtripCheck",
     "InchiGenerationCheck",
     "InchiRoundtripCheck",
+    "StereoisomerEnumerationCheck",
+    "TautomerDetectionCheck",
+    "AromaticSystemValidationCheck",
+    "CoordinateDimensionCheck",
 ]

@@ -12,6 +12,7 @@ from rdkit import Chem
 
 # Import checks to trigger registration
 import app.services.validation.checks.basic  # noqa: F401
+import app.services.validation.checks.deep_stereo_tautomer  # noqa: F401
 import app.services.validation.checks.representation  # noqa: F401
 import app.services.validation.checks.stereo  # noqa: F401
 from app.schemas.common import Severity
