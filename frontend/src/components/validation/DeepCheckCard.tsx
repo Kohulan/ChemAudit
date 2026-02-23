@@ -13,9 +13,33 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { InfoTooltip } from '../ui/Tooltip';
 import { StereoisomerList } from './StereoisomerList';
 import { FragmentClassificationTable } from './FragmentClassificationTable';
 import { cn } from '../../lib/utils';
+
+/** Tooltip descriptions for all 16 deep validation checks */
+const DEEP_CHECK_DESCRIPTIONS: Record<string, string> = {
+  // Stereo & Tautomers
+  stereoisomer_enumeration: 'Finds undefined stereocenters and enumerates possible stereoisomers (up to 128). Helps identify ambiguous chirality.',
+  tautomer_detection: 'Detects tautomeric forms and identifies the canonical tautomer. Reports whether the input matches the canonical form.',
+  aromatic_system_validation: 'Checks for unusual aromatic ring sizes (not 5 or 6 membered) and charged aromatic atoms that may indicate issues.',
+  coordinate_dimension: 'Reports whether the molecule has 2D coordinates, 3D coordinates, or no coordinate information.',
+  // Chemical Composition
+  mixture_detection: 'Detects multi-fragment inputs (dot-separated SMILES) and classifies each fragment as drug, salt, solvent, or unknown.',
+  solvent_contamination: 'Screens for common lab solvents (water, DMSO, DMF, methanol, etc.) that may contaminate the input structure.',
+  inorganic_filter: 'Flags molecules lacking carbon (inorganic) or containing metal atoms (organometallic) that may not suit standard validation.',
+  radical_detection: 'Identifies atoms with unpaired radical electrons that may indicate unstable or reactive species.',
+  isotope_label_detection: 'Detects isotope-labeled atoms (deuterium, carbon-13, etc.) often used in pharmacokinetic studies.',
+  trivial_molecule: 'Flags molecules with 3 or fewer heavy atoms as too small for meaningful chemical validation.',
+  // Structural Complexity
+  hypervalent_atoms: 'Detects atoms exceeding their normal valence limits, which may indicate unusual bonding or input errors.',
+  polymer_detection: 'Identifies possible polymers via SGroup markers, molecular weight above 1500 Da, or dummy atom attachment points.',
+  ring_strain: 'Flags 3-membered (cyclopropane) and 4-membered (cyclobutane) rings that have significant ring strain.',
+  macrocycle_detection: 'Identifies macrocyclic rings with more than 12 atoms, common in natural products and cyclic peptides.',
+  charged_species: 'Reports formal charges, identifies zwitterions (net charge zero with both positive and negative atoms).',
+  explicit_hydrogen_audit: 'Reports atoms with explicit hydrogen specifications and detects H atom objects from AddHs() processing.',
+};
 import type {
   CheckResult,
   StereoisomerDetail,
@@ -656,6 +680,14 @@ export function DeepCheckCard({ check, effectiveSeverity, onHighlightAtoms }: De
             <span className="text-sm font-semibold text-[var(--color-text-primary)]">
               {formatCheckName(check.check_name)}
             </span>
+
+            {/* Check description tooltip */}
+            {DEEP_CHECK_DESCRIPTIONS[check.check_name] && (
+              <InfoTooltip
+                content={DEEP_CHECK_DESCRIPTIONS[check.check_name]}
+                position="right"
+              />
+            )}
 
             {/* Effective severity badge */}
             <Badge variant={getSeverityVariant(effectiveSeverity)} size="sm">
