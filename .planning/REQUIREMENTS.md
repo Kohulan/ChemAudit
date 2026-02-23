@@ -17,21 +17,21 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Deep Validation — Chemical Composition Guards (Milestone 1.2)
 
-- [ ] **DVAL-06**: Mixture detection (multi-component vs salt forms with fragment classification)
-- [ ] **DVAL-07**: Solvent contamination detection (common solvent fragment identification)
-- [ ] **DVAL-08**: Inorganic/organometallic filter (carbon-free molecule detection)
-- [ ] **DVAL-09**: Radical electron detection (unpaired electrons flagging)
-- [ ] **DVAL-10**: Isotope label detection (non-standard isotope identification)
-- [ ] **DVAL-11**: Empty/trivial molecule check (single atom, no bonds, too small)
+- [x] **DVAL-06**: Mixture detection (multi-component vs salt forms with fragment classification)
+- [x] **DVAL-07**: Solvent contamination detection (common solvent fragment identification)
+- [x] **DVAL-08**: Inorganic/organometallic filter (carbon-free molecule detection)
+- [x] **DVAL-09**: Radical electron detection (unpaired electrons flagging)
+- [x] **DVAL-10**: Isotope label detection (non-standard isotope identification)
+- [x] **DVAL-11**: Empty/trivial molecule check (single atom, no bonds, too small)
 
 ### Deep Validation — Structural Complexity Flags (Milestone 1.3)
 
-- [ ] **DVAL-12**: Hypervalent atom detection (atoms exceeding normal valence)
-- [ ] **DVAL-13**: Polymer/repeating unit detection (SGroup markers, MW heuristic)
-- [ ] **DVAL-14**: Ring strain detection (3/4-membered rings with strain assessment)
-- [ ] **DVAL-15**: Macrocycle detection (rings > 12 atoms)
-- [ ] **DVAL-16**: Charged species flag with zwitterion identification
-- [ ] **DVAL-17**: Explicit hydrogen audit (unusual H count patterns)
+- [x] **DVAL-12**: Hypervalent atom detection (atoms exceeding normal valence)
+- [x] **DVAL-13**: Polymer/repeating unit detection (SGroup markers, MW heuristic)
+- [x] **DVAL-14**: Ring strain detection (3/4-membered rings with strain assessment)
+- [x] **DVAL-15**: Macrocycle detection (rings > 12 atoms)
+- [x] **DVAL-16**: Charged species flag with zwitterion identification
+- [x] **DVAL-17**: Explicit hydrogen audit (unusual H count patterns)
 
 ### Standardization Intelligence — Provenance (Milestone 2.1)
 

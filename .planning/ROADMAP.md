@@ -47,8 +47,8 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 
 Plans:
 - [x] 01-01-PLAN.md — M1.1 Stereo & Tautomer Checks backend (DVAL-01..05) + cache key versioning (COMPLETE: 2 tasks, 31 tests, commits 51bf66e + 58e4b11)
-- [ ] 01-02-PLAN.md — M1.2 Chemical Composition Guards backend (DVAL-06..11)
-- [ ] 01-03-PLAN.md — M1.3 Structural Complexity Flags backend (DVAL-12..17) + startup assertion
+- [x] 01-02-PLAN.md — M1.2 Chemical Composition Guards backend (DVAL-06..11) (COMPLETE: 2 tasks, 133 tests, commits 3b0eab7 + 7af522a)
+- [x] 01-03-PLAN.md — M1.3 Structural Complexity Flags backend (DVAL-12..17) + startup assertion (COMPLETE: 2 tasks, 65 tests, commit ab0eb4c)
 - [ ] 01-04-PLAN.md — Frontend Deep Validation Tab (all DVAL requirements: types, UI, severity config, atom highlighting)
 
 ### Phase 2: Standardization Intelligence
