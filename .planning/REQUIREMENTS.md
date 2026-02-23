@@ -54,10 +54,10 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Batch Analytics — Scaffold Analysis (Milestone 3.2)
 
-- [ ] **BATCH-05**: Murcko scaffold decomposition and grouping
-- [ ] **BATCH-06**: Generic scaffold grouping (element-agnostic framework)
-- [ ] **BATCH-07**: Scaffold diversity metrics (unique scaffolds, Shannon entropy, scaffold frequency distribution)
-- [ ] **BATCH-08**: R-group decomposition around common core
+- [x] **BATCH-05**: Murcko scaffold decomposition and grouping
+- [x] **BATCH-06**: Generic scaffold grouping (element-agnostic framework)
+- [x] **BATCH-07**: Scaffold diversity metrics (unique scaffolds, Shannon entropy, scaffold frequency distribution)
+- [x] **BATCH-08**: R-group decomposition around common core
 
 ### Batch Analytics — Chemical Space & Similarity (Milestone 3.3)
 
