@@ -80,7 +80,9 @@ import type {
 import type {
   ScoringRequest,
   ScoringResponse,
-  ScoringError
+  ScoringError,
+  ScoringType,
+  RadarComparison
 } from '../types/scoring';
 import type {
   StandardizeRequest,
@@ -266,7 +268,7 @@ export const scoringApi = {
   getScoring: async (
     molecule: string,
     format: string = 'auto',
-    include?: ('ml_readiness' | 'np_likeness' | 'scaffold' | 'druglikeness' | 'safety_filters' | 'admet' | 'aggregator')[]
+    include?: ScoringType[]
   ): Promise<ScoringResponse> => {
     try {
       const request: ScoringRequest = {
@@ -283,6 +285,49 @@ export const scoringApi = {
         ]
       };
       const response = await api.post<ScoringResponse>('/score', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<ScoringError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch scoring profiles data (all Phase 4 scoring types in one call).
+   */
+  getScoringProfiles: async (molecule: string): Promise<ScoringResponse> => {
+    try {
+      const request: ScoringRequest = {
+        molecule,
+        format: 'smiles',
+        include: [
+          'consensus', 'lead_likeness', 'salt_inventory', 'ligand_efficiency',
+          'tpsa_breakdown', 'logp_breakdown', 'bertz_detail', 'fsp3_detail',
+          'np_breakdown', 'bioavailability_radar', 'boiled_egg'
+        ]
+      };
+      const response = await api.post<ScoringResponse>('/score', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<ScoringError>;
+        throw axiosError.response?.data || { error: 'Network error' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Compare multiple molecules using bioavailability radar profiles.
+   */
+  getRadarComparison: async (smilesList: string[]): Promise<RadarComparison> => {
+    try {
+      const response = await api.post<RadarComparison>('/score/compare', {
+        smiles_list: smilesList
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -705,7 +750,7 @@ export const integrationsApi = {
 
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
-export type { ScoringRequest, ScoringResponse, ScoringError };
+export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
 export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
 export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
 export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };

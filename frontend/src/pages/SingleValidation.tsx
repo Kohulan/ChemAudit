@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Download,
   Microscope,
+  BarChart3,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -30,6 +31,7 @@ import { ScoreChart } from '../components/scoring/ScoreChart';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
 import { DeepValidationTab } from '../components/validation/DeepValidationTab';
+import { ScoringProfilesTab } from '../components/scoring-profiles';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
@@ -55,7 +57,7 @@ const EXAMPLE_MOLECULES = [
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
-type TabType = 'validate' | 'deep-validation' | 'database' | 'alerts' | 'standardize';
+type TabType = 'validate' | 'deep-validation' | 'scoring-profiles' | 'database' | 'alerts' | 'standardize';
 
 interface TabConfig {
   id: TabType;
@@ -76,6 +78,12 @@ const TABS: TabConfig[] = [
     label: 'Deep Validation',
     icon: <Microscope className="w-4 h-4" />,
     description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
+  },
+  {
+    id: 'scoring-profiles',
+    label: 'Scoring Profiles',
+    icon: <BarChart3 className="w-4 h-4" />,
+    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar, and BOILED-Egg',
   },
   {
     id: 'database',
@@ -806,6 +814,11 @@ export function SingleValidationPage() {
                       />
                     )}
                   </div>
+                )}
+
+                {/* Scoring Profiles Tab */}
+                {activeTab === 'scoring-profiles' && (
+                  <ScoringProfilesTab smiles={molecule} />
                 )}
 
                 {/* Database Lookup Tab */}
