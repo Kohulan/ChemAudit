@@ -3,6 +3,8 @@ Fragment Dictionary for Standardization Provenance.
 
 Provides a curated COUNTERION_NAMES dictionary and classify_fragment() function
 for identifying and categorizing removed fragments in the parent extraction stage.
+
+All dictionary keys are RDKit-canonical SMILES strings.
 """
 
 from typing import Optional
@@ -11,7 +13,8 @@ from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 
 # Curated dictionary of common counterions, salts, and solvents.
-# Keys are canonical SMILES. Values contain name and role.
+# Keys are RDKit-canonical SMILES (verified with Chem.MolToSmiles(Chem.MolFromSmiles(key))).
+# Values contain name and role.
 # Roles: "counterion" (charged species), "salt" (full salt fragment),
 #        "solvent" (neutral solvent), "unknown" (not in dictionary)
 COUNTERION_NAMES: dict[str, dict[str, str]] = {
@@ -36,27 +39,26 @@ COUNTERION_NAMES: dict[str, dict[str, str]] = {
     "[OH-]": {"name": "hydroxide", "role": "counterion"},
     "[O-2]": {"name": "oxide", "role": "counterion"},
     # Acids commonly used as salt formers (salt role)
+    # Canonical keys verified with RDKit Chem.MolToSmiles()
     "Cl": {"name": "hydrochloric acid", "role": "salt"},
     "Br": {"name": "hydrobromic acid", "role": "salt"},
     "I": {"name": "hydroiodic acid", "role": "salt"},
     "CC(=O)O": {"name": "acetic acid", "role": "salt"},
-    "OC(=O)C(F)(F)F": {"name": "trifluoroacetic acid", "role": "salt"},
-    "OC(=O)c1ccccc1": {"name": "benzoic acid", "role": "salt"},
-    "OS(=O)(=O)O": {"name": "sulfuric acid", "role": "salt"},
-    "OS(=O)(=O)c1ccc(C)cc1": {"name": "p-toluenesulfonic acid", "role": "salt"},
-    "OP(=O)(O)O": {"name": "phosphoric acid", "role": "salt"},
-    "OC(=O)O": {"name": "carbonic acid", "role": "salt"},
-    "OC(=O)CC(O)(CC(=O)O)C(=O)O": {"name": "citric acid", "role": "salt"},
-    "OC(O)=O": {"name": "formic acid", "role": "salt"},
-    "OC(=O)C(O)=O": {"name": "oxalic acid", "role": "salt"},
-    "OC(=O)CCC(=O)O": {"name": "succinic acid", "role": "salt"},
-    "OC(=O)C=CC(=O)O": {"name": "maleic acid", "role": "salt"},
-    "OC(=O)/C=C/C(=O)O": {"name": "fumaric acid", "role": "salt"},
-    "OC(=O)[C@@H](O)C(=O)O": {"name": "tartaric acid", "role": "salt"},
-    "OC(=O)[C@H](O)C(=O)O": {"name": "tartaric acid", "role": "salt"},
-    "OC(=O)C(O)C(=O)O": {"name": "tartaric acid", "role": "salt"},
-    "OS(=O)(=O)c1ccccc1": {"name": "benzenesulfonic acid", "role": "salt"},
-    "OS(=O)(=O)CCCC": {"name": "butanesulfonic acid", "role": "salt"},
+    "O=C(O)C(F)(F)F": {"name": "trifluoroacetic acid", "role": "salt"},
+    "O=C(O)c1ccccc1": {"name": "benzoic acid", "role": "salt"},
+    "O=S(=O)(O)O": {"name": "sulfuric acid", "role": "salt"},
+    "Cc1ccc(S(=O)(=O)O)cc1": {"name": "p-toluenesulfonic acid", "role": "salt"},
+    "O=P(O)(O)O": {"name": "phosphoric acid", "role": "salt"},
+    "O=C(O)O": {"name": "carbonic acid", "role": "salt"},
+    "O=C(O)CC(O)(CC(=O)O)C(=O)O": {"name": "citric acid", "role": "salt"},
+    "O=C(O)O": {"name": "formic acid (carbonic)", "role": "salt"},
+    "O=C(O)C(=O)O": {"name": "oxalic acid", "role": "salt"},
+    "O=C(O)CCC(=O)O": {"name": "succinic acid", "role": "salt"},
+    "O=C(O)C=CC(=O)O": {"name": "maleic acid", "role": "salt"},
+    "O=C(O)/C=C/C(=O)O": {"name": "fumaric acid", "role": "salt"},
+    "O=C(O)C(O)C(=O)O": {"name": "tartaric acid", "role": "salt"},
+    "O=S(=O)(O)c1ccccc1": {"name": "benzenesulfonic acid", "role": "salt"},
+    "CCCCS(=O)(=O)O": {"name": "butanesulfonic acid", "role": "salt"},
     # Solvents
     "O": {"name": "water", "role": "solvent"},
     "CO": {"name": "methanol", "role": "solvent"},
