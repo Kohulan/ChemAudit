@@ -12,6 +12,22 @@ from .basic import (
     SanitizationCheck,
     ValenceCheck,
 )
+from .deep_complexity import (
+    ChargedSpeciesCheck,
+    ExplicitHydrogenAuditCheck,
+    HypervalentAtomCheck,
+    MacrocycleDetectionCheck,
+    PolymerDetectionCheck,
+    RingStrainCheck,
+)
+from .deep_composition import (
+    InorganicFilterCheck,
+    IsotopeLabelDetectionCheck,
+    MixtureDetectionCheck,
+    RadicalDetectionCheck,
+    SolventContaminationCheck,
+    TrivialMoleculeCheck,
+)
 from .deep_stereo_tautomer import (
     AromaticSystemValidationCheck,
     CoordinateDimensionCheck,
@@ -47,4 +63,16 @@ __all__ = [
     "TautomerDetectionCheck",
     "AromaticSystemValidationCheck",
     "CoordinateDimensionCheck",
+    "MixtureDetectionCheck",
+    "SolventContaminationCheck",
+    "InorganicFilterCheck",
+    "RadicalDetectionCheck",
+    "IsotopeLabelDetectionCheck",
+    "TrivialMoleculeCheck",
+    "HypervalentAtomCheck",
+    "PolymerDetectionCheck",
+    "RingStrainCheck",
+    "MacrocycleDetectionCheck",
+    "ChargedSpeciesCheck",
+    "ExplicitHydrogenAuditCheck",
 ]
