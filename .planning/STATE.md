@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 2 of 6 (Standardization Intelligence)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-23 — Plan 02-01 complete: provenance pipeline for all 4 STD requirements (STD-01 through STD-04), 23 new tests, all 65 standardization tests passing
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 02 complete — ready for Phase 03 (Batch Analytics)
+Last activity: 2026-02-23 — Plan 02-02 complete: ring aromaticity tracking (STD-05), stereo per-center detail (STD-06), ProvenanceTimeline/ProvenanceStageCard UI components, 12 new M2.2 tests, all 77 standardization tests passing
 
-Progress: [████░░░░░░] 20%
+Progress: [████████░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 6 min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Deep Validation | 3/4 | 18 min | 6 min |
-| 2. Standardization Intelligence | 1/2 | 7 min | 7 min |
+| 2. Standardization Intelligence | 2/2 | 13 min | 6.5 min |
 | 3. Batch Analytics | 0/6 | — | — |
 | 4. Scoring Expansion | 0/3 | — | — |
 | 5. Visualizations | 0/2 | — | — |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min), 02-02 (6 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [Phase 02-standardization-intelligence]: ProvenancePipeline wraps StandardizationPipeline externally — no internal modifications; provenance captured by re-calling same ChEMBL functions stage-by-stage
 - [Phase 02-standardization-intelligence]: SMILES fragment diffing (set difference) for get_parent provenance — avoids atom-idx comparison pitfall when atom count changes after removal
 - [Phase 02-standardization-intelligence]: Separate typed provenance fields per stage (charge_changes, bond_changes, etc.) instead of generic List[dict] to prevent TypeScript any[] on frontend
+- [Phase 02-02]: Ring is aromatic iff ALL member atoms report GetIsAromatic()=True; atom count guard prevents ring diff index mismatch on fragment removal
+- [Phase 02-02]: StereoProvenance.per_center changed from List[dict] to List[StereoCenterDetailSchema] — fully typed; DVAL cross-refs empty with TODO (optional per research)
+- [Phase 02-02]: On-demand MoleculeViewer in ProvenanceStageCard — click "Show structure" to render; avoids RDKit.js cost for all stages by default
 
 ### Pending Todos
 
@@ -72,5 +75,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-01-PLAN.md — provenance pipeline for STD-01 through STD-04; ProvenancePipeline, fragment_dict, 7 new Pydantic schemas; 23 new tests, all 65 standardization tests passing
+Stopped at: Completed 02-02-PLAN.md — ring aromaticity tracking (STD-05), stereo per-center detail (STD-06), ProvenanceTimeline/ProvenanceStageCard UI; 12 new M2.2 tests, all 77 standardization tests passing; Phase 02 complete
 Resume file: None

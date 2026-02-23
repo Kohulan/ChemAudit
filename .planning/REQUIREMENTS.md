@@ -42,8 +42,8 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Standardization Intelligence — Normalization (Milestone 2.2)
 
-- [ ] **STD-05**: Kekulization/aromaticity normalization report (ring system changes)
-- [ ] **STD-06**: Stereochemistry normalization tracking (stereo changes during standardization)
+- [x] **STD-05**: Kekulization/aromaticity normalization report (ring system changes)
+- [x] **STD-06**: Stereochemistry normalization tracking (stereo changes during standardization)
 
 ### Batch Analytics — Multi-Level Duplicate Detection (Milestone 3.1)
 
