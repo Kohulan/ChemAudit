@@ -77,15 +77,15 @@ Plans:
   3. Chemical space endpoint returns PCA 2D coordinates for all molecules and t-SNE coordinates for batches of ≤2000 molecules; similarity search returns ranked neighbors by Tanimoto for a query SMILES
   4. Property distribution statistics return mean, median, std, quartiles, and IQR-based outlier flags per property; batch quality score is a composite 0–100 metric combining validity, diversity, and drug-likeness
   5. All analytics endpoints refuse synchronous computation for large batches; analytics results are cached in Redis with 24-hour TTL; result_storage.get_results() supports page/page_size pagination
-**Plans**: TBD — 6 plans (INFRA-01 first, then one per milestone: M3.1 through M3.5)
+**Plans**: 6 plans (INFRA-01 + analytics infrastructure first, then 5 analytics service modules in parallel)
 
 Plans:
-- [ ] 03-01: INFRA-01 — Batch result pagination and Redis TTL policy (prerequisite)
-- [ ] 03-02: Milestone 3.1 — Multi-Level Duplicate Detection (BATCH-01 through BATCH-04)
-- [ ] 03-03: Milestone 3.2 — Scaffold Analysis (BATCH-05 through BATCH-08)
-- [ ] 03-04: Milestone 3.3 — Chemical Space & Similarity (BATCH-09 through BATCH-12)
-- [ ] 03-05: Milestone 3.4 — MMP & Activity Cliffs (BATCH-13 through BATCH-15)
-- [ ] 03-06: Milestone 3.5 — Batch Statistics & Quality (BATCH-16 through BATCH-19)
+- [ ] 03-01-PLAN.md — INFRA-01 TTL policy + analytics infrastructure skeleton (storage, schemas, routes, Celery tasks)
+- [ ] 03-02-PLAN.md — Multi-Level Duplicate Detection: exact, tautomeric, stereo-insensitive, salt-form (BATCH-01..04)
+- [ ] 03-03-PLAN.md — Scaffold Analysis: Murcko/generic scaffolds, diversity metrics, R-group decomposition (BATCH-05..08)
+- [ ] 03-04-PLAN.md — Chemical Space & Similarity: PCA, t-SNE, similarity search, nearest neighbors, similarity matrix (BATCH-09..12)
+- [ ] 03-05-PLAN.md — MMP & Activity Cliffs: BRICS-based MMP, SALI index, LLE (BATCH-13..15)
+- [ ] 03-06-PLAN.md — Batch Statistics & Quality: property stats, correlations, quality score, outlier detection (BATCH-16..19)
 
 ### Phase 4: Scoring Expansion
 **Goal**: Single-molecule scoring results include richer drug-likeness profiles (consensus rules, lead-like, fragment-like assessments), per-atom property contribution breakdowns, and visually interpretable radar and BOILED-Egg data — all computed from already-available descriptors, zero new backend dependencies except scoring logic
