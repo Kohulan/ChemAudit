@@ -24,6 +24,13 @@ import type { CheckResult } from '../../types/validation';
 
 type ViewMode = 'category' | 'severity';
 
+/** Domain-level descriptions explaining what each layer checks and why it matters */
+const DOMAIN_DESCRIPTIONS: Record<string, string> = {
+  'Stereo & Tautomers': 'Analyzes stereochemistry completeness and tautomeric forms — critical for ensuring correct 3D structure representation and consistent compound identity across databases.',
+  'Chemical Composition': 'Guards against mixtures, solvents, inorganic compounds, and other non-drug-like inputs that would produce misleading validation and scoring results.',
+  'Structural Complexity': 'Flags structural patterns like ring strain, macrocycles, and unusual valences that affect compound stability, processing, and ML model applicability.',
+};
+
 // All deep check names (union of all domain check arrays)
 const ALL_DEEP_CHECK_NAMES = new Set<string>(
   Object.values(DEEP_CHECK_DOMAINS).flatMap((d) => d.checks)
@@ -97,6 +104,11 @@ function DomainSection({ label, checks, effectiveSeverityFn, onHighlightAtoms }:
         />
         <span className="flex-1 text-sm font-semibold text-[var(--color-text-primary)]">
           {label}
+          {DOMAIN_DESCRIPTIONS[label] && (
+            <span className="block text-[10px] font-normal text-[var(--color-text-muted)] mt-0.5 leading-tight">
+              {DOMAIN_DESCRIPTIONS[label]}
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-[var(--color-text-muted)]">
