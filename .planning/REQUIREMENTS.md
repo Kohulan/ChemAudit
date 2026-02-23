@@ -142,7 +142,7 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Infrastructure Prerequisite
 
-- [ ] **INFRA-01**: Batch result pagination and Redis TTL policy (prerequisite for Phase 3 analytics)
+- [x] **INFRA-01**: Batch result pagination and Redis TTL policy (prerequisite for Phase 3 analytics)
 
 ## v2 Requirements
 

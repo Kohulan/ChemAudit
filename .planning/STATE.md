@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 2 — Standardization Intelligence (in progress)
+**Current focus:** Phase 3 — Batch Analytics (in progress)
 
 ## Current Position
 
-Phase: 2 of 6 (Standardization Intelligence)
-Plan: 3 of 3 in current phase (COMPLETE — gap closure)
-Status: Phase 02 fully complete — all 11/11 must-haves verified — ready for Phase 03 (Batch Analytics)
-Last activity: 2026-02-23 — Plan 02-03 complete: fragment dict deduplication (O=CO=formic acid, 55 unique entries), DVAL cross-ref population in stereo/tautomer provenance, 5 new tests, all 82 standardization tests passing
+Phase: 3 of 6 (Batch Analytics)
+Plan: 1 of 6 in current phase (COMPLETE — analytics infrastructure skeleton)
+Status: Phase 03 plan 01 complete — INFRA-01 TTL policy, analytics storage, schemas, Celery tasks, GET/POST endpoints, 14 tests passing
+Last activity: 2026-02-23 — Plan 03-01 complete: BATCH_RESULT_TTL=86400, ResultStorage.get_all_results, AnalyticsStorage, analytics schemas (18 models), run_cheap/expensive_analytics tasks, GET/POST analytics endpoints
 
-Progress: [████████░░] 40%
+Progress: [████████░░] 42%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 5.5 min
-- Total execution time: ~0.55 hours
+- Total plans completed: 7
+- Average duration: 5.7 min
+- Total execution time: ~0.67 hours
 
 **By Phase:**
 
@@ -29,13 +29,13 @@ Progress: [████████░░] 40%
 |-------|-------|-------|----------|
 | 1. Deep Validation | 3/4 | 18 min | 6 min |
 | 2. Standardization Intelligence | 3/3 | 17 min | 5.7 min |
-| 3. Batch Analytics | 0/6 | — | — |
+| 3. Batch Analytics | 1/6 | 4 min | 4 min |
 | 4. Scoring Expansion | 0/3 | — | — |
 | 5. Visualizations | 0/2 | — | — |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 6 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min), 02-02 (6 min), 02-03 (4 min)
+- Last 7 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min), 02-02 (6 min), 02-03 (4 min), 03-01 (4 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -63,6 +63,7 @@ Recent decisions affecting current work:
 - [Phase 02-02]: On-demand MoleculeViewer in ProvenanceStageCard — click "Show structure" to render; avoids RDKit.js cost for all stages by default
 - [Phase 02-standardization-intelligence]: Fragment dict O=CO=formic acid: remove duplicate O=C(O)O key (formic acid carbonic), add O=CO for real formic acid; regression test via source inspection
 - [Phase 02-standardization-intelligence]: DVAL cross-refs: dval_results kwarg on standardize_with_provenance(); StereoProvenance gains dval_cross_refs field for DVAL-01; tautomer ProvStageRecord.dval_cross_refs for DVAL-03; None default keeps all cross-refs empty (backward compatible)
+- [Phase 03-batch-analytics]: BATCH_RESULT_TTL=86400 in config; import-guarded analytics modules in tasks allow incremental plan delivery; analytics_storage key format batch:analytics:{type}:{job_id}
 
 ### Pending Todos
 
@@ -77,5 +78,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-03-PLAN.md — fragment dict dedup (O=CO=formic acid, 55 unique keys), DVAL cross-ref population in stereo/tautomer provenance, 5 new tests, 82 total standardization tests passing; Phase 02 gap closure complete (11/11 must-haves)
+Stopped at: Completed 03-01-PLAN.md — INFRA-01 TTL policy (BATCH_RESULT_TTL=86400), analytics infrastructure skeleton (AnalyticsStorage, 18 schemas, run_cheap/expensive_analytics tasks, GET/POST endpoints), 14 tests passing
 Resume file: None
