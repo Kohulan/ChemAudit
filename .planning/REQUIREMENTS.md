@@ -74,10 +74,10 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Batch Analytics — Statistics & Quality (Milestone 3.5)
 
-- [ ] **BATCH-16**: Property distribution statistics (mean, median, std, quartiles per property)
-- [ ] **BATCH-17**: Property correlation matrix (pairwise Pearson correlations)
-- [ ] **BATCH-18**: Batch quality score (composite metric: validity + diversity + drug-likeness)
-- [ ] **BATCH-19**: Outlier detection (IQR-based flagging per property)
+- [x] **BATCH-16**: Property distribution statistics (mean, median, std, quartiles per property)
+- [x] **BATCH-17**: Property correlation matrix (pairwise Pearson correlations)
+- [x] **BATCH-18**: Batch quality score (composite metric: validity + diversity + drug-likeness)
+- [x] **BATCH-19**: Outlier detection (IQR-based flagging per property)
 
 ### Scoring Expansion — Drug-Likeness Profiles (Milestone 4.1)
 

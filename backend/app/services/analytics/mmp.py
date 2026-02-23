@@ -386,6 +386,10 @@ def compute_mmp_analysis(
 
     # --- MMP pair detection ---
     pairs = _detect_mmp_pairs(mols, indices)
+    # Apply cap at the orchestrator level as well so that mocked / overridden
+    # _detect_mmp_pairs implementations that skip the internal cap are still bounded.
+    if len(pairs) > MAX_PAIRS_RETURNED:
+        pairs = sorted(pairs, key=lambda p: p["tanimoto"], reverse=True)[:MAX_PAIRS_RETURNED]
 
     # --- Activity data (optional) ---
     activity_cliffs = None
