@@ -80,8 +80,8 @@ Plans:
 **Plans**: 6 plans (INFRA-01 + analytics infrastructure first, then 5 analytics service modules in parallel)
 
 Plans:
-- [ ] 03-01-PLAN.md — INFRA-01 TTL policy + analytics infrastructure skeleton (storage, schemas, routes, Celery tasks)
-- [ ] 03-02-PLAN.md — Multi-Level Duplicate Detection: exact, tautomeric, stereo-insensitive, salt-form (BATCH-01..04)
+- [x] 03-01-PLAN.md — INFRA-01 TTL policy + analytics infrastructure skeleton (storage, schemas, routes, Celery tasks)
+- [x] 03-02-PLAN.md — Multi-Level Duplicate Detection: exact, tautomeric, stereo-insensitive, salt-form (BATCH-01..04)
 - [ ] 03-03-PLAN.md — Scaffold Analysis: Murcko/generic scaffolds, diversity metrics, R-group decomposition (BATCH-05..08)
 - [ ] 03-04-PLAN.md — Chemical Space & Similarity: PCA, t-SNE, similarity search, nearest neighbors, similarity matrix (BATCH-09..12)
 - [ ] 03-05-PLAN.md — MMP & Activity Cliffs: BRICS-based MMP, SALI index, LLE (BATCH-13..15)
@@ -147,7 +147,7 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 |-------|-----------|----------------|--------|-----------|
 | 1. Deep Validation | v2.0 | 0/4 | Planning complete | - |
 | 2. Standardization Intelligence | 3/3 | Complete   | 2026-02-23 | - |
-| 3. Batch Analytics | 1/6 | In Progress|  | - |
+| 3. Batch Analytics | 3/6 | In Progress|  | - |
 | 4. Scoring Expansion | v2.0 | 0/3 | Not started | - |
 | 5. Visualizations | v2.0 | 0/2 | Not started | - |
 | 6. Export, API & Workflow | v2.0 | 0/3 | Not started | - |

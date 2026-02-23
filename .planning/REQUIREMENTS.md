@@ -61,10 +61,10 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Batch Analytics — Chemical Space & Similarity (Milestone 3.3)
 
-- [ ] **BATCH-09**: Chemical space PCA/t-SNE visualization (2D projection of fingerprint space)
-- [ ] **BATCH-10**: Similarity search within batch (query molecule → ranked neighbors)
-- [ ] **BATCH-11**: Nearest neighbor analysis (isolation score per molecule)
-- [ ] **BATCH-12**: Similarity matrix/heatmap data (pairwise Tanimoto)
+- [x] **BATCH-09**: Chemical space PCA/t-SNE visualization (2D projection of fingerprint space)
+- [x] **BATCH-10**: Similarity search within batch (query molecule → ranked neighbors)
+- [x] **BATCH-11**: Nearest neighbor analysis (isolation score per molecule)
+- [x] **BATCH-12**: Similarity matrix/heatmap data (pairwise Tanimoto)
 
 ### Batch Analytics — MMP & Activity Cliffs (Milestone 3.4)
 

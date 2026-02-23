@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 3 of 6 (Batch Analytics)
-Plan: 1 of 6 in current phase (COMPLETE — analytics infrastructure skeleton)
-Status: Phase 03 plan 01 complete — INFRA-01 TTL policy, analytics storage, schemas, Celery tasks, GET/POST endpoints, 14 tests passing
-Last activity: 2026-02-23 — Plan 03-01 complete: BATCH_RESULT_TTL=86400, ResultStorage.get_all_results, AnalyticsStorage, analytics schemas (18 models), run_cheap/expensive_analytics tasks, GET/POST analytics endpoints
+Plan: 4 of 6 in current phase (COMPLETE — chemical space analysis service)
+Status: Phase 03 plan 04 complete — chemical space service (PCA, t-SNE, similarity search, nearest neighbors, similarity matrix), openTSNE dependency, 11 tests passing
+Last activity: 2026-02-23 — Plan 03-04 complete: chemical_space.py with randomized SVD PCA, openTSNE t-SNE (2000-molecule cap), Tanimoto similarity search, isolation-score nearest neighbors, dense/sparse similarity matrix
 
-Progress: [████████░░] 42%
+Progress: [█████████░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 5.7 min
-- Total execution time: ~0.67 hours
+- Total plans completed: 10
+- Average duration: 5.0 min
+- Total execution time: ~0.83 hours
 
 **By Phase:**
 
@@ -29,13 +29,13 @@ Progress: [████████░░] 42%
 |-------|-------|-------|----------|
 | 1. Deep Validation | 3/4 | 18 min | 6 min |
 | 2. Standardization Intelligence | 3/3 | 17 min | 5.7 min |
-| 3. Batch Analytics | 1/6 | 4 min | 4 min |
+| 3. Batch Analytics | 4/6 | 19 min | 4.75 min |
 | 4. Scoring Expansion | 0/3 | — | — |
 | 5. Visualizations | 0/2 | — | — |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 7 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min), 02-02 (6 min), 02-03 (4 min), 03-01 (4 min)
+- Last 7 plans: 01-02 (6 min), 01-03 (7 min), 02-01 (7 min), 02-02 (6 min), 02-03 (4 min), 03-01 (4 min), 03-04 (3.5 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -64,6 +64,8 @@ Recent decisions affecting current work:
 - [Phase 02-standardization-intelligence]: Fragment dict O=CO=formic acid: remove duplicate O=C(O)O key (formic acid carbonic), add O=CO for real formic acid; regression test via source inspection
 - [Phase 02-standardization-intelligence]: DVAL cross-refs: dval_results kwarg on standardize_with_provenance(); StereoProvenance gains dval_cross_refs field for DVAL-01; tautomer ProvStageRecord.dval_cross_refs for DVAL-03; None default keeps all cross-refs empty (backward compatible)
 - [Phase 03-batch-analytics]: BATCH_RESULT_TTL=86400 in config; import-guarded analytics modules in tasks allow incremental plan delivery; analytics_storage key format batch:analytics:{type}:{job_id}
+- [Phase 03-02-deduplication]: Per-call TautomerEnumerator (not module-level) — not thread-safe; representative = min(indices) not indices[0] — parallel chunks don't preserve insertion order; stereo InChI stripping uses frozenset(['t','m','s']); total_unique = total_success minus duplicates removed per group
+- [Phase 03-04-chemical-space]: PCA uses randomized numpy SVD (no sklearn), seeded np.random.default_rng(42); compute_chemical_space dispatcher added for analytics_tasks.py; pytest slow mark registered in pyproject.toml
 
 ### Pending Todos
 
@@ -78,5 +80,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 03-01-PLAN.md — INFRA-01 TTL policy (BATCH_RESULT_TTL=86400), analytics infrastructure skeleton (AnalyticsStorage, 18 schemas, run_cheap/expensive_analytics tasks, GET/POST endpoints), 14 tests passing
+Stopped at: Completed 03-04-PLAN.md — chemical space service (randomized SVD PCA, openTSNE t-SNE, similarity search, nearest neighbors, dense/sparse matrix), openTSNE dep added, 11 tests passing
 Resume file: None
