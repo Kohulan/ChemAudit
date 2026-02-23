@@ -24,6 +24,8 @@ from app.schemas.standardization import (
     FragmentRemoval,
     ProvStageRecord,
     RadicalChange,
+    RingChange,
+    StereoCenterDetailSchema,
     StereoProvenance,
     StandardizationProvenance,
     TautomerProvenance,
@@ -233,13 +235,34 @@ class ProvenancePipeline:
                 )
                 final_mol = parent_mol
 
-            # Stereo summary from stereo tracker
+            # Stereo summary with per-center detail (STD-06)
             if pipeline_result.stereo_comparison:
                 sc = pipeline_result.stereo_comparison
+                # Build per-center detail by comparing overall before/after stereo
+                stereo_before_overall = StereoTracker.get_stereo_info(mol)
+                stereo_after_overall = StereoTracker.get_stereo_info(final_mol)
+                stereo_comparison_detailed = StereoTracker.compare(
+                    stereo_before_overall, stereo_after_overall, reason="standardization"
+                )
+                # Convert StereoCenterDetail dataclasses to Pydantic schemas
+                per_center_schemas = [
+                    StereoCenterDetailSchema(
+                        atom_idx=cd.atom_idx,
+                        type=cd.type,
+                        before_config=cd.before_config,
+                        after_config=cd.after_config,
+                        reason=cd.reason,
+                    )
+                    for cd in stereo_comparison_detailed.per_center_detail
+                ]
                 stereo_summary = StereoProvenance(
                     stereo_stripped=sc.has_stereo_loss,
                     centers_lost=sc.stereocenters_lost,
                     bonds_lost=sc.double_bond_stereo_lost,
+                    per_center=per_center_schemas,
+                    # TODO: DVAL cross-refs can be populated when the frontend passes
+                    # prior DVAL results (e.g., "DVAL-01 found N undefined centers").
+                    # Documented as optional in research open questions.
                 )
 
         except Exception:
@@ -296,6 +319,67 @@ class ProvenancePipeline:
                 output_smiles=input_smiles,
                 applied=False,
             )
+
+    def _capture_ring_aromaticity_changes(
+        self, before_mol: Chem.Mol, after_mol: Chem.Mol
+    ) -> list[RingChange]:
+        """
+        Detect ring-level aromaticity changes between before and after molecules (STD-05).
+
+        A ring is "aromatic" if ALL its atoms are aromatic, "kekulized" otherwise.
+        Only valid when atom count is preserved (same guard as charge tracking).
+
+        Args:
+            before_mol: Molecule before standardization.
+            after_mol: Molecule after standardization.
+
+        Returns:
+            List of RingChange records for rings that changed aromaticity type.
+        """
+        if before_mol is None or after_mol is None:
+            return []
+
+        # Only valid when atom count is preserved
+        if before_mol.GetNumAtoms() != after_mol.GetNumAtoms():
+            return []
+
+        ring_changes: list[RingChange] = []
+
+        try:
+            before_rings = list(before_mol.GetRingInfo().AtomRings())
+            after_rings = list(after_mol.GetRingInfo().AtomRings())
+
+            # Match rings by their sorted atom index sets
+            # After standardization with atom count preserved, rings correspond 1:1
+            for ring_atoms_tuple in before_rings:
+                ring_atoms = list(ring_atoms_tuple)
+
+                # Check aromaticity before: a ring is aromatic if ALL atoms are aromatic
+                before_aromatic = all(
+                    before_mol.GetAtomWithIdx(idx).GetIsAromatic() for idx in ring_atoms
+                )
+                before_type = "aromatic" if before_aromatic else "kekulized"
+
+                # Check aromaticity after (same atom indices — count preserved)
+                after_aromatic = all(
+                    after_mol.GetAtomWithIdx(idx).GetIsAromatic() for idx in ring_atoms
+                )
+                after_type = "aromatic" if after_aromatic else "kekulized"
+
+                if before_type != after_type:
+                    ring_changes.append(
+                        RingChange(
+                            ring_atoms=sorted(ring_atoms),
+                            ring_size=len(ring_atoms),
+                            before_type=before_type,
+                            after_type=after_type,
+                        )
+                    )
+        except Exception:
+            # Ring detection may fail on unusual molecules — return empty list
+            pass
+
+        return ring_changes
 
     def _capture_standardizer_provenance(
         self, mol: Chem.Mol
@@ -409,6 +493,9 @@ class ProvenancePipeline:
                                 )
                             )
 
+            # Ring aromaticity tracking (STD-05)
+            ring_changes = self._capture_ring_aromaticity_changes(mol, std_mol)
+
             return std_mol, ProvStageRecord(
                 stage_name="standardizer",
                 input_smiles=input_smiles,
@@ -417,6 +504,7 @@ class ProvenancePipeline:
                 charge_changes=charge_changes,
                 radical_changes=radical_changes,
                 bond_changes=bond_changes,
+                ring_changes=ring_changes,
             )
 
         except Exception:

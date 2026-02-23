@@ -58,6 +58,31 @@ class FragmentRemoval(BaseModel):
     mw: float = Field(..., description="Exact molecular weight of the fragment")
 
 
+class RingChange(BaseModel):
+    """A ring-level aromaticity change during standardization (STD-05)."""
+
+    ring_atoms: List[int] = Field(..., description="Atom indices comprising the ring")
+    ring_size: int = Field(..., description="Number of atoms in the ring")
+    before_type: str = Field(
+        ..., description="Ring aromaticity type before standardization (aromatic/kekulized)"
+    )
+    after_type: str = Field(
+        ..., description="Ring aromaticity type after standardization (aromatic/kekulized)"
+    )
+
+
+class StereoCenterDetailSchema(BaseModel):
+    """Per-center stereo change detail (STD-06)."""
+
+    atom_idx: int = Field(..., description="Atom or bond index of the stereocenter")
+    type: str = Field(..., description="Type: 'tetrahedral' or 'double_bond'")
+    before_config: str = Field(..., description="Config before: R/S/?/absent/E/Z/CIS/TRANS")
+    after_config: str = Field(..., description="Config after: R/S/?/absent/E/Z/CIS/TRANS")
+    reason: str = Field(
+        ..., description="Reason: 'standardization', 'tautomer_canonicalization', 'get_parent'"
+    )
+
+
 class TautomerProvenance(BaseModel):
     """Tautomer canonicalization provenance record (STD-01)."""
 
@@ -97,6 +122,10 @@ class ProvStageRecord(BaseModel):
     radical_changes: List[RadicalChange] = Field(
         default_factory=list, description="Radical electron changes (STD-03)"
     )
+    ring_changes: List[RingChange] = Field(
+        default_factory=list,
+        description="Ring-level aromaticity changes during standardization (STD-05)",
+    )
     fragment_removals: List[FragmentRemoval] = Field(
         default_factory=list, description="Fragments removed during parent extraction (STD-04)"
     )
@@ -114,9 +143,9 @@ class StereoProvenance(BaseModel):
     )
     centers_lost: int = Field(..., description="Number of chiral centers lost")
     bonds_lost: int = Field(..., description="Number of E/Z stereo bonds lost")
-    per_center: List[dict] = Field(
+    per_center: List[StereoCenterDetailSchema] = Field(
         default_factory=list,
-        description="Per-center detail (reserved for STD-06 in Plan 02)",
+        description="Per-center stereo change detail (STD-06)",
     )
 
 
