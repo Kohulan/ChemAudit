@@ -70,6 +70,7 @@ Recent decisions affecting current work:
 - [Phase 03-03-scaffold-analysis]: Double-GetScaffoldForMol pattern for generic scaffold: MakeScaffoldGeneric converts exocyclic doubles; second GetScaffoldForMol removes them
 - [Phase 03-03-scaffold-analysis]: Acyclic molecules grouped under empty string scaffold key; Shannon entropy edge-case (single scaffold = 0) handled before log2; frequency cap at 50 + Other bucket
 - [Phase 03-05-mmp]: BRICS BRICSDecompose for MMP — phenol/aniline have no BRICS bonds, use phenylacetic acid/acetamide for tests; cap applied both inside _detect_mmp_pairs AND compute_mmp_analysis for monkeypatch robustness; compute_mmp returns _MMPResultWrapper with model_dump() for analytics_tasks.py compatibility
+- [Phase 01]: Frontend Deep Validation Tab: Framer Motion AnimatePresence for expand/collapse; dynamic verdict from effective severities (not backend score); atom index badges trigger molecule viewer highlighting; fragment table as proper mini-table with colored classification badges
 
 ### Pending Todos
 

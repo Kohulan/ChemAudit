@@ -24,7 +24,7 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 - Integer phases (1–6): Planned milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions (marked INSERTED)
 
-- [ ] **Phase 1: Deep Validation** - 17 new validation checks covering stereo, tautomers, composition, and structural complexity
+- [x] **Phase 1: Deep Validation** - 17 new validation checks covering stereo, tautomers, composition, and structural complexity (completed 2026-02-23)
 - [x] **Phase 2: Standardization Intelligence** - Provenance tracking for all 4 ChEMBL pipeline stages with atom-level change reporting (completed 2026-02-23)
 - [x] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination) (completed 2026-02-23)
 - [ ] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot
@@ -49,7 +49,7 @@ Plans:
 - [x] 01-01-PLAN.md — M1.1 Stereo & Tautomer Checks backend (DVAL-01..05) + cache key versioning (COMPLETE: 2 tasks, 31 tests, commits 51bf66e + 58e4b11)
 - [x] 01-02-PLAN.md — M1.2 Chemical Composition Guards backend (DVAL-06..11) (COMPLETE: 2 tasks, 133 tests, commits 3b0eab7 + 7af522a)
 - [x] 01-03-PLAN.md — M1.3 Structural Complexity Flags backend (DVAL-12..17) + startup assertion (COMPLETE: 2 tasks, 65 tests, commit ab0eb4c)
-- [ ] 01-04-PLAN.md — Frontend Deep Validation Tab (all DVAL requirements: types, UI, severity config, atom highlighting)
+- [x] 01-04-PLAN.md — Frontend Deep Validation Tab (all DVAL requirements: types, UI, severity config, atom highlighting) (COMPLETE: 3 tasks, 41 tests)
 
 ### Phase 2: Standardization Intelligence
 **Goal**: Users running standardization see exactly what changed and why — every stage of the ChEMBL pipeline (Checker, Standardizer, GetParent, Tautomer) produces a provenance record with atom-level before/after diffs, removed fragment names, and stereo change tracking
@@ -145,7 +145,7 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Deep Validation | v2.0 | 0/4 | Planning complete | - |
+| 1. Deep Validation | 4/4 | Complete   | 2026-02-23 | - |
 | 2. Standardization Intelligence | 3/3 | Complete   | 2026-02-23 | - |
 | 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
 | 4. Scoring Expansion | v2.0 | 0/3 | Not started | - |

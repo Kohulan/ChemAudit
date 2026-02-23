@@ -166,23 +166,23 @@ Finalized during roadmap creation — 2026-02-23.
 
 | Requirement | Phase | Plan | Status |
 |-------------|-------|------|--------|
-| DVAL-01 | Phase 1 (M1.1) | 01-01 | Pending |
-| DVAL-02 | Phase 1 (M1.1) | 01-01 | Pending |
-| DVAL-03 | Phase 1 (M1.1) | 01-01 | Pending |
-| DVAL-04 | Phase 1 (M1.1) | 01-01 | Pending |
-| DVAL-05 | Phase 1 (M1.1) | 01-01 | Pending |
-| DVAL-06 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-07 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-08 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-09 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-10 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-11 | Phase 1 (M1.2) | 01-02 | Pending |
-| DVAL-12 | Phase 1 (M1.3) | 01-03 | Pending |
-| DVAL-13 | Phase 1 (M1.3) | 01-03 | Pending |
-| DVAL-14 | Phase 1 (M1.3) | 01-03 | Pending |
-| DVAL-15 | Phase 1 (M1.3) | 01-03 | Pending |
-| DVAL-16 | Phase 1 (M1.3) | 01-03 | Pending |
-| DVAL-17 | Phase 1 (M1.3) | 01-03 | Pending |
+| DVAL-01 | Phase 1 (M1.1) | 01-01 | Complete |
+| DVAL-02 | Phase 1 (M1.1) | 01-01 | Complete |
+| DVAL-03 | Phase 1 (M1.1) | 01-01 | Complete |
+| DVAL-04 | Phase 1 (M1.1) | 01-01 | Complete |
+| DVAL-05 | Phase 1 (M1.1) | 01-01 | Complete |
+| DVAL-06 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-07 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-08 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-09 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-10 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-11 | Phase 1 (M1.2) | 01-02 | Complete |
+| DVAL-12 | Phase 1 (M1.3) | 01-03 | Complete |
+| DVAL-13 | Phase 1 (M1.3) | 01-03 | Complete |
+| DVAL-14 | Phase 1 (M1.3) | 01-03 | Complete |
+| DVAL-15 | Phase 1 (M1.3) | 01-03 | Complete |
+| DVAL-16 | Phase 1 (M1.3) | 01-03 | Complete |
+| DVAL-17 | Phase 1 (M1.3) | 01-03 | Complete |
 | STD-01 | Phase 2 (M2.1) | 02-01 | Complete |
 | STD-02 | Phase 2 (M2.1) | 02-01 | Complete |
 | STD-03 | Phase 2 (M2.1) | 02-01 | Complete |
