@@ -1,14 +1,15 @@
 """
 Batch Processing API Routes
 
-Endpoints for batch file upload, job status, and results retrieval.
+Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import (
     APIRouter,
+    Body,
     Depends,
     File,
     Form,
@@ -21,6 +22,11 @@ from fastapi import (
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.schemas.analytics import (
+    AnalysisStatus,
+    AnalyticsTriggerResponse,
+    BatchAnalyticsResponse,
+)
 from app.schemas.batch import (
     BatchJobStatus,
     BatchResultItem,
@@ -29,6 +35,8 @@ from app.schemas.batch import (
     BatchUploadResponse,
     CSVColumnsResponse,
 )
+from app.services.analytics.storage import analytics_storage
+from app.services.batch.analytics_tasks import run_expensive_analytics
 from app.services.batch.file_parser import (
     detect_csv_columns,
     parse_csv,
@@ -385,6 +393,115 @@ async def cancel_batch(
         "status": "cancelling",
         "message": "Job cancellation requested",
     }
+
+
+@router.get("/batch/{job_id}/analytics", response_model=BatchAnalyticsResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def get_batch_analytics(
+    request: Request,
+    job_id: str,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Get analytics status and cached results for a completed batch job.
+
+    Returns status for all analytics types and any results that are ready.
+    Analytics are computed asynchronously after batch processing completes.
+
+    - **job_id**: Batch job identifier from the upload response.
+    """
+    status_data = analytics_storage.get_status(job_id)
+    if status_data is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Analytics not available for job {job_id}. "
+            "Job may still be processing or results have expired.",
+        )
+
+    # Build validated status dict
+    status_dict: dict[str, AnalysisStatus] = {
+        analysis_type: AnalysisStatus(**entry)
+        for analysis_type, entry in status_data.items()
+    }
+
+    # Fetch completed results
+    _RESULT_FIELD_MAP = {
+        "deduplication": "deduplication",
+        "scaffold": "scaffold",
+        "chemical_space": "chemical_space",
+        "similarity_search": "similarity_matrix",
+        "mmp": "mmp",
+        "statistics": "statistics",
+    }
+
+    result_kwargs: dict[str, Any] = {}
+    for analysis_type, field_name in _RESULT_FIELD_MAP.items():
+        entry = status_dict.get(analysis_type)
+        if entry and entry.status == "complete":
+            raw = analytics_storage.get_result(job_id, analysis_type)
+            if raw is not None:
+                result_kwargs[field_name] = raw
+
+    return BatchAnalyticsResponse(
+        job_id=job_id,
+        status=status_dict,
+        **result_kwargs,
+    )
+
+
+_ALLOWED_EXPENSIVE_ANALYSES = {
+    "scaffold",
+    "chemical_space",
+    "mmp",
+    "similarity_search",
+    "rgroup",
+}
+
+
+@router.post(
+    "/batch/{job_id}/analytics/{analysis_type}",
+    response_model=AnalyticsTriggerResponse,
+)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def trigger_batch_analytics(
+    request: Request,
+    job_id: str,
+    analysis_type: str,
+    params: Optional[dict[str, Any]] = Body(default=None),
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Trigger an expensive analytics computation for a completed batch job.
+
+    Supported analysis types:
+    - **scaffold**: Murcko scaffold diversity analysis.
+    - **chemical_space**: PCA or t-SNE 2-D chemical space embedding.
+    - **mmp**: Matched molecular pair analysis (requires activity_column param).
+    - **similarity_search**: Nearest-neighbor similarity search.
+    - **rgroup**: R-group decomposition (requires core_smarts param).
+
+    Optional params body (JSON object):
+    - `method`: "pca" or "tsne" (for chemical_space)
+    - `activity_column`: property key for MMP cliff detection
+    - `query_smiles`: query SMILES for similarity_search
+    - `query_index`: query molecule index for similarity_search
+    - `top_k`: number of neighbors to return (similarity_search)
+    - `core_smarts`: SMARTS pattern for R-group core
+    """
+    if analysis_type not in _ALLOWED_EXPENSIVE_ANALYSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown analysis type '{analysis_type}'. "
+            f"Allowed: {sorted(_ALLOWED_EXPENSIVE_ANALYSES)}",
+        )
+
+    run_expensive_analytics.delay(job_id, analysis_type, params)
+
+    return AnalyticsTriggerResponse(
+        job_id=job_id,
+        analysis_type=analysis_type,
+        status="queued",
+    )
 
 
 @router.post("/batch/detect-columns", response_model=CSVColumnsResponse)

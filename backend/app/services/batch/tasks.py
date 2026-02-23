@@ -429,6 +429,18 @@ def aggregate_batch_results(
     # Mark job as complete
     progress_tracker.mark_complete(job_id)
 
+    # Trigger cheap analytics computation
+    try:
+        from app.services.batch.analytics_tasks import run_cheap_analytics
+
+        run_cheap_analytics.delay(job_id)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Failed to dispatch cheap analytics for %s", job_id
+        )
+
     return {
         "job_id": job_id,
         "total": len(all_results),
@@ -488,6 +500,18 @@ def aggregate_batch_results_priority(
 
     result_storage.store_results(job_id, all_results, stats)
     progress_tracker.mark_complete(job_id)
+
+    # Trigger cheap analytics computation
+    try:
+        from app.services.batch.analytics_tasks import run_cheap_analytics
+
+        run_cheap_analytics.delay(job_id)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Failed to dispatch cheap analytics for %s", job_id
+        )
 
     return {
         "job_id": job_id,
