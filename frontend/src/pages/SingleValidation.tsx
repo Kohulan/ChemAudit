@@ -18,6 +18,7 @@ import {
   Share2,
   ChevronDown,
   Download,
+  Microscope,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -28,6 +29,7 @@ import { ScoringResults } from '../components/scoring/ScoringResults';
 import { ScoreChart } from '../components/scoring/ScoreChart';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
+import { DeepValidationTab } from '../components/validation/DeepValidationTab';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
@@ -53,7 +55,7 @@ const EXAMPLE_MOLECULES = [
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
-type TabType = 'validate' | 'database' | 'alerts' | 'standardize';
+type TabType = 'validate' | 'deep-validation' | 'database' | 'alerts' | 'standardize';
 
 interface TabConfig {
   id: TabType;
@@ -68,6 +70,12 @@ const TABS: TabConfig[] = [
     label: 'Validate & Score',
     icon: <CheckCircle2 className="w-4 h-4" />,
     description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
+  },
+  {
+    id: 'deep-validation',
+    label: 'Deep Validation',
+    icon: <Microscope className="w-4 h-4" />,
+    description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
   },
   {
     id: 'database',
@@ -765,6 +773,53 @@ export function SingleValidationPage() {
                         Score
                       </ClayButton>
                     </div>
+                  </div>
+                )}
+
+                {/* Deep Validation Tab */}
+                {activeTab === 'deep-validation' && (
+                  <div className="space-y-4">
+                    {result ? (
+                      <DeepValidationTab
+                        checks={result.all_checks}
+                        onHighlightAtoms={setHighlightedAtoms}
+                      />
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                          <Info className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-text-secondary)] text-sm mb-3">
+                            Run a validation to see advanced structure analysis:
+                          </p>
+                          <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
+                            <li className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                              Stereo &amp; Tautomers — stereoisomer enumeration, tautomer detection
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                              Chemical Composition — mixture, solvent, inorganic, radical detection
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
+                              Structural Complexity — hypervalent, polymer, ring strain, macrocycle
+                            </li>
+                          </ul>
+                          <div className="mt-4">
+                            <button
+                              onClick={handleValidate}
+                              disabled={!molecule.trim() || isAnyLoading}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Play className="w-4 h-4" />
+                              Validate First
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
