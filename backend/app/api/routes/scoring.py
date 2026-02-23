@@ -23,41 +23,76 @@ from app.core.security import get_api_key
 from app.schemas.scoring import (
     ADMETResultSchema,
     AggregatorLikelihoodSchema,
+    AtomContributionSchema,
+    BertzDetailSchema,
+    BioavailabilityRadarSchema,
     BioavailabilitySchema,
+    BoiledEggSchema,
+    CarbonHybridizationSchema,
     ChEMBLAlertsSchema,
     CNSMPOSchema,
+    ComparisonRequest,
     ComplexitySchema,
+    ConsensusScoreSchema,
     DrugLikenessResultSchema,
     EganSchema,
+    EllipseParamsSchema,
     FilterAlertSchema,
+    Fsp3DetailSchema,
+    FunctionalGroupContributionSchema,
     GhoseSchema,
     GoldenTriangleSchema,
     GSKRuleSchema,
+    LeadLikenessSchema,
+    LigandEfficiencySchema,
     LipinskiSchema,
+    LogPBreakdownSchema,
     MLReadinessBreakdownSchema,
     MLReadinessResultSchema,
     MoleculeInfoSchema,
     MueggeSchema,
+    NPBreakdownSchema,
+    NPFragmentSchema,
     NPLikenessResultSchema,
     PfizerRuleSchema,
     QEDSchema,
+    RadarAxisSchema,
+    RadarComparisonSchema,
+    RadarProfileSchema,
     RuleOfThreeSchema,
+    RuleSetDetailSchema,
+    RuleViolationSchema,
     SafetyFilterResultSchema,
+    SaltFragmentSchema,
+    SaltInventorySchema,
     ScaffoldResultSchema,
     ScoringRequest,
     ScoringResponse,
     SolubilitySchema,
     SyntheticAccessibilitySchema,
+    TPSABreakdownSchema,
     VeberSchema,
 )
 from app.services.parser.molecule_parser import MoleculeFormat, parse_molecule
 from app.services.scoring import (
     calculate_admet,
     calculate_aggregator_likelihood,
+    calculate_bertz_detail,
+    calculate_bioavailability_radar,
+    calculate_boiled_egg,
+    calculate_consensus,
     calculate_druglikeness,
+    calculate_fsp3_detail,
+    calculate_lead_likeness,
+    calculate_ligand_efficiency,
+    calculate_logp_breakdown,
     calculate_ml_readiness,
+    calculate_np_breakdown,
     calculate_np_likeness,
+    calculate_radar_comparison,
     calculate_safety_filters,
+    calculate_salt_inventory,
+    calculate_tpsa_breakdown,
     extract_scaffold,
 )
 
@@ -129,6 +164,17 @@ async def score_molecule(
     safety_filters_result = None
     admet_result = None
     aggregator_result = None
+    consensus_result = None
+    lead_likeness_result = None
+    salt_inventory_result = None
+    ligand_efficiency_result = None
+    tpsa_breakdown_result = None
+    logp_breakdown_result = None
+    bertz_detail_result = None
+    fsp3_detail_result = None
+    np_breakdown_result = None
+    bioavailability_radar_result = None
+    boiled_egg_result = None
 
     # Calculate requested scores
     if "ml_readiness" in body.include:
@@ -185,6 +231,39 @@ async def score_molecule(
     if "aggregator" in body.include:
         aggregator_result = _calculate_aggregator(mol)
 
+    if "consensus" in body.include:
+        consensus_result = _calculate_consensus(mol)
+
+    if "lead_likeness" in body.include:
+        lead_likeness_result = _calculate_lead_likeness(mol)
+
+    if "salt_inventory" in body.include:
+        salt_inventory_result = _calculate_salt_inventory(mol)
+
+    if "ligand_efficiency" in body.include:
+        ligand_efficiency_result = _calculate_ligand_efficiency(mol)
+
+    if "tpsa_breakdown" in body.include:
+        tpsa_breakdown_result = _calculate_tpsa_breakdown(mol)
+
+    if "logp_breakdown" in body.include:
+        logp_breakdown_result = _calculate_logp_breakdown(mol)
+
+    if "bertz_detail" in body.include:
+        bertz_detail_result = _calculate_bertz_detail(mol)
+
+    if "fsp3_detail" in body.include:
+        fsp3_detail_result = _calculate_fsp3_detail(mol)
+
+    if "np_breakdown" in body.include:
+        np_breakdown_result = _calculate_np_breakdown_route(mol)
+
+    if "bioavailability_radar" in body.include:
+        bioavailability_radar_result = _calculate_bioavailability_radar_route(mol)
+
+    if "boiled_egg" in body.include:
+        boiled_egg_result = _calculate_boiled_egg_route(mol)
+
     execution_time = int((time.time() - start_time) * 1000)
 
     return ScoringResponse(
@@ -196,7 +275,86 @@ async def score_molecule(
         safety_filters=safety_filters_result,
         admet=admet_result,
         aggregator=aggregator_result,
+        consensus=consensus_result,
+        lead_likeness=lead_likeness_result,
+        salt_inventory=salt_inventory_result,
+        ligand_efficiency=ligand_efficiency_result,
+        tpsa_breakdown=tpsa_breakdown_result,
+        logp_breakdown=logp_breakdown_result,
+        bertz_detail=bertz_detail_result,
+        fsp3_detail=fsp3_detail_result,
+        np_breakdown=np_breakdown_result,
+        bioavailability_radar=bioavailability_radar_result,
+        boiled_egg=boiled_egg_result,
         execution_time_ms=execution_time,
+    )
+
+
+@router.post("/score/compare", response_model=RadarComparisonSchema)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def compare_molecules(
+    request: Request,
+    body: ComparisonRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Compare multiple molecules using bioavailability radar profiles.
+
+    Accepts up to 10 SMILES strings and returns radar profiles for each,
+    plus a drug-like reference profile.
+
+    Args:
+        body: ComparisonRequest with list of SMILES
+
+    Returns:
+        RadarComparisonSchema with profiles and reference
+    """
+    result = calculate_radar_comparison(body.smiles_list)
+
+    profiles = [
+        RadarProfileSchema(
+            smiles=p.smiles,
+            axes=[
+                RadarAxisSchema(
+                    name=a.name,
+                    actual_value=a.actual_value,
+                    normalized=a.normalized,
+                    optimal_min=a.optimal_min,
+                    optimal_max=a.optimal_max,
+                    in_range=a.in_range,
+                    property_name=a.property_name,
+                    unit=a.unit,
+                )
+                for a in p.axes
+            ],
+            is_reference=p.is_reference,
+        )
+        for p in result.profiles
+    ]
+
+    reference = None
+    if result.reference:
+        reference = RadarProfileSchema(
+            smiles=result.reference.smiles,
+            axes=[
+                RadarAxisSchema(
+                    name=a.name,
+                    actual_value=a.actual_value,
+                    normalized=a.normalized,
+                    optimal_min=a.optimal_min,
+                    optimal_max=a.optimal_max,
+                    in_range=a.in_range,
+                    property_name=a.property_name,
+                    unit=a.unit,
+                )
+                for a in result.reference.axes
+            ],
+            is_reference=result.reference.is_reference,
+        )
+
+    return RadarComparisonSchema(
+        profiles=profiles,
+        reference=reference,
     )
 
 
@@ -500,6 +658,263 @@ def _calculate_aggregator(mol: Chem.Mol) -> AggregatorLikelihoodSchema:
         mw=result.mw,
         aromatic_rings=result.aromatic_rings,
         risk_factors=result.risk_factors,
+        interpretation=result.interpretation,
+        confidence=result.confidence,
+        evidence=result.evidence,
+    )
+
+
+def _calculate_consensus(mol: Chem.Mol) -> ConsensusScoreSchema:
+    """Calculate consensus drug-likeness score and convert to schema."""
+    result = calculate_consensus(mol)
+
+    rule_sets = [
+        RuleSetDetailSchema(
+            name=rs.name,
+            passed=rs.passed,
+            violations=[
+                RuleViolationSchema(
+                    property=v.property,
+                    value=v.value,
+                    threshold=v.threshold,
+                    result=v.result,
+                )
+                for v in rs.violations
+            ],
+        )
+        for rs in result.rule_sets
+    ]
+
+    return ConsensusScoreSchema(
+        score=result.score,
+        total=result.total,
+        rule_sets=rule_sets,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_lead_likeness(mol: Chem.Mol) -> LeadLikenessSchema:
+    """Calculate lead-likeness and convert to schema."""
+    result = calculate_lead_likeness(mol)
+
+    return LeadLikenessSchema(
+        passed=result.passed,
+        violations=result.violations,
+        properties=result.properties,
+        thresholds=result.thresholds,
+        violation_details=[
+            RuleViolationSchema(
+                property=v.property,
+                value=v.value,
+                threshold=v.threshold,
+                result=v.result,
+            )
+            for v in result.violation_details
+        ],
+    )
+
+
+def _calculate_salt_inventory(mol: Chem.Mol) -> SaltInventorySchema:
+    """Calculate salt inventory and convert to schema."""
+    result = calculate_salt_inventory(mol)
+
+    return SaltInventorySchema(
+        has_salts=result.has_salts,
+        parent_smiles=result.parent_smiles,
+        fragments=[
+            SaltFragmentSchema(
+                smiles=f.smiles,
+                name=f.name,
+                category=f.category,
+                mw=f.mw,
+                heavy_atom_count=f.heavy_atom_count,
+            )
+            for f in result.fragments
+        ],
+        total_fragments=result.total_fragments,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_ligand_efficiency(mol: Chem.Mol) -> LigandEfficiencySchema:
+    """Calculate ligand efficiency and convert to schema."""
+    result = calculate_ligand_efficiency(mol)
+
+    return LigandEfficiencySchema(
+        le=result.le,
+        heavy_atom_count=result.heavy_atom_count,
+        activity_value=result.activity_value,
+        activity_type=result.activity_type,
+        proxy_used=result.proxy_used,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_tpsa_breakdown(mol: Chem.Mol) -> TPSABreakdownSchema:
+    """Calculate TPSA breakdown and convert to schema."""
+    result = calculate_tpsa_breakdown(mol)
+
+    return TPSABreakdownSchema(
+        total=result.total,
+        atom_contributions=[
+            AtomContributionSchema(
+                atom_index=ac.atom_index,
+                symbol=ac.symbol,
+                contribution=ac.contribution,
+            )
+            for ac in result.atom_contributions
+        ],
+        functional_group_summary=[
+            FunctionalGroupContributionSchema(
+                group_name=fg.group_name,
+                contribution=fg.contribution,
+                atom_indices=fg.atom_indices,
+            )
+            for fg in result.functional_group_summary
+        ],
+    )
+
+
+def _calculate_logp_breakdown(mol: Chem.Mol) -> LogPBreakdownSchema:
+    """Calculate LogP breakdown and convert to schema."""
+    result = calculate_logp_breakdown(mol)
+
+    return LogPBreakdownSchema(
+        total=result.total,
+        atom_contributions=[
+            AtomContributionSchema(
+                atom_index=ac.atom_index,
+                symbol=ac.symbol,
+                contribution=ac.contribution,
+            )
+            for ac in result.atom_contributions
+        ],
+        functional_group_summary=[
+            FunctionalGroupContributionSchema(
+                group_name=fg.group_name,
+                contribution=fg.contribution,
+                atom_indices=fg.atom_indices,
+            )
+            for fg in result.functional_group_summary
+        ],
+    )
+
+
+def _calculate_bertz_detail(mol: Chem.Mol) -> BertzDetailSchema:
+    """Calculate Bertz detail and convert to schema."""
+    result = calculate_bertz_detail(mol)
+
+    return BertzDetailSchema(
+        bertz_ct=result.bertz_ct,
+        num_bonds=result.num_bonds,
+        num_atoms=result.num_atoms,
+        num_rings=result.num_rings,
+        num_aromatic_rings=result.num_aromatic_rings,
+        ring_complexity=result.ring_complexity,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_fsp3_detail(mol: Chem.Mol) -> Fsp3DetailSchema:
+    """Calculate Fsp3 detail and convert to schema."""
+    result = calculate_fsp3_detail(mol)
+
+    return Fsp3DetailSchema(
+        fsp3=result.fsp3,
+        total_carbons=result.total_carbons,
+        sp3_count=result.sp3_count,
+        sp2_count=result.sp2_count,
+        sp_count=result.sp_count,
+        per_carbon=[
+            CarbonHybridizationSchema(
+                atom_index=ch.atom_index,
+                symbol=ch.symbol,
+                hybridization=ch.hybridization,
+            )
+            for ch in result.per_carbon
+        ],
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_np_breakdown_route(mol: Chem.Mol) -> NPBreakdownSchema:
+    """Calculate NP-likeness fragment breakdown and convert to schema."""
+    result = calculate_np_breakdown(mol)
+
+    return NPBreakdownSchema(
+        score=result.score,
+        confidence=result.confidence,
+        fragments=[
+            NPFragmentSchema(
+                smiles=f.smiles,
+                contribution=f.contribution,
+                bit_id=f.bit_id,
+                radius=f.radius,
+                center_atom_idx=f.center_atom_idx,
+                classification=f.classification,
+            )
+            for f in result.fragments
+        ],
+        total_fragments=result.total_fragments,
+        np_fragment_count=result.np_fragment_count,
+        synthetic_fragment_count=result.synthetic_fragment_count,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_bioavailability_radar_route(mol: Chem.Mol) -> BioavailabilityRadarSchema:
+    """Calculate bioavailability radar and convert to schema."""
+    result = calculate_bioavailability_radar(mol)
+
+    return BioavailabilityRadarSchema(
+        axes=[
+            RadarAxisSchema(
+                name=a.name,
+                actual_value=a.actual_value,
+                normalized=a.normalized,
+                optimal_min=a.optimal_min,
+                optimal_max=a.optimal_max,
+                in_range=a.in_range,
+                property_name=a.property_name,
+                unit=a.unit,
+            )
+            for a in result.axes
+        ],
+        overall_in_range_count=result.overall_in_range_count,
+        interpretation=result.interpretation,
+    )
+
+
+def _calculate_boiled_egg_route(mol: Chem.Mol) -> BoiledEggSchema:
+    """Calculate BOILED-Egg classification and convert to schema."""
+    result = calculate_boiled_egg(mol)
+
+    gi_ellipse = None
+    if result.gi_ellipse:
+        gi_ellipse = EllipseParamsSchema(
+            cx=result.gi_ellipse.cx,
+            cy=result.gi_ellipse.cy,
+            a=result.gi_ellipse.a,
+            b=result.gi_ellipse.b,
+        )
+
+    bbb_ellipse = None
+    if result.bbb_ellipse:
+        bbb_ellipse = EllipseParamsSchema(
+            cx=result.bbb_ellipse.cx,
+            cy=result.bbb_ellipse.cy,
+            a=result.bbb_ellipse.a,
+            b=result.bbb_ellipse.b,
+        )
+
+    return BoiledEggSchema(
+        wlogp=result.wlogp,
+        tpsa=result.tpsa,
+        gi_absorbed=result.gi_absorbed,
+        bbb_permeant=result.bbb_permeant,
+        region=result.region,
+        gi_ellipse=gi_ellipse,
+        bbb_ellipse=bbb_ellipse,
         interpretation=result.interpretation,
     )
 

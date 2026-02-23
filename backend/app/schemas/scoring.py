@@ -282,6 +282,322 @@ class AggregatorLikelihoodSchema(BaseModel):
         default_factory=list, description="Identified risk factors"
     )
     interpretation: str = Field(description="Interpretation of aggregation risk")
+    confidence: float = Field(
+        default=0.0, ge=0, le=1, description="Confidence score (0-1)"
+    )
+    evidence: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Evidence detail per indicator"
+    )
+
+
+# =============================================================================
+# Consensus Drug-Likeness Schemas
+# =============================================================================
+
+
+class RuleViolationSchema(BaseModel):
+    """Per-property result within a rule set."""
+
+    property: str = Field(description="Property name")
+    value: float = Field(description="Actual property value")
+    threshold: str = Field(description="Threshold expression (e.g., '<=500', '160-480')")
+    result: str = Field(description="'pass' or 'fail'")
+
+
+class RuleSetDetailSchema(BaseModel):
+    """Detail for a single rule set in consensus scoring."""
+
+    name: str = Field(description="Rule set name (e.g., 'Lipinski', 'Veber')")
+    passed: bool = Field(description="Whether molecule passes this rule set")
+    violations: List[RuleViolationSchema] = Field(
+        default_factory=list, description="Per-property results"
+    )
+
+
+class ConsensusScoreSchema(BaseModel):
+    """Consensus drug-likeness score across 5 rule sets."""
+
+    score: int = Field(ge=0, le=5, description="Number of rule sets passed (0-5)")
+    total: int = Field(description="Total rule sets (always 5)")
+    rule_sets: List[RuleSetDetailSchema] = Field(
+        default_factory=list, description="Per-rule-set detail"
+    )
+    interpretation: str = Field(description="Human-readable interpretation")
+
+
+# =============================================================================
+# Lead-Likeness Schema
+# =============================================================================
+
+
+class LeadLikenessSchema(BaseModel):
+    """Lead-likeness assessment result."""
+
+    passed: bool = Field(description="Whether molecule is lead-like")
+    violations: int = Field(description="Number of violations")
+    properties: Dict[str, float] = Field(
+        default_factory=dict, description="Actual property values"
+    )
+    thresholds: Dict[str, str] = Field(
+        default_factory=dict, description="Threshold expressions"
+    )
+    violation_details: List[RuleViolationSchema] = Field(
+        default_factory=list, description="Per-property violation detail"
+    )
+
+
+# =============================================================================
+# Salt Inventory Schemas
+# =============================================================================
+
+
+class SaltFragmentSchema(BaseModel):
+    """A single fragment from a salt-form molecule."""
+
+    smiles: str = Field(description="Fragment SMILES")
+    name: str = Field(description="Fragment name")
+    category: str = Field(
+        description="Category: counterion, salt, solvent, drug, unknown"
+    )
+    mw: float = Field(description="Fragment molecular weight")
+    heavy_atom_count: int = Field(description="Number of heavy atoms")
+
+
+class SaltInventorySchema(BaseModel):
+    """Salt/counterion inventory result."""
+
+    has_salts: bool = Field(description="Whether salt forms were detected")
+    parent_smiles: str = Field(description="Parent compound SMILES")
+    fragments: List[SaltFragmentSchema] = Field(
+        default_factory=list, description="Classified fragments"
+    )
+    total_fragments: int = Field(description="Total fragment count")
+    interpretation: str = Field(description="Inventory interpretation")
+
+
+# =============================================================================
+# Ligand Efficiency Schema
+# =============================================================================
+
+
+class LigandEfficiencySchema(BaseModel):
+    """Ligand efficiency result."""
+
+    le: Optional[float] = Field(None, description="Ligand efficiency value")
+    heavy_atom_count: int = Field(description="Number of heavy atoms")
+    activity_value: Optional[float] = Field(
+        None, description="Activity value used for LE"
+    )
+    activity_type: Optional[str] = Field(
+        None, description="Activity type (e.g., pIC50, pKi)"
+    )
+    proxy_used: bool = Field(description="Whether BEI proxy was used")
+    interpretation: str = Field(description="Efficiency interpretation")
+
+
+# =============================================================================
+# Property Breakdown Schemas
+# =============================================================================
+
+
+class AtomContributionSchema(BaseModel):
+    """Per-atom property contribution."""
+
+    atom_index: int = Field(description="Atom index")
+    symbol: str = Field(description="Atom symbol")
+    contribution: float = Field(description="Property contribution value")
+
+
+class FunctionalGroupContributionSchema(BaseModel):
+    """Per-functional-group property contribution."""
+
+    group_name: str = Field(description="Functional group name")
+    contribution: float = Field(description="Total group contribution")
+    atom_indices: List[int] = Field(
+        default_factory=list, description="Atom indices in this group"
+    )
+
+
+class TPSABreakdownSchema(BaseModel):
+    """TPSA per-atom breakdown."""
+
+    total: float = Field(description="Total TPSA")
+    atom_contributions: List[AtomContributionSchema] = Field(
+        default_factory=list, description="Per-atom TPSA contributions"
+    )
+    functional_group_summary: List[FunctionalGroupContributionSchema] = Field(
+        default_factory=list, description="Per-group TPSA summary"
+    )
+
+
+class LogPBreakdownSchema(BaseModel):
+    """LogP per-atom breakdown."""
+
+    total: float = Field(description="Total LogP")
+    atom_contributions: List[AtomContributionSchema] = Field(
+        default_factory=list, description="Per-atom LogP contributions"
+    )
+    functional_group_summary: List[FunctionalGroupContributionSchema] = Field(
+        default_factory=list, description="Per-group LogP summary"
+    )
+
+
+class BertzDetailSchema(BaseModel):
+    """Bertz complexity detail."""
+
+    bertz_ct: float = Field(description="Bertz complexity index")
+    num_bonds: int = Field(description="Number of bonds")
+    num_atoms: int = Field(description="Number of heavy atoms")
+    num_rings: int = Field(description="Number of rings")
+    num_aromatic_rings: int = Field(description="Number of aromatic rings")
+    ring_complexity: float = Field(description="Fraction of bonds in rings")
+    interpretation: str = Field(description="Complexity interpretation")
+
+
+class CarbonHybridizationSchema(BaseModel):
+    """Per-carbon hybridization data."""
+
+    atom_index: int = Field(description="Carbon atom index")
+    symbol: str = Field(default="C", description="Atom symbol (always C)")
+    hybridization: str = Field(description="Hybridization: sp, sp2, sp3, other")
+
+
+class Fsp3DetailSchema(BaseModel):
+    """Fsp3 per-carbon detail."""
+
+    fsp3: float = Field(ge=0, le=1, description="Fraction of sp3 carbons")
+    total_carbons: int = Field(description="Total carbon count")
+    sp3_count: int = Field(description="Number of sp3 carbons")
+    sp2_count: int = Field(description="Number of sp2 carbons")
+    sp_count: int = Field(description="Number of sp carbons")
+    per_carbon: List[CarbonHybridizationSchema] = Field(
+        default_factory=list, description="Per-carbon hybridization"
+    )
+    interpretation: str = Field(description="3D character interpretation")
+
+
+# =============================================================================
+# NP-Likeness Breakdown Schemas
+# =============================================================================
+
+
+class NPFragmentSchema(BaseModel):
+    """A single NP fragment contribution."""
+
+    smiles: str = Field(description="Fragment SMILES")
+    contribution: float = Field(description="Contribution to NP score")
+    bit_id: int = Field(description="Morgan FP bit ID")
+    radius: int = Field(description="Morgan FP radius")
+    center_atom_idx: int = Field(description="Center atom index")
+    classification: str = Field(
+        description="np_characteristic, synthetic_characteristic, or neutral"
+    )
+
+
+class NPBreakdownSchema(BaseModel):
+    """NP-likeness fragment breakdown."""
+
+    score: float = Field(description="NP-likeness score")
+    confidence: float = Field(ge=0, le=1, description="Confidence (0-1)")
+    fragments: List[NPFragmentSchema] = Field(
+        default_factory=list, description="Per-fragment contributions"
+    )
+    total_fragments: int = Field(description="Total fragment count")
+    np_fragment_count: int = Field(
+        description="Number of NP-characteristic fragments"
+    )
+    synthetic_fragment_count: int = Field(
+        description="Number of synthetic-characteristic fragments"
+    )
+    interpretation: str = Field(description="NP-likeness interpretation")
+
+
+# =============================================================================
+# Bioavailability Radar & BOILED-Egg Schemas
+# =============================================================================
+
+
+class RadarAxisSchema(BaseModel):
+    """A single axis of the bioavailability radar."""
+
+    name: str = Field(description="Axis name (LIPO, SIZE, POLAR, etc.)")
+    actual_value: float = Field(description="Actual property value")
+    normalized: float = Field(ge=0, le=1, description="Normalized value (0-1)")
+    optimal_min: float = Field(description="Optimal range minimum")
+    optimal_max: float = Field(description="Optimal range maximum")
+    in_range: bool = Field(description="Whether value is in optimal range")
+    property_name: str = Field(description="Property name (WLOGP, MW, etc.)")
+    unit: str = Field(description="Property unit")
+
+
+class BioavailabilityRadarSchema(BaseModel):
+    """Bioavailability radar result."""
+
+    axes: List[RadarAxisSchema] = Field(
+        default_factory=list, description="6 radar axes"
+    )
+    overall_in_range_count: int = Field(
+        description="Number of axes in optimal range"
+    )
+    interpretation: str = Field(description="Bioavailability interpretation")
+
+
+class EllipseParamsSchema(BaseModel):
+    """Ellipse parameters for BOILED-Egg model."""
+
+    cx: float = Field(description="Center x (TPSA axis)")
+    cy: float = Field(description="Center y (WLOGP axis)")
+    a: float = Field(description="Semi-axis x (TPSA)")
+    b: float = Field(description="Semi-axis y (WLOGP)")
+
+
+class BoiledEggSchema(BaseModel):
+    """BOILED-Egg classification result."""
+
+    wlogp: float = Field(description="Wildman-Crippen LogP")
+    tpsa: float = Field(description="Topological polar surface area")
+    gi_absorbed: bool = Field(description="Predicted GI absorption")
+    bbb_permeant: bool = Field(description="Predicted BBB permeation")
+    region: str = Field(description="Classification: yolk, white, or grey")
+    gi_ellipse: Optional[EllipseParamsSchema] = Field(
+        None, description="GI (white) ellipse parameters"
+    )
+    bbb_ellipse: Optional[EllipseParamsSchema] = Field(
+        None, description="BBB (yolk) ellipse parameters"
+    )
+    interpretation: str = Field(description="Classification interpretation")
+
+
+class RadarProfileSchema(BaseModel):
+    """A single molecule's radar profile."""
+
+    smiles: str = Field(description="Molecule SMILES")
+    axes: List[RadarAxisSchema] = Field(
+        default_factory=list, description="Radar axes"
+    )
+    is_reference: bool = Field(description="Whether this is the reference profile")
+
+
+class RadarComparisonSchema(BaseModel):
+    """Multi-molecule radar comparison."""
+
+    profiles: List[RadarProfileSchema] = Field(
+        default_factory=list, description="Molecule profiles"
+    )
+    reference: Optional[RadarProfileSchema] = Field(
+        None, description="Reference profile"
+    )
+
+
+class ComparisonRequest(BaseModel):
+    """Request for molecule comparison."""
+
+    smiles_list: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="List of SMILES to compare (max 10)",
+    )
 
 
 # =============================================================================
@@ -413,6 +729,17 @@ class ScoringRequest(BaseModel):
             "safety_filters",
             "admet",
             "aggregator",
+            "consensus",
+            "lead_likeness",
+            "salt_inventory",
+            "ligand_efficiency",
+            "tpsa_breakdown",
+            "logp_breakdown",
+            "bertz_detail",
+            "fsp3_detail",
+            "np_breakdown",
+            "bioavailability_radar",
+            "boiled_egg",
         }
         for item in v:
             if item not in valid_types:
@@ -456,5 +783,38 @@ class ScoringResponse(BaseModel):
     )
     aggregator: Optional[AggregatorLikelihoodSchema] = Field(
         None, description="Aggregator likelihood prediction"
+    )
+    consensus: Optional[ConsensusScoreSchema] = Field(
+        None, description="Consensus drug-likeness score (0-5)"
+    )
+    lead_likeness: Optional[LeadLikenessSchema] = Field(
+        None, description="Lead-likeness assessment"
+    )
+    salt_inventory: Optional[SaltInventorySchema] = Field(
+        None, description="Salt/counterion inventory"
+    )
+    ligand_efficiency: Optional[LigandEfficiencySchema] = Field(
+        None, description="Ligand efficiency"
+    )
+    tpsa_breakdown: Optional[TPSABreakdownSchema] = Field(
+        None, description="TPSA per-atom breakdown"
+    )
+    logp_breakdown: Optional[LogPBreakdownSchema] = Field(
+        None, description="LogP per-atom breakdown"
+    )
+    bertz_detail: Optional[BertzDetailSchema] = Field(
+        None, description="Bertz complexity detail"
+    )
+    fsp3_detail: Optional[Fsp3DetailSchema] = Field(
+        None, description="Fsp3 per-carbon detail"
+    )
+    np_breakdown: Optional[NPBreakdownSchema] = Field(
+        None, description="NP-likeness fragment breakdown"
+    )
+    bioavailability_radar: Optional[BioavailabilityRadarSchema] = Field(
+        None, description="Bioavailability radar (6 axes)"
+    )
+    boiled_egg: Optional[BoiledEggSchema] = Field(
+        None, description="BOILED-Egg GI/BBB classification"
     )
     execution_time_ms: int = Field(description="Execution time in milliseconds")
