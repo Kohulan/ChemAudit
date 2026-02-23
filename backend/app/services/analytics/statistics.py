@@ -194,8 +194,9 @@ def compute_correlations(results: list[dict]) -> list[PropertyCorrelation]:
             if math.isnan(pearson_r):
                 pearson_r = 0.0
 
-            # Skip zero correlations for brevity
-            if pearson_r == 0.0:
+            # Skip zero or near-zero correlations for brevity
+            # abs < 1e-10 catches floating-point noise from constant arrays
+            if abs(pearson_r) < 1e-10:
                 continue
 
             correlations.append(
