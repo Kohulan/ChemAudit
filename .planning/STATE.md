@@ -5,37 +5,37 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 1 — Deep Validation (in progress)
+**Current focus:** Phase 2 — Standardization Intelligence (in progress)
 
 ## Current Position
 
-Phase: 1 of 6 (Deep Validation)
-Plan: 3 of 4 in current phase
+Phase: 2 of 6 (Standardization Intelligence)
+Plan: 1 of 2 in current phase
 Status: In progress
-Last activity: 2026-02-23 — Plan 01-03 complete: 6 M1.3 structural complexity checks (hypervalent, polymer, ring strain, macrocycle, charged species, explicit H audit)
+Last activity: 2026-02-23 — Plan 02-01 complete: provenance pipeline for all 4 STD requirements (STD-01 through STD-04), 23 new tests, all 65 standardization tests passing
 
-Progress: [███░░░░░░░] 15%
+Progress: [████░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 6 min
-- Total execution time: 0.3 hours
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Deep Validation | 3/4 | 18 min | 6 min |
-| 2. Standardization Intelligence | 0/2 | — | — |
+| 2. Standardization Intelligence | 1/2 | 7 min | 7 min |
 | 3. Batch Analytics | 0/6 | — | — |
 | 4. Scoring Expansion | 0/3 | — | — |
 | 5. Visualizations | 0/2 | — | — |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (6 min), 01-03 (7 min), 02-01 (7 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - 01-01 (M1.1): TautomerDetection uses enumerator.Canonicalize() (GetCanonicalTautomer does not exist); stereoisomer cap=128; multi-fragment checks run on largest fragment only
 - 01-02 (M1.2): MolVS REMOVE_FRAGMENTS broad SMARTS ([#7], [#8]) need heavy-atom-count guard to avoid false positives; largest carbon fragment always = drug overriding MW < 50 heuristic
 - 01-03 (M1.3): Ring strain heuristic only (size 3/4); macrocycle threshold >12 not >=12; startup check uses logger.warning not hard assert; polymer severity INFO; zwitterion = net 0 with both + and - atoms
+- [Phase 02-standardization-intelligence]: ProvenancePipeline wraps StandardizationPipeline externally — no internal modifications; provenance captured by re-calling same ChEMBL functions stage-by-stage
+- [Phase 02-standardization-intelligence]: SMILES fragment diffing (set difference) for get_parent provenance — avoids atom-idx comparison pitfall when atom count changes after removal
+- [Phase 02-standardization-intelligence]: Separate typed provenance fields per stage (charge_changes, bond_changes, etc.) instead of generic List[dict] to prevent TypeScript any[] on frontend
 
 ### Pending Todos
 
@@ -69,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 01-03-PLAN.md — 6 M1.3 structural complexity checks implemented and tested; 199 total validation tests passing; all 16 deep validation checks registered
+Stopped at: Completed 02-01-PLAN.md — provenance pipeline for STD-01 through STD-04; ProvenancePipeline, fragment_dict, 7 new Pydantic schemas; 23 new tests, all 65 standardization tests passing
 Resume file: None

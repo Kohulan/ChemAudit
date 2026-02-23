@@ -35,10 +35,10 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Standardization Intelligence — Provenance (Milestone 2.1)
 
-- [ ] **STD-01**: Canonical tautomer generation with provenance (input → canonical mapping)
-- [ ] **STD-02**: Neutralization report (atom-level charge changes with before/after)
-- [ ] **STD-03**: Functional group standardization audit (which groups were normalized and how)
-- [ ] **STD-04**: Parent extraction provenance (removed fragments with names, MW, structure)
+- [x] **STD-01**: Canonical tautomer generation with provenance (input → canonical mapping)
+- [x] **STD-02**: Neutralization report (atom-level charge changes with before/after)
+- [x] **STD-03**: Functional group standardization audit (which groups were normalized and how)
+- [x] **STD-04**: Parent extraction provenance (removed fragments with names, MW, structure)
 
 ### Standardization Intelligence — Normalization (Milestone 2.2)
 
