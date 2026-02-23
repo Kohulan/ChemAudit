@@ -160,10 +160,10 @@ def run_expensive_analytics(
 
     try:
         if analysis_type == "scaffold":
-            from app.services.analytics.scaffold import compute_scaffold_analysis
+            from app.services.analytics.scaffold_analysis import compute_scaffold_analysis
 
             result = compute_scaffold_analysis(results)
-            analytics_storage.store_result(job_id, "scaffold", result.model_dump())
+            analytics_storage.store_result(job_id, "scaffold", result)
 
         elif analysis_type == "chemical_space":
             from app.services.analytics.chemical_space import compute_chemical_space
@@ -196,11 +196,11 @@ def run_expensive_analytics(
             )
 
         elif analysis_type == "rgroup":
-            from app.services.analytics.rgroup import compute_rgroup_decomposition
+            from app.services.analytics.scaffold_analysis import compute_rgroup_decomposition
 
             core_smarts = params.get("core_smarts")
             result = compute_rgroup_decomposition(results, core_smarts=core_smarts)
-            analytics_storage.store_result(job_id, "rgroup", result.model_dump())
+            analytics_storage.store_result(job_id, "rgroup", result)
 
         else:
             analytics_storage.update_status(
