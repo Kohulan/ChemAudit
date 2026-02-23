@@ -27,7 +27,7 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 - [x] **Phase 1: Deep Validation** - 17 new validation checks covering stereo, tautomers, composition, and structural complexity (completed 2026-02-23)
 - [x] **Phase 2: Standardization Intelligence** - Provenance tracking for all 4 ChEMBL pipeline stages with atom-level change reporting (completed 2026-02-23)
 - [x] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination) (completed 2026-02-23)
-- [ ] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot
+- [x] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot (completed 2026-02-23)
 - [ ] **Phase 5: Visualizations** - Batch visualization suite and single-molecule deep view built on Phase 3 and 4 data
 - [ ] **Phase 6: Export, API & Workflow** - Advanced exports, custom profiles, audit trail, webhooks, and IUPAC input
 
@@ -65,7 +65,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — M2.1 Provenance Pipeline: ProvenancePipeline wrapper, fragment dictionary, schema extension, route integration, tests (STD-01, STD-02, STD-03, STD-04)
 - [x] 02-02-PLAN.md — M2.2 Ring/Stereo Tracking + Frontend: ring aromaticity tracking, per-center stereo detail, ProvenanceTimeline UI, ProvenanceStageCard (STD-05, STD-06)
-- [ ] 02-03-PLAN.md — Gap closure: fix duplicate fragment dict key, populate DVAL cross-references in stereo provenance (all STD requirements)
+- [x] 02-03-PLAN.md — Gap closure: fix duplicate fragment dict key, populate DVAL cross-references in stereo provenance (all STD requirements)
 
 ### Phase 3: Batch Analytics
 **Goal**: A completed batch job exposes a second analytics layer — multi-level deduplication groups, scaffold families, chemical space projections, MMP pairs, and statistical summaries — all computed asynchronously by a post-aggregation Celery chord, accessible via a dedicated analytics endpoint
@@ -82,10 +82,10 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — INFRA-01 TTL policy + analytics infrastructure skeleton (storage, schemas, routes, Celery tasks)
 - [x] 03-02-PLAN.md — Multi-Level Duplicate Detection: exact, tautomeric, stereo-insensitive, salt-form (BATCH-01..04)
-- [ ] 03-03-PLAN.md — Scaffold Analysis: Murcko/generic scaffolds, diversity metrics, R-group decomposition (BATCH-05..08)
-- [ ] 03-04-PLAN.md — Chemical Space & Similarity: PCA, t-SNE, similarity search, nearest neighbors, similarity matrix (BATCH-09..12)
-- [ ] 03-05-PLAN.md — MMP & Activity Cliffs: BRICS-based MMP, SALI index, LLE (BATCH-13..15)
-- [ ] 03-06-PLAN.md — Batch Statistics & Quality: property stats, correlations, quality score, outlier detection (BATCH-16..19)
+- [x] 03-03-PLAN.md — Scaffold Analysis: Murcko/generic scaffolds, diversity metrics, R-group decomposition (BATCH-05..08)
+- [x] 03-04-PLAN.md — Chemical Space & Similarity: PCA, t-SNE, similarity search, nearest neighbors, similarity matrix (BATCH-09..12)
+- [x] 03-05-PLAN.md — MMP & Activity Cliffs: BRICS-based MMP, SALI index, LLE (BATCH-13..15)
+- [x] 03-06-PLAN.md — Batch Statistics & Quality: property stats, correlations, quality score, outlier detection (BATCH-16..19)
 
 ### Phase 4: Scoring Expansion
 **Goal**: Single-molecule scoring results include richer drug-likeness profiles (consensus rules, lead-like, fragment-like assessments), per-atom property contribution breakdowns, and visually interpretable radar and BOILED-Egg data — all computed from already-available descriptors, zero new backend dependencies except scoring logic
@@ -96,12 +96,12 @@ Plans:
   2. Lead-likeness and fragment-likeness (Rule of 3) assessments return structured pass/fail with the specific property values and thresholds that triggered each result
   3. TPSA and LogP contribution breakdowns return per-atom contribution values (atom index, contribution, total), enabling atom-level highlighting in the frontend
   4. The bioavailability radar returns six axis values (LIPO, SIZE, POLAR, INSOLU, INSATU, FLEX) normalized to 0–1 scale; BOILED-Egg returns WLOGP and TPSA values with GI/BBB region membership flags
-**Plans**: TBD — 3 plans (one per milestone: M4.1, M4.2, M4.3)
+**Plans**: 3 plans in 2 waves (M4.1 + M4.2 parallel, then M4.3 + frontend)
 
 Plans:
-- [ ] 04-01: Milestone 4.1 — Drug-Likeness Profiles (SCORE-01 through SCORE-05)
-- [ ] 04-02: Milestone 4.2 — Property Breakdowns (SCORE-06 through SCORE-10)
-- [ ] 04-03: Milestone 4.3 — NP & Specialized Scoring + Radars (SCORE-11 through SCORE-14)
+- [x] 04-01-PLAN.md — M4.1 Drug-Likeness Profiles: consensus scoring, lead-likeness, salt inventory, ligand efficiency (SCORE-01..05) [Wave 1] (COMPLETE: 2 tasks, 30 tests)
+- [x] 04-02-PLAN.md — M4.2 Property Breakdowns: TPSA/LogP per-atom, Bertz detail, Fsp3 visualization, aggregator extension (SCORE-06..10) [Wave 1] (COMPLETE: 2 tasks, 27 tests)
+- [x] 04-03-PLAN.md — M4.3 NP Breakdown + Radars + Frontend: NP fragment analysis, bioavailability radar, BOILED-Egg, property comparison, Scoring Profiles tab (SCORE-11..14) [Wave 2] (COMPLETE: 2 tasks, 44 tests, 6 frontend components)
 
 ### Phase 5: Visualizations
 **Goal**: Batch results and single-molecule scoring data become visually explorable — 9 new interactive chart components (Recharts-based, zero new npm packages) consuming Phase 3 analytics and Phase 4 scoring endpoints; all are pure presentational components with data fetched by parent containers
@@ -148,8 +148,8 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 | 1. Deep Validation | 4/4 | Complete   | 2026-02-23 | - |
 | 2. Standardization Intelligence | 3/3 | Complete   | 2026-02-23 | - |
 | 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
-| 4. Scoring Expansion | v2.0 | 0/3 | Not started | - |
+| 4. Scoring Expansion | 3/3 | Complete | 2026-02-23 | - |
 | 5. Visualizations | v2.0 | 0/2 | Not started | - |
 | 6. Export, API & Workflow | v2.0 | 0/3 | Not started | - |
 
-**Total:** 0/20 plans complete (0%)
+**Total:** 16/21 plans complete (76%)

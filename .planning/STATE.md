@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 3 — Batch Analytics (in progress)
+**Current focus:** Phase 4 — Scoring Expansion (complete)
 
 ## Current Position
 
-Phase: 3 of 6 (Batch Analytics)
-Plan: 6 of 6 in current phase (COMPLETE — all 6 batch analytics plans done)
-Status: Phase 03 plan 05 complete — mmp.py with BRICS MMP detection, SALI activity cliffs, LLE computation, 14 tests passing (plan 05 executed after 06 — now all phase-03 plans complete)
-Last activity: 2026-02-23 — Plan 03-05 complete: compute_mmp_analysis (BRICS fragmentation, pair dedup, Tanimoto sort, MAX_PAIRS_RETURNED=1000, MAX_MMP_BATCH_SIZE=5000), compute_mmp alias, SALI cliff scoring, LLE = pIC50 - LogP
+Phase: 4 of 6 (Scoring Expansion)
+Plan: 3 of 3 in current phase (COMPLETE — all 3 scoring expansion plans done)
+Status: Phase 04 complete — consensus scoring, lead-likeness, salt inventory, ligand efficiency, TPSA/LogP per-atom breakdowns, Bertz/Fsp3 detail, NP fragment breakdown, bioavailability radar, BOILED-Egg classification, radar comparison, frontend Scoring Profiles tab with 6 components
+Last activity: 2026-02-23 — Plan 04-03 complete: NP breakdown (Morgan FP bit decomposition), bioavailability radar (6-axis normalized), BOILED-Egg (elliptical GI/BBB), radar comparison endpoint, ScoringProfilesTab with ConsensusScoreCard, LeadFragmentCard, PropertyBreakdownCard, BioavailabilityCard, AtomContributionViewer
 
-Progress: [██████████] 61%
+Progress: [████████████████] 76%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 15
 - Average duration: 5.0 min
-- Total execution time: ~1.00 hours
+- Total execution time: ~1.25 hours
 
 **By Phase:**
 
@@ -30,12 +30,12 @@ Progress: [██████████] 61%
 | 1. Deep Validation | 3/4 | 18 min | 6 min |
 | 2. Standardization Intelligence | 3/3 | 17 min | 5.7 min |
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
-| 4. Scoring Expansion | 0/3 | — | — |
+| 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
 | 5. Visualizations | 0/2 | — | — |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 7 plans: 02-02 (6 min), 02-03 (4 min), 03-01 (4 min), 03-04 (3.5 min), 03-06 (4 min), 03-05 (8 min)
+- Last 7 plans: 03-01 (4 min), 03-04 (3.5 min), 03-06 (4 min), 03-05 (8 min), 04-01 (5 min), 04-02 (5 min), 04-03 (5 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [Phase 03-03-scaffold-analysis]: Acyclic molecules grouped under empty string scaffold key; Shannon entropy edge-case (single scaffold = 0) handled before log2; frequency cap at 50 + Other bucket
 - [Phase 03-05-mmp]: BRICS BRICSDecompose for MMP — phenol/aniline have no BRICS bonds, use phenylacetic acid/acetamide for tests; cap applied both inside _detect_mmp_pairs AND compute_mmp_analysis for monkeypatch robustness; compute_mmp returns _MMPResultWrapper with model_dump() for analytics_tasks.py compatibility
 - [Phase 01]: Frontend Deep Validation Tab: Framer Motion AnimatePresence for expand/collapse; dynamic verdict from effective severities (not backend score); atom index badges trigger molecule viewer highlighting; fragment table as proper mini-table with colored classification badges
+- [Phase 04-01]: ConsensusResult.rule_sets contains ALL properties (not just violations) per rule set; salt parent = fragment with max heavy atom count; LigandEfficiency uses BEI proxy when no external activity value
+- [Phase 04-02]: TPSA uses _CalcTPSAContribs directly on mol (NO AddHs); LogP MUST use Chem.AddHs before _GetAtomContribs then fold H contributions back; aggregator confidence = triggered_count / TOTAL_INDICATORS (6)
+- [Phase 04-03]: NP breakdown falls back gracefully when npscorer model not found (empty fragments list); ESOL coefficients duplicated inline in bioavailability_radar.py to avoid import cycle; BOILED-Egg: TPSA x-axis, WLOGP y-axis, point-in-ellipse test; radar normalization: in-range=1.0, linearly decreases outside range toward 0
+- [Phase 04-03]: Recharts v3.7.0 RadarChart with PolarGrid for bioavailability radar; ScoringProfilesTab auto-fetches via useEffect when smiles prop changes; Framer Motion staggered card animations
 
 ### Pending Todos
 
@@ -85,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 03-05-PLAN.md — MMP analytics service (BRICS pair detection, SALI cliffs, LLE), 14 tests passing; all Phase 03 plans now complete
+Stopped at: Completed Phase 04 Scoring Expansion — all 3 plans done (04-01 drug-likeness profiles, 04-02 property breakdowns, 04-03 NP breakdown + radars + frontend); 266 scoring tests passing; frontend Scoring Profiles tab with 6 components, TypeScript compiles cleanly
 Resume file: None
