@@ -151,6 +151,50 @@ class TestFragmentDictionary:
         assert result["role"] == "unknown"
         assert result["mw"] == 0.0
 
+    def test_no_duplicate_keys_in_fragment_dict(self):
+        """COUNTERION_NAMES must have no duplicate canonical SMILES keys.
+
+        Reads the source file to count key string literal occurrences,
+        preventing silent overwrites where a duplicate key silently replaces
+        an earlier entry (as occurred with 'O=C(O)O' / carbonic acid).
+        """
+        import inspect
+        import re
+
+        source = inspect.getsource(
+            __import__(
+                "app.services.standardization.fragment_dict",
+                fromlist=["COUNTERION_NAMES"],
+            )
+        )
+
+        # Find all quoted string keys inside the dict definition
+        # Pattern matches both single- and double-quoted key strings
+        key_pattern = re.compile(r'^\s+"([^"]+)"\s*:\s*\{', re.MULTILINE)
+        found_keys = key_pattern.findall(source)
+
+        key_counts: dict[str, int] = {}
+        for key in found_keys:
+            key_counts[key] = key_counts.get(key, 0) + 1
+
+        duplicates = {k: v for k, v in key_counts.items() if v > 1}
+        assert duplicates == {}, (
+            f"Duplicate canonical SMILES keys found in COUNTERION_NAMES: {duplicates}"
+        )
+
+    def test_formic_acid_classified(self):
+        """classify_fragment('OC=O') must return name='formic acid', role='salt', mw~46."""
+        result = classify_fragment("OC=O")
+        assert result["name"] == "formic acid", (
+            f"Expected name='formic acid' for OC=O, got {result['name']!r}"
+        )
+        assert result["role"] == "salt", (
+            f"Expected role='salt' for formic acid, got {result['role']!r}"
+        )
+        assert abs(result["mw"] - 46.0) < 1.0, (
+            f"Expected MW ~46.0 for formic acid, got {result['mw']}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # TestProvenancePipeline (~12 tests)
