@@ -69,6 +69,7 @@ Recent decisions affecting current work:
 - [Phase 03-06-statistics]: compute_all_statistics returns StatisticsResult Pydantic model (not plain dict) — analytics_tasks.py calls .model_dump(); abs < 1e-10 threshold for corrcoef noise (numpy returns -3.4e-16 not NaN for constant arrays); scaffold diversity inline (no scaffold_analysis dep); Lipinski fallback 50% when no data
 - [Phase 03-03-scaffold-analysis]: Double-GetScaffoldForMol pattern for generic scaffold: MakeScaffoldGeneric converts exocyclic doubles; second GetScaffoldForMol removes them
 - [Phase 03-03-scaffold-analysis]: Acyclic molecules grouped under empty string scaffold key; Shannon entropy edge-case (single scaffold = 0) handled before log2; frequency cap at 50 + Other bucket
+- [Phase 03-05-mmp]: BRICS BRICSDecompose for MMP — phenol/aniline have no BRICS bonds, use phenylacetic acid/acetamide for tests; cap applied both inside _detect_mmp_pairs AND compute_mmp_analysis for monkeypatch robustness; compute_mmp returns _MMPResultWrapper with model_dump() for analytics_tasks.py compatibility
 
 ### Pending Todos
 
@@ -83,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 03-03-PLAN.md — scaffold analysis service (Murcko + generic scaffold via double-GetScaffoldForMol, Shannon entropy, top-50 frequency distribution + Other bucket), R-group decomposition with SMARTS validation, 12 tests passing; prior session also completed 03-04 and 03-06
+Stopped at: Completed 03-05-PLAN.md — MMP analytics service (BRICS pair detection, SALI cliffs, LLE), 14 tests passing; all Phase 03 plans now complete
 Resume file: None

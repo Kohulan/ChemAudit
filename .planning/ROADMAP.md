@@ -26,7 +26,7 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 
 - [ ] **Phase 1: Deep Validation** - 17 new validation checks covering stereo, tautomers, composition, and structural complexity
 - [x] **Phase 2: Standardization Intelligence** - Provenance tracking for all 4 ChEMBL pipeline stages with atom-level change reporting (completed 2026-02-23)
-- [ ] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination)
+- [x] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination) (completed 2026-02-23)
 - [ ] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot
 - [ ] **Phase 5: Visualizations** - Batch visualization suite and single-molecule deep view built on Phase 3 and 4 data
 - [ ] **Phase 6: Export, API & Workflow** - Advanced exports, custom profiles, audit trail, webhooks, and IUPAC input
@@ -147,7 +147,7 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 |-------|-----------|----------------|--------|-----------|
 | 1. Deep Validation | v2.0 | 0/4 | Planning complete | - |
 | 2. Standardization Intelligence | 3/3 | Complete   | 2026-02-23 | - |
-| 3. Batch Analytics | 5/6 | In Progress|  | - |
+| 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
 | 4. Scoring Expansion | v2.0 | 0/3 | Not started | - |
 | 5. Visualizations | v2.0 | 0/2 | Not started | - |
 | 6. Export, API & Workflow | v2.0 | 0/3 | Not started | - |

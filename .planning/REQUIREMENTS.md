@@ -68,9 +68,9 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Batch Analytics — MMP & Activity Cliffs (Milestone 3.4)
 
-- [ ] **BATCH-13**: Matched molecular pair detection (single-cut BRICS fragmentation)
-- [ ] **BATCH-14**: Activity cliff detection (SALI index for structure-activity discontinuities)
-- [ ] **BATCH-15**: Lipophilic ligand efficiency (LLE = pIC50 - LogP, requires activity column)
+- [x] **BATCH-13**: Matched molecular pair detection (single-cut BRICS fragmentation)
+- [x] **BATCH-14**: Activity cliff detection (SALI index for structure-activity discontinuities)
+- [x] **BATCH-15**: Lipophilic ligand efficiency (LLE = pIC50 - LogP, requires activity column)
 
 ### Batch Analytics — Statistics & Quality (Milestone 3.5)
 
