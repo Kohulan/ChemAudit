@@ -24,7 +24,8 @@ export function useDeepValidationConfig() {
 
   const removeSeverityOverride = (checkName: string) => {
     setConfig((prev: DeepValidationConfig) => {
-      const { [checkName]: _, ...rest } = prev.severityOverrides;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [checkName]: _removed, ...rest } = prev.severityOverrides;
       return { ...prev, severityOverrides: rest };
     });
   };
