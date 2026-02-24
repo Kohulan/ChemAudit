@@ -2,6 +2,8 @@
  * TypeScript interfaces for structural alert screening.
  */
 
+import type { MoleculeInfo } from './validation';
+
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface AlertResult {
@@ -11,13 +13,6 @@ export interface AlertResult {
   matched_atoms: number[];
   catalog_source: string;
   smarts?: string | null;
-}
-
-export interface MoleculeInfo {
-  input_string: string;
-  canonical_smiles: string | null;
-  molecular_formula: string | null;
-  num_atoms: number | null;
 }
 
 export interface AlertScreenRequest {
