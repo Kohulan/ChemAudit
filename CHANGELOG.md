@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.3](https://github.com/Kohulan/ChemAudit/compare/v1.1.2...v1.1.3) (2026-02-24)
+
+
+### Bug Fixes
+
+* add missing MoleculeInfo fields to ValidationResults test mocks ([2c7cbd2](https://github.com/Kohulan/ChemAudit/commit/2c7cbd2b8894ce89d3aebbd326b3025c4a86ed3e))
+* add missing MoleculeInfo fields to ValidationResults test mocks ([26b4a78](https://github.com/Kohulan/ChemAudit/commit/26b4a7848043c0f997df2cf57074320be8258b79))
+* replace regex SMILES parsing with RDKit for molecule info ([ca452cd](https://github.com/Kohulan/ChemAudit/commit/ca452cdf582a9cb93256f1927b2d57026e78648d))
+* replace regex SMILES parsing with RDKit for molecule info ([382c18b](https://github.com/Kohulan/ChemAudit/commit/382c18bcae8a4d82b2d895e7b8ec1ec7f960caa4))
+* replace regex SMILES parsing with RDKit for molecule info ([4b7d483](https://github.com/Kohulan/ChemAudit/commit/4b7d4835239d00d87db3ba3a275fd06cf0547673))
+
 ## [1.1.2](https://github.com/Kohulan/ChemAudit/compare/v1.1.1...v1.1.2) (2026-02-12)
 
 
