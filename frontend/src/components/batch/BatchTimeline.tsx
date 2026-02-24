@@ -1,0 +1,187 @@
+/**
+ * BatchTimeline (VIZ-09)
+ *
+ * Batch processing timeline showing Upload -> Validation -> Analytics -> Complete.
+ * Horizontal on lg screens, vertical on mobile.
+ */
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Upload, Shield, BarChart3, CheckCircle } from 'lucide-react';
+import type { BatchStatistics } from '../../types/batch';
+import type { AnalysisStatus } from '../../types/analytics';
+import { cn } from '../../lib/utils';
+
+interface BatchTimelineProps {
+  statistics: BatchStatistics;
+  analyticsStatus: Record<string, AnalysisStatus> | null;
+}
+
+type PhaseStatus = 'complete' | 'computing' | 'pending' | 'failed';
+
+interface TimelinePhase {
+  label: string;
+  icon: React.ReactNode;
+  status: PhaseStatus;
+  detail?: string;
+}
+
+function getStatusColor(status: PhaseStatus): string {
+  switch (status) {
+    case 'complete':
+      return 'bg-emerald-500 text-white';
+    case 'computing':
+      return 'bg-amber-500 text-white animate-pulse';
+    case 'failed':
+      return 'bg-red-500 text-white';
+    case 'pending':
+    default:
+      return 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-[var(--color-border)]';
+  }
+}
+
+function getLineColor(status: PhaseStatus): string {
+  switch (status) {
+    case 'complete':
+      return 'bg-emerald-500';
+    case 'computing':
+      return 'bg-amber-500';
+    case 'failed':
+      return 'bg-red-500';
+    case 'pending':
+    default:
+      return 'bg-[var(--color-border)]';
+  }
+}
+
+function deriveAnalyticsPhaseStatus(
+  analyticsStatus: Record<string, AnalysisStatus> | null
+): PhaseStatus {
+  if (!analyticsStatus) return 'pending';
+
+  const statuses = Object.values(analyticsStatus);
+  if (statuses.length === 0) return 'pending';
+
+  const anyComputing = statuses.some((s) => s.status === 'computing' || s.status === 'pending');
+  const anyFailed = statuses.some((s) => s.status === 'failed');
+  const allComplete = statuses.every((s) => s.status === 'complete' || s.status === 'skipped');
+
+  if (allComplete) return 'complete';
+  if (anyFailed && !anyComputing) return 'failed';
+  if (anyComputing) return 'computing';
+  return 'pending';
+}
+
+export const BatchTimeline = React.memo(function BatchTimeline({
+  statistics,
+  analyticsStatus,
+}: BatchTimelineProps) {
+  const analyticsPhase = deriveAnalyticsPhaseStatus(analyticsStatus);
+  const allComplete = analyticsPhase === 'complete';
+
+  const phases: TimelinePhase[] = [
+    {
+      label: 'Upload',
+      icon: <Upload className="w-4 h-4" />,
+      status: 'complete',
+      detail: `${statistics.total} molecules`,
+    },
+    {
+      label: 'Validation',
+      icon: <Shield className="w-4 h-4" />,
+      status: 'complete',
+      detail: statistics.processing_time_seconds
+        ? `${statistics.processing_time_seconds.toFixed(1)}s`
+        : undefined,
+    },
+    {
+      label: 'Analytics',
+      icon: <BarChart3 className="w-4 h-4" />,
+      status: analyticsPhase,
+      detail:
+        analyticsPhase === 'complete'
+          ? 'Done'
+          : analyticsPhase === 'computing'
+            ? 'Computing...'
+            : analyticsPhase === 'failed'
+              ? 'Partial failure'
+              : undefined,
+    },
+    {
+      label: 'Complete',
+      icon: <CheckCircle className="w-4 h-4" />,
+      status: allComplete ? 'complete' : 'pending',
+    },
+  ];
+
+  // Summary stats
+  const scaffoldCount = analyticsStatus?.scaffold?.status === 'complete' ? 'scaffolds analyzed' : '';
+  const outlierInfo = analyticsStatus?.statistics?.status === 'complete' ? 'outliers detected' : '';
+
+  return (
+    <div className="space-y-3">
+      {/* Timeline */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-0">
+        {phases.map((phase, i) => (
+          <React.Fragment key={phase.label}>
+            <motion.div
+              className="flex flex-row lg:flex-col items-center gap-2 lg:gap-1"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              {/* Node */}
+              <div
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                  getStatusColor(phase.status)
+                )}
+              >
+                {phase.icon}
+              </div>
+              {/* Label */}
+              <div className="text-center lg:min-w-[80px]">
+                <p className="text-xs font-medium text-[var(--color-text-primary)]">
+                  {phase.label}
+                </p>
+                {phase.detail && (
+                  <p className="text-[10px] text-[var(--color-text-muted)]">{phase.detail}</p>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Connecting line */}
+            {i < phases.length - 1 && (
+              <div
+                className={cn(
+                  'hidden lg:block flex-1 h-1 min-w-[40px] rounded-full mx-1',
+                  getLineColor(phases[i + 1].status === 'pending' ? 'pending' : phase.status)
+                )}
+              />
+            )}
+            {i < phases.length - 1 && (
+              <div
+                className={cn(
+                  'block lg:hidden w-1 h-4 rounded-full ml-[14px]',
+                  getLineColor(phases[i + 1].status === 'pending' ? 'pending' : phase.status)
+                )}
+              />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Summary stats */}
+      <div className="flex flex-wrap gap-3 text-[10px] text-[var(--color-text-muted)]">
+        <span>
+          {statistics.successful} of {statistics.total} validated successfully
+        </span>
+        {statistics.processing_time_seconds && (
+          <span>in {statistics.processing_time_seconds.toFixed(1)}s</span>
+        )}
+        {scaffoldCount && <span>{scaffoldCount}</span>}
+        {outlierInfo && <span>{outlierInfo}</span>}
+      </div>
+    </div>
+  );
+});
