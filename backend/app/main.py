@@ -99,6 +99,24 @@ async def lifespan(app: FastAPI):
             len(EXPECTED_DEEP_VALIDATION_CHECKS),
         )
 
+    # Initialize database tables (development auto-create)
+    try:
+        from app.db import Base, engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created/verified")
+    except Exception as e:
+        logger.warning("Database initialization failed: %s — DB features unavailable", e)
+
+    # Initialize OPSIN for IUPAC name conversion (graceful fallback)
+    try:
+        from app.services.iupac.converter import init_opsin
+
+        init_opsin()
+    except Exception as e:
+        logger.warning("OPSIN initialization failed: %s — IUPAC input unavailable", e)
+
     # Initialize WebSocket manager Redis connection
     await manager.init_redis()
     print("WebSocket manager initialized with Redis")

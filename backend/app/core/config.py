@@ -106,6 +106,26 @@ class Settings(BaseSettings):
     DEPLOYMENT_PROFILE: str = "medium"
 
     # ==========================================================================
+    # SMTP Settings (for batch completion email notifications)
+    # ==========================================================================
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@chemaudit.local"
+    SMTP_TLS: bool = True
+
+    # ==========================================================================
+    # OPSIN Settings (IUPAC name to SMILES conversion)
+    # ==========================================================================
+    OPSIN_JAR_PATH: str = "/app/data/opsin.jar"
+
+    # ==========================================================================
+    # Application Base URL (for webhook payloads and email links)
+    # ==========================================================================
+    BASE_URL: str = "http://localhost:3002"
+
+    # ==========================================================================
     # External API endpoints
     # ==========================================================================
     COCONUT_API_URL: str = "https://coconut.naturalproducts.net/api"
