@@ -104,6 +104,10 @@ import type {
   COCONUTResult,
   IntegrationError
 } from '../types/integrations';
+import type {
+  BatchAnalyticsResponse,
+  AnalyticsTriggerResponse
+} from '../types/analytics';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
@@ -657,6 +661,29 @@ export const batchApi = {
   },
 
   /**
+   * Get batch analytics results (scaffold, chemical space, statistics, etc.)
+   */
+  getAnalytics: async (jobId: string): Promise<BatchAnalyticsResponse> => {
+    const response = await api.get<BatchAnalyticsResponse>(`/batch/${jobId}/analytics`);
+    return response.data;
+  },
+
+  /**
+   * Trigger a specific analytics computation for a batch job.
+   */
+  triggerAnalytics: async (
+    jobId: string,
+    analysisType: string,
+    params?: Record<string, string>
+  ): Promise<AnalyticsTriggerResponse> => {
+    const response = await api.post<AnalyticsTriggerResponse>(
+      `/batch/${jobId}/analytics/${analysisType}`,
+      params || {}
+    );
+    return response.data;
+  },
+
+  /**
    * Detect columns in a CSV file for SMILES selection (server-side fallback).
    */
   detectColumns: async (file: File): Promise<CSVColumnsResponse> => {
@@ -754,3 +781,4 @@ export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarC
 export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
 export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
 export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };
+export type { BatchAnalyticsResponse, AnalyticsTriggerResponse };

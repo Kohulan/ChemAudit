@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock } from 'lucide-react';
+import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3 } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
 import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
+import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
+import { useBrushSelection, setSelection, clearSelection } from '../hooks/useBrushSelection';
 import { useLimits } from '../context/ConfigContext';
 import { batchApi } from '../services/api';
 import { cn } from '../lib/utils';
@@ -37,7 +39,7 @@ export function BatchValidationPage() {
   const [filters, setFilters] = useState<BatchResultsFilters>({});
   const [sortBy, setSortBy] = useState<SortField>('index');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedIndices, selectionDispatch] = useBrushSelection();
 
   // WebSocket progress
   const { progress, isConnected } = useBatchProgress(
@@ -172,13 +174,13 @@ export function BatchValidationPage() {
 
   // Handle selection change
   const handleSelectionChange = useCallback((indices: Set<number>) => {
-    setSelectedIndices(indices);
-  }, []);
+    selectionDispatch(setSelection(indices));
+  }, [selectionDispatch]);
 
   // Handle clear selection
   const handleClearSelection = useCallback(() => {
-    setSelectedIndices(new Set());
-  }, []);
+    selectionDispatch(clearSelection());
+  }, [selectionDispatch]);
 
   // Reset to upload state
   const handleStartNew = useCallback(() => {
@@ -190,8 +192,8 @@ export function BatchValidationPage() {
     setFilters({});
     setSortBy('index');
     setSortDir('asc');
-    setSelectedIndices(new Set());
-  }, []);
+    selectionDispatch(clearSelection());
+  }, [selectionDispatch]);
 
   return (
     <div className={cn(
@@ -408,6 +410,32 @@ export function BatchValidationPage() {
                 onSelectionChange={handleSelectionChange}
               />
             </div>
+
+            {/* Analytics & Visualizations */}
+            {jobId && (
+              <div className="card p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
+                      Analytics &amp; Visualizations
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Interactive charts for batch analysis
+                    </p>
+                  </div>
+                </div>
+                <BatchAnalyticsPanel
+                  jobId={jobId}
+                  statistics={resultsData.statistics}
+                  results={resultsData.results}
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={handleSelectionChange}
+                />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
