@@ -28,7 +28,7 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 - [x] **Phase 2: Standardization Intelligence** - Provenance tracking for all 4 ChEMBL pipeline stages with atom-level change reporting (completed 2026-02-23)
 - [x] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination) (completed 2026-02-23)
 - [x] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot (completed 2026-02-23)
-- [ ] **Phase 5: Visualizations** - Batch visualization suite and single-molecule deep view built on Phase 3 and 4 data
+- [x] **Phase 5: Visualizations** - Batch visualization suite and single-molecule deep view built on Phase 3 and 4 data (completed 2026-02-24)
 - [ ] **Phase 6: Export, API & Workflow** - Advanced exports, custom profiles, audit trail, webhooks, and IUPAC input
 
 ## Phase Details
@@ -115,8 +115,8 @@ Plans:
 **Plans**: 2 plans in 2 waves (M5.1 batch charts in Wave 1, then M5.2 comparison + timeline in Wave 2)
 
 Plans:
-- [ ] 05-01-PLAN.md — M5.1 Batch Visualization Suite: analytics types, API methods, hooks, tabbed container, 6 chart components (VIZ-01..06) [Wave 1]
-- [ ] 05-02-PLAN.md — M5.2 Single Molecule Deep View: molecule comparison panel, property radar, batch timeline, compare flow integration (VIZ-07..09) [Wave 2]
+- [x] 05-01-PLAN.md — M5.1 Batch Visualization Suite: analytics types, API methods, hooks, tabbed container, 6 chart components (VIZ-01..06) [Wave 1] (COMPLETE: 2 tasks, 12 files, commits a314515 + 3ee40c9)
+- [x] 05-02-PLAN.md — M5.2 Single Molecule Deep View: molecule comparison panel, property radar, batch timeline, compare flow integration (VIZ-07..09) [Wave 2] (COMPLETE: 2 tasks, 5 files, commits eaec55f + 4292378)
 
 ### Phase 6: Export, API & Workflow
 **Goal**: Power users can export richly annotated data in new formats, define custom scoring profiles, bookmark molecules across sessions, receive batch completion notifications, and input structures by IUPAC name — all self-contained features with backward-compatible API additions
@@ -149,7 +149,7 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 | 2. Standardization Intelligence | 3/3 | Complete   | 2026-02-23 | - |
 | 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
 | 4. Scoring Expansion | 3/3 | Complete | 2026-02-23 | - |
-| 5. Visualizations | v2.0 | 0/2 | Not started | - |
+| 5. Visualizations | 2/2 | Complete | 2026-02-24 | - |
 | 6. Export, API & Workflow | v2.0 | 0/3 | Not started | - |
 
-**Total:** 16/21 plans complete (76%)
+**Total:** 18/21 plans complete (86%)

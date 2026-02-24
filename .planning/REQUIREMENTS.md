@@ -113,9 +113,9 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Visualizations — Single Molecule Deep View (Milestone 5.2)
 
-- [ ] **VIZ-07**: Molecule comparison view (side-by-side property/score comparison)
-- [ ] **VIZ-08**: Per-molecule property radar (individual molecule vs dataset average)
-- [ ] **VIZ-09**: Batch timeline view (processing timeline with status indicators)
+- [x] **VIZ-07**: Molecule comparison view (side-by-side property/score comparison)
+- [x] **VIZ-08**: Per-molecule property radar (individual molecule vs dataset average)
+- [x] **VIZ-09**: Batch timeline view (processing timeline with status indicators)
 
 ### Export, API & Workflow — Advanced Exports (Milestone 6.1)
 
@@ -229,9 +229,9 @@ Finalized during roadmap creation — 2026-02-23.
 | VIZ-04 | Phase 5 (M5.1) | 05-01 | Pending |
 | VIZ-05 | Phase 5 (M5.1) | 05-01 | Pending |
 | VIZ-06 | Phase 5 (M5.1) | 05-01 | Pending |
-| VIZ-07 | Phase 5 (M5.2) | 05-02 | Pending |
-| VIZ-08 | Phase 5 (M5.2) | 05-02 | Pending |
-| VIZ-09 | Phase 5 (M5.2) | 05-02 | Pending |
+| VIZ-07 | Phase 5 (M5.2) | 05-02 | Complete |
+| VIZ-08 | Phase 5 (M5.2) | 05-02 | Complete |
+| VIZ-09 | Phase 5 (M5.2) | 05-02 | Complete |
 | WORK-01 | Phase 6 (M6.1) | 06-01 | Pending |
 | WORK-02 | Phase 6 (M6.1) | 06-01 | Pending |
 | WORK-03 | Phase 6 (M6.1) | 06-01 | Pending |

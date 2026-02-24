@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 5 — Visualizations (plan 05-01 complete, executing 05-02)
+**Current focus:** Phase 5 complete — Visualizations delivered (both plans complete)
 
 ## Current Position
 
-Phase: 5 of 6 (Visualizations)
-Plan: 1 of 2 in current phase
-Status: Plan 05-01 complete — batch visualization suite with 6 interactive charts
-Last activity: 2026-02-24 — Completed 05-01: 6 Recharts/Canvas charts, linked brushing, tabbed analytics panel
+Phase: 5 of 6 (Visualizations) — COMPLETE
+Plan: 2 of 2 in current phase (all complete)
+Status: Phase 5 complete — 9 visualization components (VIZ-01 through VIZ-09) delivered
+Last activity: 2026-02-24 — Completed 05-02: molecule comparison panel, property radar, batch timeline, comparison flow
 
-Progress: [█████████████████] 81%
+Progress: [██████████████████] 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 18
 - Average duration: 5.1 min
 - Total execution time: ~1.35 hours
 
@@ -31,11 +31,11 @@ Progress: [█████████████████] 81%
 | 2. Standardization Intelligence | 3/3 | 17 min | 5.7 min |
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
 | 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
-| 5. Visualizations | 1/2 | 8 min | 8 min |
+| 5. Visualizations | 2/2 | 16 min | 8 min |
 | 6. Export, API & Workflow | 0/3 | — | — |
 
 **Recent Trend:**
-- Last 7 plans: 03-04 (3.5 min), 03-06 (4 min), 03-05 (8 min), 04-01 (5 min), 04-02 (5 min), 04-03 (5 min), 05-01 (8 min)
+- Last 7 plans: 03-05 (8 min), 04-01 (5 min), 04-02 (5 min), 04-03 (5 min), 05-01 (8 min), 05-02 (8 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -76,6 +76,7 @@ Recent decisions affecting current work:
 - [Phase 04-03]: NP breakdown falls back gracefully when npscorer model not found (empty fragments list); ESOL coefficients duplicated inline in bioavailability_radar.py to avoid import cycle; BOILED-Egg: TPSA x-axis, WLOGP y-axis, point-in-ellipse test; radar normalization: in-range=1.0, linearly decreases outside range toward 0
 - [Phase 04-03]: Recharts v3.7.0 RadarChart with PolarGrid for bioavailability radar; ScoringProfilesTab auto-fetches via useEffect when smiles prop changes; Framer Motion staggered card animations
 - [Phase 05-01]: Canvas 2D for ChemicalSpaceScatter (not Recharts SVG) — required for >800 points; useReducer for brush selection (SET/TOGGLE/ADD_RANGE/CLEAR); SVG serializer for Recharts chart PNG export
+- [Phase 05-02]: Radar properties: QED, SA Score, Fsp3, Val Score, Lipinski Violations, Alert Count (not MW/LogP/TPSA) — directly available from BatchResult scoring fields; inverted normalization for "bad" properties so higher=better on chart; strict 2-molecule max for comparison; floating Compare button with fixed positioning z-40
 
 ### Pending Todos
 
@@ -90,5 +91,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 05-01-PLAN.md, executing 05-02
-Resume file: .planning/phases/05-visualizations/05-01-SUMMARY.md
+Stopped at: Phase 5 complete — all VIZ requirements delivered
+Resume file: .planning/phases/05-visualizations/05-02-SUMMARY.md
