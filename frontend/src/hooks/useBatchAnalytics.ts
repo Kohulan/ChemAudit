@@ -1,9 +1,14 @@
 /**
  * useBatchAnalytics Hook
  *
- * Single-instance analytics polling with exponential backoff on errors.
- * Triggers expensive analytics, polls until all requested types complete.
- * Includes timeout detection and per-type progress tracking.
+ * Triggers expensive analytics and polls until all active analytics reach a
+ * terminal state. "Active" means the type was either explicitly triggered
+ * (triggerTypes) or has moved beyond "pending" in the backend response
+ * (auto-started by cheap analytics like deduplication and statistics).
+ *
+ * This decouples "what to trigger" from "what to wait for", ensuring the hook
+ * keeps polling until every started analysis completes — not just the
+ * user-triggered ones.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -13,11 +18,11 @@ import type { BatchAnalyticsResponse, AnalysisStatus } from '../types/analytics'
 export type AnalyticsHookStatus = 'idle' | 'computing' | 'complete' | 'error';
 
 export interface AnalyticsProgressInfo {
-  /** How many of the requested types have reached a terminal state */
+  /** How many active types have reached a terminal state */
   completedCount: number;
-  /** Total requested types */
+  /** Total active types (triggered + auto-started) */
   totalCount: number;
-  /** Per-type status from the last successful poll */
+  /** Per-type status for all active types from the last successful poll */
   typeStatuses: Record<string, AnalysisStatus>;
   /** Seconds since polling started */
   elapsedSeconds: number;
@@ -31,21 +36,147 @@ interface UseBatchAnalyticsReturn {
   retrigger: (type: string) => void;
 }
 
+const TERMINAL_STATUSES = ['complete', 'failed', 'skipped'];
 const BASE_POLL_MS = 3000;
 const MAX_POLL_MS = 30000;
 /** After this many seconds stuck in "computing", treat as timed out */
 const COMPUTING_TIMEOUT_S = 300; // 5 minutes
 
+/**
+ * Expand the set of active types by adding any types from the response that
+ * have moved beyond "pending" (auto-started by the backend). The set is
+ * monotonically growing — once a type is tracked, it stays tracked.
+ */
+function expandActiveTypes(
+  responseStatus: Record<string, AnalysisStatus>,
+  accumulated: Set<string>,
+): void {
+  for (const [type, st] of Object.entries(responseStatus)) {
+    if (st.status !== 'pending') {
+      accumulated.add(type);
+    }
+  }
+}
+
+/**
+ * Count how many active types have reached a terminal state.
+ */
+function countTerminal(
+  activeTypes: Set<string>,
+  responseStatus: Record<string, AnalysisStatus>,
+): { completedCount: number; totalCount: number } {
+  let completedCount = 0;
+  for (const type of activeTypes) {
+    const st = responseStatus[type];
+    if (st && TERMINAL_STATUSES.includes(st.status)) {
+      completedCount++;
+    }
+  }
+  return { completedCount, totalCount: activeTypes.size };
+}
+
+/**
+ * Build typeStatuses record for all active types.
+ */
+function buildTypeStatuses(
+  activeTypes: Set<string>,
+  responseStatus: Record<string, AnalysisStatus>,
+): Record<string, AnalysisStatus> {
+  const result: Record<string, AnalysisStatus> = {};
+  for (const type of activeTypes) {
+    result[type] = responseStatus[type] || { status: 'pending', computed_at: null, error: null };
+  }
+  return result;
+}
+
+/**
+ * Find active types that are still stuck in a non-terminal state.
+ */
+function findStuckTypes(
+  activeTypes: Set<string>,
+  responseStatus: Record<string, AnalysisStatus>,
+): string[] {
+  return Array.from(activeTypes).filter((type) => {
+    const st = responseStatus[type];
+    return st && !TERMINAL_STATUSES.includes(st.status);
+  });
+}
+
+/**
+ * Process a successful poll response: update progress, determine if polling
+ * should continue, and return the next hook status (or null to keep polling).
+ */
+function processPollResponse(
+  response: BatchAnalyticsResponse,
+  triggerTypes: string[],
+  activeTypesRef: React.MutableRefObject<Set<string>>,
+  startTime: number,
+): {
+  completedCount: number;
+  totalCount: number;
+  typeStatuses: Record<string, AnalysisStatus>;
+  elapsedSeconds: number;
+  nextStatus: AnalyticsHookStatus | null;
+  errorMessage: string | null;
+} {
+  expandActiveTypes(response.status, activeTypesRef.current);
+  // Always include trigger types even if still pending in the response
+  for (const t of triggerTypes) activeTypesRef.current.add(t);
+
+  const activeTypes = activeTypesRef.current;
+  const { completedCount, totalCount } = countTerminal(activeTypes, response.status);
+  const typeStatuses = buildTypeStatuses(activeTypes, response.status);
+  const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
+
+  // All active types terminal?
+  if (completedCount === totalCount && totalCount > 0) {
+    const failedTypes = Array.from(activeTypes).filter(
+      (type) => response.status[type]?.status === 'failed'
+    );
+    if (failedTypes.length > 0) {
+      return {
+        completedCount, totalCount, typeStatuses, elapsedSeconds,
+        nextStatus: 'error',
+        errorMessage: `Analytics failed for: ${failedTypes.join(', ')}`,
+      };
+    }
+    return {
+      completedCount, totalCount, typeStatuses, elapsedSeconds,
+      nextStatus: 'complete',
+      errorMessage: null,
+    };
+  }
+
+  // Timeout?
+  if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
+    const stuck = findStuckTypes(activeTypes, response.status);
+    if (stuck.length > 0) {
+      return {
+        completedCount, totalCount, typeStatuses, elapsedSeconds,
+        nextStatus: 'error',
+        errorMessage: `Analytics timed out after ${Math.round(COMPUTING_TIMEOUT_S / 60)} minutes for: ${stuck.join(', ')}. Click retry to try again.`,
+      };
+    }
+  }
+
+  // Keep polling
+  return {
+    completedCount, totalCount, typeStatuses, elapsedSeconds,
+    nextStatus: null,
+    errorMessage: null,
+  };
+}
+
 export function useBatchAnalytics(
   jobId: string | null,
-  types: string[]
+  triggerTypes: string[]
 ): UseBatchAnalyticsReturn {
   const [data, setData] = useState<BatchAnalyticsResponse | null>(null);
   const [status, setStatus] = useState<AnalyticsHookStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<AnalyticsProgressInfo>({
     completedCount: 0,
-    totalCount: types.length,
+    totalCount: triggerTypes.length,
     typeStatuses: {},
     elapsedSeconds: 0,
   });
@@ -55,6 +186,9 @@ export function useBatchAnalytics(
   const mountedRef = useRef(true);
   const startTimeRef = useRef<number>(0);
   const consecutiveErrorsRef = useRef(0);
+  // Accumulates all types we're tracking: trigger types + auto-started types.
+  // Monotonically growing — once tracked, stays tracked.
+  const activeTypesRef = useRef<Set<string>>(new Set(triggerTypes));
 
   useEffect(() => {
     mountedRef.current = true;
@@ -62,7 +196,7 @@ export function useBatchAnalytics(
   }, []);
 
   useEffect(() => {
-    if (!jobId || types.length === 0) return;
+    if (!jobId || triggerTypes.length === 0) return;
 
     // Prevent duplicate triggers on strict-mode re-renders
     if (triggeredRef.current) return;
@@ -73,15 +207,16 @@ export function useBatchAnalytics(
     backoffRef.current = BASE_POLL_MS;
     startTimeRef.current = Date.now();
     consecutiveErrorsRef.current = 0;
+    activeTypesRef.current = new Set(triggerTypes);
     setProgress({
       completedCount: 0,
-      totalCount: types.length,
+      totalCount: triggerTypes.length,
       typeStatuses: {},
       elapsedSeconds: 0,
     });
 
     // Fire-and-forget trigger for each expensive type
-    for (const type of types) {
+    for (const type of triggerTypes) {
       batchApi.triggerAnalytics(jobId, type).catch(() => {});
     }
 
@@ -93,54 +228,24 @@ export function useBatchAnalytics(
         if (!mountedRef.current) return;
 
         setData(response);
-        backoffRef.current = BASE_POLL_MS; // Reset backoff on success
+        backoffRef.current = BASE_POLL_MS;
         consecutiveErrorsRef.current = 0;
 
-        // Update progress info
-        const elapsedSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
-        const terminalStatuses = ['complete', 'failed', 'skipped'];
-        let completedCount = 0;
-        const typeStatuses: Record<string, AnalysisStatus> = {};
-
-        for (const type of types) {
-          const st: AnalysisStatus | undefined = response.status[type];
-          typeStatuses[type] = st || { status: 'pending', computed_at: null, error: null };
-          if (st && terminalStatuses.includes(st.status)) {
-            completedCount++;
-          }
-        }
+        const result = processPollResponse(
+          response, triggerTypes, activeTypesRef, startTimeRef.current
+        );
 
         setProgress({
-          completedCount,
-          totalCount: types.length,
-          typeStatuses,
-          elapsedSeconds,
+          completedCount: result.completedCount,
+          totalCount: result.totalCount,
+          typeStatuses: result.typeStatuses,
+          elapsedSeconds: result.elapsedSeconds,
         });
 
-        // Check if all requested types are terminal
-        const allTerminal = completedCount === types.length;
-
-        if (allTerminal) {
-          const anyFailed = types.some((type) => response.status[type]?.status === 'failed');
-          if (anyFailed) {
-            const failedTypes = types.filter((type) => response.status[type]?.status === 'failed');
-            setError(`Analytics failed for: ${failedTypes.join(', ')}`);
-          }
-          setStatus(anyFailed ? 'error' : 'complete');
+        if (result.nextStatus) {
+          if (result.errorMessage) setError(result.errorMessage);
+          setStatus(result.nextStatus);
           return; // Stop polling
-        }
-
-        // Check for timeout: if stuck in "computing" too long
-        if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
-          const stuckTypes = types.filter((type) => {
-            const st = response.status[type];
-            return st && (st.status === 'computing' || st.status === 'pending');
-          });
-          if (stuckTypes.length > 0) {
-            setError(`Analytics timed out after ${Math.round(COMPUTING_TIMEOUT_S / 60)} minutes for: ${stuckTypes.join(', ')}. Click retry to try again.`);
-            setStatus('error');
-            return; // Stop polling
-          }
         }
 
         // Schedule next poll
@@ -153,7 +258,6 @@ export function useBatchAnalytics(
 
         // 404: analytics not initialized yet — keep polling
         if (httpStatus === 404) {
-          // Check timeout even for 404
           const elapsedSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
           setProgress(prev => ({ ...prev, elapsedSeconds }));
 
@@ -226,36 +330,20 @@ export function useBatchAnalytics(
             if (!mountedRef.current) return;
             setData(response);
 
-            const elapsedSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
-            const terminalStatuses = ['complete', 'failed', 'skipped'];
-            let completedCount = 0;
-            const typeStatuses: Record<string, AnalysisStatus> = {};
-
-            for (const t of types) {
-              const st = response.status[t];
-              typeStatuses[t] = st || { status: 'pending', computed_at: null, error: null };
-              if (st && terminalStatuses.includes(st.status)) {
-                completedCount++;
-              }
-            }
+            const result = processPollResponse(
+              response, triggerTypes, activeTypesRef, startTimeRef.current
+            );
 
             setProgress({
-              completedCount,
-              totalCount: types.length,
-              typeStatuses,
-              elapsedSeconds,
+              completedCount: result.completedCount,
+              totalCount: result.totalCount,
+              typeStatuses: result.typeStatuses,
+              elapsedSeconds: result.elapsedSeconds,
             });
 
-            const allTerminal = completedCount === types.length;
-            if (allTerminal) {
-              const anyFailed = types.some((t) => response.status[t]?.status === 'failed');
-              setStatus(anyFailed ? 'error' : 'complete');
-              return;
-            }
-
-            if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
-              setError(`Analytics timed out. Click retry to try again.`);
-              setStatus('error');
+            if (result.nextStatus) {
+              if (result.errorMessage) setError(result.errorMessage);
+              setStatus(result.nextStatus);
               return;
             }
 
@@ -274,7 +362,7 @@ export function useBatchAnalytics(
         poll();
       }
     },
-    [jobId, types]
+    [jobId, triggerTypes]
   );
 
   return { data, status, error, progress, retrigger };

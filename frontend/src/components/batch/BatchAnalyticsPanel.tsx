@@ -6,15 +6,16 @@
  * error states, and summary badges.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
+import { Download, AlertTriangle, RotateCcw, Loader2, GitCompare, X } from 'lucide-react';
 import { ScoreHistogram } from './charts/ScoreHistogram';
 import { PropertyScatterPlot } from './charts/PropertyScatterPlot';
 import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
 import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
+import { ClayButton } from '../ui/ClayButton';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
@@ -30,6 +31,7 @@ interface BatchAnalyticsPanelProps {
   analyticsError?: string | null;
   analyticsProgress?: AnalyticsProgressInfo;
   onRetrigger: (type: string) => void;
+  onCompare?: () => void;
 }
 
 const TABS = ['Distributions', 'Chemical Space'] as const;
@@ -165,6 +167,8 @@ function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
   };
 
   const typeLabels: Record<string, string> = {
+    deduplication: 'Deduplication',
+    statistics: 'Statistics',
     scaffold: 'Scaffold Diversity',
     chemical_space: 'Chemical Space (PCA)',
   };
@@ -253,6 +257,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   analyticsError,
   analyticsProgress,
   onRetrigger,
+  onCompare,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
@@ -270,6 +275,24 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   // Badge counts
   const outlierCount = analyticsData?.statistics?.outliers?.length ?? 0;
   const scaffoldCount = analyticsData?.scaffold?.unique_scaffold_count ?? 0;
+  const [outlierPopoverOpen, setOutlierPopoverOpen] = useState(false);
+  const outlierBadgeRef = useRef<HTMLSpanElement>(null);
+
+  // Group outliers by property for the popover
+  const outlierBreakdown = useMemo(() => {
+    const outliers = analyticsData?.statistics?.outliers;
+    if (!outliers || outliers.length === 0) return null;
+    const byProp: Record<string, number> = {};
+    const uniqueMols = new Set<number>();
+    for (const o of outliers) {
+      byProp[o.property_name] = (byProp[o.property_name] || 0) + 1;
+      uniqueMols.add(o.molecule_index);
+    }
+    return {
+      byProperty: Object.entries(byProp).sort((a, b) => b[1] - a[1]),
+      uniqueMoleculeCount: uniqueMols.size,
+    };
+  }, [analyticsData?.statistics?.outliers]);
 
   const handlePropertyChange = useCallback(
     (axis: 'x' | 'y' | 'color', property: string) => {
@@ -299,10 +322,44 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             )}
           >
             {tab}
-            {/* Summary badge */}
+            {/* Outlier badge with hover popover */}
             {tab === 'Distributions' && outlierCount > 0 && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <span
+                ref={outlierBadgeRef}
+                className="relative text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 cursor-help"
+                onMouseEnter={() => setOutlierPopoverOpen(true)}
+                onMouseLeave={() => setOutlierPopoverOpen(false)}
+              >
                 {outlierCount} outlier{outlierCount !== 1 ? 's' : ''}
+                <AnimatePresence>
+                  {outlierPopoverOpen && outlierBreakdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-64 p-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] shadow-xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-xs font-semibold text-[var(--color-text-primary)] mb-1.5">
+                        {outlierBreakdown.uniqueMoleculeCount} molecule{outlierBreakdown.uniqueMoleculeCount !== 1 ? 's' : ''} with values outside statistical bounds
+                      </p>
+                      <div className="space-y-1 mb-2">
+                        {outlierBreakdown.byProperty.map(([prop, count]) => (
+                          <div key={prop} className="flex items-center justify-between text-xs">
+                            <span className="text-[var(--color-text-secondary)] font-medium">{prop}</span>
+                            <span className="text-amber-600 dark:text-amber-400 font-mono tabular-nums">
+                              {count} outlier{count !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-[var(--color-text-muted)] leading-snug border-t border-[var(--color-border)] pt-2">
+                        Use the Property Scatter Plot to identify and select these molecules
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </span>
             )}
             {tab === 'Chemical Space' && scaffoldCount > 0 && (
@@ -313,6 +370,53 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
           </button>
         ))}
       </div>
+
+      {/* Selection toolbar — contextual compare action */}
+      <AnimatePresence>
+        {selectedIndices.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <GitCompare className="w-4 h-4 text-[var(--color-primary)] flex-shrink-0" />
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {selectedIndices.size} molecule{selectedIndices.size !== 1 ? 's' : ''} selected
+                </span>
+                {selectedIndices.size > 2 && (
+                  <span className="text-xs text-[var(--color-text-muted)]">
+                    (select up to 2 to compare)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {onCompare && selectedIndices.size >= 1 && selectedIndices.size <= 2 && (
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={onCompare}
+                    leftIcon={<GitCompare className="w-3.5 h-3.5" />}
+                  >
+                    Compare
+                  </ClayButton>
+                )}
+                <ClayButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onSelectionChange(new Set())}
+                  leftIcon={<X className="w-3.5 h-3.5" />}
+                >
+                  Clear
+                </ClayButton>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Analytics progress bar */}
       <AnalyticsProgressBar

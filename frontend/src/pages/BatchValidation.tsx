@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3 } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
@@ -44,6 +44,8 @@ export function BatchValidationPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selectedIndices, selectionDispatch] = useBrushSelection();
   const [compareMode, setCompareMode] = useState(false);
+  const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
+  const [compareLoading, setCompareLoading] = useState(false);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
 
   // Analytics data for timeline and comparison radar
@@ -51,15 +53,6 @@ export function BatchValidationPage() {
     pageState === 'results' && includeAnalytics ? jobId : null,
     ['scaffold', 'chemical_space']
   );
-
-  // Derive molecules for comparison (max 2 from selected indices)
-  const compareMolecules = useMemo(() => {
-    if (!resultsData) return [];
-    const indices = Array.from(selectedIndices).slice(0, 2);
-    return indices
-      .map((idx) => resultsData.results.find((r) => r.index === idx))
-      .filter(Boolean) as typeof resultsData.results;
-  }, [selectedIndices, resultsData]);
 
   // WebSocket progress
   const { progress, isConnected } = useBatchProgress(
@@ -203,28 +196,52 @@ export function BatchValidationPage() {
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
-  // Handle compare button click
-  const handleCompare = useCallback(() => {
-    setCompareMode(true);
-  }, []);
+  // Handle compare button click — fetch molecules from API (not paginated local data)
+  const handleCompare = useCallback(async () => {
+    if (!jobId || selectedIndices.size === 0) return;
+    const indices = Array.from(selectedIndices).slice(0, 2);
+
+    setCompareLoading(true);
+    try {
+      const results: import('../types/batch').BatchResult[] = [];
+      for (const idx of indices) {
+        // Compute the page that contains this molecule index (sort_by=index asc)
+        const pageNum = Math.floor(idx / pageSize) + 1;
+        const data = await batchApi.getBatchResults(jobId, pageNum, pageSize, {
+          sort_by: 'index',
+          sort_dir: 'asc',
+        });
+        const mol = data.results.find((r) => r.index === idx);
+        if (mol) results.push(mol);
+      }
+      setComparisonResults(results);
+      setCompareMode(true);
+    } catch (e: any) {
+      setError(e.message || 'Failed to fetch molecules for comparison');
+    } finally {
+      setCompareLoading(false);
+    }
+  }, [jobId, selectedIndices, pageSize]);
 
   // Handle close comparison panel
   const handleCloseCompare = useCallback(() => {
     setCompareMode(false);
+    setComparisonResults([]);
   }, []);
 
   // Handle removing a molecule from comparison
   const handleRemoveFromCompare = useCallback((index: number) => {
-    // index is the position in compareMolecules array (0 or 1)
-    const molIndex = compareMolecules[index]?.index;
+    // index is the position in comparisonResults array (0 or 1)
+    const molIndex = comparisonResults[index]?.index;
     if (molIndex !== undefined) {
       selectionDispatch(toggleIndex(molIndex));
+      setComparisonResults((prev) => prev.filter((_, i) => i !== index));
     }
-    // If removing leaves 0 selected, close the panel
-    if (selectedIndices.size <= 1) {
+    // If removing leaves 0, close the panel
+    if (comparisonResults.length <= 1) {
       setCompareMode(false);
     }
-  }, [compareMolecules, selectedIndices.size, selectionDispatch]);
+  }, [comparisonResults, selectionDispatch]);
 
   // Reset to upload state
   const handleStartNew = useCallback(() => {
@@ -237,6 +254,7 @@ export function BatchValidationPage() {
     setSortBy('index');
     setSortDir('asc');
     setCompareMode(false);
+    setComparisonResults([]);
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
@@ -386,15 +404,39 @@ export function BatchValidationPage() {
             transition={{ duration: 0.4 }}
             className="space-y-6"
           >
-            {/* Start new batch button */}
-            <div className="flex justify-end">
-              <ClayButton
-                variant="primary"
-                onClick={handleStartNew}
-                leftIcon={<RotateCcw className="w-4 h-4" />}
-              >
-                Start New Batch
-              </ClayButton>
+            {/* Top bar: quick-nav + Start New Batch */}
+            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
+              <div className="flex items-center justify-between gap-4">
+                {/* Quick-nav clay pills */}
+                <nav className="flex gap-2.5" aria-label="Jump to section">
+                  {includeAnalytics && (
+                    <ClayButton
+                      variant="accent"
+                      size="sm"
+                      onClick={() => document.getElementById('section-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      leftIcon={<BarChart3 className="w-3.5 h-3.5" />}
+                    >
+                      Analytics
+                    </ClayButton>
+                  )}
+                  <ClayButton
+                    variant="stone"
+                    size="sm"
+                    onClick={() => document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    leftIcon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+                  >
+                    Detailed Results
+                  </ClayButton>
+                </nav>
+
+                <ClayButton
+                  variant="primary"
+                  onClick={handleStartNew}
+                  leftIcon={<RotateCcw className="w-4 h-4" />}
+                >
+                  Start New Batch
+                </ClayButton>
+              </div>
             </div>
 
             {/* Summary */}
@@ -422,44 +464,9 @@ export function BatchValidationPage() {
               </div>
             )}
 
-            {/* Results table */}
-            <div className="card p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
-                    Detailed Results
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {resultsData.total_results.toLocaleString()} molecules processed
-                  </p>
-                </div>
-              </div>
-              <BatchResultsTable
-                results={resultsData.results}
-                page={page}
-                pageSize={pageSize}
-                totalResults={resultsData.total_results}
-                totalPages={resultsData.total_pages}
-                filters={filters}
-                sortBy={sortBy}
-                sortDir={sortDir}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                onFiltersChange={handleFiltersChange}
-                onSortChange={handleSortChange}
-                isLoading={resultsLoading}
-                selectedIndices={selectedIndices}
-                onSelectionChange={handleSelectionChange}
-                onCompare={handleCompare}
-              />
-            </div>
-
-            {/* Analytics & Visualizations */}
+            {/* Analytics & Visualizations (overview first) */}
             {jobId && includeAnalytics && (
-              <div className="card p-6">
+              <div id="section-analytics" className="card p-6 scroll-mt-20">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                     <BarChart3 className="w-5 h-5" />
@@ -495,14 +502,55 @@ export function BatchValidationPage() {
                   analyticsError={analyticsError}
                   analyticsProgress={analyticsProgress}
                   onRetrigger={analyticsRetrigger}
+                  onCompare={handleCompare}
                 />
               </div>
             )}
 
+            {/* Detailed Results table (drill-down) */}
+            <div id="section-results" className="card p-6 scroll-mt-20">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
+                    Detailed Results
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {resultsData.total_results.toLocaleString()} molecules processed
+                  </p>
+                </div>
+              </div>
+              <BatchResultsTable
+                results={resultsData.results}
+                page={page}
+                pageSize={pageSize}
+                totalResults={resultsData.total_results}
+                totalPages={resultsData.total_pages}
+                filters={filters}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                onFiltersChange={handleFiltersChange}
+                onSortChange={handleSortChange}
+                isLoading={resultsLoading}
+                selectedIndices={selectedIndices}
+                onSelectionChange={handleSelectionChange}
+              />
+            </div>
+
             {/* Molecule Comparison Panel (VIZ-07) */}
-            {compareMode && compareMolecules.length > 0 && (
+            {compareLoading && (
+              <div className="card p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto mb-3" />
+                <p className="text-sm text-[var(--color-text-muted)]">Fetching molecules for comparison...</p>
+              </div>
+            )}
+            {compareMode && comparisonResults.length > 0 && (
               <MoleculeComparisonPanel
-                molecules={compareMolecules}
+                molecules={comparisonResults}
                 datasetStats={analyticsData?.statistics?.property_stats ?? null}
                 onClose={handleCloseCompare}
                 onRemoveMolecule={handleRemoveFromCompare}

@@ -1,6 +1,5 @@
 import { Fragment, useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ShieldAlert, FlaskConical, Atom, GitCompare } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, FlaskConical, Atom } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
@@ -22,7 +21,6 @@ interface BatchResultsTableProps {
   isLoading?: boolean;
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
-  onCompare?: () => void;
 }
 
 /**
@@ -44,7 +42,6 @@ export function BatchResultsTable({
   isLoading = false,
   selectedIndices,
   onSelectionChange,
-  onCompare,
 }: BatchResultsTableProps) {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
@@ -674,42 +671,6 @@ export function BatchResultsTable({
         </div>
       </div>
 
-      {/* Floating Compare button */}
-      <AnimatePresence>
-        {onCompare && selectedIndices.size >= 1 && selectedIndices.size <= 2 && (
-          <motion.button
-            initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            onClick={onCompare}
-            className={cn(
-              'fixed bottom-6 left-1/2 -translate-x-1/2 z-40',
-              'inline-flex items-center gap-2 px-5 py-3 rounded-full shadow-lg',
-              'bg-[var(--color-primary)] text-white font-semibold text-sm',
-              'hover:brightness-110 active:scale-95 transition-all'
-            )}
-          >
-            <GitCompare className="w-4 h-4" />
-            Compare ({selectedIndices.size})
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Compare disabled hint for >2 selections */}
-      <AnimatePresence>
-        {onCompare && selectedIndices.size > 2 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] shadow-lg text-sm text-[var(--color-text-muted)]"
-          >
-            <GitCompare className="w-4 h-4" />
-            Select up to 2 molecules to compare
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

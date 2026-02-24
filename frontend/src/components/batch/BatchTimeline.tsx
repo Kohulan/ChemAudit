@@ -54,22 +54,28 @@ function getLineColor(status: PhaseStatus): string {
   }
 }
 
-// Only track auto-computed and user-triggered analytics, not never-triggered ones
-const TRACKED_ANALYTICS = ['deduplication', 'statistics', 'scaffold', 'chemical_space'];
-
+/**
+ * Derive the analytics phase status from the response data.
+ * Only considers "active" types — those that have moved beyond "pending"
+ * (i.e. auto-started or user-triggered). Types that are still "pending"
+ * (never started, e.g. mmp, similarity_search, rgroup) are ignored.
+ */
 function deriveAnalyticsPhaseStatus(
   analyticsStatus: Record<string, AnalysisStatus> | null
 ): PhaseStatus {
   if (!analyticsStatus) return 'pending';
 
-  const statuses = TRACKED_ANALYTICS
-    .map((key) => analyticsStatus[key])
-    .filter((s): s is AnalysisStatus => s != null);
-  if (statuses.length === 0) return 'pending';
+  // Active types = started (non-pending)
+  const activeStatuses = Object.values(analyticsStatus)
+    .filter((s) => s.status !== 'pending');
 
-  const anyComputing = statuses.some((s) => s.status === 'computing' || s.status === 'pending');
-  const anyFailed = statuses.some((s) => s.status === 'failed');
-  const allTerminal = statuses.every(
+  if (activeStatuses.length === 0) return 'pending';
+
+  const anyComputing = activeStatuses.some(
+    (s) => s.status === 'computing'
+  );
+  const anyFailed = activeStatuses.some((s) => s.status === 'failed');
+  const allTerminal = activeStatuses.every(
     (s) => s.status === 'complete' || s.status === 'skipped' || s.status === 'failed'
   );
 
@@ -79,20 +85,27 @@ function deriveAnalyticsPhaseStatus(
   return 'pending';
 }
 
+/**
+ * Count progress across active (non-pending) analytics types.
+ * Derives the total dynamically from the response rather than a hardcoded list.
+ */
 function computeAnalyticsProgress(
   analyticsStatus: Record<string, AnalysisStatus> | null
 ): { completed: number; total: number; percent: number } {
-  if (!analyticsStatus) return { completed: 0, total: TRACKED_ANALYTICS.length, percent: 0 };
+  if (!analyticsStatus) return { completed: 0, total: 0, percent: 0 };
 
   let completed = 0;
-  for (const key of TRACKED_ANALYTICS) {
-    const s = analyticsStatus[key];
-    if (s && (s.status === 'complete' || s.status === 'skipped')) {
+  let total = 0;
+
+  for (const s of Object.values(analyticsStatus)) {
+    if (s.status === 'pending') continue;
+    total++;
+    if (s.status === 'complete' || s.status === 'skipped') {
       completed++;
     }
   }
-  const total = TRACKED_ANALYTICS.length;
-  const percent = Math.round((completed / total) * 100);
+
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { completed, total, percent };
 }
 
