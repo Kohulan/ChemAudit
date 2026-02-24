@@ -5,7 +5,7 @@ Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
 import uuid
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from fastapi import (
     APIRouter,
@@ -18,6 +18,7 @@ from fastapi import (
     Request,
     UploadFile,
 )
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
@@ -45,6 +46,11 @@ from app.services.batch.file_parser import (
 )
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import result_storage
+from app.services.batch.subset_actions import (
+    export_subset,
+    rescore_subset,
+    revalidate_subset,
+)
 from app.services.batch.tasks import cancel_batch_job, process_batch_job
 
 router = APIRouter()
@@ -552,3 +558,128 @@ async def detect_columns(
             status_code=400,
             detail=f"Failed to analyze CSV: {str(e)}",
         )
+
+
+# =============================================================================
+# Batch Subset Actions
+# =============================================================================
+
+
+class SubsetRequest(BaseModel):
+    """Request body for subset actions."""
+
+    indices: List[int]
+
+
+class SubsetRescoreRequest(BaseModel):
+    """Request body for subset re-score action."""
+
+    indices: List[int]
+    profile_id: Optional[int] = None
+
+
+class SubsetExportRequest(BaseModel):
+    """Request body for subset export action."""
+
+    indices: List[int]
+    format: str = "csv"
+
+
+@router.post("/batch/{job_id}/subset/revalidate")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_revalidate(
+    request: Request,
+    job_id: str,
+    body: SubsetRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Re-validate a subset of molecules from an existing batch job.
+
+    Creates a new batch job with the selected molecules.
+    Returns the new job_id for tracking progress.
+    """
+    try:
+        new_job_id = revalidate_subset(job_id, body.indices)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return {
+        "job_id": new_job_id,
+        "source_job_id": job_id,
+        "molecule_count": len(body.indices),
+        "action": "revalidate",
+    }
+
+
+@router.post("/batch/{job_id}/subset/rescore")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_rescore(
+    request: Request,
+    job_id: str,
+    body: SubsetRescoreRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Re-score a subset of molecules, optionally with a custom scoring profile.
+
+    Creates a new batch job for the selected molecules.
+    Returns the new job_id for tracking progress.
+    """
+    try:
+        new_job_id = rescore_subset(job_id, body.indices, body.profile_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return {
+        "job_id": new_job_id,
+        "source_job_id": job_id,
+        "molecule_count": len(body.indices),
+        "action": "rescore",
+        "profile_id": body.profile_id,
+    }
+
+
+@router.post("/batch/{job_id}/subset/export")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_export(
+    request: Request,
+    job_id: str,
+    body: SubsetExportRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Export a subset of molecules in the specified format.
+
+    Returns a file download with the exported data.
+    """
+    from datetime import datetime
+
+    from fastapi.responses import StreamingResponse
+
+    try:
+        export_buffer = export_subset(job_id, body.indices, body.format)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+    # Determine media type and extension
+    from app.services.export.base import ExporterFactory, ExportFormat
+
+    export_format = ExportFormat(body.format)
+    exporter = ExporterFactory.create(export_format)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"subset_{job_id[:8]}_{timestamp}.{exporter.file_extension}"
+
+    def iterfile():
+        export_buffer.seek(0)
+        while chunk := export_buffer.read(1024 * 1024):
+            yield chunk
+
+    return StreamingResponse(
+        iterfile(),
+        media_type=exporter.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

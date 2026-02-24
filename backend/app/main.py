@@ -45,10 +45,12 @@ from app.api.routes import (
     alerts,
     api_keys,
     batch,
+    bookmarks,
     config,
     export,
     health,
     integrations,
+    profiles,
     scoring,
     standardization,
     validation,
@@ -101,11 +103,20 @@ async def lifespan(app: FastAPI):
 
     # Initialize database tables (development auto-create)
     try:
-        from app.db import Base, engine
+        from app.db import Base, async_session, engine
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created/verified")
+
+        # Seed preset scoring profiles
+        try:
+            from app.services.profiles.service import ProfileService
+
+            async with async_session() as db:
+                await ProfileService().seed_presets(db)
+        except Exception as e:
+            logger.warning("Preset seeding failed: %s", e)
     except Exception as e:
         logger.warning("Database initialization failed: %s — DB features unavailable", e)
 
@@ -228,6 +239,8 @@ app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 app.include_router(config.router, prefix="/api/v1", tags=["config"])
+app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
+app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
