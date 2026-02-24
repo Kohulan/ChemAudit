@@ -81,6 +81,10 @@ async def upload_batch(
         default=False,
         description="Run ChEMBL standardization pipeline on each molecule",
     ),
+    notification_email: Optional[str] = Form(
+        default=None,
+        description="Email address for batch completion notification (overrides global setting)",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -192,6 +196,14 @@ async def upload_batch(
 
     # Start batch processing
     process_batch_job(job_id, mol_dicts, safety_options=safety_options)
+
+    # Store notification email for this job (if provided or globally configured)
+    email_target = notification_email or settings.NOTIFICATION_EMAIL
+    if email_target:
+        from app.services.batch.progress_tracker import progress_tracker as _pt
+
+        r = _pt._get_redis()
+        r.set(f"batch:email:{job_id}", email_target, ex=settings.BATCH_RESULT_TTL)
 
     return BatchUploadResponse(
         job_id=job_id,

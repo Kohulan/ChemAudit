@@ -502,6 +502,31 @@ def aggregate_batch_results(
     except Exception as e:
         logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
 
+    # Dispatch email notification if configured
+    try:
+        r = progress_tracker._get_redis()
+        notification_email = r.get(f"batch:email:{job_id}")
+        if notification_email:
+            if isinstance(notification_email, bytes):
+                notification_email = notification_email.decode("utf-8")
+            from app.services.notifications.email import send_batch_complete_email
+
+            total = len(all_results)
+            fail_count = stats.errors
+            pass_count = total - fail_count
+            avg_score = getattr(stats, "avg_validation_score", 0) or 0
+            email_stats = {
+                "molecule_count": total,
+                "pass_count": pass_count,
+                "fail_count": fail_count,
+                "avg_score": round(avg_score, 1),
+            }
+            send_batch_complete_email.delay(notification_email, job_id, email_stats)
+            # Clean up the Redis key
+            r.delete(f"batch:email:{job_id}")
+    except Exception as e:
+        logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
+
     # Trigger cheap analytics computation
     try:
         from app.services.batch.analytics_tasks import run_cheap_analytics
@@ -601,6 +626,31 @@ def aggregate_batch_results_priority(
             send_webhook.delay(webhook_url, settings.WEBHOOK_SECRET, payload)
     except Exception as e:
         logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
+
+    # Dispatch email notification if configured
+    try:
+        r = progress_tracker._get_redis()
+        notification_email = r.get(f"batch:email:{job_id}")
+        if notification_email:
+            if isinstance(notification_email, bytes):
+                notification_email = notification_email.decode("utf-8")
+            from app.services.notifications.email import send_batch_complete_email
+
+            total = len(all_results)
+            fail_count = stats.errors
+            pass_count = total - fail_count
+            avg_score = getattr(stats, "avg_validation_score", 0) or 0
+            email_stats = {
+                "molecule_count": total,
+                "pass_count": pass_count,
+                "fail_count": fail_count,
+                "avg_score": round(avg_score, 1),
+            }
+            send_batch_complete_email.delay(notification_email, job_id, email_stats)
+            # Clean up the Redis key
+            r.delete(f"batch:email:{job_id}")
+    except Exception as e:
+        logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
 
     # Trigger cheap analytics computation
     try:

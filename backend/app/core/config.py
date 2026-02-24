@@ -114,6 +114,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "noreply@chemaudit.local"
     SMTP_TLS: bool = True
+    NOTIFICATION_EMAIL: str = ""  # Default recipient for batch completion emails (empty = disabled)
 
     # ==========================================================================
     # Webhook Settings (for batch completion notifications)
