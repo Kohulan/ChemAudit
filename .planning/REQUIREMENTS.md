@@ -123,22 +123,22 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 - [x] **WORK-02**: Batch deduplication export (deduplicated subset with group representatives)
 - [x] **WORK-03**: Scaffold-grouped export (molecules organized by scaffold family)
 - [x] **WORK-04**: Property matrix export (all computed properties as CSV/Excel)
-- [ ] **WORK-05**: Batch summary PDF enhancement (analytics charts + statistics in PDF report)
+- [x] **WORK-05**: Batch summary PDF enhancement (analytics charts + statistics in PDF report)
 
 ### Export, API & Workflow — Custom Profiles & Filtering (Milestone 6.2)
 
-- [ ] **WORK-06**: Custom scoring profiles (user-defined property thresholds and weights)
-- [ ] **WORK-07**: Preset filter templates (drug-like, lead-like, fragment-like, CNS-penetrant)
-- [ ] **WORK-08**: Molecule bookmarking (save/recall individual molecules across sessions)
-- [ ] **WORK-09**: Batch subset actions (select → re-validate/re-score/export subsets)
-- [ ] **WORK-10**: IUPAC name input support (IUPAC → SMILES conversion via py2opsin)
+- [x] **WORK-06**: Custom scoring profiles (user-defined property thresholds and weights)
+- [x] **WORK-07**: Preset filter templates (drug-like, lead-like, fragment-like, CNS-penetrant)
+- [x] **WORK-08**: Molecule bookmarking (save/recall individual molecules across sessions)
+- [x] **WORK-09**: Batch subset actions (select → re-validate/re-score/export subsets)
+- [x] **WORK-10**: IUPAC name input support (IUPAC → SMILES conversion via py2opsin)
 
 ### Export, API & Workflow — Audit Trail & Notifications (Milestone 6.3)
 
-- [ ] **WORK-11**: Shareable report permalinks (URL-encoded result sharing)
-- [ ] **WORK-12**: Webhook on batch complete (configurable HTTP POST callback)
-- [ ] **WORK-13**: Email on batch complete (SMTP notification)
-- [ ] **WORK-14**: Validation history / audit trail (append-only log of all validations)
+- [x] **WORK-11**: Shareable report permalinks (URL-encoded result sharing)
+- [x] **WORK-12**: Webhook on batch complete (configurable HTTP POST callback)
+- [x] **WORK-13**: Email on batch complete (SMTP notification)
+- [x] **WORK-14**: Validation history / audit trail (append-only log of all validations)
 
 ### Infrastructure Prerequisite
 

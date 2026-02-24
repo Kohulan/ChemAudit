@@ -167,3 +167,78 @@ class TestEmailTemplate:
             mock_server.starttls.assert_called_once()
             mock_server.login.assert_called_once_with("user@example.com", "password")
             mock_server.sendmail.assert_called_once()
+
+
+class TestEmailDispatchWiring:
+    """Tests that email dispatch is wired in batch aggregation tasks."""
+
+    def _make_stats(self):
+        """Return a real BatchStatisticsData instance (required by asdict())."""
+        from app.services.batch.result_aggregator import BatchStatisticsData
+
+        stats = BatchStatisticsData()
+        stats.errors = 0
+        stats.successful = 1
+        stats.total = 1
+        stats.avg_validation_score = 85.0
+        stats.processing_time_seconds = 0.1
+        return stats
+
+    def test_email_dispatch_when_configured(self):
+        """aggregate_batch_results dispatches email when notification_email is in Redis."""
+        stats_obj = self._make_stats()
+
+        with (
+            patch("app.services.batch.tasks.result_storage"),
+            patch("app.services.batch.tasks.progress_tracker") as mock_tracker,
+            patch("app.services.batch.tasks.compute_statistics", return_value=stats_obj),
+            patch("app.services.batch.tasks.asyncio"),
+            patch("app.services.notifications.email.send_batch_complete_email") as mock_email_task,
+        ):
+            # Setup: mock Redis to return a notification email
+            mock_redis = MagicMock()
+            mock_redis.get.return_value = b"user@example.com"
+            mock_tracker._get_redis.return_value = mock_redis
+
+            # Mock settings to have webhook disabled
+            with patch("app.services.batch.tasks.settings") as mock_settings:
+                mock_settings.WEBHOOK_URL = ""
+                mock_settings.WEBHOOK_SECRET = ""
+
+                from app.services.batch.tasks import aggregate_batch_results
+
+                chunk_results = [[{"smiles": "C", "status": "success", "index": 0}]]
+                aggregate_batch_results(chunk_results, job_id="test-email-job", start_time=0.0)
+
+                # Verify email task was dispatched
+                mock_email_task.delay.assert_called_once()
+                call_args = mock_email_task.delay.call_args
+                assert call_args[0][0] == "user@example.com"
+                assert call_args[0][1] == "test-email-job"
+                assert "molecule_count" in call_args[0][2]
+
+    def test_email_not_dispatched_when_not_configured(self):
+        """aggregate_batch_results does NOT dispatch email when no email in Redis."""
+        stats_obj = self._make_stats()
+
+        with (
+            patch("app.services.batch.tasks.result_storage"),
+            patch("app.services.batch.tasks.progress_tracker") as mock_tracker,
+            patch("app.services.batch.tasks.compute_statistics", return_value=stats_obj),
+            patch("app.services.batch.tasks.asyncio"),
+            patch("app.services.notifications.email.send_batch_complete_email") as mock_email_task,
+        ):
+            mock_redis = MagicMock()
+            mock_redis.get.return_value = None  # No email configured
+            mock_tracker._get_redis.return_value = mock_redis
+
+            with patch("app.services.batch.tasks.settings") as mock_settings:
+                mock_settings.WEBHOOK_URL = ""
+                mock_settings.WEBHOOK_SECRET = ""
+
+                from app.services.batch.tasks import aggregate_batch_results
+
+                chunk_results = [[{"smiles": "C", "status": "success", "index": 0}]]
+                aggregate_batch_results(chunk_results, job_id="test-no-email", start_time=0.0)
+
+                mock_email_task.delay.assert_not_called()
