@@ -102,7 +102,6 @@ class FingerprintExporter(BaseExporter):
 
                 # CSV with name column + bit columns
                 csv_buf = StringIO()
-                col_names = ["name"] + [f"bit_{i}" for i in range(arr.shape[1] if arr.shape[0] > 0 else nbits)]
                 df = pd.DataFrame(
                     arr, columns=[f"bit_{i}" for i in range(arr.shape[1] if arr.shape[0] > 0 else nbits)]
                 )

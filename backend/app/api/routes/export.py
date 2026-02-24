@@ -171,6 +171,10 @@ async def export_batch_results(
     - SDF: Structure-data file with properties attached to molecules
     - JSON: Full result objects with metadata
     - PDF: Professional report with charts, statistics, and molecule images
+    - Fingerprint: ZIP with Morgan/MACCS/RDKit fingerprints as CSV, npy, and npz
+    - Dedup: ZIP with deduplication summary and annotated molecule CSVs
+    - Scaffold: CSV with Murcko scaffold SMILES and scaffold group assignment
+    - Property Matrix: ZIP with flat CSV and multi-sheet Excel of all properties
 
     When indices parameter is provided, only molecules with those indices
     (by their index field) are included in the export. Invalid or out-of-range
