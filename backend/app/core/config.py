@@ -116,6 +116,12 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
 
     # ==========================================================================
+    # Webhook Settings (for batch completion notifications)
+    # ==========================================================================
+    WEBHOOK_URL: str = ""  # Endpoint to POST on batch completion (empty = disabled)
+    WEBHOOK_SECRET: str = ""  # HMAC signing secret for webhook payloads
+
+    # ==========================================================================
     # OPSIN Settings (IUPAC name to SMILES conversion)
     # ==========================================================================
     OPSIN_JAR_PATH: str = "/app/data/opsin.jar"

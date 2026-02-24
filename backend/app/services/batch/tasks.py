@@ -6,6 +6,8 @@ Uses chord pattern: process_molecule_chunk tasks -> aggregate_batch_results.
 Supports priority queues for concurrent job handling.
 """
 
+import asyncio
+import logging
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
@@ -14,6 +16,7 @@ from celery import chord, group
 from rdkit import Chem
 
 from app.celery_app import SMALL_JOB_THRESHOLD, celery_app
+from app.core.config import settings
 from app.services.alerts import alert_manager
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import compute_statistics, result_storage
@@ -25,6 +28,8 @@ from app.services.standardization import standardize_molecule
 from app.services.validation.engine import validation_engine
 
 CHUNK_SIZE = 100  # Process 100 molecules per chunk for progress updates
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -403,6 +408,37 @@ def _process_single_molecule(
     return result
 
 
+async def _log_batch_audit(
+    job_id: str,
+    molecule_count: int,
+    pass_count: int,
+    fail_count: int,
+) -> None:
+    """
+    Create a DB session and log a batch completion event to the audit trail.
+
+    This async helper is called via asyncio.run() from Celery tasks, which run
+    in their own process with no existing event loop.
+
+    Args:
+        job_id: Batch job identifier
+        molecule_count: Total molecules processed
+        pass_count: Number of molecules passing validation
+        fail_count: Number of molecules with errors
+    """
+    from app.db import async_session
+    from app.services.audit.service import log_batch_event
+
+    async with async_session() as db:
+        await log_batch_event(
+            db=db,
+            job_id=job_id,
+            molecule_count=molecule_count,
+            pass_count=pass_count,
+            fail_count=fail_count,
+        )
+
+
 @celery_app.task(bind=True)
 def aggregate_batch_results(
     self,
@@ -434,17 +470,45 @@ def aggregate_batch_results(
     # Mark job as complete
     progress_tracker.mark_complete(job_id)
 
+    # Log batch event to audit trail
+    try:
+        total = len(all_results)
+        fail_count = stats.errors
+        pass_count = total - fail_count
+        asyncio.run(_log_batch_audit(
+            job_id=job_id,
+            molecule_count=total,
+            pass_count=pass_count,
+            fail_count=fail_count,
+        ))
+    except Exception as e:
+        logger.warning("Failed to log batch audit event for %s: %s", job_id, e)
+
+    # Dispatch webhook if configured
+    try:
+        webhook_url = settings.WEBHOOK_URL
+        if webhook_url:
+            from app.services.notifications.webhook import send_webhook
+
+            total = len(all_results)
+            payload = {
+                "event": "batch_complete",
+                "job_id": job_id,
+                "status": "complete",
+                "molecule_count": total,
+                "summary_url": f"/batch/{job_id}",
+            }
+            send_webhook.delay(webhook_url, settings.WEBHOOK_SECRET, payload)
+    except Exception as e:
+        logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
+
     # Trigger cheap analytics computation
     try:
         from app.services.batch.analytics_tasks import run_cheap_analytics
 
         run_cheap_analytics.delay(job_id)
     except Exception:
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "Failed to dispatch cheap analytics for %s", job_id
-        )
+        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
 
     return {
         "job_id": job_id,
@@ -506,17 +570,45 @@ def aggregate_batch_results_priority(
     result_storage.store_results(job_id, all_results, stats)
     progress_tracker.mark_complete(job_id)
 
+    # Log batch event to audit trail
+    try:
+        total = len(all_results)
+        fail_count = stats.errors
+        pass_count = total - fail_count
+        asyncio.run(_log_batch_audit(
+            job_id=job_id,
+            molecule_count=total,
+            pass_count=pass_count,
+            fail_count=fail_count,
+        ))
+    except Exception as e:
+        logger.warning("Failed to log batch audit event for %s: %s", job_id, e)
+
+    # Dispatch webhook if configured
+    try:
+        webhook_url = settings.WEBHOOK_URL
+        if webhook_url:
+            from app.services.notifications.webhook import send_webhook
+
+            total = len(all_results)
+            payload = {
+                "event": "batch_complete",
+                "job_id": job_id,
+                "status": "complete",
+                "molecule_count": total,
+                "summary_url": f"/batch/{job_id}",
+            }
+            send_webhook.delay(webhook_url, settings.WEBHOOK_SECRET, payload)
+    except Exception as e:
+        logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
+
     # Trigger cheap analytics computation
     try:
         from app.services.batch.analytics_tasks import run_cheap_analytics
 
         run_cheap_analytics.delay(job_id)
     except Exception:
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "Failed to dispatch cheap analytics for %s", job_id
-        )
+        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
 
     return {
         "job_id": job_id,
