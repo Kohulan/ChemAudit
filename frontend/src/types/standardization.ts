@@ -4,6 +4,8 @@
  * TypeScript interfaces for standardization requests and responses.
  */
 
+import type { MoleculeInfo } from './validation';
+
 export interface StandardizationOptions {
   /**
    * Include tautomer canonicalization.
@@ -61,16 +63,6 @@ export interface StandardizationResult {
   stereo_comparison: StereoComparison | null;
   structure_comparison: StructureComparison | null;
   mass_change_percent: number;
-}
-
-export interface MoleculeInfo {
-  input_smiles: string;
-  canonical_smiles: string | null;
-  inchi: string | null;
-  inchikey: string | null;
-  molecular_formula: string | null;
-  molecular_weight: number | null;
-  num_atoms: number | null;
 }
 
 export interface StandardizeRequest {
