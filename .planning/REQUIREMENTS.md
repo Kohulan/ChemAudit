@@ -104,12 +104,12 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Visualizations — Batch Visualization Suite (Milestone 5.1)
 
-- [ ] **VIZ-01**: Score distribution histogram (configurable bins, multiple score types)
-- [ ] **VIZ-02**: Property vs property scatter plots (any two properties, color-coded)
-- [ ] **VIZ-03**: Alert frequency bar chart (alert type counts across batch)
-- [ ] **VIZ-04**: Validation issue treemap (category → issue → count hierarchy)
-- [ ] **VIZ-05**: Scaffold treemap (scaffold frequency visualization)
-- [ ] **VIZ-06**: Chemical space scatter plot (PCA/t-SNE with interactive tooltips)
+- [x] **VIZ-01**: Score distribution histogram (configurable bins, multiple score types)
+- [x] **VIZ-02**: Property vs property scatter plots (any two properties, color-coded)
+- [x] **VIZ-03**: Alert frequency bar chart (alert type counts across batch)
+- [x] **VIZ-04**: Validation issue treemap (category → issue → count hierarchy)
+- [x] **VIZ-05**: Scaffold treemap (scaffold frequency visualization)
+- [x] **VIZ-06**: Chemical space scatter plot (PCA/t-SNE with interactive tooltips)
 
 ### Visualizations — Single Molecule Deep View (Milestone 5.2)
 
