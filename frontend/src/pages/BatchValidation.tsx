@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3 } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
@@ -6,9 +6,12 @@ import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
 import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
+import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
+import { BatchTimeline } from '../components/batch/BatchTimeline';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
-import { useBrushSelection, setSelection, clearSelection } from '../hooks/useBrushSelection';
+import { useBatchAnalytics } from '../hooks/useBatchAnalytics';
+import { useBrushSelection, setSelection, toggleIndex, clearSelection } from '../hooks/useBrushSelection';
 import { useLimits } from '../context/ConfigContext';
 import { batchApi } from '../services/api';
 import { cn } from '../lib/utils';
@@ -40,6 +43,22 @@ export function BatchValidationPage() {
   const [sortBy, setSortBy] = useState<SortField>('index');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selectedIndices, selectionDispatch] = useBrushSelection();
+  const [compareMode, setCompareMode] = useState(false);
+
+  // Analytics data for timeline and comparison radar
+  const { data: analyticsData } = useBatchAnalytics(
+    pageState === 'results' ? jobId : null,
+    ['scaffold', 'chemical_space', 'statistics']
+  );
+
+  // Derive molecules for comparison (max 2 from selected indices)
+  const compareMolecules = useMemo(() => {
+    if (!resultsData) return [];
+    const indices = Array.from(selectedIndices).slice(0, 2);
+    return indices
+      .map((idx) => resultsData.results.find((r) => r.index === idx))
+      .filter(Boolean) as typeof resultsData.results;
+  }, [selectedIndices, resultsData]);
 
   // WebSocket progress
   const { progress, isConnected } = useBatchProgress(
@@ -182,6 +201,29 @@ export function BatchValidationPage() {
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
+  // Handle compare button click
+  const handleCompare = useCallback(() => {
+    setCompareMode(true);
+  }, []);
+
+  // Handle close comparison panel
+  const handleCloseCompare = useCallback(() => {
+    setCompareMode(false);
+  }, []);
+
+  // Handle removing a molecule from comparison
+  const handleRemoveFromCompare = useCallback((index: number) => {
+    // index is the position in compareMolecules array (0 or 1)
+    const molIndex = compareMolecules[index]?.index;
+    if (molIndex !== undefined) {
+      selectionDispatch(toggleIndex(molIndex));
+    }
+    // If removing leaves 0 selected, close the panel
+    if (selectedIndices.size <= 1) {
+      setCompareMode(false);
+    }
+  }, [compareMolecules, selectedIndices.size, selectionDispatch]);
+
   // Reset to upload state
   const handleStartNew = useCallback(() => {
     setPageState('upload');
@@ -192,6 +234,7 @@ export function BatchValidationPage() {
     setFilters({});
     setSortBy('index');
     setSortDir('asc');
+    setCompareMode(false);
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
@@ -408,6 +451,7 @@ export function BatchValidationPage() {
                 isLoading={resultsLoading}
                 selectedIndices={selectedIndices}
                 onSelectionChange={handleSelectionChange}
+                onCompare={handleCompare}
               />
             </div>
 
@@ -427,6 +471,17 @@ export function BatchValidationPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Batch Timeline (VIZ-09) */}
+                {resultsData.statistics && (
+                  <div className="mb-6">
+                    <BatchTimeline
+                      statistics={resultsData.statistics}
+                      analyticsStatus={analyticsData?.status ?? null}
+                    />
+                  </div>
+                )}
+
                 <BatchAnalyticsPanel
                   jobId={jobId}
                   statistics={resultsData.statistics}
@@ -435,6 +490,16 @@ export function BatchValidationPage() {
                   onSelectionChange={handleSelectionChange}
                 />
               </div>
+            )}
+
+            {/* Molecule Comparison Panel (VIZ-07) */}
+            {compareMode && compareMolecules.length > 0 && (
+              <MoleculeComparisonPanel
+                molecules={compareMolecules}
+                datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                onClose={handleCloseCompare}
+                onRemoveMolecule={handleRemoveFromCompare}
+              />
             )}
           </motion.div>
         )}
