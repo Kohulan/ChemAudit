@@ -56,6 +56,7 @@ def _export_results(
     score_max: Optional[int],
     status: Optional[str],
     indices_list: Optional[List[int]],
+    sections_list: Optional[List[str]] = None,
 ) -> StreamingResponse:
     """
     Shared logic for exporting batch results with optional indices filtering.
@@ -100,9 +101,14 @@ def _export_results(
             detail="No results found matching the specified filters and indices",
         )
 
-    # Create exporter
+    # Create exporter (with sections for PDF)
     try:
-        exporter = ExporterFactory.create(format)
+        if format == ExportFormat.PDF and sections_list:
+            from app.services.export.pdf_report import PDFReportGenerator
+
+            exporter = PDFReportGenerator(sections=sections_list)
+        else:
+            exporter = ExporterFactory.create(format)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -152,6 +158,10 @@ async def export_batch_results(
         None,
         description="Comma-separated molecule indices to export (e.g., '0,1,5,23'). If omitted, exports all.",
     ),
+    sections: Optional[str] = Query(
+        None,
+        description="Comma-separated PDF sections to include (e.g., 'validation_summary,score_distribution'). Only used with PDF format. If omitted, all sections included.",
+    ),
 ):
     """
     Export batch results to specified format.
@@ -183,8 +193,13 @@ async def export_batch_results(
     # Parse indices
     indices_list = _parse_indices(indices)
 
+    # Parse sections for PDF
+    sections_list = None
+    if sections:
+        sections_list = [s.strip() for s in sections.split(",") if s.strip()]
+
     # Use shared export logic
-    return _export_results(job_id, format, score_min, score_max, status, indices_list)
+    return _export_results(job_id, format, score_min, score_max, status, indices_list, sections_list)
 
 
 @router.post("/batch/{job_id}/export")

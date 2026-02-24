@@ -24,7 +24,10 @@ from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
 from app.schemas.validation import (
     CheckResultSchema,
+    InputInterpretation,
     MoleculeInfo,
+    SimilarityRequest,
+    SimilarityResponse,
     ValidationRequest,
     ValidationResponse,
 )
@@ -76,16 +79,64 @@ async def validate_molecule(
     """
     start_time = time.time()
 
+    # IUPAC name detection and conversion
+    input_interpretation = None
+    molecule_input = body.molecule
+    effective_input_type = body.input_type or "auto"
+
+    if effective_input_type in ("auto", "iupac"):
+        from app.services.iupac.converter import (
+            detect_input_type,
+            is_opsin_available,
+            iupac_to_smiles,
+        )
+
+        if effective_input_type == "iupac":
+            detected = "iupac"
+        else:
+            detected = detect_input_type(molecule_input)
+
+        if detected == "iupac" or (detected == "ambiguous" and effective_input_type == "auto"):
+            # Attempt IUPAC conversion if OPSIN available
+            if is_opsin_available():
+                converted = iupac_to_smiles(molecule_input)
+                if converted:
+                    input_interpretation = InputInterpretation(
+                        detected_as="iupac",
+                        original_input=molecule_input,
+                        converted_smiles=converted,
+                        conversion_source="opsin",
+                    )
+                    molecule_input = converted
+                elif detected == "iupac" and effective_input_type == "iupac":
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error": "IUPAC name conversion failed",
+                            "message": f"Could not convert '{molecule_input}' to SMILES via OPSIN",
+                        },
+                    )
+                # If ambiguous and OPSIN fails, fall through to SMILES parsing
+            elif detected == "iupac" and effective_input_type == "iupac":
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "error": "OPSIN unavailable",
+                        "message": "IUPAC name input requires OPSIN which is not initialized",
+                    },
+                )
+
     # Parse molecule
     format_map = {
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
+        "iupac": MoleculeFormat.SMILES,  # Already converted above
         "auto": None,
     }
     input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(body.molecule, input_format)
+    parse_result = parse_molecule(molecule_input, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -142,6 +193,7 @@ async def validate_molecule(
         issues=[c for c in check_results if not c.passed],
         all_checks=check_results,
         execution_time_ms=execution_time,
+        input_interpretation=input_interpretation,
     )
 
     # Cache the result if enabled
@@ -258,6 +310,53 @@ async def list_checks(request: Request, api_key: Optional[str] = Depends(get_api
         Dictionary mapping check categories to check names
     """
     return validation_engine.list_checks()
+
+
+@router.post("/validate/similarity", response_model=SimilarityResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def compute_similarity(
+    request: Request,
+    body: SimilarityRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Compute ECFP4 Tanimoto similarity between two molecules.
+
+    Uses Morgan fingerprints (radius=2, 2048 bits) and Tanimoto coefficient.
+    """
+    from rdkit import DataStructs
+    from rdkit.Chem import rdFingerprintGenerator
+
+    morgan_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
+    mol_a = Chem.MolFromSmiles(body.smiles_a)
+    if mol_a is None:
+        raise HTTPException(status_code=400, detail=f"Cannot parse smiles_a: {body.smiles_a}")
+
+    mol_b = Chem.MolFromSmiles(body.smiles_b)
+    if mol_b is None:
+        raise HTTPException(status_code=400, detail=f"Cannot parse smiles_b: {body.smiles_b}")
+
+    fp_a = morgan_gen.GetFingerprint(mol_a)
+    fp_b = morgan_gen.GetFingerprint(mol_b)
+
+    similarity = DataStructs.TanimotoSimilarity(fp_a, fp_b)
+    bits_a = fp_a.GetNumOnBits()
+    bits_b = fp_b.GetNumOnBits()
+
+    # Common bits = |A ∩ B| derived from Tanimoto: T = |A∩B| / |A∪B|
+    # |A∪B| = |A| + |B| - |A∩B|, so |A∩B| = T * (|A| + |B|) / (1 + T)
+    if similarity > 0:
+        common_bits = int(round(similarity * (bits_a + bits_b) / (1 + similarity)))
+    else:
+        common_bits = 0
+
+    return SimilarityResponse(
+        tanimoto_similarity=round(similarity, 6),
+        common_bits=common_bits,
+        bits_a=bits_a,
+        bits_b=bits_b,
+    )
 
 
 def extract_molecule_info(
