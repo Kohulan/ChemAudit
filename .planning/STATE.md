@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 6 of 6 (Export, API & Workflow) — Complete
-Plan: 8 of 8 in current phase (all gap-closure plans complete)
-Status: v2.0 roadmap delivered + all gap-closure plans complete (06-08 complete)
-Last activity: 2026-02-24 — Completed 06-08: UAT polish — PDF checkboxes inline, IUPAC placeholder, ClayButton bookmark, tab clearing
+Plan: 9 of 9 in current phase (all gap-closure plans complete)
+Status: v2.0 roadmap delivered + all gap-closure plans complete (06-09 complete)
+Last activity: 2026-02-24 — Completed 06-09: Email dispatch wiring — NOTIFICATION_EMAIL config, per-job form param, .delay() in both aggregation tasks
 
 Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: ~5 min
 - Total execution time: ~2 hours
 
@@ -32,10 +32,10 @@ Progress: [████████████████████] 100%
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
 | 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
 | 5. Visualizations | 2/2 | 16 min | 8 min |
-| 6. Export, API & Workflow | 8/8 | ~31 min | 3.9 min |
+| 6. Export, API & Workflow | 9/9 | ~35 min | 3.9 min |
 
 **Recent Trend:**
-- Last 7 plans: 06-03 (5 min), 06-04 (5 min), 06-05 (5 min), 06-07 (2 min), 06-08 (4 min)
+- Last 7 plans: 06-04 (5 min), 06-05 (5 min), 06-07 (2 min), 06-08 (4 min), 06-09 (4 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -88,10 +88,12 @@ Recent decisions affecting current work:
 - [Phase 06-export-api-workflow]: WEBHOOK_URL/WEBHOOK_SECRET added to config.py with empty-string defaults; webhook dispatch disabled by default
 - [Phase 06]: React.Fragment used to wrap format cards for inline PDF checkboxes — preserves grid layout while enabling sibling rendering
 - [Phase 06]: isFirstMount ref pattern used in navigation-clear effects to skip initial render and preserve URL-param-driven auto-validation
+- [Phase 06-09]: Redis key batch:email:{job_id} created at upload time (route) for per-job email override; NOTIFICATION_EMAIL global setting follows WEBHOOK_URL empty-string-disabled pattern
+- [Phase 06-09]: Tests require real BatchStatisticsData dataclass (not MagicMock) because asdict() at end of aggregation function requires genuine dataclass instance
 
 ### Pending Todos
 
-None — v2.0 roadmap complete.
+None — v2.0 roadmap + all gap-closure plans complete.
 
 ### Blockers/Concerns
 
@@ -102,5 +104,5 @@ None — v2.0 roadmap complete.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 06-08-PLAN.md — UAT polish: PDF checkboxes inline, IUPAC placeholder, ClayButton bookmark, tab navigation clearing
+Stopped at: Completed 06-09-PLAN.md — Email dispatch wiring: NOTIFICATION_EMAIL config, per-job form param, send_batch_complete_email.delay() in both aggregation tasks, WORK-13 done
 Resume file: .planning/ROADMAP.md

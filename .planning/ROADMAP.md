@@ -128,7 +128,7 @@ Plans:
   3. Custom scoring profiles allow users to define property thresholds and weights, save them with a name, and apply them to score any molecule; preset filter templates (drug-like, lead-like, fragment-like, CNS-penetrant) are available without configuration
   4. Molecule bookmarks persist across sessions (PostgreSQL-backed); batch subset actions allow selecting molecules from a batch result and re-validating, re-scoring, or exporting the subset
   5. Webhook on batch complete sends an HTTP POST to a configured URL with 3 retries and exponential backoff; email notification uses async SMTP; validation audit trail stores all validation events in an append-only PostgreSQL table with paginated read access; IUPAC name input converts names to SMILES via py2opsin before validation
-**Plans**: 8 plans in 3 waves (5 original + 3 gap closure)
+**Plans**: 9 plans in 3 waves (5 original + 4 gap closure)
 
 Plans:
 - [x] 06-01-PLAN.md — Advanced Export Formats: fingerprint, dedup, scaffold, property matrix exporters (WORK-01, WORK-02, WORK-03, WORK-04) [Wave 1] (COMPLETE: 2 tasks, 28 tests, commits 611ed15 + 1c29617)
@@ -139,6 +139,7 @@ Plans:
 - [ ] 06-06-PLAN.md — Gap Closure: Backend Fixes — PubChem REST fallback for IUPAC, batch audit trail wiring, webhook dispatch (WORK-10, WORK-12, WORK-14)
 - [ ] 06-07-PLAN.md — Gap Closure: Frontend Wiring — Profiles page + route, SubsetActionPanel integration, Share permalink button (WORK-06, WORK-07, WORK-09, WORK-11)
 - [ ] 06-08-PLAN.md — Gap Closure: UI Polish — PDF checkboxes position, input placeholder, bookmark button styling, tab result clearing (WORK-05, WORK-08, WORK-10, WORK-13)
+- [ ] 06-09-PLAN.md — Gap Closure: Email Dispatch Wiring — wire send_batch_complete_email.delay() in both aggregation tasks, add NOTIFICATION_EMAIL setting (WORK-13)
 
 ## Progress
 
