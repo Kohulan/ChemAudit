@@ -32,6 +32,11 @@ class MoleculeInfo(BaseModel):
     molecular_formula: Optional[str] = None
     molecular_weight: Optional[float] = None
     num_atoms: Optional[int] = None
+    num_bonds: Optional[int] = None
+    num_rings: Optional[int] = None
+    num_aromatic_rings: Optional[int] = None
+    num_stereocenters: Optional[int] = None
+    has_stereochemistry: Optional[bool] = None
 
 
 class ValidationRequest(BaseModel):

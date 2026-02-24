@@ -7,7 +7,9 @@ interface MoleculeInfo {
   numAtoms: number;
   numBonds: number;
   numRings: number;
+  numAromaticRings: number;
   numStereocenters: number;
+  hasEZStereo: boolean;
   hasStereochemistry: boolean;
   isValid: boolean;
 }
@@ -19,49 +21,67 @@ interface UseMoleculeInfoResult {
 }
 
 /**
- * Convert aromatic SMILES to kekulized form
- * This is a simple heuristic - replaces lowercase aromatic atoms with uppercase
- * and handles basic aromatic ring patterns
+ * Extract molecular properties from an RDKit.js mol object using get_descriptors().
+ * No regex parsing of SMILES — all values come from RDKit's cheminformatics engine.
  */
-function kekulizeSmiles(smiles: string): string | null {
-  // Check if there are aromatic atoms (lowercase c, n, o, s, etc.)
-  if (!/[cnos]/.test(smiles)) {
-    return null; // No aromatic atoms, kekulized would be the same
+function extractProperties(mol: RDKitMol): {
+  numAtoms: number;
+  numBonds: number;
+  numRings: number;
+  numAromaticRings: number;
+  numStereocenters: number;
+  hasEZStereo: boolean;
+} {
+  const descriptorsJson = mol.get_descriptors();
+  const desc = JSON.parse(descriptorsJson);
+
+  const numAtoms: number = desc.NumHeavyAtoms ?? 0;
+  const numRings: number = desc.NumRings ?? 0;
+  const numAromaticRings: number = desc.NumAromaticRings ?? 0;
+
+  // get_descriptors doesn't include bond count or stereo — get from JSON
+  let numBonds = 0;
+  let numStereocenters = 0;
+  let hasEZStereo = false;
+
+  try {
+    const molJson = mol.get_json();
+    const parsed = JSON.parse(molJson);
+    const molData = parsed.molecules?.[0];
+    numBonds = molData?.bonds?.length ?? 0;
+
+    // Count stereocenters from atom stereo annotations
+    const atoms = molData?.atoms ?? [];
+    for (const atom of atoms) {
+      if (atom.stereo === 'CCW' || atom.stereo === 'CW') {
+        numStereocenters++;
+      }
+    }
+
+    // Check E/Z stereochemistry from bond stereo annotations
+    const bonds = molData?.bonds ?? [];
+    for (const bond of bonds) {
+      if (
+        bond.stereo === 'either' ||
+        bond.stereo === 'cis' ||
+        bond.stereo === 'trans'
+      ) {
+        hasEZStereo = true;
+        break;
+      }
+    }
+  } catch {
+    // get_json not available — bonds stay 0
   }
 
-  // Simple kekulization: replace aromatic atoms with their uppercase versions
-  // and add alternating double bonds for 6-membered rings
-  // This is a simplified approach - RDKit on backend does proper kekulization
-
-  let kekulized = smiles;
-
-  // Replace aromatic atoms with uppercase
-  kekulized = kekulized
-    .replace(/c/g, 'C')
-    .replace(/n/g, 'N')
-    .replace(/o/g, 'O')
-    .replace(/s/g, 'S');
-
-  // For simple aromatic rings like benzene (C1CCCCC1), add alternating double bonds
-  // Match patterns like C1CCCCC1 and convert to C1=CC=CC=C1
-  kekulized = kekulized.replace(
-    /C(\d)(C)(C)(C)(C)(C)\1/g,
-    'C$1=C$3=C$5=C$1'
-  );
-
-  // Handle 6-membered rings - this is a simplified pattern
-  // Real kekulization is more complex, but this handles common cases
-  const ringPattern = /([A-Z])(\d+)([A-Z])([A-Z])([A-Z])([A-Z])([A-Z])\2/;
-  if (ringPattern.test(kekulized)) {
-    kekulized = kekulized.replace(ringPattern, '$1$2=$3$4=$5$6=$7$2');
-  }
-
-  return kekulized !== smiles ? kekulized : null;
+  return { numAtoms, numBonds, numRings, numAromaticRings, numStereocenters, hasEZStereo };
 }
 
 /**
- * Hook to extract basic molecule information using RDKit.js
- * Shows info immediately when a valid molecule is entered
+ * Hook to extract basic molecule information using RDKit.js.
+ * Shows info immediately when a valid molecule is entered.
+ *
+ * All molecular properties are computed by RDKit — no regex parsing of SMILES.
  */
 export function useMoleculeInfo(smiles: string | null): UseMoleculeInfoResult {
   const [info, setInfo] = useState<MoleculeInfo | null>(null);
@@ -102,94 +122,33 @@ export function useMoleculeInfo(smiles: string | null): UseMoleculeInfoResult {
 
           molRef.current = mol;
 
-          // Extract info using RDKit methods
           const canonicalSmiles = mol.get_smiles();
 
-          // Try multiple approaches to get kekulized SMILES
+          // Try RDKit.js kekulization — no regex fallback
           let kekulizedSmiles: string | null = null;
-
-          // Approach 1: Try RDKit.js get_smiles with kekulize option
           try {
-            const rdkitMol = mol as any;
-
-            // Try different option formats that RDKit.js might accept
-            if (typeof rdkitMol.get_smiles === 'function') {
-              // Try with JSON options
-              const result1 = rdkitMol.get_smiles(JSON.stringify({ kekulize: true }));
-              if (result1 && result1 !== canonicalSmiles) {
-                kekulizedSmiles = result1;
-              }
-
-              // If that didn't work, try with object directly
-              if (!kekulizedSmiles) {
-                const result2 = rdkitMol.get_smiles({ kekulize: true });
-                if (result2 && typeof result2 === 'string' && result2 !== canonicalSmiles) {
-                  kekulizedSmiles = result2;
-                }
-              }
+            const result = mol.get_smiles(JSON.stringify({ kekulize: true }));
+            if (result && result !== canonicalSmiles) {
+              kekulizedSmiles = result;
             }
           } catch {
-            // RDKit.js kekulize option not available
+            // Kekulize option not available in this RDKit.js build
           }
 
-          // Approach 2: If RDKit didn't provide kekulized, use simple heuristic
-          if (!kekulizedSmiles) {
-            kekulizedSmiles = kekulizeSmiles(canonicalSmiles);
-          }
+          // Extract all properties via RDKit — no regex
+          const props = extractProperties(mol);
 
-          // Get JSON info which includes atom/bond counts
-          const molJson = (mol as any).get_json?.();
-          let numAtoms = 0;
-          let numBonds = 0;
-          let numRings = 0;
-
-          if (molJson) {
-            try {
-              const parsed = JSON.parse(molJson);
-              numAtoms = parsed.molecules?.[0]?.atoms?.length || 0;
-              numBonds = parsed.molecules?.[0]?.bonds?.length || 0;
-            } catch {
-              // Fallback: count from SMILES (rough estimate)
-              numAtoms = canonicalSmiles.replace(/[^A-Z]/gi, '').length;
-            }
-          } else {
-            // Fallback: rough estimate from SMILES
-            const atomMatches = canonicalSmiles.match(/[A-Z][a-z]?/g);
-            numAtoms = atomMatches ? atomMatches.length : 0;
-          }
-
-          // Get ring info if available
-          const ringInfo = (mol as any).get_ring_info?.();
-          if (ringInfo) {
-            try {
-              const parsed = JSON.parse(ringInfo);
-              numRings = parsed.atomRings?.length || 0;
-            } catch {
-              // Count ring closures in SMILES as estimate
-              const ringMatches = canonicalSmiles.match(/\d/g);
-              numRings = ringMatches ? Math.floor(ringMatches.length / 2) : 0;
-            }
-          } else {
-            // Count ring closures in SMILES
-            const ringMatches = canonicalSmiles.match(/\d/g);
-            numRings = ringMatches ? Math.floor(ringMatches.length / 2) : 0;
-          }
-
-          // Detect stereochemistry from SMILES
-          // @ or @@ indicates tetrahedral stereocenters
-          // / or \ indicates E/Z double bond stereochemistry
-          const stereoMatches = canonicalSmiles.match(/@+/g);
-          const numStereocenters = stereoMatches ? stereoMatches.length : 0;
-          const hasEZStereo = /[/\\]/.test(canonicalSmiles);
-          const hasStereochemistry = numStereocenters > 0 || hasEZStereo;
+          const hasStereochemistry = props.numStereocenters > 0 || props.hasEZStereo;
 
           setInfo({
             canonicalSmiles,
             kekulizedSmiles,
-            numAtoms,
-            numBonds,
-            numRings,
-            numStereocenters,
+            numAtoms: props.numAtoms,
+            numBonds: props.numBonds,
+            numRings: props.numRings,
+            numAromaticRings: props.numAromaticRings,
+            numStereocenters: props.numStereocenters,
+            hasEZStereo: props.hasEZStereo,
             hasStereochemistry,
             isValid: true,
           });
