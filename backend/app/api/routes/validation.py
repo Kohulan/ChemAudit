@@ -5,6 +5,7 @@ Endpoints for single molecule validation with Redis caching support.
 Supports both synchronous and async (Celery priority queue) validation.
 """
 
+import logging
 import time
 from typing import Optional
 
@@ -13,6 +14,7 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 from rdkit.Chem import inchi as rdkit_inchi
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import (
     get_cached_validation,
@@ -22,6 +24,7 @@ from app.core.cache import (
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.db import get_db
 from app.schemas.validation import (
     CheckResultSchema,
     InputInterpretation,
@@ -31,9 +34,12 @@ from app.schemas.validation import (
     ValidationRequest,
     ValidationResponse,
 )
+from app.services.audit.service import log_validation_event
 from app.services.batch.tasks import validate_single_molecule
 from app.services.parser.molecule_parser import MoleculeFormat, parse_molecule
 from app.services.validation.engine import validation_engine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -55,6 +61,7 @@ async def validate_molecule(
     request: Request,
     body: ValidationRequest,
     api_key: Optional[str] = Depends(get_api_key),
+    db: Optional[AsyncSession] = Depends(get_db),
 ):
     """
     Validate a single molecule.
@@ -203,6 +210,26 @@ async def validate_molecule(
         cache_data.pop("execution_time_ms", None)
         cache_data.pop("cached", None)
         await set_cached_validation(redis, cache_key, cache_data)
+
+    # Log to audit trail (non-blocking — failure must not block response)
+    if db is not None:
+        try:
+            if score >= 70:
+                audit_outcome = "pass"
+            elif score >= 40:
+                audit_outcome = "warn"
+            else:
+                audit_outcome = "fail"
+            await log_validation_event(
+                db,
+                smiles=body.molecule,
+                inchikey=mol_info.inchikey,
+                outcome=audit_outcome,
+                score=score,
+                source="single",
+            )
+        except Exception:
+            logger.warning("Audit trail insert failed", exc_info=True)
 
     return response
 
