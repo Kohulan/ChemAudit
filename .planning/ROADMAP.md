@@ -155,6 +155,6 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 | 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
 | 4. Scoring Expansion | 3/3 | Complete | 2026-02-23 | - |
 | 5. Visualizations | 2/2 | Complete | 2026-02-24 | - |
-| 6. Export, API & Workflow | 7/8 | In Progress|  | - |
+| 6. Export, API & Workflow | 8/8 | Complete   | 2026-02-24 | - |
 
 **Total:** 23/26 plans complete (gap closure in progress)

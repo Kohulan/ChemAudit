@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 
 ## Current Position
 
-Phase: 6 of 6 (Export, API & Workflow) — In Progress
-Plan: 7 of 8 in current phase (gap-closure plans)
-Status: v2.0 roadmap delivered + gap-closure plans in progress (06-07 complete)
-Last activity: 2026-02-24 — Completed 06-07: Frontend gap closure — /profiles route, SubsetActionPanel, Share permalink
+Phase: 6 of 6 (Export, API & Workflow) — Complete
+Plan: 8 of 8 in current phase (all gap-closure plans complete)
+Status: v2.0 roadmap delivered + all gap-closure plans complete (06-08 complete)
+Last activity: 2026-02-24 — Completed 06-08: UAT polish — PDF checkboxes inline, IUPAC placeholder, ClayButton bookmark, tab clearing
 
 Progress: [████████████████████] 100%
 
@@ -32,10 +32,10 @@ Progress: [████████████████████] 100%
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
 | 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
 | 5. Visualizations | 2/2 | 16 min | 8 min |
-| 6. Export, API & Workflow | 7/8 | ~27 min | 3.9 min |
+| 6. Export, API & Workflow | 8/8 | ~31 min | 3.9 min |
 
 **Recent Trend:**
-- Last 7 plans: 06-03 (5 min), 06-04 (5 min), 06-05 (5 min), 06-07 (2 min)
+- Last 7 plans: 06-03 (5 min), 06-04 (5 min), 06-05 (5 min), 06-07 (2 min), 06-08 (4 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -86,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 06]: SubsetActionPanel guarded by jobId non-null check since component requires string jobId
 - [Phase 06-export-api-workflow]: asyncio.run() pattern for calling async log_batch_event from sync Celery task — Celery workers have no existing event loop
 - [Phase 06-export-api-workflow]: WEBHOOK_URL/WEBHOOK_SECRET added to config.py with empty-string defaults; webhook dispatch disabled by default
+- [Phase 06]: React.Fragment used to wrap format cards for inline PDF checkboxes — preserves grid layout while enabling sibling rendering
+- [Phase 06]: isFirstMount ref pattern used in navigation-clear effects to skip initial render and preserve URL-param-driven auto-validation
 
 ### Pending Todos
 
@@ -100,5 +102,5 @@ None — v2.0 roadmap complete.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 06-06-PLAN.md — OPSIN provisioned, batch audit trail and webhook dispatch wired
+Stopped at: Completed 06-08-PLAN.md — UAT polish: PDF checkboxes inline, IUPAC placeholder, ClayButton bookmark, tab navigation clearing
 Resume file: .planning/ROADMAP.md
