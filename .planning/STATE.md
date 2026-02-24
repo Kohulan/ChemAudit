@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 4 — Scoring Expansion (complete)
+**Current focus:** Phase 5 — Visualizations (context gathered, ready for planning)
 
 ## Current Position
 
-Phase: 4 of 6 (Scoring Expansion)
-Plan: 3 of 3 in current phase (COMPLETE — all 3 scoring expansion plans done)
-Status: Phase 04 complete — consensus scoring, lead-likeness, salt inventory, ligand efficiency, TPSA/LogP per-atom breakdowns, Bertz/Fsp3 detail, NP fragment breakdown, bioavailability radar, BOILED-Egg classification, radar comparison, frontend Scoring Profiles tab with 6 components
-Last activity: 2026-02-23 — Plan 04-03 complete: NP breakdown (Morgan FP bit decomposition), bioavailability radar (6-axis normalized), BOILED-Egg (elliptical GI/BBB), radar comparison endpoint, ScoringProfilesTab with ConsensusScoreCard, LeadFragmentCard, PropertyBreakdownCard, BioavailabilityCard, AtomContributionViewer
+Phase: 5 of 6 (Visualizations)
+Plan: 0 of 2 in current phase (context gathered, planning next)
+Status: Phase 05 context gathered — batch visualization suite + single-molecule deep view decisions captured
+Last activity: 2026-02-24 — Phase 5 context gathered: tabbed batch dashboard, linked brushing, brush selection, molecule comparison (2-up), Canvas for large scatter/heatmap, PNG export per chart
 
 Progress: [████████████████] 76%
 
@@ -88,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Completed Phase 04 Scoring Expansion — all 3 plans done (04-01 drug-likeness profiles, 04-02 property breakdowns, 04-03 NP breakdown + radars + frontend); 266 scoring tests passing; frontend Scoring Profiles tab with 6 components, TypeScript compiles cleanly
-Resume file: None
+Last session: 2026-02-24
+Stopped at: Phase 5 context gathered — ready for /gsd:plan-phase 5
+Resume file: .planning/phases/05-visualizations/05-CONTEXT.md
