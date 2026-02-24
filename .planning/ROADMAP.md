@@ -112,11 +112,11 @@ Plans:
   2. The scaffold treemap renders scaffold frequency (capped at 50 scaffolds, remainder as "Other") and the chemical space scatter plot renders PCA/t-SNE coordinates (sampled to 2000 visible points for render performance)
   3. The single-molecule detail view shows a side-by-side molecule comparison, a per-molecule property radar overlaid against dataset average, and a batch timeline view with processing status indicators
   4. The similarity matrix heatmap caps rendering at 100x100; canvas rendering is used for larger matrices — no browser crash at scale
-**Plans**: TBD — 2 plans (one per milestone: M5.1, M5.2)
+**Plans**: 2 plans in 2 waves (M5.1 batch charts in Wave 1, then M5.2 comparison + timeline in Wave 2)
 
 Plans:
-- [ ] 05-01: Milestone 5.1 — Batch Visualization Suite (VIZ-01 through VIZ-06)
-- [ ] 05-02: Milestone 5.2 — Single Molecule Deep View (VIZ-07 through VIZ-09)
+- [ ] 05-01-PLAN.md — M5.1 Batch Visualization Suite: analytics types, API methods, hooks, tabbed container, 6 chart components (VIZ-01..06) [Wave 1]
+- [ ] 05-02-PLAN.md — M5.2 Single Molecule Deep View: molecule comparison panel, property radar, batch timeline, compare flow integration (VIZ-07..09) [Wave 2]
 
 ### Phase 6: Export, API & Workflow
 **Goal**: Power users can export richly annotated data in new formats, define custom scoring profiles, bookmark molecules across sessions, receive batch completion notifications, and input structures by IUPAC name — all self-contained features with backward-compatible API additions
