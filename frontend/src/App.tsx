@@ -29,6 +29,9 @@ const BookmarksPage = lazy(() =>
 const HistoryPage = lazy(() =>
   import('./pages/History').then(module => ({ default: module.HistoryPage }))
 );
+const ProfilesPage = lazy(() =>
+  import('./pages/Profiles').then(module => ({ default: module.ProfilesPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -91,6 +94,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="single"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -105,6 +109,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="batch"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -119,6 +124,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="bookmarks"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -133,6 +139,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="history"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -143,10 +150,26 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/profiles"
+            element={
+              <motion.div
+                key="profiles"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ProfilesPage />
+              </motion.div>
+            }
+          />
+          <Route
             path="/about"
             element={
               <motion.div
                 key="about"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -161,6 +184,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="privacy"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -175,6 +199,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="not-found"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
