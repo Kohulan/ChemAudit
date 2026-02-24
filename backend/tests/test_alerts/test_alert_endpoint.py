@@ -120,7 +120,7 @@ class TestAlertEndpoint:
         data = response.json()
 
         mol_info = data["molecule_info"]
-        assert "input_string" in mol_info
+        assert "input_smiles" in mol_info
         assert "canonical_smiles" in mol_info
         assert mol_info["canonical_smiles"] is not None
 

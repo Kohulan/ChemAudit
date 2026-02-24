@@ -5,6 +5,8 @@
  * drug-likeness, safety filters, and ADMET predictions.
  */
 
+import type { MoleculeInfo } from './validation';
+
 /**
  * Breakdown of ML-readiness score components.
  */
@@ -333,16 +335,6 @@ export interface AggregatorLikelihoodResult {
 // =============================================================================
 
 /**
- * Basic molecule information.
- */
-export interface ScoringMoleculeInfo {
-  input_string: string;
-  canonical_smiles: string | null;
-  molecular_formula: string | null;
-  molecular_weight: number | null;
-}
-
-/**
  * Available scoring types.
  */
 export type ScoringType =
@@ -368,7 +360,7 @@ export interface ScoringRequest {
  */
 export interface ScoringResponse {
   status: string;
-  molecule_info: ScoringMoleculeInfo;
+  molecule_info: MoleculeInfo;
   ml_readiness: MLReadinessResult | null;
   np_likeness: NPLikenessResult | null;
   scaffold: ScaffoldResult | null;
