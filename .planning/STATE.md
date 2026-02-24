@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 
 ## Current Position
 
-Phase: 6 of 6 (Export, API & Workflow) — COMPLETE
-Plan: 5 of 5 in current phase (all complete)
-Status: All phases complete — v2.0 roadmap fully delivered (80 requirements across 23 plans)
-Last activity: 2026-02-24 — Completed 06-05: Frontend integration for all Phase 6 features
+Phase: 6 of 6 (Export, API & Workflow) — In Progress
+Plan: 7 of 8 in current phase (gap-closure plans)
+Status: v2.0 roadmap delivered + gap-closure plans in progress (06-07 complete)
+Last activity: 2026-02-24 — Completed 06-07: Frontend gap closure — /profiles route, SubsetActionPanel, Share permalink
 
 Progress: [████████████████████] 100%
 
@@ -32,10 +32,10 @@ Progress: [████████████████████] 100%
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
 | 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
 | 5. Visualizations | 2/2 | 16 min | 8 min |
-| 6. Export, API & Workflow | 5/5 | ~25 min | 5 min |
+| 6. Export, API & Workflow | 7/8 | ~27 min | 3.9 min |
 
 **Recent Trend:**
-- Last 7 plans: 05-01 (8 min), 05-02 (8 min), 06-01 (5 min), 06-02 (5 min), 06-03 (5 min), 06-04 (5 min), 06-05 (5 min)
+- Last 7 plans: 06-03 (5 min), 06-04 (5 min), 06-05 (5 min), 06-07 (2 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -82,6 +82,10 @@ Recent decisions affecting current work:
 - [Phase 06-03]: ProfileService with immutable presets (only duplicate, not edit/delete); 8 preset templates seeded on startup; InChIKey auto-computed on bookmark creation; subset actions integrated into batch route
 - [Phase 06-04]: HMAC-SHA256 webhook with exponential backoff (Celery); SMTP email via Celery; batch permalinks with short_id + expiry; stateless single molecule permalinks via URL encoding; append-only audit trail with paginated history API
 - [Phase 06-05]: Frontend integration for all Phase 6 features; 9 export formats with PDF section selection; ProfileBuilder with sliders; PresetPicker with 8 cards; IUPAC auto-detection in SingleValidation; Bookmarks and History pages; SubsetActionPanel; 8 ExportDialog tests
+- [Phase 06]: PresetPicker uses onDuplicate (not onCustomize); ProfilesPage duplicates preset then switches to builder for customization
+- [Phase 06]: SubsetActionPanel guarded by jobId non-null check since component requires string jobId
+- [Phase 06-export-api-workflow]: asyncio.run() pattern for calling async log_batch_event from sync Celery task — Celery workers have no existing event loop
+- [Phase 06-export-api-workflow]: WEBHOOK_URL/WEBHOOK_SECRET added to config.py with empty-string defaults; webhook dispatch disabled by default
 
 ### Pending Todos
 
@@ -91,10 +95,10 @@ None — v2.0 roadmap complete.
 
 - Phase 1: Startup assertion implemented (logger.warning) in 01-03; CI hard assert in test_deep_complexity_checks.py
 - Phase 3: Redis memory ceiling under combined analytics load — profile during M3.1 setup
-- Phase 6: Java availability in Docker for py2opsin (WORK-10) — validate with spike before committing full implementation
+- Phase 6 Java/OPSIN: RESOLVED in 06-06 — jpype1 added, Java JRE + opsin.jar provisioned in Docker images
 
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Phase 6 complete — all 6 phases delivered, v2.0 roadmap 100% complete
+Stopped at: Completed 06-06-PLAN.md — OPSIN provisioned, batch audit trail and webhook dispatch wired
 Resume file: .planning/ROADMAP.md
