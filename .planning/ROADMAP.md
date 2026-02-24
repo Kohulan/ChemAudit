@@ -128,12 +128,14 @@ Plans:
   3. Custom scoring profiles allow users to define property thresholds and weights, save them with a name, and apply them to score any molecule; preset filter templates (drug-like, lead-like, fragment-like, CNS-penetrant) are available without configuration
   4. Molecule bookmarks persist across sessions (PostgreSQL-backed); batch subset actions allow selecting molecules from a batch result and re-validating, re-scoring, or exporting the subset
   5. Webhook on batch complete sends an HTTP POST to a configured URL with 3 retries and exponential backoff; email notification uses async SMTP; validation audit trail stores all validation events in an append-only PostgreSQL table with paginated read access; IUPAC name input converts names to SMILES via py2opsin before validation
-**Plans**: TBD — 3 plans (one per milestone: M6.1, M6.2, M6.3)
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 06-01: Milestone 6.1 — Advanced Export Formats (WORK-01 through WORK-05)
-- [ ] 06-02: Milestone 6.2 — Custom Profiles & Filtering (WORK-06 through WORK-10)
-- [ ] 06-03: Milestone 6.3 — Audit Trail & Notifications (WORK-11 through WORK-14)
+- [ ] 06-01-PLAN.md — Advanced Export Formats: fingerprint, dedup, scaffold, property matrix exporters (WORK-01, WORK-02, WORK-03, WORK-04) [Wave 1]
+- [ ] 06-02-PLAN.md — ORM Foundation + IUPAC + PDF Enhancement: SQLAlchemy setup, all 4 DB models, Alembic, JPype OPSIN converter, PDF section selection (WORK-05, WORK-10) [Wave 1]
+- [ ] 06-03-PLAN.md — Custom Profiles + Bookmarks + Subset Actions: profiles CRUD with 8 presets, bookmarks with batch-submit, batch subset revalidate/rescore/export (WORK-06, WORK-07, WORK-08, WORK-09) [Wave 2]
+- [ ] 06-04-PLAN.md — Notifications + Permalinks + Audit Trail: HMAC webhook, SMTP email, shareable permalinks, append-only audit trail with history API (WORK-11, WORK-12, WORK-13, WORK-14) [Wave 2]
+- [ ] 06-05-PLAN.md — Frontend Integration: export dialog, profile builder, preset picker, bookmarks page, history page, IUPAC input badge, subset panel, permalink sharing, tab persistence (all WORK requirements) [Wave 3]
 
 ## Progress
 

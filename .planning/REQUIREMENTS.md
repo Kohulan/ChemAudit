@@ -119,10 +119,10 @@ Requirements for v2.0 release. Each maps to roadmap phases. 79 features + 1 prer
 
 ### Export, API & Workflow — Advanced Exports (Milestone 6.1)
 
-- [ ] **WORK-01**: Fingerprint export (Morgan/MACCS/RDKit FP as CSV/numpy matrix)
-- [ ] **WORK-02**: Batch deduplication export (deduplicated subset with group representatives)
-- [ ] **WORK-03**: Scaffold-grouped export (molecules organized by scaffold family)
-- [ ] **WORK-04**: Property matrix export (all computed properties as CSV/Excel)
+- [x] **WORK-01**: Fingerprint export (Morgan/MACCS/RDKit FP as CSV/numpy matrix)
+- [x] **WORK-02**: Batch deduplication export (deduplicated subset with group representatives)
+- [x] **WORK-03**: Scaffold-grouped export (molecules organized by scaffold family)
+- [x] **WORK-04**: Property matrix export (all computed properties as CSV/Excel)
 - [ ] **WORK-05**: Batch summary PDF enhancement (analytics charts + statistics in PDF report)
 
 ### Export, API & Workflow — Custom Profiles & Filtering (Milestone 6.2)
