@@ -1,19 +1,20 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3 } from 'lucide-react';
+import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Layers, Share2, Check } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
 import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
 import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
 import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
+import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
 import { BatchTimeline } from '../components/batch/BatchTimeline';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
 import { useBatchAnalytics } from '../hooks/useBatchAnalytics';
 import { useBrushSelection, setSelection, toggleIndex, clearSelection } from '../hooks/useBrushSelection';
 import { useLimits } from '../context/ConfigContext';
-import { batchApi } from '../services/api';
+import { batchApi, permalinksApi } from '../services/api';
 import { cn } from '../lib/utils';
 import type {
   BatchPageState,
@@ -47,6 +48,8 @@ export function BatchValidationPage() {
   const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
+  const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Analytics data for timeline and comparison radar
   const { data: analyticsData, status: analyticsStatus, error: analyticsError, progress: analyticsProgress, retrigger: analyticsRetrigger } = useBatchAnalytics(
@@ -243,6 +246,20 @@ export function BatchValidationPage() {
     }
   }, [comparisonResults, selectionDispatch]);
 
+  // Handle share permalink
+  const handleShare = useCallback(async () => {
+    if (!jobId) return;
+    try {
+      const result = await permalinksApi.createPermalink(jobId);
+      const url = `${window.location.origin}/report/${result.short_id}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to create permalink:', err);
+    }
+  }, [jobId]);
+
   // Reset to upload state
   const handleStartNew = useCallback(() => {
     setPageState('upload');
@@ -429,13 +446,31 @@ export function BatchValidationPage() {
                   </ClayButton>
                 </nav>
 
-                <ClayButton
-                  variant="primary"
-                  onClick={handleStartNew}
-                  leftIcon={<RotateCcw className="w-4 h-4" />}
-                >
-                  Start New Batch
-                </ClayButton>
+                <div className="flex items-center gap-2">
+                  {selectedIndices.size > 0 && (
+                    <ClayButton
+                      size="sm"
+                      onClick={() => setSubsetPanelOpen(true)}
+                      leftIcon={<Layers className="w-3.5 h-3.5" />}
+                    >
+                      Actions ({selectedIndices.size} selected)
+                    </ClayButton>
+                  )}
+                  <ClayButton
+                    size="sm"
+                    onClick={handleShare}
+                    leftIcon={shareCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                  >
+                    {shareCopied ? 'Link copied!' : 'Share'}
+                  </ClayButton>
+                  <ClayButton
+                    variant="primary"
+                    onClick={handleStartNew}
+                    leftIcon={<RotateCcw className="w-4 h-4" />}
+                  >
+                    Start New Batch
+                  </ClayButton>
+                </div>
               </div>
             </div>
 
@@ -554,6 +589,16 @@ export function BatchValidationPage() {
                 datasetStats={analyticsData?.statistics?.property_stats ?? null}
                 onClose={handleCloseCompare}
                 onRemoveMolecule={handleRemoveFromCompare}
+              />
+            )}
+
+            {/* Subset Action Panel */}
+            {jobId && (
+              <SubsetActionPanel
+                jobId={jobId}
+                selectedIndices={selectedIndices}
+                isOpen={subsetPanelOpen}
+                onClose={() => setSubsetPanelOpen(false)}
               />
             )}
           </motion.div>
