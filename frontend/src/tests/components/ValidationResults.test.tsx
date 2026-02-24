@@ -32,6 +32,11 @@ const createMockValidationResponse = (
     molecular_formula: 'C2H6O',
     molecular_weight: 46.07,
     num_atoms: 3,
+    num_bonds: 2,
+    num_rings: 0,
+    num_aromatic_rings: 0,
+    num_stereocenters: 0,
+    has_stereochemistry: false,
   },
   overall_score: 100,
   issues: [],
@@ -80,6 +85,11 @@ describe('ValidationResults', () => {
           molecular_formula: null,
           molecular_weight: null,
           num_atoms: 3,
+          num_bonds: 2,
+          num_rings: 0,
+          num_aromatic_rings: 0,
+          num_stereocenters: 0,
+          has_stereochemistry: false,
         },
       });
       render(<ValidationResults result={result} />);
@@ -365,6 +375,11 @@ describe('ValidationResults', () => {
           molecular_formula: null,
           molecular_weight: null,
           num_atoms: null,
+          num_bonds: null,
+          num_rings: null,
+          num_aromatic_rings: null,
+          num_stereocenters: null,
+          has_stereochemistry: null,
         },
       });
 
