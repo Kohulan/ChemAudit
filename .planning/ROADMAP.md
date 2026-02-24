@@ -29,7 +29,7 @@ Every phase delivers integrated backend + frontend together; no partial feature 
 - [x] **Phase 3: Batch Analytics** - Multi-level deduplication, scaffold analysis, chemical space, MMP detection, and statistics (preceded by INFRA-01 pagination) (completed 2026-02-23)
 - [x] **Phase 4: Scoring Expansion** - Drug-likeness profiles, property breakdowns, bioavailability radar, and BOILED-Egg plot (completed 2026-02-23)
 - [x] **Phase 5: Visualizations** - Batch visualization suite and single-molecule deep view built on Phase 3 and 4 data (completed 2026-02-24)
-- [ ] **Phase 6: Export, API & Workflow** - Advanced exports, custom profiles, audit trail, webhooks, and IUPAC input
+- [x] **Phase 6: Export, API & Workflow** - Advanced exports, custom profiles, audit trail, webhooks, and IUPAC input (completed 2026-02-24)
 
 ## Phase Details
 
@@ -128,14 +128,17 @@ Plans:
   3. Custom scoring profiles allow users to define property thresholds and weights, save them with a name, and apply them to score any molecule; preset filter templates (drug-like, lead-like, fragment-like, CNS-penetrant) are available without configuration
   4. Molecule bookmarks persist across sessions (PostgreSQL-backed); batch subset actions allow selecting molecules from a batch result and re-validating, re-scoring, or exporting the subset
   5. Webhook on batch complete sends an HTTP POST to a configured URL with 3 retries and exponential backoff; email notification uses async SMTP; validation audit trail stores all validation events in an append-only PostgreSQL table with paginated read access; IUPAC name input converts names to SMILES via py2opsin before validation
-**Plans**: 5 plans in 3 waves
+**Plans**: 8 plans in 3 waves (5 original + 3 gap closure)
 
 Plans:
-- [ ] 06-01-PLAN.md — Advanced Export Formats: fingerprint, dedup, scaffold, property matrix exporters (WORK-01, WORK-02, WORK-03, WORK-04) [Wave 1]
-- [ ] 06-02-PLAN.md — ORM Foundation + IUPAC + PDF Enhancement: SQLAlchemy setup, all 4 DB models, Alembic, JPype OPSIN converter, PDF section selection (WORK-05, WORK-10) [Wave 1]
-- [ ] 06-03-PLAN.md — Custom Profiles + Bookmarks + Subset Actions: profiles CRUD with 8 presets, bookmarks with batch-submit, batch subset revalidate/rescore/export (WORK-06, WORK-07, WORK-08, WORK-09) [Wave 2]
-- [ ] 06-04-PLAN.md — Notifications + Permalinks + Audit Trail: HMAC webhook, SMTP email, shareable permalinks, append-only audit trail with history API (WORK-11, WORK-12, WORK-13, WORK-14) [Wave 2]
-- [ ] 06-05-PLAN.md — Frontend Integration: export dialog, profile builder, preset picker, bookmarks page, history page, IUPAC input badge, subset panel, permalink sharing, tab persistence (all WORK requirements) [Wave 3]
+- [x] 06-01-PLAN.md — Advanced Export Formats: fingerprint, dedup, scaffold, property matrix exporters (WORK-01, WORK-02, WORK-03, WORK-04) [Wave 1] (COMPLETE: 2 tasks, 28 tests, commits 611ed15 + 1c29617)
+- [x] 06-02-PLAN.md — ORM Foundation + IUPAC + PDF Enhancement: SQLAlchemy setup, all 4 DB models, Alembic, JPype OPSIN converter, PDF section selection (WORK-05, WORK-10) [Wave 1] (COMPLETE: 2 tasks, 22 tests, commits 0f80f36 + c8a0d57)
+- [x] 06-03-PLAN.md — Custom Profiles + Bookmarks + Subset Actions: profiles CRUD with 8 presets, bookmarks with batch-submit, batch subset revalidate/rescore/export (WORK-06, WORK-07, WORK-08, WORK-09) [Wave 2] (COMPLETE: 28 tests, commit 21565f9)
+- [x] 06-04-PLAN.md — Notifications + Permalinks + Audit Trail: HMAC webhook, SMTP email, shareable permalinks, append-only audit trail with history API (WORK-11, WORK-12, WORK-13, WORK-14) [Wave 2] (COMPLETE: 24 tests, commit de0c57f)
+- [x] 06-05-PLAN.md — Frontend Integration: export dialog, profile builder, preset picker, bookmarks page, history page, IUPAC input badge, subset panel, permalink sharing, tab persistence (all WORK requirements) [Wave 3] (COMPLETE: 17 files, 8 frontend tests, commit 751af96)
+- [ ] 06-06-PLAN.md — Gap Closure: Backend Fixes — PubChem REST fallback for IUPAC, batch audit trail wiring, webhook dispatch (WORK-10, WORK-12, WORK-14)
+- [ ] 06-07-PLAN.md — Gap Closure: Frontend Wiring — Profiles page + route, SubsetActionPanel integration, Share permalink button (WORK-06, WORK-07, WORK-09, WORK-11)
+- [ ] 06-08-PLAN.md — Gap Closure: UI Polish — PDF checkboxes position, input placeholder, bookmark button styling, tab result clearing (WORK-05, WORK-08, WORK-10, WORK-13)
 
 ## Progress
 
@@ -152,6 +155,6 @@ M1.1 → M1.2 → M1.3 → M2.1 → M3.1 → M4.3 → M3.2 → M3.3 → M3.5 →
 | 3. Batch Analytics | 6/6 | Complete   | 2026-02-23 | - |
 | 4. Scoring Expansion | 3/3 | Complete | 2026-02-23 | - |
 | 5. Visualizations | 2/2 | Complete | 2026-02-24 | - |
-| 6. Export, API & Workflow | v2.0 | 0/3 | Not started | - |
+| 6. Export, API & Workflow | 5/8 | UAT Gap Closure | 2026-02-24 | - |
 
-**Total:** 18/21 plans complete (86%)
+**Total:** 23/26 plans complete (gap closure in progress)

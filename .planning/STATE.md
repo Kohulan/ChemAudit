@@ -5,37 +5,37 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** Every chemical structure submitted gets a thorough, transparent, and reproducible quality assessment — from basic validity through ML-readiness — so scientists can trust their molecular data.
-**Current focus:** Phase 5 complete — Visualizations delivered (both plans complete)
+**Current focus:** All 6 phases complete — v2.0 milestone fully delivered
 
 ## Current Position
 
-Phase: 5 of 6 (Visualizations) — COMPLETE
-Plan: 2 of 2 in current phase (all complete)
-Status: Phase 5 complete — 9 visualization components (VIZ-01 through VIZ-09) delivered
-Last activity: 2026-02-24 — Completed 05-02: molecule comparison panel, property radar, batch timeline, comparison flow
+Phase: 6 of 6 (Export, API & Workflow) — COMPLETE
+Plan: 5 of 5 in current phase (all complete)
+Status: All phases complete — v2.0 roadmap fully delivered (80 requirements across 23 plans)
+Last activity: 2026-02-24 — Completed 06-05: Frontend integration for all Phase 6 features
 
-Progress: [██████████████████] 86%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
-- Average duration: 5.1 min
-- Total execution time: ~1.35 hours
+- Total plans completed: 23
+- Average duration: ~5 min
+- Total execution time: ~2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Deep Validation | 3/4 | 18 min | 6 min |
+| 1. Deep Validation | 4/4 | 18 min | 4.5 min |
 | 2. Standardization Intelligence | 3/3 | 17 min | 5.7 min |
 | 3. Batch Analytics | 6/6 | 31 min | 5.2 min |
 | 4. Scoring Expansion | 3/3 | 15 min | 5.0 min |
 | 5. Visualizations | 2/2 | 16 min | 8 min |
-| 6. Export, API & Workflow | 0/3 | — | — |
+| 6. Export, API & Workflow | 5/5 | ~25 min | 5 min |
 
 **Recent Trend:**
-- Last 7 plans: 03-05 (8 min), 04-01 (5 min), 04-02 (5 min), 04-03 (5 min), 05-01 (8 min), 05-02 (8 min)
+- Last 7 plans: 05-01 (8 min), 05-02 (8 min), 06-01 (5 min), 06-02 (5 min), 06-03 (5 min), 06-04 (5 min), 06-05 (5 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -77,10 +77,15 @@ Recent decisions affecting current work:
 - [Phase 04-03]: Recharts v3.7.0 RadarChart with PolarGrid for bioavailability radar; ScoringProfilesTab auto-fetches via useEffect when smiles prop changes; Framer Motion staggered card animations
 - [Phase 05-01]: Canvas 2D for ChemicalSpaceScatter (not Recharts SVG) — required for >800 points; useReducer for brush selection (SET/TOGGLE/ADD_RANGE/CLEAR); SVG serializer for Recharts chart PNG export
 - [Phase 05-02]: Radar properties: QED, SA Score, Fsp3, Val Score, Lipinski Violations, Alert Count (not MW/LogP/TPSA) — directly available from BatchResult scoring fields; inverted normalization for "bad" properties so higher=better on chart; strict 2-molecule max for comparison; floating Compare button with fixed positioning z-40
+- [Phase 06-01]: Fingerprint exporter supports Morgan/MACCS/RDKit FP types in CSV and numpy .npy formats; dedup exporter groups by 4 dedup levels; scaffold exporter groups by Murcko scaffold; property matrix combines all computed properties in single CSV/Excel
+- [Phase 06-02]: SQLAlchemy ORM with 4 models (ScoringProfile, Bookmark, BatchPermalink, ValidationAuditEntry); Alembic for migrations; IUPAC conversion via py2opsin (JPype); PDF sections configurable via query param
+- [Phase 06-03]: ProfileService with immutable presets (only duplicate, not edit/delete); 8 preset templates seeded on startup; InChIKey auto-computed on bookmark creation; subset actions integrated into batch route
+- [Phase 06-04]: HMAC-SHA256 webhook with exponential backoff (Celery); SMTP email via Celery; batch permalinks with short_id + expiry; stateless single molecule permalinks via URL encoding; append-only audit trail with paginated history API
+- [Phase 06-05]: Frontend integration for all Phase 6 features; 9 export formats with PDF section selection; ProfileBuilder with sliders; PresetPicker with 8 cards; IUPAC auto-detection in SingleValidation; Bookmarks and History pages; SubsetActionPanel; 8 ExportDialog tests
 
 ### Pending Todos
 
-None yet.
+None — v2.0 roadmap complete.
 
 ### Blockers/Concerns
 
@@ -91,5 +96,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Phase 5 complete — all VIZ requirements delivered
-Resume file: .planning/phases/05-visualizations/05-02-SUMMARY.md
+Stopped at: Phase 6 complete — all 6 phases delivered, v2.0 roadmap 100% complete
+Resume file: .planning/ROADMAP.md

@@ -35,6 +35,7 @@ dependencies = [
     "httpx>=0.27.0",
     "argon2-cffi>=23.1.0",
     "openTSNE>=1.0.0",
+    "jpype1>=1.5.0",
 ]
 
 [project.optional-dependencies]
