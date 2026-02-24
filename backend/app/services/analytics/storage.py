@@ -117,7 +117,10 @@ class AnalyticsStorage:
         """
         Initialize the analytics status dict for a job.
 
-        Auto analyses start as "computing"; all others listed here default to "pending".
+        Merges with any existing status dict to avoid overwriting statuses
+        already set by concurrently running expensive analytics tasks.
+        Auto analyses start as "computing"; others default to "pending"
+        only if not already present.
 
         Args:
             job_id: Batch job identifier.
@@ -133,19 +136,28 @@ class AnalyticsStorage:
             "similarity_search",
             "rgroup",
         ]
-        status_dict = {}
-        for analysis_type in all_types:
-            if analysis_type in auto_analyses:
-                status_dict[analysis_type] = {"status": "computing"}
-            else:
-                status_dict[analysis_type] = {"status": "pending"}
 
         r = self._get_redis()
-        r.set(
-            f"batch:analytics:status:{job_id}",
-            json.dumps(status_dict),
-            ex=self.ANALYTICS_TTL,
-        )
+        status_key = f"batch:analytics:status:{job_id}"
+
+        # Read existing status to preserve any in-progress or completed analyses
+        existing_raw = r.get(status_key)
+        existing_dict = json.loads(existing_raw) if existing_raw else {}
+
+        for analysis_type in all_types:
+            existing_entry = existing_dict.get(analysis_type, {})
+            existing_status = existing_entry.get("status")
+
+            if analysis_type in auto_analyses:
+                # Auto analyses: set to "computing" unless already complete/failed
+                if existing_status not in ("complete", "failed", "computing"):
+                    existing_dict[analysis_type] = {"status": "computing"}
+            else:
+                # Other analyses: set to "pending" only if not already set
+                if analysis_type not in existing_dict:
+                    existing_dict[analysis_type] = {"status": "pending"}
+
+        r.set(status_key, json.dumps(existing_dict), ex=self.ANALYTICS_TTL)
 
 
 # Singleton instance

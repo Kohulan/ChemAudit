@@ -44,10 +44,11 @@ export function BatchValidationPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selectedIndices, selectionDispatch] = useBrushSelection();
   const [compareMode, setCompareMode] = useState(false);
+  const [includeAnalytics, setIncludeAnalytics] = useState(true);
 
   // Analytics data for timeline and comparison radar
-  const { data: analyticsData, retrigger: analyticsRetrigger } = useBatchAnalytics(
-    pageState === 'results' ? jobId : null,
+  const { data: analyticsData, status: analyticsStatus, error: analyticsError, progress: analyticsProgress, retrigger: analyticsRetrigger } = useBatchAnalytics(
+    pageState === 'results' && includeAnalytics ? jobId : null,
     ['scaffold', 'chemical_space']
   );
 
@@ -66,9 +67,10 @@ export function BatchValidationPage() {
   );
 
   // Handle successful upload
-  const handleUploadSuccess = useCallback((newJobId: string, _molecules: number) => {
+  const handleUploadSuccess = useCallback((newJobId: string, _molecules: number, options?: { includeAnalytics: boolean }) => {
     setJobId(newJobId);
     setError(null);
+    setIncludeAnalytics(options?.includeAnalytics ?? true);
     setPageState('processing');
   }, []);
 
@@ -456,7 +458,7 @@ export function BatchValidationPage() {
             </div>
 
             {/* Analytics & Visualizations */}
-            {jobId && (
+            {jobId && includeAnalytics && (
               <div className="card p-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
@@ -489,6 +491,9 @@ export function BatchValidationPage() {
                   selectedIndices={selectedIndices}
                   onSelectionChange={handleSelectionChange}
                   analyticsData={analyticsData}
+                  analyticsStatus={analyticsStatus}
+                  analyticsError={analyticsError}
+                  analyticsProgress={analyticsProgress}
                   onRetrigger={analyticsRetrigger}
                 />
               </div>

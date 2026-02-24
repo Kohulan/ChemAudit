@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Download, AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
 import { ScoreHistogram } from './charts/ScoreHistogram';
 import { PropertyScatterPlot } from './charts/PropertyScatterPlot';
 import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
@@ -16,6 +16,7 @@ import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
+import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
 
 interface BatchAnalyticsPanelProps {
@@ -25,6 +26,9 @@ interface BatchAnalyticsPanelProps {
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
   analyticsData: import('../../types/analytics').BatchAnalyticsResponse | null;
+  analyticsStatus?: AnalyticsHookStatus;
+  analyticsError?: string | null;
+  analyticsProgress?: AnalyticsProgressInfo;
   onRetrigger: (type: string) => void;
 }
 
@@ -143,6 +147,101 @@ function downloadSvgAsPng(containerRef: React.RefObject<HTMLDivElement | null>, 
   img.src = url;
 }
 
+function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
+  progress?: AnalyticsProgressInfo;
+  status?: AnalyticsHookStatus;
+  error?: string | null;
+  onRetrigger: (type: string) => void;
+}) {
+  if (!progress || status === 'idle' || status === 'complete') return null;
+
+  const pct = progress.totalCount > 0
+    ? Math.round((progress.completedCount / progress.totalCount) * 100)
+    : 0;
+
+  const formatTime = (s: number) => {
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m ${s % 60}s`;
+  };
+
+  const typeLabels: Record<string, string> = {
+    scaffold: 'Scaffold Diversity',
+    chemical_space: 'Chemical Space (PCA)',
+  };
+
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {status === 'computing' && <Loader2 className="w-4 h-4 text-[var(--color-primary)] animate-spin" />}
+          {status === 'error' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+          <span className="text-sm font-medium text-[var(--color-text-primary)]">
+            {status === 'computing' ? 'Computing Analytics...' : 'Analytics Error'}
+          </span>
+        </div>
+        <span className="text-xs text-[var(--color-text-muted)]">
+          {formatTime(progress.elapsedSeconds)} elapsed
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${Math.max(status === 'computing' ? 5 : 0, pct)}%`,
+            background: status === 'error'
+              ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
+              : 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)',
+          }}
+        />
+      </div>
+
+      {/* Per-type status */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(progress.typeStatuses).map(([type, st]) => (
+          <span
+            key={type}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
+              st.status === 'complete' && 'bg-green-500/10 text-green-600 dark:text-green-400',
+              st.status === 'computing' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+              st.status === 'pending' && 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]',
+              st.status === 'failed' && 'bg-red-500/10 text-red-500',
+            )}
+          >
+            {st.status === 'complete' && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            {st.status === 'computing' && <Loader2 className="w-3 h-3 animate-spin" />}
+            {st.status === 'failed' && <AlertTriangle className="w-3 h-3" />}
+            {typeLabels[type] || type}
+          </span>
+        ))}
+      </div>
+
+      {/* Error message with retry */}
+      {error && (
+        <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+          <p className="text-xs text-amber-600 dark:text-amber-400">{error}</p>
+          <button
+            onClick={() => {
+              for (const type of Object.keys(progress.typeStatuses)) {
+                const st = progress.typeStatuses[type];
+                if (st.status !== 'complete') {
+                  onRetrigger(type);
+                }
+              }
+            }}
+            className="flex-shrink-0 p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-colors text-amber-600 dark:text-amber-400"
+            title="Retry failed analytics"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   jobId,
   statistics,
@@ -150,6 +249,9 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   selectedIndices,
   onSelectionChange,
   analyticsData,
+  analyticsStatus,
+  analyticsError,
+  analyticsProgress,
   onRetrigger,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
@@ -211,6 +313,14 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
           </button>
         ))}
       </div>
+
+      {/* Analytics progress bar */}
+      <AnalyticsProgressBar
+        progress={analyticsProgress}
+        status={analyticsStatus}
+        error={analyticsError}
+        onRetrigger={onRetrigger}
+      />
 
       {/* Tab content */}
       <AnimatePresence mode="wait">
