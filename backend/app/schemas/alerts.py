@@ -9,6 +9,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.validation import MoleculeInfo
+
 
 class AlertSeverity(str, Enum):
     """Severity level for structural alerts."""
@@ -33,15 +35,6 @@ class AlertResultSchema(BaseModel):
     smarts: Optional[str] = Field(
         None, description="SMARTS pattern that matched (if available)"
     )
-
-
-class MoleculeInfoSchema(BaseModel):
-    """Schema for molecule information in alert response."""
-
-    input_string: str = Field(..., description="Original input molecule string")
-    canonical_smiles: Optional[str] = Field(None, description="Canonical SMILES")
-    molecular_formula: Optional[str] = Field(None, description="Molecular formula")
-    num_atoms: Optional[int] = Field(None, description="Number of atoms")
 
 
 class AlertScreenRequest(BaseModel):
@@ -101,7 +94,7 @@ class AlertScreenResponse(BaseModel):
     """Schema for alert screening response."""
 
     status: str = Field(default="completed", description="Screening status")
-    molecule_info: MoleculeInfoSchema = Field(
+    molecule_info: MoleculeInfo = Field(
         ..., description="Information about the screened molecule"
     )
     alerts: List[AlertResultSchema] = Field(
