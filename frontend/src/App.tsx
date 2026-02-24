@@ -23,6 +23,12 @@ const AboutPage = lazy(() =>
 const PrivacyPage = lazy(() =>
   import('./pages/Privacy').then(module => ({ default: module.PrivacyPage }))
 );
+const BookmarksPage = lazy(() =>
+  import('./pages/Bookmarks').then(module => ({ default: module.BookmarksPage }))
+);
+const HistoryPage = lazy(() =>
+  import('./pages/History').then(module => ({ default: module.HistoryPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -105,6 +111,34 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <BatchValidationPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/bookmarks"
+            element={
+              <motion.div
+                key="bookmarks"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <BookmarksPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <HistoryPage />
               </motion.div>
             }
           />

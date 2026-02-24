@@ -41,6 +41,7 @@ import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
+import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
@@ -56,6 +57,42 @@ const EXAMPLE_MOLECULES = [
   { name: 'Rhodanine (PAINS)', smiles: 'O=C1NC(=S)SC1' },
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
+
+/**
+ * Detect whether input looks like IUPAC or SMILES.
+ * Heuristic: SMILES typically contain special characters like (, ), =, #, @, /, \, [, ], digits adjacent to atoms.
+ * IUPAC names tend to be longer, contain common suffixes, and lack SMILES-specific characters.
+ */
+function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
+  const trimmed = value.trim();
+  if (!trimmed) return 'ambiguous';
+
+  // Strong SMILES indicators: brackets, ring closures, branch notation
+  const smilesChars = /[[\]()=#@/\\]/;
+  if (smilesChars.test(trimmed)) return 'smiles';
+
+  // If starts with InChI marker
+  if (trimmed.startsWith('InChI=')) return 'smiles'; // treat InChI as SMILES-like (non-IUPAC)
+
+  // IUPAC suffixes
+  const iupacSuffixes = [
+    'ane', 'ene', 'yne', 'ol', 'al', 'one', 'oic acid', 'amine', 'amide',
+    'ate', 'ester', 'ether', 'ose', 'ide', 'ine', 'ite', 'yl', 'benzene',
+    'phenol', 'acetic', 'acid', 'alcohol',
+  ];
+  const lower = trimmed.toLowerCase();
+  const hasIupacSuffix = iupacSuffixes.some((s) => lower.endsWith(s));
+
+  // Contains spaces (typical for IUPAC, never in SMILES)
+  if (trimmed.includes(' ') || hasIupacSuffix) return 'iupac';
+
+  // All alphabetic with hyphens and numbers (common IUPAC pattern)
+  if (/^[a-zA-Z0-9,'-]+$/.test(trimmed) && trimmed.length > 8 && /[a-z]{3,}/.test(lower)) {
+    return 'iupac';
+  }
+
+  return 'ambiguous';
+}
 
 type TabType = 'validate' | 'deep-validation' | 'scoring-profiles' | 'database' | 'alerts' | 'standardize';
 
@@ -192,6 +229,11 @@ export function SingleValidationPage() {
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // IUPAC auto-detection
+  const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
+  const [forceInputType, setForceInputType] = useState<'smiles' | 'iupac' | null>(null);
+  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' ? null : detectedType);
+
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
     pubchem: PubChemResult | null;
@@ -206,6 +248,7 @@ export function SingleValidationPage() {
       molecule: molecule.trim(),
       format: 'auto',
       preserve_aromatic: preferAromaticSmiles,
+      input_type: effectiveInputType ?? 'auto',
     });
     // Add to recent molecules on successful validation (validate updates result/error)
     // We'll check result in useEffect after validation completes
@@ -484,6 +527,65 @@ export function SingleValidationPage() {
             </div>
             <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
 
+            {/* IUPAC / SMILES detection badge */}
+            <AnimatePresence>
+              {molecule.trim() && detectedType !== 'ambiguous' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <div className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
+                    (effectiveInputType === 'iupac')
+                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                  )}>
+                    {effectiveInputType === 'iupac' ? (
+                      <>Detected as IUPAC name</>
+                    ) : (
+                      <>Parsed as SMILES</>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setForceInputType(effectiveInputType === 'iupac' ? 'smiles' : 'iupac')}
+                    className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
+                  >
+                    Force {effectiveInputType === 'iupac' ? 'SMILES' : 'IUPAC'}
+                  </button>
+                  {forceInputType && (
+                    <button
+                      onClick={() => setForceInputType(null)}
+                      className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                    >
+                      (auto)
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* IUPAC conversion result badge */}
+            <AnimatePresence>
+              {result?.input_interpretation?.detected_as === 'iupac' && result.input_interpretation.converted_smiles && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-2"
+                >
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-xs">
+                    <span className="text-green-600 dark:text-green-400 font-medium">Converted from IUPAC:</span>
+                    <code className="text-[var(--color-text-secondary)] font-mono">{result.input_interpretation.original_input}</code>
+                    <span className="text-[var(--color-text-muted)]">{'->'}</span>
+                    <code className="text-[var(--color-text-primary)] font-mono">{result.input_interpretation.converted_smiles}</code>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="mt-4 flex items-center gap-3">
               <ClayButton
                 onClick={handleReset}
@@ -499,6 +601,13 @@ export function SingleValidationPage() {
               >
                 Share
               </ClayButton>
+              {/* Bookmark button - show after validation result */}
+              {result && molecule.trim() && (
+                <BookmarkButton
+                  smiles={result.molecule_info.canonical_smiles || molecule.trim()}
+                  source="single_validation"
+                />
+              )}
             </div>
 
             {/* Parsing Failed Message - Suggest trying validation */}

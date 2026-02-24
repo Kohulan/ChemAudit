@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Atom, Grid3X3, Info, BookOpen, ExternalLink } from 'lucide-react';
+import { Atom, Grid3X3, Info, BookOpen, ExternalLink, Star, Clock } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { SplashScreen } from '../ui/SplashScreen';
 import { cn } from '../../lib/utils';
@@ -99,6 +99,12 @@ export function Header() {
             </HeaderNavLink>
             <HeaderNavLink to="/batch" icon={<Grid3X3 className="w-4 h-4" />}>
               Batch Validation
+            </HeaderNavLink>
+            <HeaderNavLink to="/bookmarks" icon={<Star className="w-4 h-4" />}>
+              Bookmarks
+            </HeaderNavLink>
+            <HeaderNavLink to="/history" icon={<Clock className="w-4 h-4" />}>
+              History
             </HeaderNavLink>
             <HeaderNavLink to="/about" icon={<Info className="w-4 h-4" />}>
               About

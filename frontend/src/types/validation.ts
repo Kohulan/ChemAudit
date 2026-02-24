@@ -24,6 +24,14 @@ export interface ValidationRequest {
   format?: 'auto' | 'smiles' | 'inchi' | 'mol';
   checks?: string[];
   preserve_aromatic?: boolean;
+  input_type?: 'auto' | 'smiles' | 'iupac';
+}
+
+export interface InputInterpretation {
+  detected_as: 'smiles' | 'iupac';
+  original_input: string;
+  converted_smiles: string | null;
+  conversion_source: string | null;
 }
 
 export interface ValidationResponse {
@@ -33,6 +41,7 @@ export interface ValidationResponse {
   issues: CheckResult[];
   all_checks: CheckResult[];
   execution_time_ms: number;
+  input_interpretation?: InputInterpretation;
 }
 
 export interface ValidationError {

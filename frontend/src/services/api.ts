@@ -108,6 +108,22 @@ import type {
   BatchAnalyticsResponse,
   AnalyticsTriggerResponse
 } from '../types/analytics';
+import type {
+  ScoringProfile,
+  ScoringProfileCreate,
+  ScoringProfileUpdate,
+  ScoringProfileExport,
+  Bookmark,
+  BookmarkCreate,
+  BookmarkUpdate,
+  AuditEntry,
+  AuditHistoryResponse,
+  AuditHistoryParams,
+  AuditHistoryStats,
+  PermalinkResponse,
+  PermalinkResolveResponse,
+  ExportFormat,
+} from '../types/workflow';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
@@ -219,7 +235,26 @@ export const validationApi = {
   healthCheck: async (): Promise<{ status: string; rdkit_version: string }> => {
     const response = await api.get('/health');
     return response.data;
-  }
+  },
+
+  getSimilarity: async (
+    smilesA: string,
+    smilesB: string
+  ): Promise<{
+    tanimoto_similarity: number;
+    fingerprint_type: string;
+    radius: number;
+    n_bits: number;
+    common_bits: number;
+    bits_a: number;
+    bits_b: number;
+  }> => {
+    const response = await api.post('/validate/similarity', {
+      smiles_a: smilesA,
+      smiles_b: smilesB,
+    });
+    return response.data;
+  },
 };
 
 export const alertsApi = {
@@ -775,6 +810,215 @@ export const integrationsApi = {
   },
 };
 
+// ============================================================================
+// Scoring Profiles API
+// ============================================================================
+
+export const profilesApi = {
+  /** List all scoring profiles (presets + user-created). */
+  getProfiles: async (): Promise<ScoringProfile[]> => {
+    const response = await api.get<ScoringProfile[]>('/profiles');
+    return response.data;
+  },
+
+  /** Get a single profile by ID. */
+  getProfile: async (id: number): Promise<ScoringProfile> => {
+    const response = await api.get<ScoringProfile>(`/profiles/${id}`);
+    return response.data;
+  },
+
+  /** Create a new custom profile. */
+  createProfile: async (data: ScoringProfileCreate): Promise<ScoringProfile> => {
+    const response = await api.post<ScoringProfile>('/profiles', data);
+    return response.data;
+  },
+
+  /** Update an existing profile. */
+  updateProfile: async (id: number, data: ScoringProfileUpdate): Promise<ScoringProfile> => {
+    const response = await api.put<ScoringProfile>(`/profiles/${id}`, data);
+    return response.data;
+  },
+
+  /** Delete a custom profile. */
+  deleteProfile: async (id: number): Promise<void> => {
+    await api.delete(`/profiles/${id}`);
+  },
+
+  /** Duplicate a profile with a new name. */
+  duplicateProfile: async (id: number, newName: string): Promise<ScoringProfile> => {
+    const response = await api.post<ScoringProfile>(`/profiles/${id}/duplicate`, { name: newName });
+    return response.data;
+  },
+
+  /** Export a profile as JSON. */
+  exportProfile: async (id: number): Promise<ScoringProfileExport> => {
+    const response = await api.get<ScoringProfileExport>(`/profiles/${id}/export`);
+    return response.data;
+  },
+
+  /** Import a profile from JSON. */
+  importProfile: async (data: ScoringProfileExport): Promise<ScoringProfile> => {
+    const response = await api.post<ScoringProfile>('/profiles/import', data);
+    return response.data;
+  },
+};
+
+// ============================================================================
+// Bookmarks API
+// ============================================================================
+
+export const bookmarksApi = {
+  /** List bookmarks with optional pagination and filtering. */
+  getBookmarks: async (params?: {
+    page?: number;
+    page_size?: number;
+    tag?: string;
+    search?: string;
+  }): Promise<{ bookmarks: Bookmark[]; total: number; page: number; page_size: number }> => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.page_size) query.set('page_size', String(params.page_size));
+    if (params?.tag) query.set('tag', params.tag);
+    if (params?.search) query.set('search', params.search);
+    const response = await api.get(`/bookmarks?${query.toString()}`);
+    return response.data;
+  },
+
+  /** Get a single bookmark by ID. */
+  getBookmark: async (id: number): Promise<Bookmark> => {
+    const response = await api.get<Bookmark>(`/bookmarks/${id}`);
+    return response.data;
+  },
+
+  /** Create a new bookmark. */
+  createBookmark: async (data: BookmarkCreate): Promise<Bookmark> => {
+    const response = await api.post<Bookmark>('/bookmarks', data);
+    return response.data;
+  },
+
+  /** Update a bookmark. */
+  updateBookmark: async (id: number, data: BookmarkUpdate): Promise<Bookmark> => {
+    const response = await api.put<Bookmark>(`/bookmarks/${id}`, data);
+    return response.data;
+  },
+
+  /** Delete a bookmark. */
+  deleteBookmark: async (id: number): Promise<void> => {
+    await api.delete(`/bookmarks/${id}`);
+  },
+
+  /** Submit bookmarks as a new batch job. */
+  submitBookmarksAsBatch: async (bookmarkIds: number[]): Promise<{ job_id: string; molecule_count: number }> => {
+    const response = await api.post('/bookmarks/batch-submit', { bookmark_ids: bookmarkIds });
+    return response.data;
+  },
+
+  /** Bulk delete bookmarks. */
+  bulkDeleteBookmarks: async (ids: number[]): Promise<void> => {
+    await api.delete('/bookmarks/bulk', { data: { ids } });
+  },
+};
+
+// ============================================================================
+// Audit History API
+// ============================================================================
+
+export const historyApi = {
+  /** Get paginated audit history with filters. */
+  getHistory: async (params?: AuditHistoryParams): Promise<AuditHistoryResponse> => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.page_size) query.set('page_size', String(params.page_size));
+    if (params?.date_from) query.set('date_from', params.date_from);
+    if (params?.date_to) query.set('date_to', params.date_to);
+    if (params?.outcome) query.set('outcome', params.outcome);
+    if (params?.source) query.set('source', params.source);
+    if (params?.smiles_search) query.set('smiles_search', params.smiles_search);
+    const response = await api.get<AuditHistoryResponse>(`/history?${query.toString()}`);
+    return response.data;
+  },
+
+  /** Get aggregate history statistics. */
+  getHistoryStats: async (): Promise<AuditHistoryStats> => {
+    const response = await api.get<AuditHistoryStats>('/history/stats');
+    return response.data;
+  },
+};
+
+// ============================================================================
+// Permalinks API
+// ============================================================================
+
+export const permalinksApi = {
+  /** Create a permalink for a batch job. */
+  createPermalink: async (
+    jobId: string,
+    snapshot?: Record<string, unknown>,
+    settings?: Record<string, unknown>
+  ): Promise<PermalinkResponse> => {
+    const response = await api.post<PermalinkResponse>('/permalinks', {
+      job_id: jobId,
+      snapshot_data: snapshot,
+      settings,
+    });
+    return response.data;
+  },
+
+  /** Resolve a short permalink ID to the full data. */
+  resolvePermalink: async (shortId: string): Promise<PermalinkResolveResponse> => {
+    const response = await api.get<PermalinkResolveResponse>(`/report/${shortId}`);
+    return response.data;
+  },
+
+  /** Get a stateless single-molecule permalink URL. */
+  getSingleMoleculePermalink: (smiles: string): string => {
+    const encoded = encodeURIComponent(smiles);
+    return `${window.location.origin}/?smiles=${encoded}`;
+  },
+};
+
+// ============================================================================
+// Batch Subset Actions API
+// ============================================================================
+
+export const subsetApi = {
+  /** Re-validate a subset of molecules. */
+  revalidateSubset: async (
+    jobId: string,
+    indices: number[]
+  ): Promise<{ new_job_id: string; molecule_count: number }> => {
+    const response = await api.post(`/batch/${jobId}/subset/revalidate`, { indices });
+    return response.data;
+  },
+
+  /** Re-score a subset with an optional profile. */
+  rescoreSubset: async (
+    jobId: string,
+    indices: number[],
+    profileId?: number
+  ): Promise<{ new_job_id: string; molecule_count: number }> => {
+    const response = await api.post(`/batch/${jobId}/subset/rescore`, {
+      indices,
+      profile_id: profileId,
+    });
+    return response.data;
+  },
+
+  /** Export a subset of molecules. */
+  exportSubset: async (
+    jobId: string,
+    indices: number[],
+    format: ExportFormat
+  ): Promise<Blob> => {
+    const response = await api.post(
+      `/batch/${jobId}/subset/export`,
+      { indices, format },
+      { responseType: 'blob' }
+    );
+    return response.data;
+  },
+};
+
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
@@ -782,3 +1026,10 @@ export type { StandardizeRequest, StandardizeResponse, StandardizeError, Standar
 export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
 export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };
 export type { BatchAnalyticsResponse, AnalyticsTriggerResponse };
+export type {
+  ScoringProfile, ScoringProfileCreate, ScoringProfileUpdate, ScoringProfileExport,
+  Bookmark, BookmarkCreate, BookmarkUpdate,
+  AuditEntry, AuditHistoryResponse, AuditHistoryParams, AuditHistoryStats,
+  PermalinkResponse, PermalinkResolveResponse,
+  ExportFormat as WorkflowExportFormat,
+};
