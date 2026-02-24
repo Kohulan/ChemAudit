@@ -196,3 +196,108 @@ class TestListChecksEndpoint:
             "conflicting_stereo",
         }
         assert set(data["stereochemistry"]) == expected_stereo
+
+
+class TestMoleculeInfoEnrichedFields:
+    """Test that validation response includes enriched molecule info fields."""
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_simple_molecule(self, client):
+        """Ethanol should return correct enriched molecular properties."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "CCO", "format": "smiles"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_atoms"] == 3
+        assert info["num_bonds"] == 2
+        assert info["num_rings"] == 0
+        assert info["num_aromatic_rings"] == 0
+        assert info["num_stereocenters"] == 0
+        assert info["has_stereochemistry"] is False
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_benzene(self, client):
+        """Benzene should have 1 ring, 1 aromatic ring."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "c1ccccc1"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_atoms"] == 6
+        assert info["num_bonds"] == 6
+        assert info["num_rings"] == 1
+        assert info["num_aromatic_rings"] == 1
+        assert info["has_stereochemistry"] is False
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_isotope_no_false_rings(self, client):
+        """Isotope labels must NOT inflate ring count."""
+        response = await client.post(
+            "/api/v1/validate",
+            json={"molecule": "O=[CH][63Ni]([CH]=O)([CH]=O)[13CH]=O"},
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_rings"] == 0, "Isotope digits must not be counted as rings"
+        assert info["num_aromatic_rings"] == 0
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_isotope_with_ring(self, client):
+        """C-13 cyclohexane: 1 real ring, isotope digit must not inflate."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "[13C]1CCCCC1"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_atoms"] == 6
+        assert info["num_rings"] == 1
+        assert info["num_aromatic_rings"] == 0
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_stereocenters(self, client):
+        """Alanine has 1 stereocenter."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "N[C@@H](C)C(=O)O"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_stereocenters"] == 1
+        assert info["has_stereochemistry"] is True
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_ez_stereo(self, client):
+        """cis-2-butene has E/Z stereochemistry but no tetrahedral stereocenters."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": r"C/C=C\C"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_stereocenters"] == 0
+        assert info["has_stereochemistry"] is True
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_aspirin(self, client):
+        """Aspirin: 1 ring, 1 aromatic ring, no stereo."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "CC(=O)Oc1ccccc1C(=O)O"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_atoms"] == 13
+        assert info["num_bonds"] == 13
+        assert info["num_rings"] == 1
+        assert info["num_aromatic_rings"] == 1
+        assert info["has_stereochemistry"] is False
+
+    @pytest.mark.asyncio
+    async def test_enriched_fields_heavy_water(self, client):
+        """Heavy water [2H]O[2H]: 0 rings despite isotope digits."""
+        response = await client.post(
+            "/api/v1/validate", json={"molecule": "[2H]O[2H]"}
+        )
+        assert response.status_code == 200
+        info = response.json()["molecule_info"]
+        assert info["num_atoms"] == 3
+        assert info["num_bonds"] == 2
+        assert info["num_rings"] == 0
