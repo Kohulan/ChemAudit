@@ -12,10 +12,10 @@ import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from rdkit import Chem
+
+from app.api.routes.validation import extract_molecule_info
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
-from app.api.routes.validation import extract_molecule_info
 from app.schemas.alerts import (
     AlertResultSchema,
     AlertScreenRequest,
