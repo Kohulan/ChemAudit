@@ -17,6 +17,11 @@ export interface MoleculeInfo {
   molecular_formula: string | null;
   molecular_weight: number | null;
   num_atoms: number | null;
+  num_bonds: number | null;
+  num_rings: number | null;
+  num_aromatic_rings: number | null;
+  num_stereocenters: number | null;
+  has_stereochemistry: boolean | null;
 }
 
 export interface ValidationRequest {
