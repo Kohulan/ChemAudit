@@ -156,6 +156,15 @@ def run_expensive_analytics(
         )
         return
 
+    # Skip if already complete (idempotency guard)
+    current_status = analytics_storage.get_status(job_id)
+    if current_status and current_status.get(analysis_type, {}).get("status") == "complete":
+        logger.info(
+            "run_expensive_analytics: %s already complete for job %s, skipping.",
+            analysis_type, job_id,
+        )
+        return
+
     analytics_storage.update_status(job_id, analysis_type, "computing")
 
     try:

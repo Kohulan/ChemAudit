@@ -46,9 +46,9 @@ export function BatchValidationPage() {
   const [compareMode, setCompareMode] = useState(false);
 
   // Analytics data for timeline and comparison radar
-  const { data: analyticsData } = useBatchAnalytics(
+  const { data: analyticsData, retrigger: analyticsRetrigger } = useBatchAnalytics(
     pageState === 'results' ? jobId : null,
-    ['scaffold', 'chemical_space', 'statistics']
+    ['scaffold', 'chemical_space']
   );
 
   // Derive molecules for comparison (max 2 from selected indices)
@@ -488,6 +488,8 @@ export function BatchValidationPage() {
                   results={resultsData.results}
                   selectedIndices={selectedIndices}
                   onSelectionChange={handleSelectionChange}
+                  analyticsData={analyticsData}
+                  onRetrigger={analyticsRetrigger}
                 />
               </div>
             )}

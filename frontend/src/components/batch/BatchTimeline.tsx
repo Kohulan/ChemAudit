@@ -54,22 +54,46 @@ function getLineColor(status: PhaseStatus): string {
   }
 }
 
+// Only track auto-computed and user-triggered analytics, not never-triggered ones
+const TRACKED_ANALYTICS = ['deduplication', 'statistics', 'scaffold', 'chemical_space'];
+
 function deriveAnalyticsPhaseStatus(
   analyticsStatus: Record<string, AnalysisStatus> | null
 ): PhaseStatus {
   if (!analyticsStatus) return 'pending';
 
-  const statuses = Object.values(analyticsStatus);
+  const statuses = TRACKED_ANALYTICS
+    .map((key) => analyticsStatus[key])
+    .filter((s): s is AnalysisStatus => s != null);
   if (statuses.length === 0) return 'pending';
 
   const anyComputing = statuses.some((s) => s.status === 'computing' || s.status === 'pending');
   const anyFailed = statuses.some((s) => s.status === 'failed');
-  const allComplete = statuses.every((s) => s.status === 'complete' || s.status === 'skipped');
+  const allTerminal = statuses.every(
+    (s) => s.status === 'complete' || s.status === 'skipped' || s.status === 'failed'
+  );
 
-  if (allComplete) return 'complete';
-  if (anyFailed && !anyComputing) return 'failed';
+  if (allTerminal && !anyFailed) return 'complete';
+  if (allTerminal && anyFailed) return 'failed';
   if (anyComputing) return 'computing';
   return 'pending';
+}
+
+function computeAnalyticsProgress(
+  analyticsStatus: Record<string, AnalysisStatus> | null
+): { completed: number; total: number; percent: number } {
+  if (!analyticsStatus) return { completed: 0, total: TRACKED_ANALYTICS.length, percent: 0 };
+
+  let completed = 0;
+  for (const key of TRACKED_ANALYTICS) {
+    const s = analyticsStatus[key];
+    if (s && (s.status === 'complete' || s.status === 'skipped')) {
+      completed++;
+    }
+  }
+  const total = TRACKED_ANALYTICS.length;
+  const percent = Math.round((completed / total) * 100);
+  return { completed, total, percent };
 }
 
 export const BatchTimeline = React.memo(function BatchTimeline({
@@ -77,6 +101,7 @@ export const BatchTimeline = React.memo(function BatchTimeline({
   analyticsStatus,
 }: BatchTimelineProps) {
   const analyticsPhase = deriveAnalyticsPhaseStatus(analyticsStatus);
+  const progress = computeAnalyticsProgress(analyticsStatus);
   const allComplete = analyticsPhase === 'complete';
 
   const phases: TimelinePhase[] = [
@@ -102,7 +127,7 @@ export const BatchTimeline = React.memo(function BatchTimeline({
         analyticsPhase === 'complete'
           ? 'Done'
           : analyticsPhase === 'computing'
-            ? 'Computing...'
+            ? `${progress.completed}/${progress.total} complete`
             : analyticsPhase === 'failed'
               ? 'Partial failure'
               : undefined,
@@ -170,6 +195,24 @@ export const BatchTimeline = React.memo(function BatchTimeline({
           </React.Fragment>
         ))}
       </div>
+
+      {/* Analytics progress bar */}
+      {analyticsPhase === 'computing' && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
+            <span>Analytics: {progress.completed}/{progress.total} complete</span>
+            <span>{progress.percent}%</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[var(--color-surface-sunken)] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-amber-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress.percent}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary stats */}
       <div className="flex flex-wrap gap-3 text-[10px] text-[var(--color-text-muted)]">

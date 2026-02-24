@@ -39,12 +39,11 @@ function getProperty(r: BatchResult, prop: string): number | null {
 
   switch (prop) {
     case 'MW':
-      // MW not directly stored; approximate from validation or use null
-      return null;
+      return r.scoring?.druglikeness?.mw ?? null;
     case 'LogP':
-      return null; // Not directly available in BatchResult
+      return r.scoring?.druglikeness?.logp ?? null;
     case 'TPSA':
-      return null;
+      return r.scoring?.druglikeness?.tpsa ?? null;
     case 'QED':
       return r.scoring?.druglikeness?.qed_score ?? null;
     case 'overall_score':

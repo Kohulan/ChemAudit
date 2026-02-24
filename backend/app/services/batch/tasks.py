@@ -343,6 +343,11 @@ def _process_single_molecule(
                 "qed_score": dl_result.qed.score,
                 "lipinski_passed": dl_result.lipinski.passed,
                 "lipinski_violations": dl_result.lipinski.violations,
+                "mw": dl_result.lipinski.mw,
+                "logp": dl_result.lipinski.logp,
+                "hbd": dl_result.lipinski.hbd,
+                "hba": dl_result.lipinski.hba,
+                "tpsa": dl_result.veber.tpsa if dl_result.veber else None,
             }
         except Exception as e:
             if "scoring" not in result or result["scoring"] is None:

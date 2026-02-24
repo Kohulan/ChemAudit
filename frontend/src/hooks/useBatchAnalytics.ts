@@ -1,8 +1,8 @@
 /**
  * useBatchAnalytics Hook
  *
- * Triggers analytics computation and polls until all requested types complete.
- * Returns analytics data, status, error, and a retrigger function.
+ * Single-instance analytics polling with exponential backoff on errors.
+ * Triggers expensive analytics, polls until all requested types complete.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -18,14 +18,9 @@ interface UseBatchAnalyticsReturn {
   retrigger: (type: string) => void;
 }
 
-const POLL_INTERVAL_MS = 2000;
+const BASE_POLL_MS = 3000;
+const MAX_POLL_MS = 30000;
 
-/**
- * Custom hook for polling batch analytics data.
- *
- * @param jobId - The batch job ID to fetch analytics for
- * @param types - Analytics types to trigger (e.g., ['scaffold', 'chemical_space', 'statistics'])
- */
 export function useBatchAnalytics(
   jobId: string | null,
   types: string[]
@@ -33,10 +28,16 @@ export function useBatchAnalytics(
   const [data, setData] = useState<BatchAnalyticsResponse | null>(null);
   const [status, setStatus] = useState<AnalyticsHookStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const triggeredRef = useRef(false);
+  const backoffRef = useRef(BASE_POLL_MS);
+  const mountedRef = useRef(true);
 
-  // Trigger analytics on mount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   useEffect(() => {
     if (!jobId || types.length === 0) return;
 
@@ -46,66 +47,79 @@ export function useBatchAnalytics(
 
     setStatus('computing');
     setError(null);
+    backoffRef.current = BASE_POLL_MS;
 
-    // Fire-and-forget trigger for each type
+    // Fire-and-forget trigger for each expensive type
     for (const type of types) {
-      batchApi.triggerAnalytics(jobId, type).catch(() => {
-        // Ignore trigger errors — polling will pick up the status
-      });
+      batchApi.triggerAnalytics(jobId, type).catch(() => {});
     }
 
-    // Start polling
     const poll = async () => {
+      if (!mountedRef.current) return;
+
       try {
         const response = await batchApi.getAnalytics(jobId);
-        setData(response);
+        if (!mountedRef.current) return;
 
-        // Check if all requested types are terminal (complete or failed)
+        setData(response);
+        backoffRef.current = BASE_POLL_MS; // Reset backoff on success
+
+        // Check if all requested types are terminal
         const allTerminal = types.every((type) => {
           const st: AnalysisStatus | undefined = response.status[type];
-          return st && (st.status === 'complete' || st.status === 'failed');
+          return st && (st.status === 'complete' || st.status === 'failed' || st.status === 'skipped');
         });
 
         if (allTerminal) {
-          // Check if any failed
-          const anyFailed = types.some((type) => {
-            const st = response.status[type];
-            return st?.status === 'failed';
-          });
-
+          const anyFailed = types.some((type) => response.status[type]?.status === 'failed');
           if (anyFailed) {
-            const failedTypes = types.filter(
-              (type) => response.status[type]?.status === 'failed'
-            );
+            const failedTypes = types.filter((type) => response.status[type]?.status === 'failed');
             setError(`Analytics failed for: ${failedTypes.join(', ')}`);
           }
-
           setStatus(anyFailed ? 'error' : 'complete');
-
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          return; // Stop polling
         }
+
+        // Schedule next poll
+        timeoutRef.current = setTimeout(poll, backoffRef.current);
       } catch (e: unknown) {
-        const errMsg = e instanceof Error ? e.message : 'Failed to fetch analytics';
-        setError(errMsg);
-        setStatus('error');
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+        if (!mountedRef.current) return;
+
+        const axiosResponse = (e as { response?: { status?: number } })?.response;
+        const httpStatus = axiosResponse?.status;
+
+        // 404: analytics not initialized yet — keep polling
+        if (httpStatus === 404) {
+          timeoutRef.current = setTimeout(poll, backoffRef.current);
+          return;
+        }
+
+        // 429: rate limited — exponential backoff, keep polling
+        if (httpStatus === 429) {
+          backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
+          timeoutRef.current = setTimeout(poll, backoffRef.current);
+          return;
+        }
+
+        // Other errors — exponential backoff up to 3 retries then give up
+        backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
+        if (backoffRef.current < MAX_POLL_MS) {
+          timeoutRef.current = setTimeout(poll, backoffRef.current);
+        } else {
+          const errMsg = e instanceof Error ? e.message : 'Failed to fetch analytics';
+          setError(errMsg);
+          setStatus('error');
         }
       }
     };
 
-    // Initial fetch
+    // Start polling
     poll();
-    intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,37 +136,35 @@ export function useBatchAnalytics(
 
       setStatus('computing');
       setError(null);
+      backoffRef.current = BASE_POLL_MS;
 
-      batchApi.triggerAnalytics(jobId, type).catch(() => {
-        // Ignore — polling picks up status
-      });
+      batchApi.triggerAnalytics(jobId, type).catch(() => {});
 
-      // Restart polling if it stopped
-      if (!intervalRef.current) {
+      // Restart polling if stopped
+      if (!timeoutRef.current) {
         const poll = async () => {
+          if (!mountedRef.current) return;
           try {
             const response = await batchApi.getAnalytics(jobId);
+            if (!mountedRef.current) return;
             setData(response);
 
             const allTerminal = types.every((t) => {
               const st = response.status[t];
-              return st && (st.status === 'complete' || st.status === 'failed');
+              return st && (st.status === 'complete' || st.status === 'failed' || st.status === 'skipped');
             });
 
             if (allTerminal) {
               setStatus('complete');
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
+              return;
             }
+            timeoutRef.current = setTimeout(poll, backoffRef.current);
           } catch {
-            // Silently continue polling
+            backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
+            timeoutRef.current = setTimeout(poll, backoffRef.current);
           }
         };
-
         poll();
-        intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
       }
     },
     [jobId, types]

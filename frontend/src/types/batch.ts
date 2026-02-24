@@ -57,6 +57,11 @@ export interface BatchResult {
       qed_score: number;
       lipinski_passed: boolean;
       lipinski_violations: number;
+      mw?: number;
+      logp?: number;
+      hbd?: number;
+      hba?: number;
+      tpsa?: number;
     };
     safety_filters?: {
       all_passed: boolean;

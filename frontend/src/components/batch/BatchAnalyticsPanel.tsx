@@ -9,7 +9,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, AlertTriangle, RotateCcw } from 'lucide-react';
-import { useBatchAnalytics } from '../../hooks/useBatchAnalytics';
 import { ScoreHistogram } from './charts/ScoreHistogram';
 import { PropertyScatterPlot } from './charts/PropertyScatterPlot';
 import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
@@ -25,6 +24,8 @@ interface BatchAnalyticsPanelProps {
   results: BatchResult[];
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
+  analyticsData: import('../../types/analytics').BatchAnalyticsResponse | null;
+  onRetrigger: (type: string) => void;
 }
 
 const TABS = ['Distributions', 'Chemical Space'] as const;
@@ -148,18 +149,14 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   results,
   selectedIndices,
   onSelectionChange,
+  analyticsData,
+  onRetrigger,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
   const [scatterYProp, setScatterYProp] = useState('LogP');
   const [scatterColorProp, setScatterColorProp] = useState('overall_score');
   const [chemSpaceColorProp, setChemSpaceColorProp] = useState('overall_score');
-
-  // Analytics polling for Chemical Space tab data
-  const { data: analyticsData, retrigger } = useBatchAnalytics(
-    jobId,
-    ['scaffold', 'chemical_space', 'statistics']
-  );
 
   // Chart container refs for SVG download
   const scoreHistRef = useRef<HTMLDivElement>(null);
@@ -338,7 +335,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 {isChemSpaceStatus('scaffold')?.status === 'failed' ? (
                   <ErrorCard
                     message="Scaffold analysis failed"
-                    onRetry={() => retrigger('scaffold')}
+                    onRetry={() => onRetrigger('scaffold')}
                   />
                 ) : analyticsData?.scaffold ? (
                   <ScaffoldTreemap
@@ -362,7 +359,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
               {isChemSpaceStatus('chemical_space')?.status === 'failed' ? (
                 <ErrorCard
                   message="Chemical space analysis failed"
-                  onRetry={() => retrigger('chemical_space')}
+                  onRetry={() => onRetrigger('chemical_space')}
                 />
               ) : (
                 <ChemicalSpaceScatter

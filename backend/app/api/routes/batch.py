@@ -396,7 +396,7 @@ async def cancel_batch(
 
 
 @router.get("/batch/{job_id}/analytics", response_model=BatchAnalyticsResponse)
-@limiter.limit("30/minute", key_func=get_rate_limit_key)
+@limiter.limit("120/minute", key_func=get_rate_limit_key)
 async def get_batch_analytics(
     request: Request,
     job_id: str,

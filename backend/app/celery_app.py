@@ -14,7 +14,10 @@ celery_app = Celery(
     "chemaudit",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.services.batch.tasks"],
+    include=[
+        "app.services.batch.tasks",
+        "app.services.batch.analytics_tasks",
+    ],
 )
 
 # Define exchanges and queues for priority-based routing
@@ -57,6 +60,13 @@ celery_app.conf.update(
         },
         "app.services.batch.tasks.aggregate_batch_results_priority": {
             "queue": "high_priority",
+        },
+        # Analytics tasks
+        "app.services.batch.analytics_tasks.run_cheap_analytics": {
+            "queue": "default",
+        },
+        "app.services.batch.analytics_tasks.run_expensive_analytics": {
+            "queue": "default",
         },
     },
 )
