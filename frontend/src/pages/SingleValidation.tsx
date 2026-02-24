@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom,
@@ -159,6 +159,7 @@ const CHECK_DESCRIPTIONS: Record<string, string> = {
 
 export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [molecule, setMolecule] = useState('');
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [highlightLocked, setHighlightLocked] = useState(false);
@@ -344,6 +345,22 @@ export function SingleValidationPage() {
     setHighlightLocked(false);
     setShowCIP(false);
   };
+
+  // Clear all results on each fresh navigation to this page (not on initial mount).
+  // location.key is unique per navigation event. We skip the first render so that
+  // URL-param-driven validation (useEffect above) is not wiped immediately.
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    setMolecule('');
+    resetAll();
+    // Intentionally not including resetAll in deps — it is a stable inline function
+    // that depends on state setters which never change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   // Handler for locking atom highlighting (persists for SVG download)
   const handleAtomLock = useCallback((atoms: number[]) => {

@@ -1,12 +1,13 @@
 /**
- * Star icon button that toggles bookmark state for a molecule.
+ * Labelled bookmark button that toggles bookmark state for a molecule.
+ * Renders as a ClayButton with a star icon and visible label text.
  */
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star } from 'lucide-react';
 import { bookmarksApi } from '../../services/api';
-import { cn } from '../../lib/utils';
+import { ClayButton } from '../ui/ClayButton';
 
 interface BookmarkButtonProps {
   smiles: string;
@@ -32,22 +33,19 @@ export function BookmarkButton({
   const [showToast, setShowToast] = useState(false);
 
   const handleClick = useCallback(async () => {
-    if (isLoading || !smiles.trim()) return;
+    if (isLoading || !smiles.trim() || bookmarked) return;
     setIsLoading(true);
     try {
-      if (!bookmarked) {
-        await bookmarksApi.createBookmark({
-          smiles: smiles.trim(),
-          name: name ?? undefined,
-          source: source ?? 'single_validation',
-          job_id: jobId ?? undefined,
-        });
-        setBookmarked(true);
-        onBookmark?.(true);
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-      }
-      // For unbookmark, the user would use the Bookmarks page to remove
+      await bookmarksApi.createBookmark({
+        smiles: smiles.trim(),
+        name: name ?? undefined,
+        source: source ?? 'single_validation',
+        job_id: jobId ?? undefined,
+      });
+      setBookmarked(true);
+      onBookmark?.(true);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
     } catch {
       // Silently fail - could already be bookmarked
     } finally {
@@ -57,25 +55,17 @@ export function BookmarkButton({
 
   return (
     <div className="relative inline-flex">
-      <motion.button
+      <ClayButton
+        variant="stone"
         onClick={handleClick}
         disabled={isLoading || bookmarked}
-        className={cn(
-          'relative p-2 rounded-lg transition-all duration-200',
-          'border shadow-sm',
-          bookmarked
-            ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 cursor-default'
-            : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-amber-500/50 hover:text-amber-500',
-          className
-        )}
-        whileHover={!bookmarked ? { scale: 1.1 } : undefined}
-        whileTap={!bookmarked ? { scale: 0.9 } : undefined}
+        loading={isLoading}
+        leftIcon={<Star className={bookmarked ? 'w-4 h-4 fill-amber-300' : 'w-4 h-4'} />}
+        className={className}
         title={bookmarked ? 'Bookmarked' : 'Bookmark this molecule'}
       >
-        <Star
-          className={cn('w-4 h-4', bookmarked && 'fill-amber-500')}
-        />
-      </motion.button>
+        {bookmarked ? 'Bookmarked' : 'Bookmark Result'}
+      </ClayButton>
 
       {/* Toast */}
       <AnimatePresence>

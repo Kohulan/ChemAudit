@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Layers, Share2, Check } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
@@ -29,6 +30,7 @@ import type {
  */
 export function BatchValidationPage() {
   const limits = useLimits();
+  const location = useLocation();
 
   // Page state machine
   const [pageState, setPageState] = useState<BatchPageState>('upload');
@@ -274,6 +276,19 @@ export function BatchValidationPage() {
     setComparisonResults([]);
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
+
+  // Clear batch results on each fresh navigation to this page (not on initial mount).
+  // location.key changes on every navigation, so this fires when the user navigates
+  // away and returns (e.g. switching from Single Validation back to Batch).
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    handleStartNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   return (
     <div className={cn(
