@@ -62,6 +62,8 @@ export interface BatchResult {
       hbd?: number;
       hba?: number;
       tpsa?: number;
+      rotatable_bonds?: number;
+      aromatic_rings?: number;
     };
     safety_filters?: {
       all_passed: boolean;

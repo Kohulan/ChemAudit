@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from celery import chord, group
 from rdkit import Chem
+from rdkit.Chem import Lipinski
 
 from app.celery_app import SMALL_JOB_THRESHOLD, celery_app
 from app.core.config import settings
@@ -353,6 +354,10 @@ def _process_single_molecule(
                 "hbd": dl_result.lipinski.hbd,
                 "hba": dl_result.lipinski.hba,
                 "tpsa": dl_result.veber.tpsa if dl_result.veber else None,
+                "rotatable_bonds": (
+                    dl_result.veber.rotatable_bonds if dl_result.veber else None
+                ),
+                "aromatic_rings": Lipinski.NumAromaticRings(mol),
             }
         except Exception as e:
             if "scoring" not in result or result["scoring"] is None:
