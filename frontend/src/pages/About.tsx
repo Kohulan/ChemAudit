@@ -52,12 +52,11 @@ const glowOrbConfigs = [
  * Stunning About page with claymorphism, animations, and visual effects
  */
 export function AboutPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: containerRef });
+  const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
 
   return (
-    <div ref={containerRef} className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden">
       {/* Animated gradient mesh background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {/* Aurora gradient effect */}
@@ -765,7 +764,7 @@ function QuickStats() {
     },
     {
       label: 'Safety Filters',
-      value: '480+',
+      value: '1,500+',
       icon: <ShieldCheck className="w-4 h-4" />,
       color: 'from-red-500 to-orange-500',
       bgColor: 'from-red-500/10 to-orange-500/10',
@@ -898,8 +897,8 @@ function AdvancedScoring() {
     {
       icon: <ShieldCheck className="w-5 h-5" />,
       title: 'Safety Filters',
-      description: 'Structural alert screening using 480+ PAINS patterns and multiple ChEMBL sources to identify potentially problematic compounds.',
-      features: ['PAINS (480 patterns)', 'Brenk Alerts', 'NIH Filters', 'ZINC Filters', 'ChEMBL Alerts (7 sources)', 'BMS/GSK/Dundee Rules'],
+      description: 'Structural alert screening using 1,500+ patterns across PAINS, Brenk, NIH, ZINC, and 7 ChEMBL filter sets to identify potentially problematic substructures.',
+      features: ['PAINS A/B/C (480 patterns)', 'Brenk Alerts (105 patterns)', 'NIH Filters', 'ZINC Filters', 'ChEMBL: BMS, Dundee, Glaxo, Inpharmatica, LINT, MLSMR, SureChEMBL'],
       color: 'from-red-500/20 to-rose-500/10',
     },
     {
@@ -999,7 +998,7 @@ function AdvancedScoring() {
             <p className="text-sm text-[var(--color-text-secondary)]">
               Implements validated pharmaceutical guidelines including Lipinski's Rule of Five,
               Pfizer's 3/75 and CNS MPO rules, GSK's 4/400 rule, Abbott's Golden Triangle,
-              and comprehensive PAINS filtering with 480+ structural alert patterns from ChEMBL,
+              and comprehensive structural alert screening with 1,500+ patterns from PAINS, Brenk, NIH, ZINC, and 7 ChEMBL filter sets,
               NIH, and major pharmaceutical companies.
             </p>
           </div>
@@ -1122,7 +1121,7 @@ function ScientificReferences() {
       ],
     },
     {
-      title: 'Safety Filters',
+      title: 'Safety Filters & Structural Alerts',
       icon: <ShieldCheck className="w-4 h-4" />,
       color: 'from-red-500/20 to-rose-500/10',
       references: [
@@ -1133,10 +1132,52 @@ function ScientificReferences() {
           tooltip: 'Baell & Holloway. J Med Chem (2010)',
         },
         {
-          method: 'Brenk Alerts',
+          method: 'Brenk / Dundee NTD Screening Alerts',
           citation: 'Brenk R, Schipani A, James D, et al. Lessons learnt from assembling screening libraries for drug discovery for neglected diseases. ChemMedChem. 2008;3(3):435-444.',
           doi: '10.1002/cmdc.200700139',
           tooltip: 'Brenk et al. ChemMedChem (2008)',
+        },
+        {
+          method: 'NIH MLPCN Exclusion Filters',
+          citation: 'Jadhav A, Ferreira RS, Klumpp C, et al. Quantitative analyses of aggregation, autofluorescence, and reactivity artifacts in a screen for inhibitors of a thiol protease. J Med Chem. 2010;53(1):37-51.',
+          doi: '10.1021/jm901070c',
+          tooltip: 'Jadhav et al. J Med Chem (2010)',
+        },
+        {
+          method: 'ZINC Druglike Filters',
+          citation: 'Irwin JJ, Shoichet BK. ZINC — a free database of commercially available compounds for virtual screening. J Chem Inf Model. 2005;45(1):177-182.',
+          doi: '10.1021/ci049714+',
+          tooltip: 'Irwin & Shoichet. J Chem Inf Model (2005)',
+        },
+        {
+          method: 'BMS HTS Desirability Filters',
+          citation: 'Pearce BC, Sofia MJ, Good AC, Drexler DM, Stock DA. An empirical process for the design of high-throughput screening deck filters. J Chem Inf Model. 2006;46(3):1060-1068.',
+          doi: '10.1021/ci050504m',
+          tooltip: 'Pearce et al. J Chem Inf Model (2006)',
+        },
+        {
+          method: 'Glaxo Hard Filters',
+          citation: 'Hann M, Hudson B, Lewell X, Lifely R, Miller L, Ramsden N. Strategic pooling of compounds for high-throughput screening. J Chem Inf Comput Sci. 1999;39(5):897-902.',
+          doi: '10.1021/ci990423o',
+          tooltip: 'Hann et al. J Chem Inf Comput Sci (1999)',
+        },
+        {
+          method: 'Lilly MedChem Rules (LINT)',
+          citation: 'Bruns RF, Watson IA. Rules for identifying potentially reactive or promiscuous compounds. J Med Chem. 2012;55(22):9763-9772.',
+          doi: '10.1021/jm301008n',
+          tooltip: 'Bruns & Watson. J Med Chem (2012)',
+        },
+        {
+          method: 'SureChEMBL Non-chemical Filters',
+          citation: 'Papadatos G, Davies M, Dedber N, et al. SureChEMBL: a large-scale, chemically annotated patent document database. Nucleic Acids Res. 2016;44(D1):D1220-D1228.',
+          doi: '10.1093/nar/gkv1253',
+          tooltip: 'Papadatos et al. Nucleic Acids Res (2016)',
+        },
+        {
+          method: 'Phantom PAINS — Context for Alerts',
+          citation: 'Jasial S, Hu Y, Bajorath J. How frequently are pan-assay interference compounds active? Large-scale analysis of screening data reveals diverse activity profiles, low global hit frequency, and many consistently inactive compounds. J Med Chem. 2017;60(9):3879-3886.',
+          doi: '10.1021/acs.jmedchem.7b00154',
+          tooltip: 'Jasial et al. J Med Chem (2017)',
         },
       ],
     },
