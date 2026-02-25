@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useBatchCache } from '../contexts/BatchCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Layers, Share2, Check } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
@@ -10,6 +10,7 @@ import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
 import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
 import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
 import { BatchTimeline } from '../components/batch/BatchTimeline';
+import { ProfileSidebar } from '../components/batch/ProfileSidebar';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
 import { useBatchAnalytics } from '../hooks/useBatchAnalytics';
@@ -30,7 +31,7 @@ import type {
  */
 export function BatchValidationPage() {
   const limits = useLimits();
-  const location = useLocation();
+  const { getCache, setCache, clearCache } = useBatchCache();
 
   // Page state machine
   const [pageState, setPageState] = useState<BatchPageState>('upload');
@@ -50,6 +51,7 @@ export function BatchValidationPage() {
   const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -275,20 +277,46 @@ export function BatchValidationPage() {
     setCompareMode(false);
     setComparisonResults([]);
     selectionDispatch(clearSelection());
-  }, [selectionDispatch]);
+    clearCache();
+  }, [selectionDispatch, clearCache]);
 
-  // Clear batch results on each fresh navigation to this page (not on initial mount).
-  // location.key changes on every navigation, so this fires when the user navigates
-  // away and returns (e.g. switching from Single Validation back to Batch).
-  const isFirstMount = useRef(true);
+  // Restore cached batch state on mount (when navigating back to this page)
+  const didRestore = useRef(false);
   useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
+    if (didRestore.current) return;
+    didRestore.current = true;
+    const cached = getCache();
+    if (cached && cached.jobId) {
+      setPageState(cached.pageState);
+      setJobId(cached.jobId);
+      setResultsData(cached.resultsData);
+      setPage(cached.page);
+      setPageSize(cached.pageSize);
+      setFilters(cached.filters);
+      setSortBy(cached.sortBy);
+      setSortDir(cached.sortDir);
+      setIncludeAnalytics(cached.includeAnalytics);
+      setSelectedProfileId(cached.selectedProfileId ?? null);
     }
-    handleStartNew();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  }, []);
+
+  // Persist batch state to cache whenever it changes
+  useEffect(() => {
+    if (!jobId) return;
+    setCache({
+      pageState,
+      jobId,
+      resultsData,
+      page,
+      pageSize,
+      filters,
+      sortBy,
+      sortDir,
+      includeAnalytics,
+      selectedProfileId,
+    });
+  }, [pageState, jobId, resultsData, page, pageSize, filters, sortBy, sortDir, includeAnalytics, selectedProfileId, setCache]);
 
   return (
     <div className={cn(
@@ -381,9 +409,15 @@ export function BatchValidationPage() {
                   </p>
                 </div>
               </div>
+              <ProfileSidebar
+                selectedProfileId={selectedProfileId}
+                onProfileChange={setSelectedProfileId}
+                disabled={pageState !== 'upload'}
+              />
               <BatchUpload
                 onUploadSuccess={handleUploadSuccess}
                 onUploadError={handleUploadError}
+                profileId={selectedProfileId}
               />
             </div>
 
