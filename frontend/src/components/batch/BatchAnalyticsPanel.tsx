@@ -8,7 +8,17 @@
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, AlertTriangle, RotateCcw, Loader2, GitCompare, X } from 'lucide-react';
+import { Download, AlertTriangle, RotateCcw, Loader2, GitCompare, X, Beaker } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Cell,
+} from 'recharts';
 import { ScoreHistogram } from './charts/ScoreHistogram';
 import { PropertyScatterPlot } from './charts/PropertyScatterPlot';
 import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
@@ -149,6 +159,46 @@ function downloadSvgAsPng(containerRef: React.RefObject<HTMLDivElement | null>, 
   img.src = url;
 }
 
+function ProfileScoreHistogram({ results }: { results: BatchResult[] }) {
+  const buckets = { Excellent: 0, Good: 0, Moderate: 0, Poor: 0 };
+  for (const r of results) {
+    const score = r.scoring?.profile?.score;
+    if (score == null) continue;
+    if (score >= 80) buckets.Excellent++;
+    else if (score >= 50) buckets.Good++;
+    else if (score >= 20) buckets.Moderate++;
+    else buckets.Poor++;
+  }
+  const data = [
+    { name: 'Excellent', count: buckets.Excellent, fill: '#22c55e' },
+    { name: 'Good', count: buckets.Good, fill: '#eab308' },
+    { name: 'Moderate', count: buckets.Moderate, fill: '#f97316' },
+    { name: 'Poor', count: buckets.Poor, fill: '#ef4444' },
+  ];
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+        <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
+        <YAxis allowDecimals={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
+        <RechartsTooltip
+          contentStyle={{
+            backgroundColor: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '8px',
+            color: 'var(--color-text-primary)',
+          }}
+        />
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={index} fill={entry.fill} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
   progress?: AnalyticsProgressInfo;
   status?: AnalyticsHookStatus;
@@ -271,6 +321,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   const validTreemapRef = useRef<HTMLDivElement>(null);
   const propScatterRef = useRef<HTMLDivElement>(null);
   const scaffoldTreemapRef = useRef<HTMLDivElement>(null);
+  const profileHistRef = useRef<HTMLDivElement>(null);
 
   // Badge counts
   const outlierCount = analyticsData?.statistics?.outliers?.length ?? 0;
@@ -479,6 +530,21 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 )}
               </div>
             </ChartCard>
+
+            {/* VIZ: Profile Score Distribution (conditional) */}
+            {results.some(r => r.scoring?.profile?.score != null) && (
+              <ChartCard
+                title="Profile Score Distribution"
+                icon={<Beaker className="w-4 h-4" />}
+                onDownload={() => downloadSvgAsPng(profileHistRef, 'profile-score-distribution.png')}
+                ariaLabel="Profile score distribution histogram"
+                caption="Distribution of profile desirability scores across the batch"
+              >
+                <div ref={profileHistRef}>
+                  <ProfileScoreHistogram results={results} />
+                </div>
+              </ChartCard>
+            )}
 
             {/* VIZ-04: Validation Treemap */}
             <ChartCard
