@@ -42,6 +42,7 @@ interface BatchAnalyticsPanelProps {
   analyticsProgress?: AnalyticsProgressInfo;
   onRetrigger: (type: string) => void;
   onCompare?: () => void;
+  onOpenActions?: () => void;
 }
 
 const TABS = ['Distributions', 'Chemical Space'] as const;
@@ -308,6 +309,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   analyticsProgress,
   onRetrigger,
   onCompare,
+  onOpenActions,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
@@ -453,6 +455,15 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                     leftIcon={<GitCompare className="w-3.5 h-3.5" />}
                   >
                     Compare
+                  </ClayButton>
+                )}
+                {onOpenActions && (
+                  <ClayButton
+                    variant="accent"
+                    size="sm"
+                    onClick={onOpenActions}
+                  >
+                    Actions
                   </ClayButton>
                 )}
                 <ClayButton

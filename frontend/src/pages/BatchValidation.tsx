@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useBatchCache } from '../contexts/BatchCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Layers, Share2, Check } from 'lucide-react';
+import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Share2, Check } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
 import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
@@ -496,15 +496,6 @@ export function BatchValidationPage() {
                 </nav>
 
                 <div className="flex items-center gap-2">
-                  {selectedIndices.size > 0 && (
-                    <ClayButton
-                      size="sm"
-                      onClick={() => setSubsetPanelOpen(true)}
-                      leftIcon={<Layers className="w-3.5 h-3.5" />}
-                    >
-                      Actions ({selectedIndices.size} selected)
-                    </ClayButton>
-                  )}
                   <ClayButton
                     size="sm"
                     onClick={handleShare}
@@ -587,6 +578,7 @@ export function BatchValidationPage() {
                   analyticsProgress={analyticsProgress}
                   onRetrigger={analyticsRetrigger}
                   onCompare={handleCompare}
+                  onOpenActions={() => setSubsetPanelOpen(true)}
                 />
               </div>
             )}
@@ -648,6 +640,12 @@ export function BatchValidationPage() {
                 selectedIndices={selectedIndices}
                 isOpen={subsetPanelOpen}
                 onClose={() => setSubsetPanelOpen(false)}
+                onNewJob={(newJobId) => {
+                  setSubsetPanelOpen(false);
+                  setJobId(newJobId);
+                  setPageState('processing');
+                  selectionDispatch(clearSelection());
+                }}
               />
             )}
           </motion.div>
