@@ -28,6 +28,9 @@ class Bookmark(Base):
     api_key_hash: Mapped[str | None] = mapped_column(
         String(64), nullable=True, index=True
     )
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

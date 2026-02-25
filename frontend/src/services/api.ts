@@ -146,7 +146,7 @@ async function fetchCsrfToken(): Promise<string> {
   if (csrfToken) return csrfToken;
   
   try {
-    const response = await axios.get(`${API_BASE_URL}/csrf-token`);
+    const response = await axios.get(`${API_BASE_URL}/csrf-token`, { withCredentials: true });
     csrfToken = response.data.csrf_token;
     if (DEBUG_MODE) {
       console.log('[ChemAudit API] CSRF token fetched');
@@ -167,6 +167,7 @@ export const refreshCsrfToken = async (): Promise<void> => {
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -924,6 +925,17 @@ export const bookmarksApi = {
 };
 
 // ============================================================================
+// Session API
+// ============================================================================
+
+export const sessionApi = {
+  /** Delete all data associated with the current session (GDPR Art. 17). */
+  purgeMyData: async (): Promise<{ status: string; deleted: { bookmarks: number; history: number } }> => {
+    const response = await api.delete('/me/data');
+    return response.data;
+  },
+};
+
 // Audit History API
 // ============================================================================
 
@@ -1021,7 +1033,45 @@ export const subsetApi = {
     );
     return response.data;
   },
+
+  /** Score a subset inline with a profile (no Celery). */
+  scoreInline: async (
+    jobId: string,
+    indices: number[],
+    profileId: number
+  ): Promise<InlineScoreResponse> => {
+    const response = await api.post(`/batch/${jobId}/subset/score-inline`, {
+      indices,
+      profile_id: profileId,
+    });
+    return response.data;
+  },
 };
+
+/** Response from inline profile scoring endpoint. */
+export interface InlineScoredMolecule {
+  index: number;
+  name: string | null;
+  smiles: string;
+  profile: {
+    profile_id: number;
+    profile_name: string;
+    score: number | null;
+    properties: Record<string, {
+      value: number | null;
+      min: number | null;
+      max: number | null;
+      in_range: boolean | null;
+      desirability: number | null;
+    }>;
+  };
+}
+
+export interface InlineScoreResponse {
+  profile_name: string;
+  profile_id: number;
+  molecules: InlineScoredMolecule[];
+}
 
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };

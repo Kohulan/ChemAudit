@@ -4,8 +4,9 @@ Batch Processing API Routes
 Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
+import json
 import uuid
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import (
     APIRouter,
@@ -54,6 +55,11 @@ from app.services.batch.subset_actions import (
 from app.services.batch.tasks import cancel_batch_job, process_batch_job
 
 router = APIRouter()
+
+
+def _parse_json_field(value: Any) -> Any:
+    """Parse a field that may be stored as a JSON string or already a dict/list."""
+    return json.loads(value) if isinstance(value, str) else value
 
 
 @router.post("/batch/upload", response_model=BatchUploadResponse)
@@ -471,7 +477,7 @@ async def get_batch_analytics(
     }
 
     # Fetch completed results
-    _RESULT_FIELD_MAP = {
+    result_field_map = {
         "deduplication": "deduplication",
         "scaffold": "scaffold",
         "chemical_space": "chemical_space",
@@ -481,7 +487,7 @@ async def get_batch_analytics(
     }
 
     result_kwargs: dict[str, Any] = {}
-    for analysis_type, field_name in _RESULT_FIELD_MAP.items():
+    for analysis_type, field_name in result_field_map.items():
         entry = status_dict.get(analysis_type)
         if entry and entry.status == "complete":
             raw = analytics_storage.get_result(job_id, analysis_type)
@@ -645,7 +651,7 @@ async def subset_revalidate(
         raise HTTPException(status_code=404, detail=str(e))
 
     return {
-        "job_id": new_job_id,
+        "new_job_id": new_job_id,
         "source_job_id": job_id,
         "molecule_count": len(body.indices),
         "action": "revalidate",
@@ -666,13 +672,36 @@ async def subset_rescore(
     Creates a new batch job for the selected molecules.
     Returns the new job_id for tracking progress.
     """
+    # Build safety_options with full profile data if profile_id is given
+    safety_options: Dict[str, Any] = {}
+    if body.profile_id is not None:
+        try:
+            from app.db import async_session
+            from app.services.profiles.service import ProfileService
+
+            async with async_session() as session:
+                profile = await ProfileService().get(session, body.profile_id)
+                if profile:
+                    safety_options["profile_id"] = profile.id
+                    safety_options["profile_name"] = profile.name
+                    safety_options["profile_thresholds"] = _parse_json_field(
+                        profile.thresholds
+                    )
+                    safety_options["profile_weights"] = _parse_json_field(
+                        profile.weights
+                    )
+        except Exception:
+            pass  # Proceed without profile if fetch fails
+
     try:
-        new_job_id = rescore_subset(job_id, body.indices, body.profile_id)
+        new_job_id = rescore_subset(
+            job_id, body.indices, safety_options=safety_options
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
     return {
-        "job_id": new_job_id,
+        "new_job_id": new_job_id,
         "source_job_id": job_id,
         "molecule_count": len(body.indices),
         "action": "rescore",
@@ -723,3 +752,99 @@ async def subset_export(
         media_type=exporter.media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/batch/{job_id}/subset/score-inline")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def score_subset_inline(
+    request: Request,
+    job_id: str,
+    body: SubsetRescoreRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Score a subset of molecules with a profile inline (no Celery).
+
+    Reads existing batch results, applies profile desirability scoring,
+    and returns scored molecules synchronously.
+    """
+    from app.db import async_session
+    from app.services.profiles.service import ProfileService
+    from app.services.scoring.profile_scoring import compute_profile_result
+
+    if body.profile_id is None:
+        raise HTTPException(status_code=400, detail="profile_id is required")
+
+    # Fetch profile
+    try:
+        async with async_session() as session:
+            profile = await ProfileService().get(session, body.profile_id)
+    except Exception:
+        profile = None
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    thresholds = _parse_json_field(profile.thresholds)
+    weights = _parse_json_field(profile.weights)
+
+    # Fetch existing batch results for the selected indices
+    result_data = result_storage.get_results(
+        job_id=job_id, page=1, page_size=10000
+    )
+    all_results = result_data.get("results", [])
+    indices_set = set(body.indices)
+    subset = [r for r in all_results if r.get("index") in indices_set]
+
+    if not subset:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No results found for job {job_id} with given indices",
+        )
+
+    # Score each molecule using existing property data
+    scored = []
+    for mol in subset:
+        scoring = mol.get("scoring") or {}
+        dl = scoring.get("druglikeness") or {}
+        admet = scoring.get("admet") or {}
+        mol_properties = {
+            "mw": dl.get("mw"),
+            "logp": dl.get("logp"),
+            "hbd": dl.get("hbd"),
+            "hba": dl.get("hba"),
+            "tpsa": dl.get("tpsa"),
+            "rotatable_bonds": dl.get("rotatable_bonds"),
+            "aromatic_rings": dl.get("aromatic_rings"),
+            "fsp3": admet.get("fsp3"),
+        }
+        try:
+            profile_result = compute_profile_result(
+                properties=mol_properties,
+                profile_id=profile.id,
+                profile_name=profile.name,
+                thresholds=thresholds,
+                weights=weights,
+            )
+        except Exception:
+            profile_result = {
+                "profile_id": profile.id,
+                "profile_name": profile.name,
+                "score": None,
+                "properties": {},
+                "error": "Scoring failed for this molecule",
+            }
+        scored.append(
+            {
+                "index": mol.get("index"),
+                "name": mol.get("name"),
+                "smiles": mol.get("smiles"),
+                "profile": profile_result,
+            }
+        )
+
+    return {
+        "profile_name": profile.name,
+        "profile_id": profile.id,
+        "molecules": scored,
+    }

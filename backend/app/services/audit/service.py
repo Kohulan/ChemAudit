@@ -27,6 +27,7 @@ async def log_validation_event(
     pass_count: Optional[int] = None,
     fail_count: Optional[int] = None,
     api_key_hash: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> ValidationAuditEntry:
     """
     Log a validation event to the audit trail (append-only).
@@ -43,6 +44,7 @@ async def log_validation_event(
         pass_count: Passed count (for batch events)
         fail_count: Failed count (for batch events)
         api_key_hash: Hashed API key if present
+        session_id: Session ID for anonymous user tracking
 
     Returns:
         Created audit entry
@@ -58,6 +60,7 @@ async def log_validation_event(
         pass_count=pass_count,
         fail_count=fail_count,
         api_key_hash=api_key_hash,
+        session_id=session_id,
     )
     db.add(entry)
     await db.commit()
@@ -72,6 +75,7 @@ async def log_batch_event(
     pass_count: int,
     fail_count: int,
     api_key_hash: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> ValidationAuditEntry:
     """
     Log a batch completion event to the audit trail.
@@ -85,6 +89,7 @@ async def log_batch_event(
         pass_count: Number passing validation
         fail_count: Number failing validation
         api_key_hash: Hashed API key if present
+        session_id: Session ID for anonymous user tracking
 
     Returns:
         Created audit entry
@@ -108,4 +113,5 @@ async def log_batch_event(
         pass_count=pass_count,
         fail_count=fail_count,
         api_key_hash=api_key_hash,
+        session_id=session_id,
     )

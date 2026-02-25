@@ -473,6 +473,8 @@ async def _log_batch_audit(
     molecule_count: int,
     pass_count: int,
     fail_count: int,
+    session_id: Optional[str] = None,
+    api_key_hash: Optional[str] = None,
 ) -> None:
     """
     Create a DB session and log a batch completion event to the audit trail.
@@ -485,6 +487,8 @@ async def _log_batch_audit(
         molecule_count: Total molecules processed
         pass_count: Number of molecules passing validation
         fail_count: Number of molecules with errors
+        session_id: Session ID for anonymous user tracking
+        api_key_hash: Hashed API key if present
     """
     from app.db import async_session
     from app.services.audit.service import log_batch_event
@@ -496,6 +500,8 @@ async def _log_batch_audit(
             molecule_count=molecule_count,
             pass_count=pass_count,
             fail_count=fail_count,
+            api_key_hash=api_key_hash,
+            session_id=session_id,
         )
 
 

@@ -9,8 +9,8 @@ import logging
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from rdkit import Chem
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from rdkit import Chem, rdBase
 from rdkit.Chem import Descriptors, rdMolDescriptors
 from rdkit.Chem import inchi as rdkit_inchi
 from redis.asyncio import Redis
@@ -23,7 +23,8 @@ from app.core.cache import (
 )
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
-from app.core.security import get_api_key
+from app.core.security import get_api_key, hash_api_key_for_lookup
+from app.core.session import create_session_id, ensure_session_cookie, get_data_scope
 from app.db import get_db
 from app.schemas.validation import (
     CheckResultSchema,
@@ -59,6 +60,7 @@ async def get_redis(request: Request) -> Optional[Redis]:
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def validate_molecule(
     request: Request,
+    response: Response,
     body: ValidationRequest,
     api_key: Optional[str] = Depends(get_api_key),
     db: Optional[AsyncSession] = Depends(get_db),
@@ -94,8 +96,7 @@ async def validate_molecule(
     if effective_input_type in ("auto", "iupac"):
         from app.services.iupac.converter import (
             detect_input_type,
-            is_opsin_available,
-            iupac_to_smiles,
+            name_to_smiles,
         )
 
         if effective_input_type == "iupac":
@@ -104,32 +105,24 @@ async def validate_molecule(
             detected = detect_input_type(molecule_input)
 
         if detected == "iupac" or (detected == "ambiguous" and effective_input_type == "auto"):
-            # Attempt IUPAC conversion if OPSIN available
-            if is_opsin_available():
-                converted = iupac_to_smiles(molecule_input)
-                if converted:
-                    input_interpretation = InputInterpretation(
-                        detected_as="iupac",
-                        original_input=molecule_input,
-                        converted_smiles=converted,
-                        conversion_source="opsin",
-                    )
-                    molecule_input = converted
-                elif detected == "iupac" and effective_input_type == "iupac":
-                    raise HTTPException(
-                        status_code=400,
-                        detail={
-                            "error": "IUPAC name conversion failed",
-                            "message": f"Could not convert '{molecule_input}' to SMILES via OPSIN",
-                        },
-                    )
-                # If ambiguous and OPSIN fails, fall through to SMILES parsing
+            converted, source = name_to_smiles(molecule_input)
+            if converted:
+                input_interpretation = InputInterpretation(
+                    detected_as="iupac",
+                    original_input=molecule_input,
+                    converted_smiles=converted,
+                    conversion_source=source,
+                )
+                molecule_input = converted
             elif detected == "iupac" and effective_input_type == "iupac":
                 raise HTTPException(
-                    status_code=503,
+                    status_code=400,
                     detail={
-                        "error": "OPSIN unavailable",
-                        "message": "IUPAC name input requires OPSIN which is not initialized",
+                        "error": "Name conversion failed",
+                        "message": (
+                            f"Could not convert '{molecule_input}' to SMILES "
+                            "via OPSIN or PubChem"
+                        ),
                     },
                 )
 
@@ -194,7 +187,7 @@ async def validate_molecule(
 
     execution_time = int((time.time() - start_time) * 1000)
 
-    response = ValidationResponse(
+    validation_response = ValidationResponse(
         molecule_info=mol_info,
         overall_score=score,
         issues=[c for c in check_results if not c.passed],
@@ -206,10 +199,19 @@ async def validate_molecule(
     # Cache the result if enabled
     if settings.VALIDATION_CACHE_ENABLED and redis and cache_key:
         # Convert to dict for caching (exclude execution_time as it varies)
-        cache_data = response.model_dump()
+        cache_data = validation_response.model_dump()
         cache_data.pop("execution_time_ms", None)
         cache_data.pop("cached", None)
         await set_cached_validation(redis, cache_key, cache_data)
+
+    # Compute session/API-key scope for audit tagging
+    session_id, api_key_hash = await get_data_scope(request)
+    if api_key:
+        api_key_hash = hash_api_key_for_lookup(api_key)
+    if not session_id and not api_key_hash:
+        session_id = create_session_id()
+    if session_id:
+        ensure_session_cookie(response, session_id)
 
     # Log to audit trail (non-blocking — failure must not block response)
     if db is not None:
@@ -227,11 +229,13 @@ async def validate_molecule(
                 outcome=audit_outcome,
                 score=score,
                 source="single",
+                api_key_hash=api_key_hash,
+                session_id=session_id,
             )
         except Exception:
             logger.warning("Audit trail insert failed", exc_info=True)
 
-    return response
+    return validation_response
 
 
 @router.post("/validate/async")
@@ -433,6 +437,7 @@ def extract_molecule_info(
     return MoleculeInfo(
         input_smiles=input_smiles,
         canonical_smiles=canonical,
+        canonical_smiles_source=f"RDKit {rdBase.rdkitVersion}" if canonical else None,
         inchi=mol_inchi,
         inchikey=mol_inchikey,
         molecular_formula=formula,

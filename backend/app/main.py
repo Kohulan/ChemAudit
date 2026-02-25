@@ -54,6 +54,7 @@ from app.api.routes import (
     permalinks,
     profiles,
     scoring,
+    session,
     standardization,
     validation,
 )
@@ -242,6 +243,7 @@ app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 app.include_router(config.router, prefix="/api/v1", tags=["config"])
 app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
+app.include_router(session.router, prefix="/api/v1", tags=["session"])
 app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
 app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])

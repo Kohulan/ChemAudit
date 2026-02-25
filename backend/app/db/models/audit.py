@@ -27,6 +27,9 @@ class ValidationAuditEntry(Base):
     pass_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fail_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     api_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True
+    )
     source: Mapped[str] = mapped_column(String(10), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), index=True
