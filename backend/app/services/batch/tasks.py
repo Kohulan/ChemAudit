@@ -24,6 +24,7 @@ from app.services.batch.result_aggregator import compute_statistics, result_stor
 from app.services.scoring.admet import calculate_admet
 from app.services.scoring.druglikeness import calculate_druglikeness
 from app.services.scoring.ml_readiness import calculate_ml_readiness
+from app.services.scoring.profile_scoring import compute_profile_result
 from app.services.scoring.safety_filters import calculate_safety_filters
 from app.services.standardization import standardize_molecule
 from app.services.validation.engine import validation_engine
@@ -403,6 +404,34 @@ def _process_single_molecule(
             if "scoring" not in result or result["scoring"] is None:
                 result["scoring"] = {}
             result["scoring"]["admet"] = {"error": str(e)}
+
+        # Calculate profile score (if profile was selected at upload)
+        opts = safety_options or {}
+        if opts.get("profile_id") is not None:
+            try:
+                dl = result.get("scoring", {}).get("druglikeness", {})
+                admet = result.get("scoring", {}).get("admet", {})
+                mol_properties = {
+                    "mw": dl.get("mw"),
+                    "logp": dl.get("logp"),
+                    "hbd": dl.get("hbd"),
+                    "hba": dl.get("hba"),
+                    "tpsa": dl.get("tpsa"),
+                    "rotatable_bonds": dl.get("rotatable_bonds"),
+                    "aromatic_rings": dl.get("aromatic_rings"),
+                    "fsp3": admet.get("fsp3"),
+                }
+                result["scoring"]["profile"] = compute_profile_result(
+                    properties=mol_properties,
+                    profile_id=opts["profile_id"],
+                    profile_name=opts.get("profile_name", ""),
+                    thresholds=opts.get("profile_thresholds", {}),
+                    weights=opts.get("profile_weights", {}),
+                )
+            except Exception as e:
+                if "scoring" not in result or result["scoring"] is None:
+                    result["scoring"] = {}
+                result["scoring"]["profile"] = {"error": str(e)}
 
         # If we got this far with validation, mark as success
         result["status"] = "success"

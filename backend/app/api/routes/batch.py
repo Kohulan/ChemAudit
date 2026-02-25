@@ -85,6 +85,10 @@ async def upload_batch(
         default=None,
         description="Email address for batch completion notification (overrides global setting)",
     ),
+    profile_id: Optional[int] = Form(
+        default=None,
+        description="Scoring profile ID for profile-based desirability scoring",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -193,6 +197,30 @@ async def upload_batch(
         "include_chembl": include_chembl_alerts,
         "include_standardization": include_standardization,
     }
+
+    # If profile selected, fetch thresholds and attach to safety_options
+    if profile_id is not None:
+        import json
+
+        from app.db import async_session
+        from app.services.profiles.service import ProfileService
+
+        async with async_session() as db:
+            profile = await ProfileService().get(db, profile_id)
+        if profile is None:
+            raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+        safety_options["profile_id"] = profile.id
+        safety_options["profile_name"] = profile.name
+        safety_options["profile_thresholds"] = (
+            json.loads(profile.thresholds)
+            if isinstance(profile.thresholds, str)
+            else profile.thresholds
+        )
+        safety_options["profile_weights"] = (
+            json.loads(profile.weights)
+            if isinstance(profile.weights, str)
+            else profile.weights
+        )
 
     # Start batch processing
     process_batch_job(job_id, mol_dicts, safety_options=safety_options)
