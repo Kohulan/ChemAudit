@@ -420,7 +420,8 @@ export const batchApi = {
     smilesColumn?: string,
     nameColumn?: string,
     onUploadProgress?: (progress: number) => void,
-    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean }
+    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean },
+    profileId?: number | null
   ): Promise<BatchUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -438,6 +439,9 @@ export const batchApi = {
     }
     if (safetyOptions?.includeStandardization) {
       formData.append('include_standardization', 'true');
+    }
+    if (profileId != null) {
+      formData.append('profile_id', String(profileId));
     }
 
     const response = await api.post<BatchUploadResponse>('/batch/upload', formData, {

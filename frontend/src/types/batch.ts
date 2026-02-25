@@ -80,6 +80,19 @@ export interface BatchResult {
       solubility_class: string;
       fsp3: number;
     };
+    profile?: {
+      profile_id: number;
+      profile_name: string;
+      score: number | null;
+      properties: Record<string, {
+        value: number | null;
+        min: number | null;
+        max: number | null;
+        in_range: boolean | null;
+        desirability: number | null;
+      }>;
+      error?: string;
+    };
     error?: string;
   } | null;
   standardization: {
@@ -119,6 +132,8 @@ export interface BatchStatistics {
   alert_summary: Record<string, number>;
   issue_summary: Record<string, number>;
   processing_time_seconds: number | null;
+  avg_profile_score?: number | null;
+  profile_compliance_rate?: number | null;
 }
 
 /**
@@ -160,7 +175,7 @@ export interface CSVColumnsResponse {
 /**
  * Filters for results query
  */
-export type SortField = 'index' | 'name' | 'smiles' | 'score' | 'qed' | 'safety' | 'status' | 'issues';
+export type SortField = 'index' | 'name' | 'smiles' | 'score' | 'qed' | 'safety' | 'status' | 'issues' | 'profile_score';
 
 export interface BatchResultsFilters {
   status_filter?: 'success' | 'error';

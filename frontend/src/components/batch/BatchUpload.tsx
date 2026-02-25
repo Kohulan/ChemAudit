@@ -9,6 +9,7 @@ interface BatchUploadProps {
   onUploadSuccess: (jobId: string, totalMolecules: number, options?: { includeAnalytics: boolean }) => void;
   onUploadError: (error: string) => void;
   disabled?: boolean;
+  profileId?: number | null;
 }
 
 // Threshold for showing confirmation before processing
@@ -34,6 +35,7 @@ export function BatchUpload({
   onUploadSuccess,
   onUploadError,
   disabled = false,
+  profileId,
 }: BatchUploadProps) {
   const limits = useLimits();
   const [isDragging, setIsDragging] = useState(false);
@@ -194,7 +196,8 @@ export function BatchUpload({
           includeExtended: includeExtendedSafety,
           includeChembl: includeChemblAlerts,
           includeStandardization: includeStandardization,
-        }
+        },
+        profileId
       );
       onUploadSuccess(response.job_id, response.total_molecules, { includeAnalytics });
     } catch (e: any) {
