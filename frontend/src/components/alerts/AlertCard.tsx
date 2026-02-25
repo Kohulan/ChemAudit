@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { AlertResult, AlertSeverity } from '../../types/alerts';
 
 interface AlertCardProps {
@@ -5,6 +7,15 @@ interface AlertCardProps {
   onAtomHover?: (atoms: number[]) => void;
   className?: string;
 }
+
+const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
+  'Reactive Group': { bg: 'bg-red-100', text: 'text-red-700' },
+  'Toxicophore': { bg: 'bg-rose-100', text: 'text-rose-700' },
+  'Metabolic Liability': { bg: 'bg-amber-100', text: 'text-amber-700' },
+  'Assay Interference': { bg: 'bg-purple-100', text: 'text-purple-700' },
+  'Physicochemical': { bg: 'bg-slate-100', text: 'text-slate-700' },
+  'Unwanted Functionality': { bg: 'bg-gray-100', text: 'text-gray-600' },
+};
 
 /**
  * Known PAINS patterns that appear in FDA-approved drugs.
@@ -21,17 +32,17 @@ const APPROVED_DRUG_EXAMPLES: Record<string, string[]> = {
 
 function getApprovedDrugNote(patternName: string): string | null {
   const patternLower = patternName.toLowerCase();
-
   for (const [key, drugs] of Object.entries(APPROVED_DRUG_EXAMPLES)) {
     if (patternLower.includes(key)) {
       return `Found in approved drugs: ${drugs.slice(0, 2).join(', ')}`;
     }
   }
-
   return null;
 }
 
 export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const getSeverityStyles = (severity: AlertSeverity) => {
     switch (severity) {
       case 'critical':
@@ -66,11 +77,13 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
   };
 
   const styles = getSeverityStyles(alert.severity);
+  const categoryName = alert.category ?? null;
+  const categoryStyle = categoryName
+    ? (CATEGORY_STYLES[categoryName] || CATEGORY_STYLES['Unwanted Functionality'])
+    : null;
 
   const formatPatternName = (name: string) => {
-    // Remove trailing numbers/IDs like "(370)"
     const cleaned = name.replace(/\(\d+\)$/, '').trim();
-    // Replace underscores and capitalize
     return cleaned
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -81,33 +94,43 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
 
   return (
     <div
-      className={`${styles.bg} border ${styles.border} rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${className}`}
+      className={`${styles.bg} border ${styles.border} rounded-lg p-4 transition-all hover:shadow-md ${className}`}
       onMouseEnter={() => onAtomHover?.(alert.matched_atoms)}
       onMouseLeave={() => onAtomHover?.([])}
     >
       <div className="flex items-start gap-3">
         <div
-          className={`flex items-center justify-center w-8 h-8 rounded-full ${styles.badge} font-bold text-sm`}
+          className={`flex items-center justify-center w-8 h-8 rounded-full ${styles.badge} font-bold text-sm flex-shrink-0`}
         >
           {styles.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          {/* Row 1: Pattern name + badges */}
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <h4 className="font-medium text-gray-900">
               {formatPatternName(alert.pattern_name)}
             </h4>
-            <span
-              className={`px-2 py-0.5 text-xs font-medium rounded-full ${styles.badge}`}
-            >
+            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${styles.badge}`}>
               {alert.severity.toUpperCase()}
             </span>
-            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
-              {alert.catalog_source}
-            </span>
+            {categoryStyle && categoryName && (
+              <span
+                className={`px-2 py-0.5 text-xs font-medium rounded-full ${categoryStyle.bg} ${categoryStyle.text}`}
+              >
+                {categoryName}
+              </span>
+            )}
           </div>
 
-          <p className="text-sm text-gray-700 mb-2">{alert.description}</p>
+          {/* Row 2: Human-readable catalog name */}
+          <p className="text-sm text-gray-600 mb-1.5">
+            {alert.catalog_description || alert.catalog_source}
+          </p>
 
+          {/* Row 3: Scope — what this filter screens for */}
+          {alert.scope && <p className="text-sm text-gray-500 italic mb-2">{alert.scope}</p>}
+
+          {/* Matched atoms */}
           {alert.matched_atoms.length > 0 && (
             <div className="text-xs text-gray-500 mb-2">
               <span className="font-medium">Matched atoms:</span>{' '}
@@ -116,9 +139,33 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
             </div>
           )}
 
+          {/* Approved drug note */}
           {approvedDrugNote && (
-            <div className="text-xs text-amber-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 rounded px-2 py-1 inline-block">
+            <div className="text-xs text-amber-700 bg-yellow-50 rounded px-2 py-1 inline-block mb-2">
               {approvedDrugNote}
+            </div>
+          )}
+
+          {/* Expandable reference section */}
+          {alert.reference && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {expanded ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+              {expanded ? 'Hide reference' : 'Show reference'}
+            </button>
+          )}
+          {expanded && alert.reference && (
+            <div className="mt-2 text-xs text-gray-500 bg-white/50 rounded p-2 border border-gray-100">
+              <span className="font-medium">Reference:</span> {alert.reference}
             </div>
           )}
         </div>

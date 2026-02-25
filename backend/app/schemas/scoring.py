@@ -106,11 +106,25 @@ class DrugLikenessResultSchema(BaseModel):
 # =============================================================================
 
 
+class AlertDetailSchema(BaseModel):
+    """Enriched detail for a single matched alert pattern."""
+
+    name: str = Field(description="Pattern name from the filter catalog")
+    category: str = Field(
+        description="Functional group category: Reactive Group, Toxicophore, "
+        "Metabolic Liability, Assay Interference, Physicochemical, or Unwanted Functionality"
+    )
+
+
 class FilterAlertSchema(BaseModel):
     """Result for a single filter category."""
 
     passed: bool = Field(description="Whether molecule passed this filter")
     alerts: List[str] = Field(default_factory=list, description="List of alert names")
+    alert_details: List[AlertDetailSchema] = Field(
+        default_factory=list,
+        description="Enriched alert details with pattern name and category",
+    )
     alert_count: int = Field(default=0, description="Number of alerts triggered")
 
 

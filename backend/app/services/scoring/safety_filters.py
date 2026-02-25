@@ -10,10 +10,12 @@ Identifies potentially problematic compounds using structural alert filters:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from rdkit import Chem
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
+
+from app.services.alerts.pattern_categories import classify_pattern
 
 
 @dataclass
@@ -22,6 +24,7 @@ class FilterResult:
 
     passed: bool
     alerts: List[str] = field(default_factory=list)
+    alert_details: List[Dict[str, str]] = field(default_factory=list)
     alert_count: int = 0
 
 
@@ -242,26 +245,31 @@ class SafetyFilterScorer:
     ) -> FilterResult:
         """Run a single filter catalog on a molecule."""
         if catalog is None:
-            return FilterResult(passed=True, alerts=[], alert_count=0)
+            return FilterResult(passed=True, alerts=[], alert_details=[], alert_count=0)
 
         try:
             entries = catalog.GetMatches(mol)
             alerts = []
+            alert_details = []
 
             for entry in entries:
                 description = entry.GetDescription()
                 if description:
                     alerts.append(description)
+                    category = classify_pattern(description, filter_name)
+                    alert_details.append({"name": description, "category": category})
 
             return FilterResult(
                 passed=len(alerts) == 0,
                 alerts=alerts,
+                alert_details=alert_details,
                 alert_count=len(alerts),
             )
         except Exception as e:
             return FilterResult(
                 passed=True,
                 alerts=[f"Filter error: {str(e)}"],
+                alert_details=[],
                 alert_count=0,
             )
 

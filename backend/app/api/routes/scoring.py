@@ -11,8 +11,13 @@ Endpoints for molecule scoring including:
 - Aggregator likelihood prediction
 """
 
+from __future__ import annotations
+
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from app.services.scoring.safety_filters import FilterResult
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from rdkit import Chem
@@ -129,16 +134,28 @@ async def score_molecule(
     """
     start_time = time.time()
 
+    # IUPAC/common name resolution (try OPSIN then PubChem)
+    molecule_input = body.molecule
+    if body.format in ("auto", "iupac"):
+        from app.services.iupac.converter import detect_input_type, name_to_smiles
+
+        detected = detect_input_type(molecule_input) if body.format == "auto" else "iupac"
+        if detected == "iupac" or (detected == "ambiguous" and body.format == "auto"):
+            converted, _source = name_to_smiles(molecule_input)
+            if converted:
+                molecule_input = converted
+
     # Parse molecule
     format_map = {
         "smiles": MoleculeFormat.SMILES,
         "inchi": MoleculeFormat.INCHI,
         "mol": MoleculeFormat.MOL,
+        "iupac": MoleculeFormat.SMILES,
         "auto": None,
     }
     input_format = format_map.get(body.format)
 
-    parse_result = parse_molecule(body.molecule, input_format)
+    parse_result = parse_molecule(molecule_input, input_format)
 
     if not parse_result.success or parse_result.mol is None:
         raise HTTPException(
@@ -439,37 +456,24 @@ def _calculate_druglikeness(mol: Chem.Mol) -> DrugLikenessResultSchema:
     )
 
 
+def _filter_to_schema(fr: FilterResult) -> FilterAlertSchema:
+    """Convert a FilterResult dataclass to its Pydantic schema."""
+    return FilterAlertSchema(
+        passed=fr.passed,
+        alerts=fr.alerts,
+        alert_details=fr.alert_details,
+        alert_count=fr.alert_count,
+    )
+
+
 def _calculate_safety_filters(mol: Chem.Mol) -> SafetyFilterResultSchema:
     """Calculate safety filter results and convert to schema."""
     result = calculate_safety_filters(mol, include_extended=True, include_chembl=True)
 
-    pains = FilterAlertSchema(
-        passed=result.pains.passed,
-        alerts=result.pains.alerts,
-        alert_count=result.pains.alert_count,
-    )
-
-    brenk = FilterAlertSchema(
-        passed=result.brenk.passed,
-        alerts=result.brenk.alerts,
-        alert_count=result.brenk.alert_count,
-    )
-
-    nih = None
-    if result.nih:
-        nih = FilterAlertSchema(
-            passed=result.nih.passed,
-            alerts=result.nih.alerts,
-            alert_count=result.nih.alert_count,
-        )
-
-    zinc = None
-    if result.zinc:
-        zinc = FilterAlertSchema(
-            passed=result.zinc.passed,
-            alerts=result.zinc.alerts,
-            alert_count=result.zinc.alert_count,
-        )
+    pains = _filter_to_schema(result.pains)
+    brenk = _filter_to_schema(result.brenk)
+    nih = _filter_to_schema(result.nih) if result.nih else None
+    zinc = _filter_to_schema(result.zinc) if result.zinc else None
 
     # ChEMBL alerts
     chembl = None
@@ -477,69 +481,17 @@ def _calculate_safety_filters(mol: Chem.Mol) -> SafetyFilterResultSchema:
         chembl = ChEMBLAlertsSchema(
             passed=result.chembl.passed,
             total_alerts=result.chembl.total_alerts,
-            bms=(
-                FilterAlertSchema(
-                    passed=result.chembl.bms.passed,
-                    alerts=result.chembl.bms.alerts,
-                    alert_count=result.chembl.bms.alert_count,
-                )
-                if result.chembl.bms
-                else None
-            ),
-            dundee=(
-                FilterAlertSchema(
-                    passed=result.chembl.dundee.passed,
-                    alerts=result.chembl.dundee.alerts,
-                    alert_count=result.chembl.dundee.alert_count,
-                )
-                if result.chembl.dundee
-                else None
-            ),
-            glaxo=(
-                FilterAlertSchema(
-                    passed=result.chembl.glaxo.passed,
-                    alerts=result.chembl.glaxo.alerts,
-                    alert_count=result.chembl.glaxo.alert_count,
-                )
-                if result.chembl.glaxo
-                else None
-            ),
+            bms=_filter_to_schema(result.chembl.bms) if result.chembl.bms else None,
+            dundee=_filter_to_schema(result.chembl.dundee) if result.chembl.dundee else None,
+            glaxo=_filter_to_schema(result.chembl.glaxo) if result.chembl.glaxo else None,
             inpharmatica=(
-                FilterAlertSchema(
-                    passed=result.chembl.inpharmatica.passed,
-                    alerts=result.chembl.inpharmatica.alerts,
-                    alert_count=result.chembl.inpharmatica.alert_count,
-                )
+                _filter_to_schema(result.chembl.inpharmatica)
                 if result.chembl.inpharmatica
                 else None
             ),
-            lint=(
-                FilterAlertSchema(
-                    passed=result.chembl.lint.passed,
-                    alerts=result.chembl.lint.alerts,
-                    alert_count=result.chembl.lint.alert_count,
-                )
-                if result.chembl.lint
-                else None
-            ),
-            mlsmr=(
-                FilterAlertSchema(
-                    passed=result.chembl.mlsmr.passed,
-                    alerts=result.chembl.mlsmr.alerts,
-                    alert_count=result.chembl.mlsmr.alert_count,
-                )
-                if result.chembl.mlsmr
-                else None
-            ),
-            schembl=(
-                FilterAlertSchema(
-                    passed=result.chembl.schembl.passed,
-                    alerts=result.chembl.schembl.alerts,
-                    alert_count=result.chembl.schembl.alert_count,
-                )
-                if result.chembl.schembl
-                else None
-            ),
+            lint=_filter_to_schema(result.chembl.lint) if result.chembl.lint else None,
+            mlsmr=_filter_to_schema(result.chembl.mlsmr) if result.chembl.mlsmr else None,
+            schembl=_filter_to_schema(result.chembl.schembl) if result.chembl.schembl else None,
         )
 
     return SafetyFilterResultSchema(

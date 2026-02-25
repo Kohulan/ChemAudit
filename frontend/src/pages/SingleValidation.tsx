@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom,
@@ -20,6 +21,7 @@ import {
   Download,
   Microscope,
   BarChart3,
+  ArrowLeft,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -43,6 +45,7 @@ import { useRecentMolecules } from '../hooks/useRecentMolecules';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
+import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
@@ -94,8 +97,6 @@ function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
   return 'ambiguous';
 }
 
-type TabType = 'validate' | 'deep-validation' | 'scoring-profiles' | 'database' | 'alerts' | 'standardize';
-
 interface TabConfig {
   id: TabType;
   label: string;
@@ -143,6 +144,15 @@ const TABS: TabConfig[] = [
 ];
 
 // Descriptions for each validation check
+/** Shape of `location.state` when navigating to SingleValidation */
+interface LocationState {
+  bookmarkId?: number;
+  smiles?: string;
+  fromBatch?: boolean;
+  moleculeName?: string;
+  moleculeIndex?: number;
+}
+
 const CHECK_DESCRIPTIONS: Record<string, string> = {
   parsability: 'Verifies the input string can be parsed into a valid molecular structure by RDKit.',
   sanitization: 'Checks if RDKit can sanitize the molecule (assign aromaticity, add implicit hydrogens, validate bonds).',
@@ -160,11 +170,19 @@ const CHECK_DESCRIPTIONS: Record<string, string> = {
 export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { getCache, setCache, clearCache } = useValidationCache();
   const [molecule, setMolecule] = useState('');
+
+  // Batch origin context — shows back-to-batch bar when navigated from BatchResultsTable
+  const locState = location.state as LocationState | null;
+  const batchOrigin = locState?.fromBatch
+    ? { moleculeName: locState.moleculeName, moleculeIndex: locState.moleculeIndex }
+    : null;
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
-  const { validate, result, error, isLoading, reset } = useValidation();
+  const { validate, result, error, isLoading, reset, restore } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
 
@@ -206,6 +224,29 @@ export function SingleValidationPage() {
   const [alertError, setAlertError] = useState<AlertError | null>(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(['PAINS', 'BRENK']);
+  const [chemblExpanded, setChemblExpanded] = useState(false);
+
+  const CHEMBL_CATALOGS = [
+    { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
+    { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
+    { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
+    { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
+    { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
+    { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
+    { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
+  ];
+
+  const toggleAllChembl = (enabled: boolean) => {
+    const chemblIds = CHEMBL_CATALOGS.map((c) => c.id);
+    if (enabled) {
+      setSelectedCatalogs((prev) => [...new Set([...prev, ...chemblIds])]);
+    } else {
+      setSelectedCatalogs((prev) => prev.filter((c) => !chemblIds.includes(c)));
+    }
+  };
+
+  const allChemblSelected = CHEMBL_CATALOGS.every((c) => selectedCatalogs.includes(c.id));
+  const someChemblSelected = CHEMBL_CATALOGS.some((c) => selectedCatalogs.includes(c.id));
 
   // Scoring state
   const [scoringResult, setScoringResult] = useState<ScoringResponse | null>(null);
@@ -243,6 +284,9 @@ export function SingleValidationPage() {
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
+  // Use canonical SMILES from validation result when available (handles IUPAC/common names)
+  const resolvedSmiles = result?.molecule_info?.canonical_smiles || molecule.trim();
+
   const handleValidate = async () => {
     if (!molecule.trim()) return;
     await validate({
@@ -261,8 +305,8 @@ export function SingleValidationPage() {
     setAlertError(null);
     try {
       const response = await alertsApi.screenAlerts({
-        molecule: molecule.trim(),
-        format: 'auto',
+        molecule: resolvedSmiles,
+        format: 'smiles',
         catalogs: selectedCatalogs,
       });
       setAlertResult(response);
@@ -279,7 +323,7 @@ export function SingleValidationPage() {
     setScoringLoading(true);
     setScoringError(null);
     try {
-      const response = await scoringApi.getScoring(molecule.trim(), 'auto');
+      const response = await scoringApi.getScoring(resolvedSmiles, 'smiles');
       setScoringResult(response);
     } catch (err) {
       setScoringError(err as ScoringError);
@@ -295,8 +339,8 @@ export function SingleValidationPage() {
     setStandardizationError(null);
     try {
       const response = await standardizationApi.standardize({
-        molecule: molecule.trim(),
-        format: 'auto',
+        molecule: resolvedSmiles,
+        format: 'smiles',
         options: { include_tautomer: includeTautomer, preserve_stereo: true },
       });
       setStandardizationResult(response);
@@ -312,7 +356,7 @@ export function SingleValidationPage() {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
     try {
-      const results = await integrationsApi.lookupAll({ smiles: molecule.trim() });
+      const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
     } catch (err) {
       console.error('Database lookup error:', err);
@@ -346,21 +390,94 @@ export function SingleValidationPage() {
     setShowCIP(false);
   };
 
-  // Clear all results on each fresh navigation to this page (not on initial mount).
-  // location.key is unique per navigation event. We skip the first render so that
-  // URL-param-driven validation (useEffect above) is not wiped immediately.
-  const isFirstMount = useRef(true);
+  // Restore cached results on mount (from navigation cache or bookmark snapshot)
+  const didRestore = useRef(false);
   useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
+    if (didRestore.current) return;
+    didRestore.current = true;
+
+    // Priority 0: Navigated from batch results — auto-validate the molecule
+    if (locState?.fromBatch && locState.smiles) {
+      setMolecule(locState.smiles);
+      setActiveTab('validate');
+      validate({ molecule: locState.smiles, format: 'auto', preserve_aromatic: false });
       return;
     }
-    setMolecule('');
-    resetAll();
-    // Intentionally not including resetAll in deps — it is a stable inline function
-    // that depends on state setters which never change.
+
+    // Priority 1: Restore from bookmark snapshot (navigated from Bookmarks page)
+    if (locState?.bookmarkId) {
+      getSnapshot(locState.bookmarkId).then((snapshot) => {
+        if (snapshot) {
+          setMolecule(snapshot.molecule);
+          setActiveTab('validate');
+          if (snapshot.validationResult) restore(snapshot.validationResult);
+          if (snapshot.alertResult) setAlertResult(snapshot.alertResult);
+          if (snapshot.scoringResult) setScoringResult(snapshot.scoringResult);
+          if (snapshot.standardizationResult) setStandardizationResult(snapshot.standardizationResult);
+          if (snapshot.databaseResults) setDatabaseResults(snapshot.databaseResults);
+        } else if (locState.smiles) {
+          // No snapshot (different device / cleared) — auto-validate
+          setMolecule(locState.smiles);
+          validate({ molecule: locState.smiles, preserve_aromatic: false });
+        }
+      }).catch(() => {
+        // IndexedDB error — fallback to auto-validate
+        if (locState.smiles) {
+          setMolecule(locState.smiles);
+          validate({ molecule: locState.smiles, preserve_aromatic: false });
+        }
+      });
+      // Clear location state to prevent re-restore on subsequent navigations
+      window.history.replaceState({}, '');
+      return;
+    }
+
+    // Priority 2: Restore from in-memory navigation cache
+    const cached = getCache();
+    if (cached && !searchParams.get('smiles')) {
+      setMolecule(cached.molecule);
+      setActiveTab(cached.activeTab);
+      if (cached.result) restore(cached.result);
+      if (cached.alertResult) setAlertResult(cached.alertResult);
+      if (cached.scoringResult) setScoringResult(cached.scoringResult);
+      if (cached.standardizationResult) setStandardizationResult(cached.standardizationResult);
+      if (cached.databaseResults) setDatabaseResults(cached.databaseResults);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  }, []);
+
+  // Persist results to cache whenever they change
+  useEffect(() => {
+    if (!molecule.trim()) return;
+    setCache({
+      molecule: molecule.trim(),
+      activeTab,
+      result,
+      alertResult,
+      scoringResult,
+      standardizationResult,
+      databaseResults,
+    });
+  }, [molecule, activeTab, result, alertResult, scoringResult, standardizationResult, databaseResults, setCache]);
+
+  // Save snapshot to IndexedDB after bookmark is created
+  const handleAfterBookmark = useCallback(async (bookmarkId: number) => {
+    try {
+      await saveSnapshot({
+        bookmarkId,
+        source: 'single_validation',
+        molecule: molecule.trim(),
+        savedAt: new Date().toISOString(),
+        validationResult: result,
+        alertResult,
+        scoringResult,
+        standardizationResult,
+        databaseResults,
+      });
+    } catch (err) {
+      console.error('Failed to save bookmark snapshot:', err);
+    }
+  }, [molecule, result, alertResult, scoringResult, standardizationResult, databaseResults]);
 
   // Handler for locking atom highlighting (persists for SVG download)
   const handleAtomLock = useCallback((atoms: number[]) => {
@@ -376,7 +493,7 @@ export function SingleValidationPage() {
   const handleReset = () => {
     setMolecule('');
     resetAll();
-    // Clear URL params
+    clearCache();
     setSearchParams({});
   };
 
@@ -451,6 +568,46 @@ export function SingleValidationPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
+      {/* Back to Batch bar — shown when navigated from batch results */}
+      {batchOrigin && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className={cn(
+            'sticky top-0 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5',
+            'bg-[var(--color-surface-elevated)]/90 backdrop-blur-md',
+            'border-b border-[var(--color-primary)]/20',
+            'shadow-[0_2px_12px_var(--glow-soft)]'
+          )}
+        >
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <button
+              onClick={() => navigate('/batch')}
+              className={cn(
+                'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium',
+                'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                'border border-[var(--color-primary)]/20',
+                'hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/40',
+                'transition-all duration-200 cursor-pointer'
+              )}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Batch
+            </button>
+            <span className="text-xs text-[var(--color-text-muted)]">
+              Viewing full analysis
+              {batchOrigin.moleculeName && (
+                <> for <span className="font-medium text-[var(--color-text-secondary)]">{batchOrigin.moleculeName}</span></>
+              )}
+              {!batchOrigin.moleculeName && batchOrigin.moleculeIndex !== undefined && (
+                <> for molecule <span className="font-medium text-[var(--color-text-secondary)]">#{batchOrigin.moleculeIndex + 1}</span></>
+              )}
+            </span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div
         className="text-center pt-4"
@@ -585,24 +742,6 @@ export function SingleValidationPage() {
             </AnimatePresence>
 
             {/* IUPAC conversion result badge */}
-            <AnimatePresence>
-              {result?.input_interpretation?.detected_as === 'iupac' && result.input_interpretation.converted_smiles && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-2"
-                >
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-xs">
-                    <span className="text-green-600 dark:text-green-400 font-medium">Converted from IUPAC:</span>
-                    <code className="text-[var(--color-text-secondary)] font-mono">{result.input_interpretation.original_input}</code>
-                    <span className="text-[var(--color-text-muted)]">{'->'}</span>
-                    <code className="text-[var(--color-text-primary)] font-mono">{result.input_interpretation.converted_smiles}</code>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <div className="mt-4 flex items-center gap-3">
               <ClayButton
                 onClick={handleReset}
@@ -623,6 +762,7 @@ export function SingleValidationPage() {
                 <BookmarkButton
                   smiles={result.molecule_info.canonical_smiles || molecule.trim()}
                   source="single_validation"
+                  onAfterBookmark={handleAfterBookmark}
                 />
               )}
             </div>
@@ -734,9 +874,49 @@ export function SingleValidationPage() {
                         {result.molecule_info.canonical_smiles && (
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
-                                {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                                  {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                                </span>
+                                <InfoTooltip
+                                  size="small"
+                                  position="right"
+                                  title={showKekulized ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                                  content={
+                                    <div className="space-y-2 text-xs">
+                                      <p>
+                                        <span className="text-zinc-400">Generated by: </span>
+                                        <span className="font-semibold text-white">
+                                          {result.molecule_info.canonical_smiles_source || 'RDKit (Python)'}
+                                        </span>
+                                      </p>
+                                      <p>
+                                        <span className="text-zinc-400">Notation: </span>
+                                        {showKekulized ? 'Kekulized (explicit double bonds)' : 'Canonical (aromatic notation)'}
+                                      </p>
+                                      <p className="text-zinc-300 leading-relaxed">
+                                        Canonical SMILES provides a unique, deterministic string for each molecule.
+                                        Different toolkits (RDKit, OpenBabel, CDK, OEChem) use different canonicalization
+                                        algorithms and may produce different — but equally valid — canonical forms for the
+                                        same molecule.
+                                      </p>
+                                      <div className="pt-1.5 border-t border-white/15 text-zinc-400 space-y-1">
+                                        <p className="italic">
+                                          RDKit: Open-Source Cheminformatics.{' '}
+                                          <a href="https://www.rdkit.org" target="_blank" rel="noopener noreferrer"
+                                            className="text-amber-400 underline underline-offset-2 hover:text-amber-300">
+                                            rdkit.org
+                                          </a>
+                                        </p>
+                                        <p>Weininger, D. <em>J. Chem. Inf. Comput. Sci.</em> 1989, 29, 97–101.</p>
+                                      </div>
+                                    </div>
+                                  }
+                                />
+                                {result.input_interpretation?.detected_as === 'iupac' && (
+                                  <span className="text-[10px] text-green-600 dark:text-green-400">(converted from IUPAC name)</span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2">
                                 {moleculeInfo?.kekulizedSmiles && (
                                   <button
@@ -807,9 +987,43 @@ export function SingleValidationPage() {
                       </div>
                       <div className="mt-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
-                            {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                              {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                            </span>
+                            <InfoTooltip
+                              size="small"
+                              position="right"
+                              title={showKekulized ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                              content={
+                                <div className="space-y-2 text-xs">
+                                  <p>
+                                    <span className="text-zinc-400">Generated by: </span>
+                                    <span className="font-semibold text-white">RDKit.js (client-side)</span>
+                                  </p>
+                                  <p>
+                                    <span className="text-zinc-400">Notation: </span>
+                                    {showKekulized ? 'Kekulized (explicit double bonds)' : 'Canonical (aromatic notation)'}
+                                  </p>
+                                  <p className="text-zinc-300 leading-relaxed">
+                                    This is a client-side preview generated by RDKit.js (WebAssembly).
+                                    After validation, the canonical SMILES will be recomputed by the
+                                    server-side RDKit (Python) which may produce a different canonical form.
+                                  </p>
+                                  <div className="pt-1.5 border-t border-white/15 text-zinc-400 space-y-1">
+                                    <p className="italic">
+                                      RDKit: Open-Source Cheminformatics.{' '}
+                                      <a href="https://www.rdkit.org" target="_blank" rel="noopener noreferrer"
+                                        className="text-amber-400 underline underline-offset-2 hover:text-amber-300">
+                                        rdkit.org
+                                      </a>
+                                    </p>
+                                    <p>Weininger, D. <em>J. Chem. Inf. Comput. Sci.</em> 1989, 29, 97–101.</p>
+                                  </div>
+                                </div>
+                              }
+                            />
+                          </div>
                           <div className="flex items-center gap-2">
                             {moleculeInfo.kekulizedSmiles && (
                               <button
@@ -944,7 +1158,7 @@ export function SingleValidationPage() {
 
                 {/* Scoring Profiles Tab */}
                 {activeTab === 'scoring-profiles' && (
-                  <ScoringProfilesTab smiles={molecule} />
+                  <ScoringProfilesTab smiles={resolvedSmiles} />
                 )}
 
                 {/* Database Lookup Tab */}
@@ -1002,6 +1216,7 @@ export function SingleValidationPage() {
                     {/* Catalog selector */}
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] mb-2">Select catalogs to screen:</p>
+                      {/* Core catalogs */}
                       <div className="flex flex-wrap gap-2">
                         {['PAINS', 'BRENK', 'NIH', 'ZINC'].map((catalog) => (
                           <button
@@ -1017,6 +1232,50 @@ export function SingleValidationPage() {
                             {catalog}
                           </button>
                         ))}
+                      </div>
+
+                      {/* ChEMBL catalogs — collapsible group */}
+                      <div className="mt-3 border border-[var(--color-border)] rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setChemblExpanded(!chemblExpanded)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm bg-[var(--color-surface-sunken)] hover:bg-[var(--color-surface-sunken)]/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={allChemblSelected}
+                              ref={(el) => { if (el) el.indeterminate = someChemblSelected && !allChemblSelected; }}
+                              onChange={(e) => { e.stopPropagation(); toggleAllChembl(e.target.checked); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                            />
+                            <span className="font-medium text-[var(--color-text-primary)]">ChEMBL Filters</span>
+                            {someChemblSelected && (
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                ({CHEMBL_CATALOGS.filter((c) => selectedCatalogs.includes(c.id)).length}/{CHEMBL_CATALOGS.length})
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={cn('w-4 h-4 text-[var(--color-text-muted)] transition-transform', chemblExpanded && 'rotate-180')} />
+                        </button>
+                        {chemblExpanded && (
+                          <div className="px-3 py-2 flex flex-wrap gap-2 border-t border-[var(--color-border)]">
+                            {CHEMBL_CATALOGS.map((catalog) => (
+                              <button
+                                key={catalog.id}
+                                onClick={() => toggleCatalog(catalog.id)}
+                                className={cn(
+                                  'px-3 py-1.5 text-sm rounded-lg transition-all',
+                                  selectedCatalogs.includes(catalog.id)
+                                    ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                                    : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-transparent hover:border-[var(--color-border)]'
+                                )}
+                              >
+                                {catalog.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 

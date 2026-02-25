@@ -33,6 +33,23 @@ class AlertResultSchema(BaseModel):
     smarts: Optional[str] = Field(
         None, description="SMARTS pattern that matched (if available)"
     )
+    reference: Optional[str] = Field(
+        None, description="Citation for the original paper defining this alert"
+    )
+    scope: Optional[str] = Field(
+        None, description="What aspect of compound quality this filter screens for"
+    )
+    filter_set: Optional[str] = Field(
+        None, description="Filter set identifier from RDKit (e.g. ChEMBL23_Dundee)"
+    )
+    catalog_description: Optional[str] = Field(
+        None, description="Human-readable name of the source catalog"
+    )
+    category: Optional[str] = Field(
+        None,
+        description="Concern category: Reactive Group, Metabolic Liability, Toxicophore, "
+        "Assay Interference, Physicochemical, or Unwanted Functionality",
+    )
 
 
 class MoleculeInfoSchema(BaseModel):
@@ -84,6 +101,13 @@ class AlertScreenRequest(BaseModel):
             "BRENK",
             "NIH",
             "ZINC",
+            "CHEMBL_BMS",
+            "CHEMBL_DUNDEE",
+            "CHEMBL_GLAXO",
+            "CHEMBL_INPHARMATICA",
+            "CHEMBL_LINT",
+            "CHEMBL_MLSMR",
+            "CHEMBL_SURECHEMBL",
             "ALL",
         }
         normalized = []
@@ -133,6 +157,10 @@ class CatalogInfoSchema(BaseModel):
     pattern_count: str = Field(..., description="Approximate pattern count")
     severity: str = Field(..., description="Default severity level for this catalog")
     note: Optional[str] = Field(None, description="Additional notes")
+    reference: Optional[str] = Field(None, description="Citation for the original paper")
+    scope: Optional[str] = Field(None, description="What the filter set screens for")
+    doi: Optional[str] = Field(None, description="DOI link for the reference paper")
+    pmid: Optional[str] = Field(None, description="PubMed ID for the reference paper")
 
 
 class CatalogListResponse(BaseModel):

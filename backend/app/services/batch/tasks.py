@@ -19,6 +19,7 @@ from rdkit.Chem import Lipinski
 from app.celery_app import SMALL_JOB_THRESHOLD, celery_app
 from app.core.config import settings
 from app.services.alerts import alert_manager
+from app.services.analytics.storage import analytics_storage
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import compute_statistics, result_storage
 from app.services.scoring.admet import calculate_admet
@@ -32,6 +33,23 @@ from app.services.validation.engine import validation_engine
 CHUNK_SIZE = 100  # Process 100 molecules per chunk for progress updates
 
 logger = logging.getLogger(__name__)
+
+
+def _init_analytics_and_dispatch(job_id: str) -> None:
+    """Pre-init analytics status and trigger cheap analytics computation."""
+    try:
+        analytics_storage.init_status(
+            job_id, auto_analyses=["deduplication", "statistics"]
+        )
+    except Exception:
+        logger.warning("Failed to pre-init analytics status for %s", job_id)
+
+    try:
+        from app.services.batch.analytics_tasks import run_cheap_analytics
+
+        run_cheap_analytics.delay(job_id)
+    except Exception:
+        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
 
 
 # =============================================================================
@@ -121,6 +139,10 @@ def validate_single_molecule(
                             else str(a.severity)
                         ),
                         "matched_atoms": a.matched_atoms,
+                        "reference": a.reference,
+                        "scope": a.scope,
+                        "catalog_description": a.catalog_description,
+                        "category": a.category,
                     }
                     for a in alert_result.alerts
                 ],
@@ -324,6 +346,10 @@ def _process_single_molecule(
                             else str(a.severity)
                         ),
                         "matched_atoms": a.matched_atoms,
+                        "reference": a.reference,
+                        "scope": a.scope,
+                        "catalog_description": a.catalog_description,
+                        "category": a.category,
                     }
                     for a in alert_result.alerts
                 ],
@@ -561,13 +587,7 @@ def aggregate_batch_results(
     except Exception as e:
         logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
 
-    # Trigger cheap analytics computation
-    try:
-        from app.services.batch.analytics_tasks import run_cheap_analytics
-
-        run_cheap_analytics.delay(job_id)
-    except Exception:
-        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
+    _init_analytics_and_dispatch(job_id)
 
     return {
         "job_id": job_id,
@@ -686,13 +706,7 @@ def aggregate_batch_results_priority(
     except Exception as e:
         logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
 
-    # Trigger cheap analytics computation
-    try:
-        from app.services.batch.analytics_tasks import run_cheap_analytics
-
-        run_cheap_analytics.delay(job_id)
-    except Exception:
-        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
+    _init_analytics_and_dispatch(job_id)
 
     return {
         "job_id": job_id,

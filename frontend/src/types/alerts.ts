@@ -11,6 +11,11 @@ export interface AlertResult {
   matched_atoms: number[];
   catalog_source: string;
   smarts?: string | null;
+  reference?: string | null;
+  scope?: string | null;
+  filter_set?: string | null;
+  catalog_description?: string | null;
+  category?: string | null;
 }
 
 export interface MoleculeInfo {
@@ -44,6 +49,10 @@ export interface CatalogInfo {
   pattern_count: string;
   severity: string;
   note?: string | null;
+  reference?: string | null;
+  scope?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
 }
 
 export interface CatalogListResponse {

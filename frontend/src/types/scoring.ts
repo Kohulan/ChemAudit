@@ -166,11 +166,20 @@ export interface DrugLikenessResult {
 // =============================================================================
 
 /**
+ * Enriched detail for a single matched alert pattern.
+ */
+export interface AlertDetail {
+  name: string;
+  category: string;
+}
+
+/**
  * Result for a single filter category.
  */
 export interface FilterAlertResult {
   passed: boolean;
   alerts: string[];
+  alert_details?: AlertDetail[];
   alert_count: number;
 }
 
