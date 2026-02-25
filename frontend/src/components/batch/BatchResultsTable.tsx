@@ -72,6 +72,10 @@ export function BatchResultsTable({
   const allPageSelected = pageIndices.length > 0 && pageIndices.every(idx => selectedIndices.has(idx));
   const somePageSelected = pageIndices.some(idx => selectedIndices.has(idx)) && !allPageSelected;
 
+  // Determine if profile column is shown (conditional 10th column)
+  const hasProfileColumn = results.some(r => r.scoring?.profile);
+  const colCount = hasProfileColumn ? 10 : 9;
+
   // Update header checkbox indeterminate state
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -218,6 +222,14 @@ export function BatchResultsTable({
               >
                 Safety {sortBy === 'safety' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
+              {results.some(r => r.scoring?.profile) && (
+                <th
+                  className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                  onClick={() => handleSort('profile_score')}
+                >
+                  Profile {sortBy === 'profile_score' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
+                </th>
+              )}
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
                 onClick={() => handleSort('status')}
@@ -235,14 +247,14 @@ export function BatchResultsTable({
           <tbody className="divide-y divide-[var(--color-border)]">
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={colCount} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto mb-2" />
                   Loading results...
                 </td>
               </tr>
             ) : results.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={colCount} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   No results match the current filters.
                 </td>
               </tr>
@@ -311,6 +323,24 @@ export function BatchResultsTable({
                         );
                       })()}
                     </td>
+                    {hasProfileColumn && (
+                      <td className="px-4 py-3 text-center">
+                        {result.scoring?.profile?.score != null ? (
+                          <span className={cn(
+                            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                            result.scoring.profile.score >= 80
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : result.scoring.profile.score >= 50
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                          )}>
+                            {result.scoring.profile.score.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--color-text-muted)]">--</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
@@ -346,7 +376,7 @@ export function BatchResultsTable({
                   {/* Expanded details — bento grid layout */}
                   {expandedRow === result.index && (
                     <tr>
-                      <td colSpan={9} className="p-0">
+                      <td colSpan={colCount} className="p-0">
                         <div className="px-3 py-3 bg-[var(--color-surface-sunken)] border-t border-[var(--color-border)]">
                           {/* Error banner — full width */}
                           {result.error && (
