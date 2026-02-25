@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
@@ -28,9 +28,6 @@ const BookmarksPage = lazy(() =>
 );
 const HistoryPage = lazy(() =>
   import('./pages/History').then(module => ({ default: module.HistoryPage }))
-);
-const ProfilesPage = lazy(() =>
-  import('./pages/Profiles').then(module => ({ default: module.ProfilesPage }))
 );
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
@@ -149,21 +146,7 @@ function AppRoutes() {
               </motion.div>
             }
           />
-          <Route
-            path="/profiles"
-            element={
-              <motion.div
-                key="profiles"
-                className="relative"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ProfilesPage />
-              </motion.div>
-            }
-          />
+          <Route path="/profiles" element={<Navigate to="/batch" replace />} />
           <Route
             path="/about"
             element={
