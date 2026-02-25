@@ -28,6 +28,8 @@ class BatchStatisticsData:
     avg_sa_score: Optional[float] = None
     lipinski_pass_rate: Optional[float] = None
     safety_pass_rate: Optional[float] = None
+    avg_profile_score: Optional[float] = None
+    profile_compliance_rate: Optional[float] = None
     score_distribution: Dict[str, int] = field(default_factory=dict)
     alert_summary: Dict[str, int] = field(default_factory=dict)
     issue_summary: Dict[str, int] = field(default_factory=dict)
@@ -144,6 +146,23 @@ def compute_statistics(results: List[Dict[str, Any]]) -> BatchStatisticsData:
     if safety_total > 0:
         stats.safety_pass_rate = round((safety_passes / safety_total) * 100, 1)
 
+    # Profile score stats
+    profile_scores = []
+    for result in results:
+        if result.get("status") == "error" or result.get("error"):
+            continue
+        ps = ((result.get("scoring") or {}).get("profile") or {}).get("score")
+        if ps is not None:
+            profile_scores.append(ps)
+
+    if profile_scores:
+        stats.avg_profile_score = round(
+            sum(profile_scores) / len(profile_scores), 1
+        )
+        stats.profile_compliance_rate = round(
+            sum(1 for s in profile_scores if s >= 80) / len(profile_scores) * 100, 1
+        )
+
     # Score distribution buckets
     stats.score_distribution = _compute_score_distribution(validation_scores)
 
@@ -250,6 +269,9 @@ class ResultStorage:
                 for i in ((r.get("validation") or {}).get("issues") or [])
                 if not i.get("passed", True)
             ]
+        ),
+        "profile_score": lambda r: ((r.get("scoring") or {}).get("profile") or {}).get(
+            "score", -1
         ),
     }
 
