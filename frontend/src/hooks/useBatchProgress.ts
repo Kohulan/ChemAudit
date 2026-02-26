@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { BatchProgress } from '../types/batch';
+import { logger } from '../lib/logger';
 
 /**
  * WebSocket hook for real-time batch progress updates.
@@ -39,6 +40,14 @@ export function useBatchProgress(jobId: string | null) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      return;
+    }
+
+    // Validate jobId format to prevent WebSocket URL injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(jobId)) {
+      logger.warn('Invalid jobId format, skipping WebSocket connection:', jobId);
+      setError('Invalid job ID format');
       return;
     }
 
@@ -116,7 +125,7 @@ export function useBatchProgress(jobId: string | null) {
               }, 500);
             }
           } catch (e) {
-            console.error('Failed to parse WebSocket message:', e);
+            logger.error('Failed to parse WebSocket message:', e);
           }
         };
       } catch (e) {

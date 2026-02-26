@@ -62,6 +62,10 @@ Edit `.env` to configure required secrets:
 # Database
 POSTGRES_PASSWORD=your_secure_password
 
+# Redis (authentication required)
+REDIS_PASSWORD=your_redis_password
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+
 # Application
 SECRET_KEY=your_secret_key
 API_KEY_ADMIN_SECRET=your_admin_secret
@@ -74,8 +78,16 @@ GRAFANA_PASSWORD=your_grafana_password
 Generate secure secrets:
 
 ```bash
-openssl rand -base64 32
+openssl rand -hex 32
 ```
+
+:::tip Local Redis Conflict
+If you have a local Redis server running (e.g., via Homebrew), stop it before starting Docker Compose to avoid port conflicts:
+```bash
+brew services stop redis  # macOS
+sudo systemctl stop redis  # Linux
+```
+:::
 
 ## Service Overview
 
@@ -171,6 +183,21 @@ docker-compose logs backend
 # Rebuild images
 docker-compose build --no-cache
 docker-compose up -d
+```
+
+**Redis authentication errors:**
+
+If you see `Authentication required` in backend logs:
+
+```bash
+# Ensure REDIS_PASSWORD is set in .env
+grep REDIS .env
+
+# REDIS_URL must include the password:
+# REDIS_URL=redis://:your_password@redis:6379/0
+
+# Restart after fixing
+docker-compose restart
 ```
 
 **Database connection errors:**

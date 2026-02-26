@@ -2,7 +2,9 @@
 ChemAudit API - Chemical Structure Validation Suite
 """
 
+import ipaddress
 import logging
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -36,6 +38,7 @@ from app.core.exceptions import (
 )
 from app.core.rate_limit import (
     check_ip_ban_middleware,
+    get_rate_limit_key,
     limiter,
     rate_limit_exceeded_handler,
 )
@@ -162,9 +165,9 @@ app = FastAPI(
     title="ChemAudit API",
     description="Chemical Structure Validation and Standardization API",
     version=settings.APP_VERSION,
-    docs_url="/api/v1/docs",
-    redoc_url="/api/v1/redoc",
-    openapi_url="/api/v1/openapi.json",
+    docs_url="/api/v1/docs" if settings.DEBUG else None,
+    redoc_url="/api/v1/redoc" if settings.DEBUG else None,
+    openapi_url="/api/v1/openapi.json" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -222,13 +225,11 @@ async def security_middleware(request: Request, call_next):
         and not request.url.path.endswith("/health")
         and not request.url.path == "/api/v1/csrf-token"
     ):
-        # Check for CSRF token in header
         csrf_token = request.headers.get("X-CSRF-Token")
 
-        # For browser requests (with cookies/credentials), require CSRF token
-        # Check for origin header to identify browser requests
-        origin = request.headers.get("origin")
-        if origin and origin in settings.CORS_ORIGINS:
+        # If a session cookie is present, this is a browser request — require CSRF
+        has_session = "chemaudit_sid" in request.cookies
+        if has_session:
             if not csrf_token or not verify_csrf_token(csrf_token):
                 return JSONResponse(
                     status_code=403,
@@ -240,6 +241,23 @@ async def security_middleware(request: Request, call_next):
 
     response = await call_next(request)
     return response
+
+
+@app.middleware("http")
+async def metrics_auth_middleware(request: Request, call_next):
+    """Restrict /metrics endpoint to internal IPs only."""
+    if request.url.path == "/metrics":
+        client_ip = request.client.host if request.client else None
+        if client_ip:
+            try:
+                addr = ipaddress.ip_address(client_ip)
+                if not (addr.is_private or addr.is_loopback):
+                    return JSONResponse(
+                        status_code=403, content={"error": "Forbidden"}
+                    )
+            except ValueError:
+                pass  # Unparseable IP — allow (Docker internal networking)
+    return await call_next(request)
 
 
 # Register exception handlers
@@ -284,7 +302,8 @@ if settings.ENABLE_METRICS:
 
 
 @app.get("/api/v1/csrf-token")
-async def get_csrf_token():
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def get_csrf_token(request: Request):
     """
     Get a CSRF token for browser-based requests.
 
@@ -301,6 +320,11 @@ async def get_csrf_token():
 # =============================================================================
 # WebSocket Endpoint
 # =============================================================================
+
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+_ws_connections: dict[str, int] = {}
+_WS_MAX_PER_JOB = 10
 
 
 @app.websocket("/ws/batch/{job_id}")
@@ -321,10 +345,38 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
         "eta_seconds": int|null
     }
     """
-    # Connect and wait for subscription to be ready before sending initial status
+    # Validate job_id format before accepting
+    if not _UUID_RE.match(job_id):
+        # Reject during handshake — no accept needed, Starlette sends HTTP 403
+        await websocket.close(code=1008, reason="Invalid job ID format")
+        return
+
+    # Connect (calls websocket.accept()) and subscribe to Redis channel
     connected = await manager.connect(job_id, websocket)
     if not connected:
         return
+
+    # Post-accept validation: enforce per-job connection limit
+    current = _ws_connections.get(job_id, 0)
+    if current >= _WS_MAX_PER_JOB:
+        await websocket.close(code=4029, reason="Too many connections for this job")
+        return
+
+    # Post-accept validation: session-based ownership check
+    session_cookie = websocket.cookies.get("chemaudit_sid")
+    if session_cookie:
+        try:
+            import redis as sync_redis
+            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
+            owner = r.get(f"batch:owner:{job_id}")
+            if owner and owner != session_cookie:
+                manager.disconnect(job_id, websocket)
+                await websocket.close(code=4003, reason="Access denied")
+                return
+        except Exception:
+            pass  # Degrade gracefully
+
+    _ws_connections[job_id] = current + 1
 
     # Send initial status after subscription is ready
     await manager.send_initial_status(job_id, websocket)
@@ -342,6 +394,7 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
                 break
     finally:
         manager.disconnect(job_id, websocket)
+        _ws_connections[job_id] = max(0, _ws_connections.get(job_id, 1) - 1)
 
 
 @app.get("/")

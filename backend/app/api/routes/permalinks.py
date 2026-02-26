@@ -12,11 +12,13 @@ from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.ownership import verify_job_access
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.db import get_db
 from app.db.models.permalink import BatchPermalink
 from app.schemas.permalinks import (
@@ -29,7 +31,9 @@ router = APIRouter()
 
 
 @router.post("/permalinks", response_model=PermalinkResponse, status_code=201)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def create_permalink(
+    request: Request,
     body: PermalinkCreateRequest,
     db: AsyncSession = Depends(get_db),
 ):
@@ -39,6 +43,8 @@ async def create_permalink(
     Stores the job_id and optional snapshot in the database.
     Returns a shareable URL.
     """
+    verify_job_access(request, body.job_id)
+
     short_id = secrets.token_urlsafe(8)
 
     permalink = BatchPermalink(

@@ -1462,7 +1462,11 @@ function Acknowledgments() {
                     'bg-gradient-to-br',
                     ack.color
                   );
-                  parent.innerHTML = `<span class="text-lg font-bold text-white drop-shadow-sm">${ack.name}</span>`;
+                  parent.textContent = '';
+                  const span = document.createElement('span');
+                  span.className = 'text-lg font-bold text-white drop-shadow-sm';
+                  span.textContent = ack.name;
+                  parent.appendChild(span);
                 }}
               />
             </div>

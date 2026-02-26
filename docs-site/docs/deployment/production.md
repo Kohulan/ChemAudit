@@ -47,16 +47,23 @@ cp -r frontend/dist frontend-dist
 ### 2. Configure Environment
 
 ```bash
+# Option A: Automated (recommended) — deploy.sh generates all secrets
 cp .env.prod.example .env
+./deploy.sh medium  # Generates secure secrets, then deploys
 
-# Generate secure passwords
-openssl rand -base64 32  # For POSTGRES_PASSWORD
-openssl rand -base64 32  # For SECRET_KEY
-openssl rand -base64 32  # For API_KEY_ADMIN_SECRET
-openssl rand -base64 32  # For CSRF_SECRET_KEY
+# Option B: Manual
+cp .env.prod.example .env
+# Generate and set each secret:
+openssl rand -hex 64   # For SECRET_KEY
+openssl rand -hex 32   # For API_KEY_ADMIN_SECRET, CSRF_SECRET_KEY
+openssl rand -hex 24   # For POSTGRES_PASSWORD, REDIS_PASSWORD, GRAFANA_PASSWORD
 ```
 
 Edit `.env` with generated secrets.
+
+:::danger Startup Validation
+When `DEBUG=false`, the application rejects startup if `SECRET_KEY`, `API_KEY_ADMIN_SECRET`, or `CSRF_SECRET_KEY` still contain placeholder values. This prevents accidental deployment with insecure defaults.
+:::
 
 ### 3. Deploy Services
 
@@ -167,13 +174,36 @@ docker-compose -f docker-compose.prod.yml exec backend alembic upgrade head
 
 ## Security Checklist
 
-- [ ] Changed all default passwords
-- [ ] SSL certificate configured
+**Secrets & Authentication:**
+
+- [ ] `SECRET_KEY`, `API_KEY_ADMIN_SECRET`, `CSRF_SECRET_KEY` generated (enforced at startup)
+- [ ] `POSTGRES_PASSWORD` set to strong value
+- [ ] `REDIS_PASSWORD` set to strong value (Redis auth enforced)
+- [ ] `GRAFANA_PASSWORD` set to strong value
+- [ ] `DEBUG=false` in production
+
+**Network & SSL:**
+
+- [ ] SSL certificate configured (see nginx/nginx-ssl.conf template)
 - [ ] Firewall configured (ports 80, 443 only)
-- [ ] Database not publicly accessible
-- [ ] Redis not publicly accessible
+- [ ] Database not publicly accessible (bound to internal network)
+- [ ] Redis authenticated and not publicly accessible
+
+**Application Security (enabled by default):**
+
+- [ ] CSRF protection active for browser sessions
 - [ ] API rate limiting enabled
-- [ ] Regular backups configured
+- [ ] Batch job ownership enforced (session-based)
+- [ ] /metrics restricted to internal IPs
+- [ ] OpenAPI docs disabled (`DEBUG=false`)
+- [ ] Nginx security headers (CSP, Permissions-Policy, server_tokens off)
+- [ ] Containers run as non-root with cap_drop ALL
+
+**Operations:**
+
+- [ ] Regular database backups configured
+- [ ] Backup restoration tested
+- [ ] Monitoring configured (Prometheus + Grafana)
 
 ## Next Steps
 

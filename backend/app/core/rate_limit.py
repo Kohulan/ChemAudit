@@ -196,7 +196,8 @@ def get_rate_limit_key(request: Request) -> str:
     """
     api_key = request.headers.get("X-API-Key")
     if api_key:
-        return f"apikey:{api_key}"
+        from app.core.security import hash_api_key_for_lookup
+        return f"apikey:{hash_api_key_for_lookup(api_key)}"
     return get_remote_address(request)
 
 

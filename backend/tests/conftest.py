@@ -9,6 +9,8 @@ from httpx import ASGITransport, AsyncClient
 
 # Disable rate limiting for tests
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+# Enable debug mode so insecure default secrets are accepted (warns, not rejected)
+os.environ.setdefault("DEBUG", "true")
 
 from app.main import app
 
