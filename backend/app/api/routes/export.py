@@ -57,9 +57,10 @@ def _export_results(
     status: Optional[str],
     indices_list: Optional[List[int]],
     sections_list: Optional[List[str]] = None,
+    include_images: bool = False,
 ) -> StreamingResponse:
     """
-    Shared logic for exporting batch results with optional indices filtering.
+    Shared logic for exporting batch results with optional filters.
 
     Args:
         job_id: Job identifier
@@ -68,16 +69,16 @@ def _export_results(
         score_max: Maximum validation score filter
         status: Status filter
         indices_list: List of molecule indices to include, or None for all
+        sections_list: PDF report sections to include, or None for all
+        include_images: Embed 2D structure images (Excel only)
 
     Returns:
         StreamingResponse with exported file
     """
-    # Check if job exists
     progress_info = progress_tracker.get_progress(job_id)
     if not progress_info:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    # Get results with filters
     result_data = result_storage.get_results(
         job_id=job_id,
         page=1,
@@ -89,30 +90,29 @@ def _export_results(
 
     results = result_data.get("results", [])
 
-    # Apply indices filter if provided
     if indices_list is not None:
         indices_set = set(indices_list)
         results = [r for r in results if r.get("index") in indices_set]
 
-    # Handle empty results
     if not results:
         raise HTTPException(
             status_code=404,
             detail="No results found matching the specified filters and indices",
         )
 
-    # Create exporter (with sections for PDF)
+    # Create exporter with format-specific options when needed
     try:
         if format == ExportFormat.PDF and sections_list:
             from app.services.export.pdf_report import PDFReportGenerator
-
             exporter = PDFReportGenerator(sections=sections_list)
+        elif format == ExportFormat.EXCEL and include_images:
+            from app.services.export.excel_exporter import ExcelExporter
+            exporter = ExcelExporter(include_images=True)
         else:
             exporter = ExporterFactory.create(format)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    # Export results
     try:
         export_buffer = exporter.export(results)
     except Exception as e:
@@ -121,11 +121,9 @@ def _export_results(
             detail=f"Failed to export results: {str(e)}",
         )
 
-    # Generate filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"batch_{job_id[:8]}_{timestamp}.{exporter.file_extension}"
 
-    # Return streaming response
     def iterfile():
         """Stream file in chunks."""
         export_buffer.seek(0)
@@ -162,6 +160,10 @@ async def export_batch_results(
         None,
         description="Comma-separated PDF sections to include (e.g., 'validation_summary,score_distribution'). Only used with PDF format. If omitted, all sections included.",
     ),
+    include_images: bool = Query(
+        False,
+        description="Include 2D structure images in Excel export. Only used with Excel format.",
+    ),
 ):
     """
     Export batch results to specified format.
@@ -172,6 +174,7 @@ async def export_batch_results(
     - **score_max**: Filter results by maximum score
     - **status**: Filter results by status
     - **indices**: Comma-separated molecule indices to export (optional)
+    - **include_images**: Include 2D structure images (Excel only)
 
     Returns file download with appropriate Content-Disposition header.
 
@@ -190,16 +193,15 @@ async def export_batch_results(
     (by their index field) are included in the export. Invalid or out-of-range
     indices are silently skipped.
     """
-    # Parse indices
     indices_list = _parse_indices(indices)
+    sections_list = (
+        [s.strip() for s in sections.split(",") if s.strip()] if sections else None
+    )
 
-    # Parse sections for PDF
-    sections_list = None
-    if sections:
-        sections_list = [s.strip() for s in sections.split(",") if s.strip()]
-
-    # Use shared export logic
-    return _export_results(job_id, format, score_min, score_max, status, indices_list, sections_list)
+    return _export_results(
+        job_id, format, score_min, score_max, status,
+        indices_list, sections_list, include_images,
+    )
 
 
 @router.post("/batch/{job_id}/export")
@@ -216,6 +218,10 @@ async def export_batch_results_post(
     status: Optional[str] = Query(
         None, description="Filter by status (success, error, warning)"
     ),
+    include_images: bool = Query(
+        False,
+        description="Include 2D structure images in Excel export. Only used with Excel format.",
+    ),
 ):
     """
     Export batch results to specified format (POST version for large selections).
@@ -229,6 +235,7 @@ async def export_batch_results_post(
     - **score_min**: Filter results by minimum score
     - **score_max**: Filter results by maximum score
     - **status**: Filter results by status
+    - **include_images**: Include 2D structure images (Excel only)
 
     Returns file download with appropriate Content-Disposition header.
 
@@ -242,5 +249,7 @@ async def export_batch_results_post(
     }
     ```
     """
-    # Use shared export logic with indices from request body
-    return _export_results(job_id, format, score_min, score_max, status, body.indices)
+    return _export_results(
+        job_id, format, score_min, score_max, status,
+        body.indices, include_images=include_images,
+    )

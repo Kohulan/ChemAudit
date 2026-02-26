@@ -73,7 +73,9 @@ def revalidate_subset(job_id: str, indices: List[int]) -> str:
 
 
 def rescore_subset(
-    job_id: str, indices: List[int], profile_id: Optional[int] = None
+    job_id: str,
+    indices: List[int],
+    safety_options: Optional[dict] = None,
 ) -> str:
     """
     Re-score a subset of molecules, optionally with a custom scoring profile.
@@ -83,7 +85,8 @@ def rescore_subset(
     Args:
         job_id: Original job ID
         indices: Molecule indices to re-score
-        profile_id: Optional scoring profile ID to apply
+        safety_options: Pre-built safety options dict (with profile_id,
+            profile_name, profile_thresholds, profile_weights if applicable)
 
     Returns:
         New job_id
@@ -91,12 +94,7 @@ def rescore_subset(
     mol_dicts = _fetch_subset_smiles(job_id, indices)
     new_job_id = str(uuid.uuid4())
 
-    # Pass profile_id in safety_options for downstream handling
-    safety_options = {}
-    if profile_id is not None:
-        safety_options["scoring_profile_id"] = profile_id
-
-    process_batch_job(new_job_id, mol_dicts, safety_options=safety_options)
+    process_batch_job(new_job_id, mol_dicts, safety_options=safety_options or {})
     return new_job_id
 
 

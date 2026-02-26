@@ -42,15 +42,15 @@ RUN apt-get update && apt-get install -y \
     default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
-# Download OPSIN JAR for IUPAC name conversion
-RUN mkdir -p /app/data && curl -L -o /app/data/opsin.jar \
-    https://github.com/dan2097/opsin/releases/download/2.8.0/opsin-cli-2.8.0-jar-with-dependencies.jar
-
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser
 
 # Set working directory
 WORKDIR /app
+
+# Download OPSIN JAR for IUPAC name conversion
+RUN mkdir -p /app/data && curl -L -o /app/data/opsin.jar \
+    https://github.com/dan2097/opsin/releases/download/2.8.0/opsin-cli-2.8.0-jar-with-dependencies.jar
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
