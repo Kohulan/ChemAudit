@@ -53,16 +53,21 @@ Filters used by the ZINC database to identify problematic compounds.
 
 | Patterns | Severity | Description |
 |----------|----------|-------------|
-| ~700+ | Warning | Pharmaceutical company filters |
+| ~700+ | Warning | Combined from 7 pharmaceutical industry sources |
 
-Includes filters from:
-- **BMS**: Bristol-Myers Squibb filters
-- **Dundee**: University of Dundee filters
-- **Glaxo**: GlaxoSmithKline filters
-- **Inpharmatica**: Inpharmatica filters
-- **Lint**: General medicinal chemistry filters
-- **MLSMR**: Additional MLSMR patterns
-- **SureChEMBL**: Patent-derived filters
+ChEMBL structural alerts are curated from real-world pharmaceutical screening experience:
+
+| Sub-Catalog | Source | Focus |
+|-------------|--------|-------|
+| **BMS** | Bristol-Myers Squibb | Reactive functional groups — electrophiles, Michael acceptors, acyl halides, and other chemically reactive moieties that cause non-specific binding |
+| **Dundee** | University of Dundee | Promiscuous compound filters — patterns frequently appearing as false positives across diverse target screens |
+| **Glaxo** | GlaxoSmithKline | Undesirable moieties — toxicophores, metabolically labile groups, and structural features associated with clinical failures |
+| **Inpharmatica** | Inpharmatica Ltd. | Chemical liabilities — ADMET flags and functional groups with known pharmacokinetic issues |
+| **LINT** | Lead Identification Noise | Noise-causing patterns in lead identification — substructures that generate artifacts in screening cascades |
+| **MLSMR** | NIH/MLSMR | Molecular Libraries Screening Center Network — additional exclusion patterns beyond the standard NIH set |
+| **SureChEMBL** | EMBL-EBI | Patent literature structural alerts — patterns flagged from analysis of chemical patent claims |
+
+When ChEMBL alerts are enabled, all 7 sub-catalogs are screened simultaneously. Each matched alert reports which sub-catalog it belongs to.
 
 ## How to Screen
 

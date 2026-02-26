@@ -6,6 +6,93 @@
 
 import type { MoleculeInfo } from './validation';
 
+// ---------------------------------------------------------------------------
+// Provenance types (Phase 02 — STD-01 through STD-06)
+// ---------------------------------------------------------------------------
+
+export interface ChargeChange {
+  atom_idx: number;
+  element: string;
+  before_charge: number;
+  after_charge: number;
+  rule_name: string;
+  smarts: string;
+}
+
+export interface BondChange {
+  bond_idx: number;
+  atom1_idx: number;
+  atom2_idx: number;
+  before_type: string;
+  after_type: string;
+  rule_name: string;
+}
+
+export interface RadicalChange {
+  atom_idx: number;
+  element: string;
+  before_radicals: number;
+  after_radicals: number;
+}
+
+export interface RingChange {
+  ring_atoms: number[];
+  ring_size: number;
+  before_type: string;
+  after_type: string;
+}
+
+export interface FragmentRemoval {
+  smiles: string;
+  name: string | null;
+  role: 'salt' | 'solvent' | 'counterion' | 'unknown';
+  mw: number;
+}
+
+export interface TautomerProvenance {
+  input_smiles: string;
+  canonical_smiles: string;
+  num_tautomers_enumerated: number;
+  modified_atoms: number[];
+  modified_bonds: number[];
+  stereo_stripped: boolean;
+  complexity_flag: boolean;
+}
+
+export interface StereoCenterDetail {
+  atom_idx: number;
+  type: string;
+  before_config: string;
+  after_config: string;
+  reason: string;
+}
+
+export interface StereoProvenance {
+  stereo_stripped: boolean;
+  centers_lost: number;
+  bonds_lost: number;
+  per_center: StereoCenterDetail[];
+}
+
+export interface ProvStageRecord {
+  stage_name: string;
+  input_smiles: string;
+  output_smiles: string;
+  applied: boolean;
+  charge_changes: ChargeChange[];
+  bond_changes: BondChange[];
+  radical_changes: RadicalChange[];
+  ring_changes: RingChange[];
+  fragment_removals: FragmentRemoval[];
+  dval_cross_refs: string[];
+}
+
+export interface StandardizationProvenance {
+  stages: ProvStageRecord[];
+  tautomer: TautomerProvenance | null;
+  stereo_summary: StereoProvenance | null;
+}
+
 export interface StandardizationOptions {
   /**
    * Include tautomer canonicalization.
@@ -17,6 +104,11 @@ export interface StandardizationOptions {
    * Attempt to preserve stereochemistry during standardization.
    */
   preserve_stereo: boolean;
+
+  /**
+   * Include detailed per-stage provenance records in the response.
+   */
+  include_provenance?: boolean;
 }
 
 export interface StandardizationStep {
@@ -63,6 +155,7 @@ export interface StandardizationResult {
   stereo_comparison: StereoComparison | null;
   structure_comparison: StructureComparison | null;
   mass_change_percent: number;
+  provenance?: StandardizationProvenance | null;
 }
 
 export interface StandardizeRequest {

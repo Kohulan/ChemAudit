@@ -38,6 +38,9 @@ class StandardizationOptions:
     # Return excluded fragments (salts, solvents)
     return_excluded_fragments: bool = True
 
+    # Include detailed provenance records (handled by ProvenancePipeline wrapper)
+    include_provenance: bool = False
+
 
 @dataclass
 class StandardizationStep:

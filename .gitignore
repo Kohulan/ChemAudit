@@ -3,6 +3,7 @@
 
 # Local documentation (not for git)
 local_docs/
+docs/plans/
 
 # Claude Code related files (local only)
 CLAUDE.md

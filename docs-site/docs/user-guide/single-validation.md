@@ -17,9 +17,10 @@ ChemAudit automatically detects and supports multiple input formats:
 | **SMILES** | `CCO` | Yes |
 | **InChI** | `InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3` | Yes |
 | **MOL Block** | V2000/V3000 format | Yes |
+| **IUPAC Name** | `aspirin`, `2-acetoxybenzoic acid` | Yes |
 
 :::tip Auto-Detection
-Simply paste your molecule in any format. ChemAudit will automatically detect whether it's a SMILES string, InChI, or MOL block.
+Simply paste your molecule in any format — including IUPAC names like "aspirin" or "2-acetoxybenzoic acid". ChemAudit automatically detects the input type and converts names to SMILES. See [IUPAC Name Conversion](/docs/user-guide/iupac-conversion) for details.
 :::
 
 ## How to Validate
@@ -33,7 +34,8 @@ Simply paste your molecule in any format. ChemAudit will automatically detect wh
    - **Validation**: Structural checks and overall score
    - **Alerts**: PAINS, BRENK, NIH, ZINC, ChEMBL screening
    - **Scoring**: ML-readiness, drug-likeness, ADMET, NP-likeness
-   - **Standardization**: ChEMBL-compatible cleanup
+   - **Scoring Profiles**: Consensus score, lead/fragment-likeness, property breakdowns, bioavailability radar
+   - **Standardization**: ChEMBL-compatible cleanup with provenance timeline
    - **Database Lookup**: PubChem, ChEMBL, COCONUT cross-references
 
 ### Using the API
@@ -49,43 +51,65 @@ curl -X POST http://localhost:8001/api/v1/validate \
 
 ## Validation Checks Explained
 
-ChemAudit performs multiple validation checks grouped by severity and category.
+ChemAudit runs 5 basic checks on every molecule plus 17 deep validation checks organized into three domains. All check severities can be customized through the severity configuration panel.
 
-### Critical Checks
+### Basic Checks
 
-These checks must pass for the structure to be considered valid:
+These fundamental checks assess structural validity:
 
-| Check | Description | Common Causes of Failure |
-|-------|-------------|-------------------------|
-| **Valence** | All atoms have valid bond counts | Typos in SMILES, incorrect charges, too many bonds |
-| **Kekulization** | Aromatic rings can be kekulized | Invalid aromatic systems, wrong electron count |
-| **Sanitization** | Molecule passes RDKit sanitization | Structural inconsistencies, invalid atom types |
+| Check | Severity | Description | Common Causes of Failure |
+|-------|----------|-------------|-------------------------|
+| **Parsability** | Critical | Can the input be parsed into a valid molecule? | Malformed SMILES, invalid characters |
+| **Sanitization** | Error | Does the molecule pass RDKit sanitization? | Structural inconsistencies, invalid atom types |
+| **Valence** | Critical | Do all atoms have chemically valid bond counts? | Typos in SMILES, incorrect charges |
+| **Aromaticity** | Error | Can aromatic systems be kekulized? | Invalid aromatic systems, wrong electron count |
+| **Connectivity** | Warning | Is the molecule a single connected component? | Mixtures, salts, disconnected fragments |
 
 :::danger Critical Failures
-If a critical check fails, the molecule structure is invalid and cannot be used for further analysis. Fix the structure before proceeding.
+If a critical check fails, the molecule structure is invalid and cannot be used for further analysis.
 :::
 
-### Warning Checks
+### Deep Validation — Chemical Composition
 
-These checks indicate potential issues that should be reviewed:
+Six checks examining what the molecule is made of:
 
-| Check | Description | Recommendation |
-|-------|-------------|----------------|
-| **Undefined Stereo** | Stereocenters without R/S specification detected | Specify stereochemistry if intended, or note as racemic |
-| **Stereo Consistency** | Stereochemistry specifications are consistent | Verify intended stereochemistry, remove contradictory specs |
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Mixture Detection** | Warning | Identifies disconnected fragments and classifies each as drug, salt, solvent, or unknown |
+| **Solvent Contamination** | Warning | Matches fragments against 15+ known solvents (water, DMSO, DMF, acetonitrile, methanol, ethanol, etc.) |
+| **Inorganic Filter** | Warning/Error | Detects inorganic (no carbon → Error) or organometallic (carbon + metal → Warning) compounds |
+| **Radical Detection** | Warning | Flags atoms with unpaired electrons |
+| **Isotope Labels** | Info | Detects isotope-labeled atoms (deuterium, ¹³C, tritium, etc.) |
+| **Trivial Molecule** | Error | Flags molecules with ≤ 3 heavy atoms as too small for meaningful analysis |
 
-:::warning Review Warnings
-Warning checks don't invalidate the structure, but they may affect downstream analysis or experimental results.
+### Deep Validation — Structural Complexity
+
+Six checks assessing structural features that may complicate analysis:
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Hypervalent Atoms** | Warning | Atoms exceeding maximum allowed valence for their element |
+| **Polymer Detection** | Info | Detected via SGroup markers, MW > 1500 Da, or dummy atoms |
+| **Ring Strain** | Warning | 3- or 4-membered rings with significant angle strain |
+| **Macrocycle Detection** | Info | Rings with > 12 atoms |
+| **Charged Species** | Info | Net charge calculation, positive/negative atoms, zwitterion detection |
+| **Explicit Hydrogen Audit** | Info | Mixed explicit/implicit hydrogen representation |
+
+### Deep Validation — Stereo & Tautomers
+
+Five checks related to stereochemistry and tautomeric forms:
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Stereoisomer Enumeration** | Warning | Enumerates possible stereoisomers from undefined centers (cap: 128) |
+| **Undefined Stereocenters** | Warning | Counts chiral centers without R/S specification |
+| **Tautomer Detection** | Info | Enumerates tautomers and checks if input matches canonical form |
+| **Aromatic System Validation** | Warning | Flags unusual aromatic ring sizes (not 5 or 6) and charged aromatic atoms |
+| **Coordinate Dimension** | Info | Detects 2D, 3D, or no coordinate data |
+
+:::tip Severity Customization
+All deep validation check severities can be overridden through the severity configuration panel. This lets you adjust which checks are treated as errors vs. warnings vs. informational based on your specific use case.
 :::
-
-### Info Checks
-
-Informational checks that don't require action:
-
-| Check | Description |
-|-------|-------------|
-| **SMILES Length** | Reports if SMILES is unusually long (>200 characters) |
-| **InChI Generation** | Confirms InChI can be generated from the structure |
 
 ## Validation Options
 
@@ -143,6 +167,47 @@ Failed checks appear in the issues list with:
 - **Affected atoms**: Atom indices involved (if applicable)
 - **Details**: Additional technical information
 
+## Scoring Profiles Tab
+
+The Scoring Profiles tab provides advanced drug-likeness analysis beyond the standard Scoring tab:
+
+- **Consensus Score** — Drug-likeness consensus across 5 rule sets (Lipinski, Ghose, Veber, Egan, Muegge), scored 0–5
+- **Lead & Fragment Likeness** — Lead-likeness assessment, Rule of 3 compliance, salt inventory, ligand efficiency
+- **Property Breakdown** — Per-atom TPSA and LogP breakdowns, Bertz complexity index, Fsp3 detail
+- **Bioavailability Radar** — 6-axis radar chart for oral bioavailability assessment plus BOILED-Egg scatter for GI absorption and BBB permeation predictions
+- **Atom Contribution Viewer** — Per-atom property contribution heatmap
+
+See [Scoring Profiles](/docs/user-guide/scoring/profiles) for full details on profile scoring and the custom profile builder.
+
+## Standardization Provenance
+
+When viewing the Standardization tab, a provenance timeline shows exactly what changed at each pipeline stage:
+
+- **Vertical timeline** with per-stage cards that auto-expand when changes occurred
+- **Change types tracked**: charge normalization, bond normalization, ring aromaticity, radical changes, fragment removal
+- **DVAL cross-references**: Links to deep validation findings (e.g., "DVAL-01: 2 undefined stereocenters detected")
+- **Tautomer summary**: Number of tautomers enumerated, canonical form, complexity flag
+- **Stereo detail**: Per-center before/after configuration and reason for change
+
+Enable provenance in the API with `include_provenance=true` on the `/standardize` endpoint. See [Standardization](/docs/user-guide/standardization) for details.
+
+## Bookmarking Results
+
+After validation, click the **Bookmark** button (star icon) in the results header to save the molecule and its full result snapshot. Bookmarked molecules appear on the [Bookmarks & History](/docs/user-guide/bookmarks-history) page where you can search, tag, and revisit them.
+
+## Severity Configuration
+
+Click the gear icon to open the severity configuration panel. This lets you override the default severity of any validation check:
+
+- Choose **Error**, **Warning**, or **Info** for each check
+- Reset individual checks back to their defaults
+- Overrides persist in your browser's localStorage
+- The overall verdict dynamically recomputes based on your effective severities
+
+## RDKit Version Source
+
+The canonical SMILES shown in molecule info includes a tooltip indicating which RDKit version was used for canonicalization. This is useful for reproducibility when sharing results.
+
 ## Common Validation Errors
 
 ### Valence Errors
@@ -188,7 +253,10 @@ Failed checks appear in the issues list with:
 
 ## Next Steps
 
-- **[Batch Processing](/docs/user-guide/batch-processing)** - Validate thousands of molecules at once
-- **[Structural Alerts](/docs/user-guide/structural-alerts)** - Screen for problematic patterns
-- **[Scoring](/docs/user-guide/scoring/overview)** - Comprehensive molecular scoring
-- **[API Reference](/docs/api/endpoints)** - Detailed API documentation
+- **[Batch Processing](/docs/user-guide/batch-processing)** — Validate thousands of molecules at once
+- **[Bookmarks & History](/docs/user-guide/bookmarks-history)** — Save and revisit validation results
+- **[IUPAC Name Conversion](/docs/user-guide/iupac-conversion)** — Enter chemical names directly
+- **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — Custom property scoring
+- **[Structural Alerts](/docs/user-guide/structural-alerts)** — Screen for problematic patterns
+- **[Scoring](/docs/user-guide/scoring/overview)** — Comprehensive molecular scoring
+- **[API Reference](/docs/api/endpoints)** — Detailed API documentation

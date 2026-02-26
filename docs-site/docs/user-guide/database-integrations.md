@@ -276,6 +276,7 @@ Enrich your database with cross-references:
 
 ## Next Steps
 
-- **[Exporting Results](/docs/user-guide/exporting-results)** - Export data with database cross-references
-- **[Batch Processing](/docs/user-guide/batch-processing)** - Process large datasets
-- **[API Reference](/docs/api/endpoints)** - Full integrations API documentation
+- **[IUPAC Name Conversion](/docs/user-guide/iupac-conversion)** — Enter chemical names directly instead of SMILES
+- **[Exporting Results](/docs/user-guide/exporting-results)** — Export data with database cross-references
+- **[Batch Processing](/docs/user-guide/batch-processing)** — Process large datasets
+- **[API Reference](/docs/api/endpoints)** — Full integrations API documentation

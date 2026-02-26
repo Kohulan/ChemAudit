@@ -6,72 +6,178 @@ description: Evaluate molecular suitability for machine learning applications
 
 # ML-Readiness Scoring
 
-The ML-readiness score evaluates how suitable a molecule is for machine learning applications by testing descriptor calculability, fingerprint generation, and size constraints.
+The ML-readiness score evaluates how suitable a molecule is for machine learning workflows by assessing structural quality, physicochemical properties, complexity, and representation quality across four dimensions totaling 100 points.
 
-## Score Components
+## Score Dimensions
 
-The ML-readiness score is calculated from three weighted components totaling 100 points:
+| Dimension | Max Points | What It Measures |
+|-----------|-----------|------------------|
+| **Structural Quality** | 20 | Structural soundness for ML pipelines |
+| **Property Profile** | 35 | Physicochemical property desirability |
+| **Complexity & Feasibility** | 25 | Synthetic tractability and complexity |
+| **Representation Quality** | 20 | Numerical representability for ML models |
 
-| Component | Max Points | What It Measures |
-|-----------|------------|------------------|
-| **Descriptors** | 30 | Can standard RDKit descriptors be computed? |
-| **Fingerprints** | 40 | Can molecular fingerprints be generated? |
-| **Size/Complexity** | 30 | Is size within ML-trainable range? |
+## 1. Structural Quality (20 points)
 
-## Descriptor Score (30 points)
+Binary pass/fail checks on fundamental structural soundness. Each item either passes (full points) or fails (0 points).
 
-Tests whether 200+ RDKit descriptors can be calculated successfully:
+| Item | Points | Pass Condition |
+|------|--------|----------------|
+| Single component | 5 | Exactly 1 fragment — no mixtures, salts, or solvents |
+| Standard organic elements | 5 | No metal atoms present (no organometallics) |
+| No radicals | 3 | No atoms with unpaired electrons |
+| Reasonable charge | 3 | Net formal charge between −2 and +2 |
+| No dummy atoms | 4 | No R-groups or attachment points (atomic number ≠ 0) |
+| **Total** | **20** | Sum of passed items |
 
-- **30 points**: All descriptors calculate successfully
-- **15-29 points**: Some descriptors fail (proportional to success rate)
-- **0 points**: Most or all descriptors fail
+**Non-scored caveats** (reported as warnings):
+- Isotope labels detected (deuterium, ¹³C, tritium)
+- Trivial molecules (≤ 3 heavy atoms)
 
-**Common descriptor failures:**
-- Very large molecules (>100 atoms)
-- Molecules with unusual elements
-- Invalid structures
-- Extremely complex ring systems
+## 2. Property Profile (35 points)
 
-## Fingerprint Score (40 points)
+Desirability-scored physicochemical properties measuring how well a molecule fits within typical ML training set distributions. Each property is scored using a trapezoidal desirability function.
 
-Tests whether these fingerprint types can be generated:
+| Property | Ideal Range | Max Points |
+|----------|------------|------------|
+| Molecular Weight | 200–500 Da | 6 |
+| LogP (Wildman-Crippen) | 0.5–4.0 | 6 |
+| TPSA | 40–120 A² | 5 |
+| H-Bond Donors | 0–3 | 4 |
+| H-Bond Acceptors | 2–8 | 4 |
+| Rotatable Bonds | 1–8 | 5 |
+| Aromatic Rings | 1–3 | 5 |
+| **Total** | | **35** |
 
-| Fingerprint Type | Points | Description |
-|-----------------|--------|-------------|
-| **Morgan** | 10 | Circular fingerprints (ECFP-like) |
-| **RDKit** | 10 | Daylight-like fingerprints |
-| **MACCS** | 10 | 166-bit MACCS keys |
-| **Topological** | 10 | Topological torsion fingerprints |
+### Desirability Function
 
-- Each successful fingerprint adds 10 points
-- **40 points**: All 4 fingerprint types work
-- **0 points**: No fingerprints can be generated
+Each property is scored using a trapezoidal desirability function:
 
-**Common fingerprint failures:**
-- Invalid aromatic systems
-- Disconnected fragments
-- Very large molecules
-- Molecules with metals or unusual bonding
+```
+If min ≤ value ≤ max:  d = 1.0  (ideal range → full score)
+If value < min:        d = max(0, 1.0 − (min − value) / range)
+If value > max:        d = max(0, 1.0 − (value − max) / range)
 
-## Size/Complexity Score (30 points)
+where range = max − min
+points = d × max_points
+```
 
-Evaluates whether molecular size is within typical ML training range:
+**Example:** A molecule with MW = 600 Da:
+- range = 500 − 200 = 300
+- d = max(0, 1.0 − (600 − 500) / 300) = 0.667
+- points = 0.667 × 6 = 4.0
 
-| Category | MW Range | Atom Range | Points | Interpretation |
-|----------|----------|------------|--------|----------------|
-| **Optimal** | 200-500 | 15-40 | 30 | Ideal for most ML models |
-| **Good** | 100-200 or 500-700 | 8-15 or 40-60 | 20 | Acceptable, may need adjustment |
-| **Fair** | 50-100 or 700-900 | 4-8 or 60-80 | 10 | Edge of typical training data |
-| **Poor** | Less than 50 or greater than 900 | Less than 4 or greater than 80 | 0 | Outside typical ML range |
+:::info Property Ranges
+These ranges reflect the most common distributions in drug-like compound datasets used for ML training. Molecules outside these ranges aren't necessarily bad — they just fall outside the typical training distribution.
+:::
 
-## Overall Score Interpretation
+## 3. Complexity & Feasibility (25 points)
 
-| Score | Category | Interpretation | Recommendation |
-|-------|----------|---------------|----------------|
-| **80-100** | Excellent | Ideal ML candidate | Use directly in training/prediction |
-| **60-79** | Good | Minor caveats | Review failed descriptors, likely usable |
-| **40-59** | Fair | Significant issues | May need preprocessing or exclusion |
-| **0-39** | Poor | Major problems | Likely unsuitable for standard ML |
+Assesses synthetic tractability and structural complexity, which affect practical utility in ML-driven drug discovery campaigns.
+
+| Component | Max Points | Calculation |
+|-----------|-----------|-------------|
+| QED | 8 | `QED.qed(mol) × 8` |
+| SA Score | 8 | Inverse mapping (see below) |
+| Fsp3 | 4 | `desirability(Fsp3, 0.2, 0.6) × 4` |
+| Stereocenters | 5 | Complexity-adjusted scoring (see below) |
+| **Total** | **25** | |
+
+### SA Score → Points
+
+Synthetic Accessibility Score (1–10) is inversely mapped to points:
+
+| SA Score | Points | Interpretation |
+|----------|--------|----------------|
+| ≤ 3 | 8.0 | Easy to synthesize |
+| 3–5 | 8.0 − (SA − 3) × 2.0 | Moderate complexity |
+| 5–7 | 4.0 − (SA − 5) × 2.0 | Difficult synthesis |
+| > 7 | 0.0 | Very difficult |
+
+### Stereocenter Scoring
+
+| Stereocenters | Base Score | Notes |
+|---------------|-----------|-------|
+| 0–4 | 5.0 | Manageable complexity |
+| 5–8 | 5.0 − (n − 4) × 0.75 | Decreasing linearly |
+| > 8 | 0.0 | Too complex |
+
+**Penalty:** If more than 50% of stereocenters are undefined, the base score is halved (×0.5).
+
+## 4. Representation Quality (20 points)
+
+Measures how well the molecule can be numerically represented for ML models — the core requirement for any ML application.
+
+| Component | Max Points | What It Tests |
+|-----------|-----------|---------------|
+| Descriptor completeness | 5 | Fraction of 451 RDKit descriptors computed successfully |
+| Fingerprint generation | 5 | Weighted success across 7 fingerprint types |
+| Fingerprint informativeness | 5 | Ideal bit density between 1% and 30% |
+| Conformer generation | 5 | 3D coordinate generation via ETKDGv3 |
+| **Total** | **20** | |
+
+### Descriptors Tested (451 total)
+
+| Descriptor Set | Count | Method |
+|----------------|-------|--------|
+| Standard RDKit | 217 | `Descriptors.CalcMolDescriptors()` |
+| AUTOCORR2D | 192 | `rdMolDescriptors.CalcAUTOCORR2D()` |
+| MQN | 42 | `rdMolDescriptors.MQNs_()` |
+
+Score: `round(5.0 × (successful / 451), 2)`
+
+### Fingerprint Types & Weights
+
+| Fingerprint | Bits | Weight | Description |
+|-------------|------|--------|-------------|
+| Morgan (radius=2) | 2048 | 8 | Circular fingerprints (ECFP4-like) |
+| Morgan Features | 2048 | 8 | Feature-based Morgan |
+| MACCS Keys | 167 | 8 | 166-bit MACCS structural keys |
+| Atom Pair | 2048 | 4 | Atom pair descriptors |
+| Topological Torsion | 2048 | 4 | Topological torsion descriptors |
+| RDKit FP | 2048 | 4 | Daylight-like path fingerprints |
+| Avalon | 512 | 4 | Avalon toolkit fingerprints |
+| **Total weight** | | **40** | |
+
+Score: `round(5.0 × (sum of successful weights / 40), 2)`
+
+### Fingerprint Informativeness
+
+Measures whether fingerprints have useful information content (not too sparse, not too dense):
+
+| Avg Bit Density | Score | Interpretation |
+|-----------------|-------|----------------|
+| 1–30% | 5.0 | Ideal information content |
+| < 1% | Proportional | Too sparse (molecule too simple) |
+| 30–45% | Decreasing | Too dense (losing discriminative power) |
+| > 45% | 0.0 | Not informative |
+
+### Conformer Generation
+
+| Method | Points |
+|--------|--------|
+| ETKDGv3 success (seed=42, maxIter=500) | 5 |
+| Random coordinate fallback | 3 |
+| Complete failure | 0 |
+
+## Overall Score & Tiers
+
+```
+Total = Structural Quality + Property Profile + Complexity & Feasibility + Representation Quality
+```
+
+| Score | Tier | Interpretation |
+|-------|------|----------------|
+| **85–100** | Excellent | Suitable for most ML workflows without modification |
+| **70–84** | Good | Minor limitations; generally suitable with standard preprocessing |
+| **50–69** | Moderate | Usable but may need careful feature selection or preprocessing |
+| **30–49** | Limited | Significant challenges; consider alternatives or specialized models |
+| **0–29** | Poor | Not recommended for standard ML pipelines |
+
+The UI displays an interpretation banner with:
+- Overall score badge
+- Tier-specific guidance text
+- Per-dimension health tags showing completion percentage
 
 ## API Usage
 
@@ -79,7 +185,7 @@ Evaluates whether molecular size is within typical ML training range:
 curl -X POST http://localhost:8001/api/v1/score \
   -H "Content-Type: application/json" \
   -d '{
-    "molecule": "CCO",
+    "molecule": "CC(=O)Oc1ccccc1C(=O)O",
     "include": ["ml_readiness"]
   }'
 ```
@@ -88,21 +194,42 @@ Response:
 ```json
 {
   "ml_readiness": {
-    "score": 85,
-    "breakdown": {
-      "descriptors_score": 30,
-      "descriptors_successful": 200,
-      "descriptors_total": 200,
-      "fingerprints_score": 40,
-      "fingerprints_successful": ["morgan", "rdkit", "maccs", "topological"],
-      "fingerprints_failed": [],
-      "size_score": 15,
-      "molecular_weight": 46.07,
-      "num_atoms": 3,
-      "size_category": "small"
-    },
-    "interpretation": "Good ML candidate",
-    "failed_descriptors": []
+    "score": 88,
+    "dimensions": [
+      {
+        "name": "Structural Quality",
+        "score": 20.0,
+        "max_score": 20,
+        "items": [
+          {"name": "Single component", "score": 5.0, "max_score": 5, "passed": true},
+          {"name": "Standard organic elements", "score": 5.0, "max_score": 5, "passed": true},
+          {"name": "No radicals", "score": 3.0, "max_score": 3, "passed": true},
+          {"name": "Reasonable charge", "score": 3.0, "max_score": 3, "passed": true},
+          {"name": "No dummy atoms", "score": 4.0, "max_score": 4, "passed": true}
+        ]
+      },
+      {
+        "name": "Property Profile",
+        "score": 30.5,
+        "max_score": 35,
+        "items": [
+          {"name": "MW", "score": 6.0, "max_score": 6, "passed": true},
+          {"name": "LogP", "score": 6.0, "max_score": 6, "passed": true}
+        ]
+      },
+      {
+        "name": "Complexity & Feasibility",
+        "score": 21.0,
+        "max_score": 25
+      },
+      {
+        "name": "Representation Quality",
+        "score": 16.5,
+        "max_score": 20
+      }
+    ],
+    "interpretation": "Good ML candidate with minor limitations...",
+    "caveats": []
   }
 }
 ```
@@ -114,15 +241,14 @@ Response:
 Filter molecules before creating training datasets:
 
 ```
-ml_readiness_score >= 80 AND
-validation_score >= 90
+ml_readiness_score >= 80 AND validation_score >= 90
 ```
 
 This ensures:
-- All required descriptors calculate
-- All fingerprints generate successfully
-- Size is within trainable range
-- Structure is valid
+- Structurally sound for ML (no mixtures, metals, radicals)
+- Properties within typical training distributions
+- All required descriptors and fingerprints generate successfully
+- 3D conformer can be generated
 
 ### Model Applicability Domain
 
@@ -132,48 +258,43 @@ Use ML-readiness to define applicability domain:
 - Flag predictions on molecules with score < 80 as uncertain
 - Exclude molecules with score < 60 from predictions
 
-### Descriptor Selection
+### Dimension-Specific Analysis
 
-The `failed_descriptors` list identifies which descriptors don't work:
+Use individual dimension scores to diagnose issues:
 
-```json
-{
-  "failed_descriptors": ["BCUT2D_MWHI", "BCUT2D_MWLOW"]
-}
-```
-
-Use this to:
-- Exclude problematic descriptors from feature sets
-- Identify molecules requiring special handling
-- Debug descriptor calculation issues
+| Low Dimension | Likely Issue | Action |
+|---------------|-------------|--------|
+| Structural Quality | Mixtures, metals, radicals | Clean up structure first |
+| Property Profile | Unusual MW, LogP, TPSA | May be outside typical drug-like space |
+| Complexity & Feasibility | Hard to synthesize, many stereocenters | Consider if practical for your use case |
+| Representation Quality | Descriptor failures, no 3D | May need specialized featurization |
 
 ## Limitations
 
 **Does not test:**
-- Descriptor quality or relevance
-- Model-specific requirements
-- Chemical space coverage
+- Descriptor quality or relevance to specific models
+- Model-specific feature requirements
+- Chemical space coverage of your training set
 - Experimental measurability
 
 **Assumes:**
 - Standard RDKit descriptors are sufficient
 - Common fingerprint types are appropriate
-- Size range is from typical drug-like datasets
+- Property ranges derived from typical drug-like datasets
 
 :::tip Custom Requirements
-ML-readiness tests standard descriptors and fingerprints. If your model uses custom features, you'll need additional validation.
+ML-readiness tests standard descriptors and fingerprints. If your model uses custom features (e.g., graph neural network features), you'll need additional validation.
 :::
 
-## Best Practices
+## References
 
-1. **Set minimum thresholds**: Require score >= 80 for training data
-2. **Review failures**: Investigate low-scoring molecules to understand why
-3. **Track over time**: Monitor ML-readiness as you curate datasets
-4. **Document exclusions**: Record why molecules were excluded based on ML-readiness
-5. **Test predictions**: Always validate predictions on low-scoring molecules
+1. Bickerton, G. R. et al. (2012). Quantifying the chemical beauty of drugs. *Nature Chemistry*, 4(2), 90–98.
+2. Ertl, P. & Schuffenhauer, A. (2009). Estimation of synthetic accessibility score. *Journal of Cheminformatics*, 1(1), 8.
+3. Lovering, F. et al. (2009). Escape from flatland. *Journal of Medicinal Chemistry*, 52(21), 6752–6756.
+4. Rogers, D. & Hahn, M. (2010). Extended-connectivity fingerprints. *Journal of Chemical Information and Modeling*, 50(5), 742–754.
 
 ## Next Steps
 
-- **[Scoring Overview](/docs/user-guide/scoring/overview)** - All scoring systems
-- **[Batch Processing](/docs/user-guide/batch-processing)** - Score large datasets
-- **[API Reference](/docs/api/endpoints)** - Full scoring API
+- **[Scoring Overview](/docs/user-guide/scoring/overview)** — All scoring systems
+- **[Batch Processing](/docs/user-guide/batch-processing)** — Score large datasets
+- **[API Reference](/docs/api/endpoints)** — Full scoring API

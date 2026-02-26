@@ -18,11 +18,17 @@ Higher scores indicate natural product-like character, lower scores indicate syn
 
 ## Score Range and Interpretation
 
-| Score Range | Classification | Typical Examples |
-|-------------|---------------|------------------|
-| **> 1.0** | Natural product-like | Alkaloids, terpenes, polyketides |
-| **-1.0 to 1.0** | Intermediate | Simple aromatic compounds, modified NPs |
-| **< -1.0** | Synthetic-like | Drug-like molecules, screening compounds |
+| Score | Category | Description |
+|-------|----------|-------------|
+| **≥ 2.0** | Strong NP-like | Natural product features clearly evident |
+| **1.0–2.0** | NP-like | Suggestive of natural origin |
+| **0.3–1.0** | Moderate NP-like | Some NP features present |
+| **−0.3 to 0.3** | Mixed | Both NP and synthetic characteristics |
+| **−1.0 to −0.3** | Moderate synthetic | More synthetic than NP features |
+| **−2.0 to −1.0** | Synthetic-like | Typical synthetic compound profile |
+| **< −2.0** | Strong synthetic | Lacks natural product features |
+
+Color scale in the UI: green (NP-like) → slate (mixed) → red (synthetic).
 
 ## Typical Scores
 
@@ -155,8 +161,12 @@ Balance natural product and synthetic character:
 4. **Track during optimization**: Monitor changes in NP character
 5. **Balance with drug-likeness**: High NP-likeness may sacrifice drug-likeness
 
+## Reference
+
+Ertl, P., Roggo, S. & Schuffenhauer, A. (2008). Natural product-likeness score and its application for prioritization of compound libraries. *Journal of Chemical Information and Modeling*, 48(1), 68–74.
+
 ## Next Steps
 
-- **[Database Integrations](/docs/user-guide/database-integrations)** - Search COCONUT database
-- **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** - Analyze ring systems
-- **[Scoring Overview](/docs/user-guide/scoring/overview)** - All scoring systems
+- **[Database Integrations](/docs/user-guide/database-integrations)** — Search COCONUT database
+- **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** — Analyze ring systems
+- **[Scoring Overview](/docs/user-guide/scoring/overview)** — All scoring systems

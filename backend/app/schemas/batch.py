@@ -80,6 +80,12 @@ class BatchStatistics(BaseModel):
     safety_pass_rate: Optional[float] = Field(
         None, description="Percentage of molecules passing all safety filters"
     )
+    avg_profile_score: Optional[float] = Field(
+        None, description="Average profile desirability score (0-100)"
+    )
+    profile_compliance_rate: Optional[float] = Field(
+        None, description="Percentage of molecules with profile score >= 80"
+    )
     score_distribution: Dict[str, int] = Field(
         default_factory=dict,
         description="Score distribution buckets (excellent, good, moderate, poor)",

@@ -13,11 +13,12 @@
 ## Table of Contents
 
 - [Single Molecule Validation](#single-molecule-validation)
+  - [Validation Checks](#validation-checks-explained)
 - [Batch Processing](#batch-processing)
 - [Structural Alerts](#structural-alerts)
 - [Scoring](#scoring)
   - [ML-Readiness](#ml-readiness-scoring)
-  - [Drug-likeness](#drug-likeness)
+  - [Drug-Likeness](#drug-likeness)
   - [Safety Filters](#safety-filters)
   - [ADMET Predictions](#admet-predictions)
   - [NP-Likeness](#np-likeness)
@@ -26,6 +27,7 @@
 - [Standardization](#standardization)
 - [Database Integrations](#database-integrations)
 - [Exporting Results](#exporting-results)
+- [Scoring Methodology Reference](SCORING_METHODOLOGY.md)
 
 ---
 
@@ -59,36 +61,63 @@ curl -X POST http://localhost:8001/api/v1/validate \
 
 ### Validation Checks Explained
 
-<details>
-<summary><b>Critical Checks</b></summary>
+ChemAudit runs 5 basic checks on every molecule and 17 deep validation checks organized into three domains.
 
-| Check | Description | Common Causes |
-|-------|-------------|---------------|
-| **Valence** | Atoms must have valid bond counts | Typos in SMILES, incorrect charges |
-| **Kekulization** | Aromatic rings must be resolvable | Invalid aromatic systems |
-| **Sanitization** | Molecule must pass RDKit sanitization | Structural inconsistencies |
+<details>
+<summary><b>Basic Checks (always run)</b></summary>
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Parsability** | Critical | Can the input be parsed into a valid molecule? |
+| **Sanitization** | Error | Does the molecule pass RDKit sanitization? |
+| **Valence** | Critical | Do all atoms have chemically valid bond counts? |
+| **Aromaticity** | Error | Can aromatic systems be kekulized? |
+| **Connectivity** | Warning | Is the molecule a single connected component? |
 
 </details>
 
 <details>
-<summary><b>Warning Checks</b></summary>
+<summary><b>Deep Validation — Chemical Composition (6 checks)</b></summary>
 
-| Check | Description | Recommendation |
-|-------|-------------|----------------|
-| **Undefined Stereo** | Undefined stereocenters detected | Specify R/S or E/Z if intended |
-| **Stereo Consistency** | Stereo specifications are consistent | Verify intended stereochemistry |
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Mixture Detection** | Warning | Identifies disconnected fragments (drug, salt, solvent, unknown) |
+| **Solvent Contamination** | Warning | Matches against 15+ known solvents (water, DMSO, DMF, etc.) |
+| **Inorganic Filter** | Warning/Error | Detects inorganic or organometallic compounds |
+| **Radical Detection** | Warning | Flags atoms with unpaired electrons |
+| **Isotope Labels** | Info | Detects isotope-labeled atoms (deuterium, ¹³C, tritium, etc.) |
+| **Trivial Molecule** | Error | Flags molecules with ≤ 3 heavy atoms |
 
 </details>
 
 <details>
-<summary><b>Info Checks</b></summary>
+<summary><b>Deep Validation — Structural Complexity (6 checks)</b></summary>
 
-| Check | Description |
-|-------|-------------|
-| **SMILES Length** | Reports if SMILES is unusually long |
-| **InChI Generation** | Confirms InChI can be generated |
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Hypervalent Atoms** | Warning | Atoms exceeding maximum allowed valence |
+| **Polymer Detection** | Info | SGroup markers, MW > 1500 Da, or dummy atoms |
+| **Ring Strain** | Warning | 3- or 4-membered rings with significant angle strain |
+| **Macrocycle Detection** | Info | Rings with > 12 atoms |
+| **Charged Species** | Info | Net charge, charged atoms, zwitterion detection |
+| **Explicit Hydrogen Audit** | Info | Mixed explicit/implicit hydrogen representation |
 
 </details>
+
+<details>
+<summary><b>Deep Validation — Stereo & Tautomers (5 checks)</b></summary>
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Stereoisomer Enumeration** | Warning | Enumerates possible stereoisomers from undefined centers (cap: 128) |
+| **Undefined Stereocenters** | Warning | Counts undefined chiral centers |
+| **Tautomer Detection** | Info | Enumerates tautomers and checks if input is canonical |
+| **Aromatic System Validation** | Warning | Unusual aromatic ring sizes or charged aromatic atoms |
+| **Coordinate Dimension** | Info | Detects 2D, 3D, or no coordinate data |
+
+</details>
+
+All deep validation check severities can be customized through the severity configuration panel. For detailed logic and thresholds, see the [Scoring Methodology](SCORING_METHODOLOGY.md#validation-checks).
 
 ### Options
 
@@ -212,90 +241,113 @@ curl -X POST http://localhost:8001/api/v1/alerts/quick-check \
 
 ## Scoring
 
-ChemAudit provides comprehensive molecular scoring across multiple dimensions.
+ChemAudit provides comprehensive molecular scoring across 7 dimensions. For complete calculation formulas, thresholds, and academic references, see the [Scoring Methodology](SCORING_METHODOLOGY.md).
 
 ### ML-Readiness Scoring
 
-Evaluate how suitable a molecule is for machine learning applications.
+Evaluate how suitable a molecule is for machine learning applications. The score (0–100) is computed across four dimensions:
 
-| Component | Weight | What It Measures |
-|-----------|--------|------------------|
-| **Descriptor Calculability** | 30pts | Can standard RDKit descriptors be computed? |
-| **Fingerprint Generation** | 40pts | Can Morgan, RDKit, MACCS, Topological fingerprints be generated? |
-| **Size/Complexity** | 30pts | Is molecular weight/atom count within ML-trainable range? |
+| Dimension | Max Points | What It Measures |
+|-----------|-----------|------------------|
+| **Structural Quality** | 20 | Single component, organic elements, no radicals, reasonable charge, no dummy atoms |
+| **Property Profile** | 35 | Desirability-scored MW, LogP, TPSA, HBD, HBA, rotatable bonds, aromatic rings |
+| **Complexity & Feasibility** | 25 | QED, SA Score, Fsp3, stereocenter complexity |
+| **Representation Quality** | 20 | 451 descriptor completeness, 7 fingerprint types, bit density, conformer generation |
 
-| Score | Interpretation |
-|-------|----------------|
-| **80-100** | Excellent ML candidate |
-| **60-79** | Good with minor caveats |
-| **40-59** | May need preprocessing |
-| **0-39** | Significant challenges |
+| Score | Tier | Interpretation |
+|-------|------|----------------|
+| **85–100** | Excellent | Suitable for most ML workflows without modification |
+| **70–84** | Good | Minor limitations; generally suitable with standard preprocessing |
+| **50–69** | Moderate | Usable but may need careful feature selection or preprocessing |
+| **30–49** | Limited | Significant challenges; consider alternatives or specialized models |
+| **0–29** | Poor | Not recommended for standard ML pipelines |
 
-### Drug-likeness
+Each dimension card is expandable in the UI to show per-item scoring breakdowns with tooltips explaining the scoring logic. See [ML-Readiness Methodology](SCORING_METHODOLOGY.md#ml-readiness-scoring) for all formulas.
 
-Evaluate compliance with established drug-likeness rules.
+### Drug-Likeness
 
-| Filter | Criteria |
-|--------|----------|
-| **Lipinski (Ro5)** | MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10 |
-| **QED** | Quantitative Estimate of Drug-likeness (0-1 score) |
-| **Veber** | Rotatable bonds ≤ 10, TPSA ≤ 140 |
-| **Rule of Three** | MW ≤ 300, LogP ≤ 3, HBD ≤ 3, HBA ≤ 3 |
-| **Ghose** | MW 160-480, LogP -0.4-5.6, atoms 20-70, MR 40-130 |
-| **Egan** | LogP ≤ 5.88, TPSA ≤ 131.6 |
-| **Muegge** | Multiple criteria for druglike chemical space |
+Evaluate compliance with 7 established drug-likeness rules plus a consensus score.
+
+| Filter | Key Criteria | Reference |
+|--------|-------------|-----------|
+| **QED** | Composite 0–1 score (MW, LogP, HBA, HBD, PSA, RotB, aromatics, alerts) | Bickerton et al. (2012) |
+| **Lipinski (Ro5)** | MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10 (≤ 1 violation OK) | Lipinski et al. (2001) |
+| **Veber** | Rotatable bonds ≤ 10, TPSA ≤ 140 A² | Veber et al. (2002) |
+| **Rule of Three** | MW < 300, LogP ≤ 3, HBD ≤ 3, HBA ≤ 3, RotB ≤ 3, TPSA ≤ 60 | Congreve et al. (2003) |
+| **Ghose** | MW 160–480, LogP −0.4–5.6, atoms 20–70, MR 40–130 | Ghose et al. (1999) |
+| **Egan** | LogP ≤ 5.88, TPSA ≤ 131.6 A² | Egan et al. (2000) |
+| **Muegge** | 9 parameters (MW, LogP, TPSA, rings, C, heteroatoms, RotB, HBD, HBA) | Muegge et al. (2001) |
+| **Consensus** | 0–5 score: count of Lipinski + Veber + Egan + Ghose + Muegge passes | — |
+| **Lead-Likeness** | MW 200–350, LogP −1 to 3, RotB ≤ 7 | — |
+
+See [Drug-Likeness Methodology](SCORING_METHODOLOGY.md#drug-likeness) for exact thresholds per filter.
 
 ### Safety Filters
 
 Screen against structural alert databases used in drug discovery.
 
-| Filter | Source | Alerts |
-|--------|--------|--------|
-| **PAINS** | Baell & Holloway (2010) | ~480 |
-| **BRENK** | Brenk et al. (2008) | ~105 |
-| **NIH** | NIH MLSMR program | ~180 |
-| **ZINC** | ZINC database | ~95 |
-| **ChEMBL** | Pharma companies (BMS, Dundee, Glaxo, etc.) | ~700+ |
+| Catalog | Source | Patterns | Purpose |
+|---------|--------|----------|---------|
+| **PAINS** | Baell & Holloway (2010) | ~480 | Pan-Assay Interference Compounds |
+| **Brenk** | Brenk et al. (2008) | ~105 | Unfavorable chemical moieties |
+| **NIH** | NIH MLSMR Program | ~180 | Screening exclusion filters |
+| **ZINC** | ZINC Database | ~95 | Drug-likeness and reactivity |
+| **ChEMBL** | Pharma companies | ~700+ | BMS, Dundee, Glaxo, Inpharmatica, LINT, MLSMR, SureChEMBL |
+
+**Note:** 87 FDA-approved drugs contain PAINS patterns. Alerts are warnings for investigation, not automatic rejections.
 
 ### ADMET Predictions
 
-Absorption, Distribution, Metabolism, Excretion, and Toxicity predictions.
+Calculated molecular properties predictive of Absorption, Distribution, Metabolism, Excretion, and Toxicity.
 
-| Property | Method | Output |
-|----------|--------|--------|
-| **Synthetic Accessibility** | SAscore (1=easy, 10=hard) | Score + classification |
-| **Aqueous Solubility** | ESOL (Delaney) | LogS + mg/mL + classification |
-| **Complexity** | Fsp3, stereocenters, rings, Bertz CT | Classification |
-| **CNS MPO** | Multi-parameter optimization score | Score (0-6) + penetrant flag |
-| **Bioavailability** | TPSA, rotatable bonds, Lipinski | Oral absorption + CNS flags |
-| **Pfizer 3/75 Rule** | LogP < 3, TPSA > 75 | Pass/fail + interpretation |
-| **GSK 4/400 Rule** | MW ≤ 400, LogP ≤ 4 | Pass/fail + interpretation |
-| **Golden Triangle** | MW 200-500, LogD -2 to 5 | In/out + interpretation |
+| Property | Method | Output | Key Thresholds |
+|----------|--------|--------|----------------|
+| **Synthetic Accessibility** | SA Score (Ertl 2009) | 1–10 scale | < 4 easy, 4–6 moderate, > 6 difficult |
+| **Aqueous Solubility** | ESOL (Delaney 2004) | LogS + mg/mL | ≥ −1 highly soluble → < −5 insoluble |
+| **Complexity** | Fsp3, stereocenters, Bertz CT | Classification | Fsp3 > 0.42 = good 3D character |
+| **CNS MPO** | Wager et al. (2010) | 0–6 score | ≥ 5 excellent CNS penetration |
+| **Bioavailability** | Lipinski + Veber combined | Oral + CNS flags | Pass both = oral absorption likely |
+| **Pfizer 3/75 Rule** | LogP + TPSA | Risk flag | LogP > 3 AND TPSA < 75 = toxicity risk |
+| **GSK 4/400 Rule** | MW + LogP | Favorable flag | MW ≤ 400 AND LogP ≤ 4 = favorable |
+| **Golden Triangle** | MW + LogP | In/out triangle | MW 200–450 AND LogP −0.5–5 = balanced |
+
+See [ADMET Methodology](SCORING_METHODOLOGY.md#admet-predictions) for calculation formulas including the ESOL equation and CNS MPO component scoring.
 
 ### NP-Likeness
 
-Natural product likeness scoring.
+Natural product likeness scoring based on fragment analysis.
 
-| Score Range | Interpretation |
-|-------------|----------------|
-| **> 1.0** | Natural product-like |
-| **-1.0 to 1.0** | Intermediate |
-| **< -1.0** | Synthetic-like |
+| Score | Category | Description |
+|-------|----------|-------------|
+| **≥ 2.0** | Strong NP-like | Natural product features clearly evident |
+| **1.0–2.0** | NP-like | Suggestive of natural origin |
+| **0.3–1.0** | Moderate NP-like | Some NP features present |
+| **−0.3 to 0.3** | Mixed | Both NP and synthetic characteristics |
+| **−1.0 to −0.3** | Moderate synthetic | More synthetic than NP features |
+| **< −1.0** | Synthetic-like | Typical synthetic compound profile |
+
+Color scale in the UI: green (NP-like) → slate (mixed) → red (synthetic).
 
 ### Scaffold Analysis
 
 Murcko scaffold extraction for structure-activity analysis.
 
 Returns:
-- **Murcko scaffold SMILES** - Ring systems with linkers
-- **Generic scaffold SMILES** - Simplified ring framework
-- **Has scaffold** - Whether the molecule contains ring systems
+- **Murcko scaffold SMILES** — Ring systems with linkers
+- **Generic scaffold SMILES** — Simplified ring framework (all atoms replaced with carbon, all bonds with single)
+- **Has scaffold** — Whether the molecule contains ring systems
 
 ### Aggregator Likelihood
 
-Predicts whether a molecule is likely to form colloidal aggregates in assays.
+Predicts whether a molecule is likely to form colloidal aggregates in biological assays, causing false-positive readouts.
 
-Based on: LogP, TPSA, molecular weight, aromatic ring count, and known aggregator patterns.
+| Risk Score | Classification |
+|------------|---------------|
+| **≥ 0.6** | High aggregation risk |
+| **0.3–0.59** | Moderate risk |
+| **< 0.3** | Low risk |
+
+Based on 6 indicators: LogP, TPSA, MW, aromatic ring count, conjugation fraction, and 10 known aggregator SMARTS patterns (rhodanines, quinones, catechols, curcumin-like, etc.). See [Aggregator Methodology](SCORING_METHODOLOGY.md#aggregator-likelihood) for full details.
 
 **How to Get Scores (API):**
 ```bash

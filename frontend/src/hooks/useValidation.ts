@@ -8,6 +8,7 @@ interface UseValidationResult {
   error: ValidationError | null;
   isLoading: boolean;
   reset: () => void;
+  restore: (result: ValidationResponse) => void;
 }
 
 export function useValidation(): UseValidationResult {
@@ -36,5 +37,11 @@ export function useValidation(): UseValidationResult {
     setIsLoading(false);
   }, []);
 
-  return { validate, result, error, isLoading, reset };
+  const restore = useCallback((cached: ValidationResponse) => {
+    setResult(cached);
+    setError(null);
+    setIsLoading(false);
+  }, []);
+
+  return { validate, result, error, isLoading, reset, restore };
 }

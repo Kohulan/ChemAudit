@@ -42,6 +42,17 @@ class StereoInfo:
 
 
 @dataclass
+class StereoCenterDetail:
+    """Per-center stereochemistry change detail (STD-06)."""
+
+    atom_idx: int
+    type: str  # "tetrahedral" or "double_bond"
+    before_config: str  # "R", "S", "?", "absent", "E", "Z", "CIS", "TRANS", "NONE"
+    after_config: str
+    reason: str  # "standardization", "tautomer_canonicalization", "get_parent"
+
+
+@dataclass
 class StereoComparison:
     """Comparison of stereochemistry before and after standardization."""
 
@@ -53,6 +64,9 @@ class StereoComparison:
     stereocenters_gained: int = 0
     double_bond_stereo_lost: int = 0
     double_bond_stereo_gained: int = 0
+
+    # Per-center detail (STD-06)
+    per_center_detail: List[StereoCenterDetail] = field(default_factory=list)
 
     # Warning message if any stereocenters lost
     warning: Optional[str] = None
@@ -135,16 +149,22 @@ class StereoTracker:
         return info
 
     @staticmethod
-    def compare(before: StereoInfo, after: StereoInfo) -> StereoComparison:
+    def compare(
+        before: StereoInfo,
+        after: StereoInfo,
+        reason: str = "standardization",
+    ) -> StereoComparison:
         """
         Compare stereochemistry before and after standardization.
 
         Args:
             before: StereoInfo before standardization
             after: StereoInfo after standardization
+            reason: Reason for the change ("standardization", "tautomer_canonicalization",
+                    "get_parent"). Used to annotate per_center_detail entries (STD-06).
 
         Returns:
-            StereoComparison with changes and warnings
+            StereoComparison with changes, warnings, and per_center_detail (STD-06).
         """
         comparison = StereoComparison(before=before, after=after)
 
@@ -163,6 +183,52 @@ class StereoTracker:
         comparison.double_bond_stereo_gained = max(
             0, after.defined_double_bond_stereo - before.defined_double_bond_stereo
         )
+
+        # Build per-center detail (STD-06) for tetrahedral stereocenters
+        before_chiral_map: dict[int, str] = {
+            idx: label for idx, label in before.chiral_centers
+        }
+        after_chiral_map: dict[int, str] = {
+            idx: label for idx, label in after.chiral_centers
+        }
+
+        all_chiral_idxs = set(before_chiral_map) | set(after_chiral_map)
+        for idx in sorted(all_chiral_idxs):
+            before_cfg = before_chiral_map.get(idx, "absent")
+            after_cfg = after_chiral_map.get(idx, "absent")
+            if before_cfg != after_cfg:
+                comparison.per_center_detail.append(
+                    StereoCenterDetail(
+                        atom_idx=idx,
+                        type="tetrahedral",
+                        before_config=before_cfg,
+                        after_config=after_cfg,
+                        reason=reason,
+                    )
+                )
+
+        # Build per-center detail for double bond stereocenters
+        before_bond_map: dict[int, str] = {
+            bond_idx: stereo for bond_idx, stereo in before.double_bond_stereo
+        }
+        after_bond_map: dict[int, str] = {
+            bond_idx: stereo for bond_idx, stereo in after.double_bond_stereo
+        }
+
+        all_bond_idxs = set(before_bond_map) | set(after_bond_map)
+        for bond_idx in sorted(all_bond_idxs):
+            before_cfg = before_bond_map.get(bond_idx, "absent")
+            after_cfg = after_bond_map.get(bond_idx, "absent")
+            if before_cfg != after_cfg:
+                comparison.per_center_detail.append(
+                    StereoCenterDetail(
+                        atom_idx=bond_idx,
+                        type="double_bond",
+                        before_config=before_cfg,
+                        after_config=after_cfg,
+                        reason=reason,
+                    )
+                )
 
         # Generate warning if any defined stereochemistry was lost
         warnings = []
