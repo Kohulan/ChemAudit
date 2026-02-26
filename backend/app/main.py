@@ -11,36 +11,6 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-logger = logging.getLogger(__name__)
-
-# =============================================================================
-# Deep Validation Check Registration Assertion (ROADMAP success criteria #5)
-# =============================================================================
-# All 16 deep validation check names expected to be registered at startup.
-# Uses logger.warning (not hard assert) to allow partial deployments during
-# development. The CI-level hard assertion is in test_deep_complexity_checks.py.
-EXPECTED_DEEP_VALIDATION_CHECKS = {
-    # M1.1: Stereo & Tautomer
-    "stereoisomer_enumeration",  # DVAL-01+02
-    "tautomer_detection",  # DVAL-03
-    "aromatic_system_validation",  # DVAL-04
-    "coordinate_dimension",  # DVAL-05
-    # M1.2: Chemical Composition
-    "mixture_detection",  # DVAL-06
-    "solvent_contamination",  # DVAL-07
-    "inorganic_filter",  # DVAL-08
-    "radical_detection",  # DVAL-09
-    "isotope_label_detection",  # DVAL-10
-    "trivial_molecule",  # DVAL-11
-    # M1.3: Structural Complexity
-    "hypervalent_atoms",  # DVAL-12
-    "polymer_detection",  # DVAL-13
-    "ring_strain",  # DVAL-14
-    "macrocycle_detection",  # DVAL-15
-    "charged_species",  # DVAL-16
-    "explicit_hydrogen_audit",  # DVAL-17
-}
-
 from app.api.routes import (
     alerts,
     api_keys,
@@ -71,6 +41,36 @@ from app.core.rate_limit import (
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
 from app.websockets import manager
+
+logger = logging.getLogger(__name__)
+
+# =============================================================================
+# Deep Validation Check Registration Assertion (ROADMAP success criteria #5)
+# =============================================================================
+# All 16 deep validation check names expected to be registered at startup.
+# Uses logger.warning (not hard assert) to allow partial deployments during
+# development. The CI-level hard assertion is in test_deep_complexity_checks.py.
+EXPECTED_DEEP_VALIDATION_CHECKS = {
+    # M1.1: Stereo & Tautomer
+    "stereoisomer_enumeration",  # DVAL-01+02
+    "tautomer_detection",  # DVAL-03
+    "aromatic_system_validation",  # DVAL-04
+    "coordinate_dimension",  # DVAL-05
+    # M1.2: Chemical Composition
+    "mixture_detection",  # DVAL-06
+    "solvent_contamination",  # DVAL-07
+    "inorganic_filter",  # DVAL-08
+    "radical_detection",  # DVAL-09
+    "isotope_label_detection",  # DVAL-10
+    "trivial_molecule",  # DVAL-11
+    # M1.3: Structural Complexity
+    "hypervalent_atoms",  # DVAL-12
+    "polymer_detection",  # DVAL-13
+    "ring_strain",  # DVAL-14
+    "macrocycle_detection",  # DVAL-15
+    "charged_species",  # DVAL-16
+    "explicit_hydrogen_audit",  # DVAL-17
+}
 
 # Conditional Prometheus imports
 if settings.ENABLE_METRICS:

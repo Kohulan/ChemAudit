@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from app.schemas.analytics import DeduplicationResult
 
 from rdkit import Chem
 

@@ -75,10 +75,10 @@ def _fps_to_matrix(fps: list) -> np.ndarray:
         Float32 numpy array of shape (n, 2048).
     """
     n = len(fps)
-    X = np.zeros((n, 2048), dtype=np.float32)
+    mat = np.zeros((n, 2048), dtype=np.float32)
     for i, fp in enumerate(fps):
-        DataStructs.ConvertToNumpyArray(fp, X[i])
-    return X
+        DataStructs.ConvertToNumpyArray(fp, mat[i])
+    return mat
 
 
 # ---------------------------------------------------------------------------
@@ -110,18 +110,18 @@ def compute_pca(results: list[dict], n_components: int = 2) -> dict:
             "molecule_count": len(indices),
         }
 
-    X = _fps_to_matrix(fps)
+    mat = _fps_to_matrix(fps)
 
     # Randomized SVD PCA (per research Pattern 7)
     rng = np.random.default_rng(42)
-    X_centered = X - X.mean(axis=0)
+    centered = mat - mat.mean(axis=0)
 
     omega = rng.standard_normal((2048, n_components + 10)).astype(np.float32)
-    Q, _ = np.linalg.qr(X_centered @ omega)
-    B = Q.T @ X_centered
-    U, s, _Vt = np.linalg.svd(B, full_matrices=False)
+    q, _ = np.linalg.qr(centered @ omega)
+    b = q.T @ centered
+    u, s, _vt = np.linalg.svd(b, full_matrices=False)
 
-    coords = (Q @ U[:, :n_components]) * s[:n_components]
+    coords = (q @ u[:, :n_components]) * s[:n_components]
     variance_explained = (s[:n_components] ** 2 / (s**2).sum()).tolist()
 
     elapsed = time.perf_counter() - t0
@@ -171,7 +171,7 @@ def compute_tsne(results: list[dict], perplexity: int = 30) -> dict:
             "molecule_count": len(indices),
         }
 
-    X = _fps_to_matrix(fps)
+    mat = _fps_to_matrix(fps)
 
     # Auto-adjust perplexity: avoids openTSNE crash when perplexity >= n_samples
     perplexity = min(perplexity, max(5, len(indices) // 3))
@@ -183,7 +183,7 @@ def compute_tsne(results: list[dict], perplexity: int = 30) -> dict:
         random_state=42,
         n_jobs=-1,
     )
-    coords = tsne.fit(X)
+    coords = tsne.fit(mat)
 
     elapsed = time.perf_counter() - t0
     logger.info(

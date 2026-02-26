@@ -39,8 +39,8 @@ class TestValidateEndpoint:
         assert isinstance(data["overall_score"], int)
         assert 0 <= data["overall_score"] <= 100
 
-        # Valid molecule should have high score
-        assert data["overall_score"] >= 80
+        # Valid molecule should have reasonable score (deep checks may lower simple molecules)
+        assert data["overall_score"] >= 70
 
     @pytest.mark.asyncio
     async def test_validate_benzene(self, client):
@@ -93,8 +93,8 @@ class TestValidateEndpoint:
         assert response.status_code == 200
         data = response.json()
 
-        # Should have all 11 checks (basic + representation + stereochemistry)
-        assert len(data["all_checks"]) == 11
+        # Should have all 27 checks (basic + representation + stereochemistry + deep)
+        assert len(data["all_checks"]) == 27
         check_names = {c["check_name"] for c in data["all_checks"]}
         expected_checks = {
             # Basic checks
@@ -111,6 +111,25 @@ class TestValidateEndpoint:
             "undefined_stereocenters",
             "undefined_doublebond_stereo",
             "conflicting_stereo",
+            # Deep: stereo & tautomer
+            "stereoisomer_enumeration",
+            "tautomer_detection",
+            "aromatic_system_validation",
+            "coordinate_dimension",
+            # Deep: chemical composition
+            "mixture_detection",
+            "solvent_contamination",
+            "inorganic_filter",
+            "radical_detection",
+            "isotope_label_detection",
+            "trivial_molecule",
+            # Deep: structural complexity
+            "hypervalent_atoms",
+            "polymer_detection",
+            "ring_strain",
+            "macrocycle_detection",
+            "charged_species",
+            "explicit_hydrogen_audit",
         }
         assert check_names == expected_checks
 
