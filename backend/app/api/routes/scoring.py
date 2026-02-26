@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from rdkit import Chem
-from rdkit.Chem import Descriptors, rdMolDescriptors
 
+from app.api.routes.validation import extract_molecule_info
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
 from app.schemas.scoring import (
@@ -56,7 +56,6 @@ from app.schemas.scoring import (
     MLDimensionSchema,
     MLReadinessBreakdownSchema,
     MLReadinessResultSchema,
-    MoleculeInfoSchema,
     MueggeSchema,
     NPBreakdownSchema,
     NPFragmentSchema,
@@ -173,7 +172,7 @@ async def score_molecule(
     mol = parse_result.mol
 
     # Extract basic molecule info
-    mol_info = _extract_molecule_info(mol, body.molecule)
+    mol_info = extract_molecule_info(mol, body.molecule)
 
     # Initialize response components
     ml_readiness_result = None
@@ -892,29 +891,3 @@ def _ml_dimension_to_schema(dim) -> MLDimensionSchema:
     )
 
 
-def _extract_molecule_info(mol: Chem.Mol, input_string: str) -> MoleculeInfoSchema:
-    """
-    Extract basic molecule information.
-
-    Args:
-        mol: RDKit molecule object
-        input_string: Original input string
-
-    Returns:
-        MoleculeInfoSchema with basic properties
-    """
-    try:
-        canonical = Chem.MolToSmiles(mol)
-        formula = rdMolDescriptors.CalcMolFormula(mol)
-        mw = Descriptors.MolWt(mol)
-    except Exception:
-        canonical = None
-        formula = None
-        mw = None
-
-    return MoleculeInfoSchema(
-        input_string=input_string,
-        canonical_smiles=canonical,
-        molecular_formula=formula,
-        molecular_weight=mw,
-    )

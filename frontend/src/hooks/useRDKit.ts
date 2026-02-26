@@ -9,8 +9,10 @@ interface RDKitModule {
 interface RDKitMol {
   get_svg: (width?: number, height?: number) => string;
   get_svg_with_highlights: (details: string) => string;
-  get_smiles: () => string;
+  get_smiles: (opts?: string) => string;
   get_molblock: () => string;
+  get_descriptors: () => string;
+  get_json: () => string;
   delete: () => void;  // CRITICAL: Must call to free WASM memory
 }
 

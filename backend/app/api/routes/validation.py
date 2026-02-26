@@ -426,6 +426,22 @@ def extract_molecule_info(
         formula = rdMolDescriptors.CalcMolFormula(mol)
         mw = Descriptors.MolWt(mol)
         num_atoms = mol.GetNumAtoms()
+        num_bonds = mol.GetNumBonds()
+        num_rings = rdMolDescriptors.CalcNumRings(mol)
+        num_aromatic_rings = Descriptors.NumAromaticRings(mol)
+
+        # Stereocenter detection
+        chiral_centers = Chem.FindMolChiralCenters(mol, includeUnassigned=True)
+        num_stereocenters = len(chiral_centers)
+
+        # E/Z bond detection via RDKit bond stereo flags
+        has_ez = any(
+            bond.GetStereo() != Chem.BondStereo.STEREONONE
+            for bond in mol.GetBonds()
+            if bond.GetBondTypeAsDouble() == 2.0
+        )
+        has_stereochemistry = num_stereocenters > 0 or has_ez
+
     except Exception:
         canonical = None
         mol_inchi = None
@@ -433,6 +449,11 @@ def extract_molecule_info(
         formula = None
         mw = None
         num_atoms = None
+        num_bonds = None
+        num_rings = None
+        num_aromatic_rings = None
+        num_stereocenters = None
+        has_stereochemistry = None
 
     return MoleculeInfo(
         input_smiles=input_smiles,
@@ -443,4 +464,9 @@ def extract_molecule_info(
         molecular_formula=formula,
         molecular_weight=mw,
         num_atoms=num_atoms,
+        num_bonds=num_bonds,
+        num_rings=num_rings,
+        num_aromatic_rings=num_aromatic_rings,
+        num_stereocenters=num_stereocenters,
+        has_stereochemistry=has_stereochemistry,
     )

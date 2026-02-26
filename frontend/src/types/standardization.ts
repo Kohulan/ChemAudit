@@ -4,6 +4,8 @@
  * TypeScript interfaces for standardization requests and responses.
  */
 
+import type { MoleculeInfo } from './validation';
+
 // ---------------------------------------------------------------------------
 // Provenance types (Phase 02 — STD-01 through STD-06)
 // ---------------------------------------------------------------------------
@@ -91,10 +93,6 @@ export interface StandardizationProvenance {
   stereo_summary: StereoProvenance | null;
 }
 
-// ---------------------------------------------------------------------------
-// Core standardization types
-// ---------------------------------------------------------------------------
-
 export interface StandardizationOptions {
   /**
    * Include tautomer canonicalization.
@@ -158,16 +156,6 @@ export interface StandardizationResult {
   structure_comparison: StructureComparison | null;
   mass_change_percent: number;
   provenance?: StandardizationProvenance | null;
-}
-
-export interface MoleculeInfo {
-  input_smiles: string;
-  canonical_smiles: string | null;
-  inchi: string | null;
-  inchikey: string | null;
-  molecular_formula: string | null;
-  molecular_weight: number | null;
-  num_atoms: number | null;
 }
 
 export interface StandardizeRequest {

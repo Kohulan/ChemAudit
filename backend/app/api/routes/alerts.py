@@ -12,9 +12,8 @@ import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors
 
+from app.api.routes.validation import extract_molecule_info
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
 from app.schemas.alerts import (
@@ -24,7 +23,6 @@ from app.schemas.alerts import (
     AlertSeverity,
     CatalogInfoSchema,
     CatalogListResponse,
-    MoleculeInfoSchema,
 )
 from app.services.alerts.alert_manager import alert_manager
 from app.services.alerts.filter_catalog import AVAILABLE_CATALOGS
@@ -201,29 +199,3 @@ async def quick_check_alerts(
     }
 
 
-def extract_molecule_info(mol: Chem.Mol, input_string: str) -> MoleculeInfoSchema:
-    """
-    Extract molecule properties.
-
-    Args:
-        mol: RDKit molecule object
-        input_string: Original input string
-
-    Returns:
-        MoleculeInfoSchema with molecular properties
-    """
-    try:
-        canonical = Chem.MolToSmiles(mol)
-        formula = rdMolDescriptors.CalcMolFormula(mol)
-        num_atoms = mol.GetNumAtoms()
-    except Exception:
-        canonical = None
-        formula = None
-        num_atoms = None
-
-    return MoleculeInfoSchema(
-        input_string=input_string,
-        canonical_smiles=canonical,
-        molecular_formula=formula,
-        num_atoms=num_atoms,
-    )
