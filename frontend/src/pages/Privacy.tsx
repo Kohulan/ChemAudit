@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Database, Cookie, Eye, Lock, Server, Trash2, AlertTriangle, Clock } from 'lucide-react';
+import { Shield, Database, Cookie, Eye, Lock, Server, Trash2, AlertTriangle, Clock, HardDrive, Key, ShieldAlert } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { sessionApi } from '../services/api';
 import { clearAllSnapshots } from '../lib/bookmarkStore';
@@ -180,6 +180,68 @@ export function PrivacyPage() {
                 Entries are automatically deleted after 30 days.
               </p>
             </div>
+
+            {/* Browser Local Storage */}
+            <div className="bg-[var(--color-surface-sunken)] rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <HardDrive className="w-5 h-5 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--color-text-primary)]">Browser Local Storage</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Client-side only, never sent to our server</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)] mb-2">
+                The following data is stored locally in your browser for convenience and is never transmitted to our servers:
+              </p>
+              <ul className="text-sm text-[var(--color-text-secondary)] space-y-1 ml-4 list-disc">
+                <li><strong>Recent molecules</strong> &mdash; the last 50 validated SMILES strings, stored so you can quickly re-validate previous inputs</li>
+                <li><strong>Validation settings</strong> &mdash; your per-check severity overrides for deep validation</li>
+                <li><strong>Scoring profiles cache</strong> &mdash; a temporary cache of scoring profiles (auto-expires after 2 hours)</li>
+              </ul>
+              <p className="text-sm text-[var(--color-text-muted)] mt-2">
+                You can clear this data at any time via your browser&apos;s &ldquo;Clear site data&rdquo; setting.
+              </p>
+            </div>
+
+            {/* Rate Limiting & IP Addresses */}
+            <div className="bg-[var(--color-surface-sunken)] rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                  <ShieldAlert className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--color-text-primary)]">Rate Limiting &amp; IP Addresses</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Temporary, for abuse prevention only</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                To prevent abuse, we temporarily log your IP address for rate-limiting purposes.
+                This data is stored in memory (Redis) and <strong>automatically expires within 2 hours</strong>.
+                IP addresses are not written to any database, not linked to your session, and not used for any other purpose.
+                If excessive requests are detected, your IP may be temporarily blocked for up to 60 minutes.
+              </p>
+            </div>
+
+            {/* API Key Data */}
+            <div className="bg-[var(--color-surface-sunken)] rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <Key className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--color-text-primary)]">API Key Users</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Optional, persistent until key is deleted</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                If you generate an API key, bookmarks and validation history are scoped to that key instead of a session cookie.
+                Unlike session-scoped data, <strong>API key data is not automatically purged after 30 days</strong> &mdash;
+                it persists until you delete the API key or manually purge your data.
+                API keys are stored as one-way hashes; the plain key is shown only once at creation.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -240,13 +302,19 @@ export function PrivacyPage() {
             GDPR Compliance
           </h2>
           <p className="text-[var(--color-text-secondary)] mb-3">
-            ChemAudit does not collect personal data such as names, emails, or IP addresses.
+            ChemAudit does not collect personal data such as names or emails.
             The session cookie is a &ldquo;strictly necessary&rdquo; functional cookie under GDPR Article 6(1)(f)
             and does not require consent.
           </p>
           <p className="text-[var(--color-text-secondary)] mb-3">
+            IP addresses are temporarily processed for rate limiting under GDPR Article 6(1)(f)
+            (legitimate interest in service security). They are stored only in volatile memory,
+            automatically expire within 2 hours, and are never persisted to any database.
+          </p>
+          <p className="text-[var(--color-text-secondary)] mb-3">
             Bookmarks and validation history contain only chemical structure data (SMILES),
-            scoped to an anonymous session identifier. This data is automatically purged after 30 days.
+            scoped to an anonymous session identifier. Session-scoped data is automatically purged after 30 days.
+            API key-scoped data persists until the key is deleted or data is manually purged.
           </p>
           <p className="text-[var(--color-text-secondary)]">
             <strong>Your rights:</strong> You can view your stored data on the{' '}
@@ -331,7 +399,7 @@ export function PrivacyPage() {
 
         {/* Last Updated */}
         <p className="text-center text-sm text-[var(--color-text-muted)]">
-          Last updated: February 25, 2026
+          Last updated: February 26, 2026
         </p>
       </motion.div>
     </div>
