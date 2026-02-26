@@ -11,11 +11,16 @@ import { ExportDialog } from '../../components/batch/ExportDialog';
 // Mock framer-motion: create forwarded-ref component factory for any HTML tag
 function makeMockMotionComponent(tag: string) {
   return forwardRef(function MockMotion(props: Record<string, unknown>, ref: React.Ref<unknown>) {
-    const {
-      initial, animate, exit, transition, whileHover, whileTap, whileInView,
-      layoutId, layout, onAnimationComplete, variants, drag, dragConstraints,
-      ...domProps
-    } = props;
+    // Strip framer-motion props, pass only DOM-safe props
+    const motionProps = [
+      'initial', 'animate', 'exit', 'transition', 'whileHover', 'whileTap',
+      'whileInView', 'layoutId', 'layout', 'onAnimationComplete', 'variants',
+      'drag', 'dragConstraints',
+    ];
+    const domProps: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(props)) {
+      if (!motionProps.includes(key)) domProps[key] = val;
+    }
     return createElement(tag, { ...domProps, ref });
   });
 }

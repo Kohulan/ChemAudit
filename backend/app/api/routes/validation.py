@@ -93,7 +93,8 @@ async def validate_molecule(
     molecule_input = body.molecule
     effective_input_type = body.input_type or "auto"
 
-    if effective_input_type in ("auto", "iupac"):
+    # Skip IUPAC detection when the user explicitly specifies a structural format
+    if effective_input_type in ("auto", "iupac") and body.format not in ("smiles", "inchi", "mol"):
         from app.services.iupac.converter import (
             detect_input_type,
             name_to_smiles,

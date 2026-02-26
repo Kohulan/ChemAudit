@@ -156,12 +156,12 @@ def compute_scaffold_analysis(results: list[dict[str, Any]]) -> dict[str, Any]:
                 shannon_entropy -= p_i * math.log2(p_i)
 
     # Frequency distribution — top 50 scaffolds, remainder in "Other"
-    MAX_DISPLAY = 50
+    max_display = 50
     frequency_distribution: dict[str, int] = {}
     other_count = 0
 
     for i, group in enumerate(scaffolds):
-        if i < MAX_DISPLAY:
+        if i < max_display:
             frequency_distribution[group["scaffold_smiles"]] = group["count"]
         else:
             other_count += group["count"]

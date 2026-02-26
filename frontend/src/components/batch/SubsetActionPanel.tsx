@@ -407,6 +407,7 @@ export function SubsetActionPanel({
         // Paginate through results (max page_size=100) until we find all selected
         let page = 1;
         const pageSize = 100;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const res = await batchApi.getBatchResults(jobId, page, pageSize);
           if (cancelled) return;
