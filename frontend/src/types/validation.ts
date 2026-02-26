@@ -12,6 +12,7 @@ export interface CheckResult {
 export interface MoleculeInfo {
   input_smiles: string;
   canonical_smiles: string | null;
+  canonical_smiles_source?: string | null;
   inchi: string | null;
   inchikey: string | null;
   molecular_formula: string | null;

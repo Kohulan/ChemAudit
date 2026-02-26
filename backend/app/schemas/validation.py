@@ -27,6 +27,13 @@ class MoleculeInfo(BaseModel):
 
     input_smiles: str
     canonical_smiles: Optional[str] = None
+    canonical_smiles_source: Optional[str] = Field(
+        None,
+        description=(
+            "Toolkit and version that generated the canonical SMILES, "
+            "e.g. 'RDKit 2024.03.5'"
+        ),
+    )
     inchi: Optional[str] = None
     inchikey: Optional[str] = None
     molecular_formula: Optional[str] = None

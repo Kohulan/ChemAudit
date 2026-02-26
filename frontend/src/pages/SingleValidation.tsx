@@ -97,6 +97,44 @@ function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
   return 'ambiguous';
 }
 
+/** Compact severity summary tags for the quality card */
+function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
+  const counts = { critical: 0, error: 0, warning: 0 };
+  for (const issue of issues) {
+    const sev = issue.severity as keyof typeof counts;
+    if (sev in counts) counts[sev]++;
+  }
+  const passed = totalChecks - issues.length;
+
+  const TAG_STYLES: Record<string, string> = {
+    critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {totalChecks > 0 && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]">
+          {passed}/{totalChecks} passed
+        </span>
+      )}
+      {Object.entries(counts).map(([severity, count]) =>
+        count > 0 ? (
+          <span key={severity} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${TAG_STYLES[severity]}`}>
+            {count} {severity}
+          </span>
+        ) : null
+      )}
+      {issues.length === 0 && totalChecks > 0 && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+          All clear
+        </span>
+      )}
+    </div>
+  );
+}
+
 interface TabConfig {
   id: TabType;
   label: string;
@@ -1601,7 +1639,7 @@ export function SingleValidationPage() {
                   >
                     {/* Quality Score */}
                     <div className="card-gradient p-4 sm:p-5">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                             <Target className="w-4 h-4" />
@@ -1614,15 +1652,28 @@ export function SingleValidationPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className={cn(
-                          'text-3xl font-bold tracking-tight',
-                          qualityScore !== null && qualityScore >= 70 && 'text-gradient text-glow'
-                        )}>
-                          {qualityScore !== null ? Math.round(qualityScore) : '--'}
-                        </span>
-                        <span className="text-xs text-[var(--color-text-muted)]">/100</span>
+                      <div className="flex justify-center">
+                        {qualityScore !== null ? (
+                          <ScoreChart
+                            score={qualityScore}
+                            label="Validation Quality"
+                            size={100}
+                            compact
+                            variant="cool"
+                          />
+                        ) : (
+                          <div className="w-[100px] h-[100px] flex items-center justify-center">
+                            <span className="text-3xl font-bold text-[var(--color-text-muted)]">--</span>
+                          </div>
+                        )}
                       </div>
+                      {/* Issue severity tags */}
+                      {result && (
+                        <IssueSeverityTags
+                          issues={result.issues || []}
+                          totalChecks={result.all_checks?.length || 0}
+                        />
+                      )}
                     </div>
 
                     {/* ML Readiness */}
