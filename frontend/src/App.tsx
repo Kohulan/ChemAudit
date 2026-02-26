@@ -208,7 +208,7 @@ function AppWithSplash() {
 
   // Ensure splash shows for minimum time (matches splash animation duration)
   useEffect(() => {
-    const timer = setTimeout(() => setMinTimeElapsed(true), 1600);
+    const timer = setTimeout(() => setMinTimeElapsed(true), 2600);
     return () => clearTimeout(timer);
   }, []);
 
