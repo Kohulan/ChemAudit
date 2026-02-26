@@ -216,6 +216,53 @@ DATABASE_URL=postgresql+asyncpg://chemaudit:password@postgres:5432/chemaudit
 
 Use `postgres` (service name) not `localhost` inside Docker.
 
+## IUPAC Conversion Issues
+
+### OPSIN not available
+
+OPSIN requires Java JRE. In Docker, this is pre-installed. For local development:
+
+```bash
+# Check Java is installed
+java -version
+
+# Set OPSIN JAR path in .env
+OPSIN_JAR_PATH=/path/to/opsin.jar
+```
+
+### Name conversion fails
+
+- **Systematic names**: Should work via OPSIN (offline)
+- **Common/trade names**: Require PubChem API (internet needed)
+- **Obscure names**: May not be in PubChem — try the systematic IUPAC name instead
+
+## Bookmark & History Issues
+
+### Bookmarks not appearing
+
+Bookmarks are session-scoped. If your session cookie expired (30 days), previous bookmarks are no longer accessible.
+
+### History shows no entries
+
+History entries are created automatically during validation. Check that your session cookie is active by looking for the `chemaudit_sid` cookie in your browser.
+
+## Webhook Issues
+
+### Webhook not firing
+
+```bash
+# Verify environment variables are set
+echo $WEBHOOK_URL
+echo $WEBHOOK_SECRET
+
+# Test webhook endpoint manually
+curl -X POST $WEBHOOK_URL -H "Content-Type: application/json" -d '{"test": true}'
+```
+
+### Webhook signature mismatch
+
+Ensure `WEBHOOK_SECRET` matches on both ChemAudit and your receiving server. The signature is HMAC-SHA256 of the raw request body.
+
 ## Getting Help
 
 ### Collect Debug Information

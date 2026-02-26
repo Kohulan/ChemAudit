@@ -14,11 +14,29 @@ Safety filter scoring tests molecules against multiple catalogs:
 
 | Catalog | Patterns | Focus |
 |---------|----------|-------|
-| **PAINS** | ~480 | Pan-assay interference compounds |
-| **BRENK** | ~105 | Unwanted chemical moieties |
-| **NIH** | ~180 | NIH MLSMR excluded structures |
-| **ZINC** | ~95 | ZINC database filters |
-| **ChEMBL** | ~700+ | Pharma company filters (BMS, Dundee, Glaxo, etc.) |
+| **PAINS A/B/C** | ~480 | Pan-assay interference compounds — frequent hitters in HTS |
+| **Brenk** | ~105 | Unfavorable chemical moieties for drug development |
+| **NIH** | ~180 | NIH MLSMR screening exclusion filters |
+| **ZINC** | ~95 | Drug-likeness and reactivity filters |
+| **ChEMBL** | ~700+ | Combined from 7 pharma sub-catalogs (see below) |
+
+### ChEMBL Sub-Catalogs
+
+The ChEMBL structural alerts combine filters from 7 pharmaceutical industry sources:
+
+| Sub-Catalog | Source | Focus |
+|-------------|--------|-------|
+| **BMS** | Bristol-Myers Squibb | Reactive functional groups and chemical liabilities |
+| **Dundee** | University of Dundee | Promiscuous compound filters for screening |
+| **Glaxo** | GlaxoSmithKline | Undesirable moieties and toxicophores |
+| **Inpharmatica** | Inpharmatica Ltd. | Chemical liabilities and ADMET flags |
+| **LINT** | Lead Identification Noise | Noise-causing patterns in lead identification |
+| **MLSMR** | NIH/MLSMR | Molecular Libraries Screening Center Network filters |
+| **SureChEMBL** | EMBL-EBI | Patent literature structural alerts |
+
+Each sub-catalog targets different aspects of compound quality. When ChEMBL alerts are enabled, all 7 sub-catalogs are screened simultaneously.
+
+All pattern matching uses RDKit's `FilterCatalog` module with SMARTS substructure matching.
 
 ## Scoring Output
 

@@ -20,6 +20,8 @@ const sidebars: SidebarsConfig = {
       items: [
         'user-guide/single-validation',
         'user-guide/batch-processing',
+        'user-guide/batch-analytics',
+        'user-guide/subset-actions',
         'user-guide/structural-alerts',
         {
           type: 'category',
@@ -33,11 +35,14 @@ const sidebars: SidebarsConfig = {
             'user-guide/scoring/np-likeness',
             'user-guide/scoring/scaffold-analysis',
             'user-guide/scoring/aggregator-likelihood',
+            'user-guide/scoring/profiles',
           ],
         },
         'user-guide/standardization',
         'user-guide/database-integrations',
+        'user-guide/iupac-conversion',
         'user-guide/exporting-results',
+        'user-guide/bookmarks-history',
       ],
     },
     {
