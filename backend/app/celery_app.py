@@ -6,6 +6,7 @@ Implements priority queues for handling concurrent jobs of different sizes.
 """
 
 from celery import Celery
+from celery.schedules import crontab
 from kombu import Exchange, Queue
 
 from app.core.config import settings
@@ -19,6 +20,7 @@ celery_app = Celery(
         "app.services.batch.analytics_tasks",
         "app.services.notifications.webhook",
         "app.services.notifications.email",
+        "app.services.session.cleanup",
     ],
 )
 
@@ -72,6 +74,14 @@ celery_app.conf.update(
         },
     },
 )
+
+# Periodic tasks (Celery Beat)
+celery_app.conf.beat_schedule = {
+    "purge-expired-sessions": {
+        "task": "app.services.session.cleanup.purge_expired_sessions",
+        "schedule": crontab(hour=3, minute=0),  # Daily at 03:00 UTC
+    },
+}
 
 # Threshold for small vs large jobs (molecules)
 SMALL_JOB_THRESHOLD = 500

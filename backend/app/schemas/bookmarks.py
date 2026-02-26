@@ -45,6 +45,15 @@ class BookmarkResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BookmarkListResponse(BaseModel):
+    """Paginated list of bookmarks."""
+
+    bookmarks: List[BookmarkResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class BookmarkBatchSubmit(BaseModel):
     """Request body for submitting bookmarks as a new batch job."""
 
