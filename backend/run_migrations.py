@@ -15,29 +15,47 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("migrations")
 
+CREATE_ALEMBIC_TABLE_SQL = (
+    "CREATE TABLE IF NOT EXISTS alembic_version "
+    "(version_num VARCHAR(32) NOT NULL, "
+    "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+)
+
 
 def _inspect_db(sync_conn) -> dict:
     """Inspect database state synchronously (called via run_sync)."""
-    from sqlalchemy import inspect
+    from sqlalchemy import inspect as sa_inspect
 
-    insp = inspect(sync_conn)
-    tables = insp.get_table_names()
+    inspector = sa_inspect(sync_conn)
+    tables = inspector.get_table_names()
     has_tables = "bookmarks" in tables
-    has_alembic = "alembic_version" in tables
     has_session_id = False
     if has_tables:
-        columns = [c["name"] for c in insp.get_columns("bookmarks")]
+        columns = [c["name"] for c in inspector.get_columns("bookmarks")]
         has_session_id = "session_id" in columns
     return {
-        "has_alembic": has_alembic,
+        "has_alembic": "alembic_version" in tables,
         "has_tables": has_tables,
         "has_session_id": has_session_id,
     }
 
 
-async def _inspect_and_stamp():
-    """Inspect DB and stamp alembic if needed. Returns whether upgrade is needed."""
+async def _stamp_alembic(engine, revision: str) -> None:
+    """Create the alembic_version table and stamp it at the given revision."""
     from sqlalchemy import text
+
+    async with engine.begin() as conn:
+        await conn.execute(text(CREATE_ALEMBIC_TABLE_SQL))
+        await conn.execute(text("DELETE FROM alembic_version"))
+        await conn.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES (:rev)"),
+            {"rev": revision},
+        )
+    logger.info("Stamped alembic_version at revision %s", revision)
+
+
+async def _inspect_and_stamp() -> bool:
+    """Inspect DB and stamp alembic if needed. Returns whether upgrade is needed."""
     from sqlalchemy.ext.asyncio import create_async_engine
 
     db_url = os.environ.get("DATABASE_URL", "")
@@ -46,56 +64,35 @@ async def _inspect_and_stamp():
         return False
 
     engine = create_async_engine(db_url)
-
     try:
         async with engine.connect() as conn:
             info = await conn.run_sync(_inspect_db)
+
+        if not info["has_tables"]:
+            logger.info("No tables found — app startup will create them via create_all")
+            return False
+
+        if not info["has_alembic"]:
+            logger.info("No alembic_version table — stamping current schema state")
+            revision = "002" if info["has_session_id"] else "001"
+            await _stamp_alembic(engine, revision)
     finally:
         await engine.dispose()
 
-    has_alembic = info["has_alembic"]
-    has_tables = info["has_tables"]
-    has_session_id = info["has_session_id"]
-
-    if not has_tables:
-        logger.info("No tables found — app startup will create them via create_all")
-        return False
-
-    if not has_alembic:
-        logger.info("No alembic_version table — stamping current schema state")
-        stamp_rev = "002" if has_session_id else "001"
-
-        engine = create_async_engine(db_url)
-        try:
-            async with engine.begin() as conn:
-                await conn.execute(text(
-                    "CREATE TABLE IF NOT EXISTS alembic_version "
-                    "(version_num VARCHAR(32) NOT NULL, "
-                    "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-                ))
-                await conn.execute(text("DELETE FROM alembic_version"))
-                await conn.execute(text(
-                    f"INSERT INTO alembic_version (version_num) VALUES ('{stamp_rev}')"
-                ))
-            logger.info("Stamped alembic_version at revision %s", stamp_rev)
-        finally:
-            await engine.dispose()
-
-    return True  # Upgrade needed
+    return True
 
 
-def main():
-    # Phase 1: Async inspect + stamp
+def main() -> None:
+    """Run database migrations: inspect, stamp if needed, then upgrade."""
     needs_upgrade = asyncio.run(_inspect_and_stamp())
-
     if not needs_upgrade:
         return
 
-    # Phase 2: Sync alembic upgrade (has its own asyncio.run inside env.py)
-    logger.info("Running alembic upgrade head...")
     from alembic.config import Config
+
     from alembic import command
 
+    logger.info("Running alembic upgrade head...")
     cfg = Config("alembic.ini")
     command.upgrade(cfg, "head")
     logger.info("Migrations complete")
