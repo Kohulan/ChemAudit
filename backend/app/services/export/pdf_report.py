@@ -68,8 +68,28 @@ class PDFReportGenerator(BaseExporter):
     molecule images (base64 PNG) and SVG score distribution chart.
     """
 
-    def __init__(self):
-        """Initialize PDF generator with template environment."""
+    # Available PDF sections for user selection
+    AVAILABLE_SECTIONS = [
+        "validation_summary",
+        "score_distribution",
+        "alert_frequency",
+        "chemical_space",
+        "scaffold_treemap",
+        "statistics",
+        "correlation_matrix",
+        "mmp_pairs",
+    ]
+
+    def __init__(self, sections: Optional[List[str]] = None):
+        """Initialize PDF generator with template environment.
+
+        Args:
+            sections: List of section names to include in the report.
+                     If None, all sections are included (backward compatible).
+                     Valid section names: validation_summary, score_distribution,
+                     alert_frequency, chemical_space, scaffold_treemap,
+                     statistics, correlation_matrix, mmp_pairs.
+        """
         # Find templates directory relative to this file
         template_dir = Path(__file__).parent.parent.parent / "templates" / "reports"
         if not template_dir.exists():
@@ -81,6 +101,8 @@ class PDFReportGenerator(BaseExporter):
             raise FileNotFoundError(
                 f"PDF report template 'batch_report.html' not found: {e}"
             )
+        # Default: include all sections
+        self.sections = set(sections) if sections else set(self.AVAILABLE_SECTIONS)
 
     @property
     def media_type(self) -> str:
@@ -114,7 +136,7 @@ class PDFReportGenerator(BaseExporter):
         # Get all molecules with full validation data
         all_molecules = self._get_all_molecules(results)
 
-        # Render HTML template
+        # Render HTML template with section selection
         html_content = self.template.render(
             job_id="batch_results",
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -122,6 +144,7 @@ class PDFReportGenerator(BaseExporter):
             chart_data=chart_data,
             critical_issues=critical_issues,
             all_molecules=all_molecules,
+            sections=self.sections,
         )
 
         # Convert HTML to PDF

@@ -16,6 +16,7 @@
 |----------|-------------|
 | [**Getting Started**](GETTING_STARTED.md) | Installation and first steps |
 | [**User Guide**](USER_GUIDE.md) | Complete feature walkthrough |
+| [**Scoring Methodology**](SCORING_METHODOLOGY.md) | All formulas, thresholds, and citations |
 | [**API Reference**](API_REFERENCE.md) | REST API documentation |
 | [**Deployment**](DEPLOYMENT.md) | Production deployment guide |
 | [**Troubleshooting**](TROUBLESHOOTING.md) | Common issues and solutions |
@@ -69,6 +70,7 @@ docker-compose up -d
 |-------|-------------------|
 | [Getting Started](GETTING_STARTED.md) | Install, configure, validate your first molecule |
 | [User Guide](USER_GUIDE.md) | All features: batch processing, alerts, scoring, standardization, database lookup, export |
+| [Scoring Methodology](SCORING_METHODOLOGY.md) | Detailed formulas, thresholds, and academic references for all scoring algorithms |
 | [Troubleshooting](TROUBLESHOOTING.md) | Fix common issues |
 
 ### For Developers

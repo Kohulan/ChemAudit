@@ -10,7 +10,7 @@ Based on:
 """
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, Dict, List
 
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors
@@ -28,6 +28,8 @@ class AggregatorLikelihoodResult:
     aromatic_rings: int
     risk_factors: List[str] = field(default_factory=list)
     interpretation: str = ""
+    confidence: float = 0.0  # 0-1 scale
+    evidence: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # Known aggregator SMILES patterns (representative examples)
@@ -47,6 +49,14 @@ AGGREGATOR_PATTERNS = [
     ("O=C1CC(c2ccccc2)Oc2ccccc12", "Flavone scaffold"),
     # Long chain fatty acids/lipids
     ("CCCCCCCCCCCC", "Long aliphatic chain"),
+    # Acridines
+    ("c1ccc2nc3ccccc3cc2c1", "Acridine"),
+    # Phenothiazines
+    ("c1ccc2c(c1)Nc1ccccc1S2", "Phenothiazine"),
+    # Extended conjugated polyenes
+    ("C=CC=CC=CC=C", "Extended conjugation"),
+    # Azo compounds
+    ("N=Nc1ccccc1", "Azo dye"),
 ]
 
 
@@ -80,6 +90,9 @@ class AggregatorScorer:
             except Exception:
                 pass
 
+    # Total number of independent indicators checked
+    TOTAL_INDICATORS = 6
+
     def score(self, mol: Chem.Mol) -> AggregatorLikelihoodResult:
         """
         Predict aggregator likelihood for a molecule.
@@ -88,10 +101,12 @@ class AggregatorScorer:
             mol: RDKit molecule object
 
         Returns:
-            AggregatorLikelihoodResult with prediction
+            AggregatorLikelihoodResult with prediction, confidence, and evidence
         """
         risk_factors = []
         risk_score = 0.0
+        evidence: List[Dict[str, Any]] = []
+        triggered_count = 0
 
         # Calculate descriptors
         logp = Crippen.MolLogP(mol)
@@ -100,49 +115,102 @@ class AggregatorScorer:
         aromatic_rings = Descriptors.NumAromaticRings(mol)
 
         # LogP risk assessment
+        logp_triggered = logp > self.LOGP_MODERATE_RISK
+        evidence.append({
+            "indicator": "lipophilicity",
+            "value": f"{logp:.2f}",
+            "threshold": f">{self.LOGP_MODERATE_RISK}",
+            "triggered": logp_triggered,
+        })
         if logp > self.LOGP_HIGH_RISK:
             risk_score += 0.3
             risk_factors.append(f"High lipophilicity (LogP={logp:.1f}>4)")
+            triggered_count += 1
         elif logp > self.LOGP_MODERATE_RISK:
             risk_score += 0.15
             risk_factors.append(f"Moderate lipophilicity (LogP={logp:.1f}>3)")
+            triggered_count += 1
 
         # TPSA risk assessment (low TPSA = high hydrophobicity)
-        if tpsa < self.TPSA_LOW_RISK:
+        tpsa_triggered = tpsa < self.TPSA_LOW_RISK
+        evidence.append({
+            "indicator": "low_polarity",
+            "value": f"{tpsa:.1f}",
+            "threshold": f"<{self.TPSA_LOW_RISK}",
+            "triggered": tpsa_triggered,
+        })
+        if tpsa_triggered:
             risk_score += 0.2
             risk_factors.append(f"Low polarity (TPSA={tpsa:.0f}<40)")
+            triggered_count += 1
 
         # Aromatic ring stacking risk
+        arom_triggered = aromatic_rings >= 3
+        evidence.append({
+            "indicator": "aromatic_stacking",
+            "value": str(aromatic_rings),
+            "threshold": f">={self.AROMATIC_RINGS_HIGH}",
+            "triggered": arom_triggered,
+        })
         if aromatic_rings >= self.AROMATIC_RINGS_HIGH:
             risk_score += 0.2
             risk_factors.append(f"Many aromatic rings ({aromatic_rings})")
+            triggered_count += 1
         elif aromatic_rings >= 3:
             risk_score += 0.1
             risk_factors.append(f"Multiple aromatic rings ({aromatic_rings})")
+            triggered_count += 1
 
         # Molecular size
-        if mw > self.MW_HIGH:
+        mw_triggered = mw > self.MW_HIGH
+        evidence.append({
+            "indicator": "molecular_size",
+            "value": f"{mw:.1f}",
+            "threshold": f">{self.MW_HIGH}",
+            "triggered": mw_triggered,
+        })
+        if mw_triggered:
             risk_score += 0.1
             risk_factors.append(f"Large molecule (MW={mw:.0f}>500)")
+            triggered_count += 1
 
         # Check for known aggregator scaffolds
         matched_patterns = self._check_aggregator_patterns(mol)
+        pattern_triggered = len(matched_patterns) > 0
+        evidence.append({
+            "indicator": "aggregator_scaffolds",
+            "value": ", ".join(matched_patterns) if matched_patterns else "none",
+            "threshold": "any known scaffold",
+            "triggered": pattern_triggered,
+        })
         if matched_patterns:
             risk_score += 0.2 * min(len(matched_patterns), 2)
             for pattern_name in matched_patterns[:3]:
                 risk_factors.append(f"Contains {pattern_name} scaffold")
+            triggered_count += 1
 
         # Calculate heavy atom count and check for highly conjugated systems
         num_atoms = mol.GetNumHeavyAtoms()
         num_aromatic_atoms = sum(1 for atom in mol.GetAtoms() if atom.GetIsAromatic())
         aromatic_fraction = num_aromatic_atoms / num_atoms if num_atoms > 0 else 0
 
-        if aromatic_fraction > 0.7 and num_atoms > 20:
+        conj_triggered = aromatic_fraction > 0.7 and num_atoms > 20
+        evidence.append({
+            "indicator": "high_conjugation",
+            "value": f"{aromatic_fraction:.2f}",
+            "threshold": ">0.7 (with >20 atoms)",
+            "triggered": conj_triggered,
+        })
+        if conj_triggered:
             risk_score += 0.15
             risk_factors.append("Highly conjugated aromatic system")
+            triggered_count += 1
 
         # Cap risk score at 1.0
         risk_score = min(1.0, risk_score)
+
+        # Confidence = fraction of indicators that triggered
+        confidence = triggered_count / self.TOTAL_INDICATORS
 
         # Determine likelihood category
         if risk_score >= 0.6:
@@ -174,6 +242,8 @@ class AggregatorScorer:
             aromatic_rings=aromatic_rings,
             risk_factors=risk_factors,
             interpretation=interpretation,
+            confidence=round(confidence, 2),
+            evidence=evidence,
         )
 
     def _check_aggregator_patterns(self, mol: Chem.Mol) -> List[str]:

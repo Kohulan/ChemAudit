@@ -6,25 +6,50 @@ Uses chord pattern: process_molecule_chunk tasks -> aggregate_batch_results.
 Supports priority queues for concurrent job handling.
 """
 
+import asyncio
+import logging
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 from celery import chord, group
 from rdkit import Chem
+from rdkit.Chem import Lipinski
 
 from app.celery_app import SMALL_JOB_THRESHOLD, celery_app
+from app.core.config import settings
 from app.services.alerts import alert_manager
+from app.services.analytics.storage import analytics_storage
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import compute_statistics, result_storage
 from app.services.scoring.admet import calculate_admet
 from app.services.scoring.druglikeness import calculate_druglikeness
 from app.services.scoring.ml_readiness import calculate_ml_readiness
+from app.services.scoring.profile_scoring import compute_profile_result
 from app.services.scoring.safety_filters import calculate_safety_filters
 from app.services.standardization import standardize_molecule
 from app.services.validation.engine import validation_engine
 
 CHUNK_SIZE = 100  # Process 100 molecules per chunk for progress updates
+
+logger = logging.getLogger(__name__)
+
+
+def _init_analytics_and_dispatch(job_id: str) -> None:
+    """Pre-init analytics status and trigger cheap analytics computation."""
+    try:
+        analytics_storage.init_status(
+            job_id, auto_analyses=["deduplication", "statistics"]
+        )
+    except Exception:
+        logger.warning("Failed to pre-init analytics status for %s", job_id)
+
+    try:
+        from app.services.batch.analytics_tasks import run_cheap_analytics
+
+        run_cheap_analytics.delay(job_id)
+    except Exception:
+        logger.warning("Failed to dispatch cheap analytics for %s", job_id)
 
 
 # =============================================================================
@@ -114,6 +139,10 @@ def validate_single_molecule(
                             else str(a.severity)
                         ),
                         "matched_atoms": a.matched_atoms,
+                        "reference": a.reference,
+                        "scope": a.scope,
+                        "catalog_description": a.catalog_description,
+                        "category": a.category,
                     }
                     for a in alert_result.alerts
                 ],
@@ -317,6 +346,10 @@ def _process_single_molecule(
                             else str(a.severity)
                         ),
                         "matched_atoms": a.matched_atoms,
+                        "reference": a.reference,
+                        "scope": a.scope,
+                        "catalog_description": a.catalog_description,
+                        "category": a.category,
                     }
                     for a in alert_result.alerts
                 ],
@@ -343,6 +376,15 @@ def _process_single_molecule(
                 "qed_score": dl_result.qed.score,
                 "lipinski_passed": dl_result.lipinski.passed,
                 "lipinski_violations": dl_result.lipinski.violations,
+                "mw": dl_result.lipinski.mw,
+                "logp": dl_result.lipinski.logp,
+                "hbd": dl_result.lipinski.hbd,
+                "hba": dl_result.lipinski.hba,
+                "tpsa": dl_result.veber.tpsa if dl_result.veber else None,
+                "rotatable_bonds": (
+                    dl_result.veber.rotatable_bonds if dl_result.veber else None
+                ),
+                "aromatic_rings": Lipinski.NumAromaticRings(mol),
             }
         except Exception as e:
             if "scoring" not in result or result["scoring"] is None:
@@ -389,6 +431,34 @@ def _process_single_molecule(
                 result["scoring"] = {}
             result["scoring"]["admet"] = {"error": str(e)}
 
+        # Calculate profile score (if profile was selected at upload)
+        opts = safety_options or {}
+        if opts.get("profile_id") is not None:
+            try:
+                dl = result.get("scoring", {}).get("druglikeness", {})
+                admet = result.get("scoring", {}).get("admet", {})
+                mol_properties = {
+                    "mw": dl.get("mw"),
+                    "logp": dl.get("logp"),
+                    "hbd": dl.get("hbd"),
+                    "hba": dl.get("hba"),
+                    "tpsa": dl.get("tpsa"),
+                    "rotatable_bonds": dl.get("rotatable_bonds"),
+                    "aromatic_rings": dl.get("aromatic_rings"),
+                    "fsp3": admet.get("fsp3"),
+                }
+                result["scoring"]["profile"] = compute_profile_result(
+                    properties=mol_properties,
+                    profile_id=opts["profile_id"],
+                    profile_name=opts.get("profile_name", ""),
+                    thresholds=opts.get("profile_thresholds", {}),
+                    weights=opts.get("profile_weights", {}),
+                )
+            except Exception as e:
+                if "scoring" not in result or result["scoring"] is None:
+                    result["scoring"] = {}
+                result["scoring"]["profile"] = {"error": str(e)}
+
         # If we got this far with validation, mark as success
         result["status"] = "success"
 
@@ -396,6 +466,43 @@ def _process_single_molecule(
         result["error"] = f"Processing error: {str(e)}"
 
     return result
+
+
+async def _log_batch_audit(
+    job_id: str,
+    molecule_count: int,
+    pass_count: int,
+    fail_count: int,
+    session_id: Optional[str] = None,
+    api_key_hash: Optional[str] = None,
+) -> None:
+    """
+    Create a DB session and log a batch completion event to the audit trail.
+
+    This async helper is called via asyncio.run() from Celery tasks, which run
+    in their own process with no existing event loop.
+
+    Args:
+        job_id: Batch job identifier
+        molecule_count: Total molecules processed
+        pass_count: Number of molecules passing validation
+        fail_count: Number of molecules with errors
+        session_id: Session ID for anonymous user tracking
+        api_key_hash: Hashed API key if present
+    """
+    from app.db import async_session
+    from app.services.audit.service import log_batch_event
+
+    async with async_session() as db:
+        await log_batch_event(
+            db=db,
+            job_id=job_id,
+            molecule_count=molecule_count,
+            pass_count=pass_count,
+            fail_count=fail_count,
+            api_key_hash=api_key_hash,
+            session_id=session_id,
+        )
 
 
 @celery_app.task(bind=True)
@@ -428,6 +535,65 @@ def aggregate_batch_results(
 
     # Mark job as complete
     progress_tracker.mark_complete(job_id)
+
+    # Log batch event to audit trail
+    try:
+        total = len(all_results)
+        fail_count = stats.errors
+        pass_count = total - fail_count
+        asyncio.run(_log_batch_audit(
+            job_id=job_id,
+            molecule_count=total,
+            pass_count=pass_count,
+            fail_count=fail_count,
+        ))
+    except Exception as e:
+        logger.warning("Failed to log batch audit event for %s: %s", job_id, e)
+
+    # Dispatch webhook if configured
+    try:
+        webhook_url = settings.WEBHOOK_URL
+        if webhook_url:
+            from app.services.notifications.webhook import send_webhook
+
+            total = len(all_results)
+            payload = {
+                "event": "batch_complete",
+                "job_id": job_id,
+                "status": "complete",
+                "molecule_count": total,
+                "summary_url": f"/batch/{job_id}",
+            }
+            send_webhook.delay(webhook_url, settings.WEBHOOK_SECRET, payload)
+    except Exception as e:
+        logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
+
+    # Dispatch email notification if configured
+    try:
+        r = progress_tracker._get_redis()
+        notification_email = r.get(f"batch:email:{job_id}")
+        if notification_email:
+            if isinstance(notification_email, bytes):
+                notification_email = notification_email.decode("utf-8")
+            from app.services.notifications.email import send_batch_complete_email
+
+            total = len(all_results)
+            fail_count = stats.errors
+            pass_count = total - fail_count
+            avg_score = getattr(stats, "avg_validation_score", 0) or 0
+            email_stats = {
+                "molecule_count": total,
+                "pass_count": pass_count,
+                "fail_count": fail_count,
+                "avg_score": round(avg_score, 1),
+            }
+            send_batch_complete_email.delay(notification_email, job_id, email_stats)
+            # Clean up the Redis key
+            r.delete(f"batch:email:{job_id}")
+    except Exception as e:
+        logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
+
+    _init_analytics_and_dispatch(job_id)
 
     return {
         "job_id": job_id,
@@ -488,6 +654,65 @@ def aggregate_batch_results_priority(
 
     result_storage.store_results(job_id, all_results, stats)
     progress_tracker.mark_complete(job_id)
+
+    # Log batch event to audit trail
+    try:
+        total = len(all_results)
+        fail_count = stats.errors
+        pass_count = total - fail_count
+        asyncio.run(_log_batch_audit(
+            job_id=job_id,
+            molecule_count=total,
+            pass_count=pass_count,
+            fail_count=fail_count,
+        ))
+    except Exception as e:
+        logger.warning("Failed to log batch audit event for %s: %s", job_id, e)
+
+    # Dispatch webhook if configured
+    try:
+        webhook_url = settings.WEBHOOK_URL
+        if webhook_url:
+            from app.services.notifications.webhook import send_webhook
+
+            total = len(all_results)
+            payload = {
+                "event": "batch_complete",
+                "job_id": job_id,
+                "status": "complete",
+                "molecule_count": total,
+                "summary_url": f"/batch/{job_id}",
+            }
+            send_webhook.delay(webhook_url, settings.WEBHOOK_SECRET, payload)
+    except Exception as e:
+        logger.warning("Failed to dispatch webhook for %s: %s", job_id, e)
+
+    # Dispatch email notification if configured
+    try:
+        r = progress_tracker._get_redis()
+        notification_email = r.get(f"batch:email:{job_id}")
+        if notification_email:
+            if isinstance(notification_email, bytes):
+                notification_email = notification_email.decode("utf-8")
+            from app.services.notifications.email import send_batch_complete_email
+
+            total = len(all_results)
+            fail_count = stats.errors
+            pass_count = total - fail_count
+            avg_score = getattr(stats, "avg_validation_score", 0) or 0
+            email_stats = {
+                "molecule_count": total,
+                "pass_count": pass_count,
+                "fail_count": fail_count,
+                "avg_score": round(avg_score, 1),
+            }
+            send_batch_complete_email.delay(notification_email, job_id, email_stats)
+            # Clean up the Redis key
+            r.delete(f"batch:email:{job_id}")
+    except Exception as e:
+        logger.warning("Failed to dispatch email notification for %s: %s", job_id, e)
+
+    _init_analytics_and_dispatch(job_id)
 
     return {
         "job_id": job_id,

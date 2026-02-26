@@ -36,24 +36,48 @@ Based on fragment contributions and complexity penalties.
 
 ## Aqueous Solubility (ESOL)
 
-Predicts water solubility using the Delaney ESOL model:
+Predicts water solubility using the Delaney ESOL linear regression model.
 
-| LogS | mg/mL | Classification |
-|------|-------|---------------|
-| **> -2** | > 0.01 | Highly soluble |
-| **-2 to -4** | 0.0001-0.01 | Soluble |
-| **-4 to -6** | 0.000001-0.0001 | Moderately soluble |
-| **< -6** | < 0.000001 | Poorly soluble |
+### ESOL Equation
 
-Good aqueous solubility (LogS > -4) is favorable for oral drugs.
+```
+LogS = 0.16 − 0.63 × LogP − 0.0062 × MW + 0.066 × RotBonds − 0.74 × AP
+```
+
+Where:
+- **LogS** = log₁₀(aqueous solubility in mol/L)
+- **LogP** = Wildman-Crippen LogP
+- **MW** = molecular weight (Da)
+- **RotBonds** = rotatable bond count
+- **AP** = aromatic proportion (aromatic atoms / heavy atoms)
+
+**Conversion:** `solubility_mg_mL = 10^LogS × MW / 1000`
+
+### Classification
+
+| LogS | Category | Approx. mg/mL |
+|------|----------|---------------|
+| **≥ −1** | Highly soluble | > 100 |
+| **−1 to −3** | Soluble | 1–100 |
+| **−3 to −4** | Moderately soluble | 0.1–1 |
+| **−4 to −5** | Poorly soluble | < 0.1 |
+| **< −5** | Insoluble | Very low |
+
+Good aqueous solubility (LogS > −4) is favorable for oral drugs.
+
+**Reference:** Delaney (2004). ESOL: Estimating aqueous solubility directly from molecular structure. *JCICS*, 44(3), 1000–1005.
 
 ## Molecular Complexity
 
 Multiple complexity metrics:
 
 **Fsp3** (Fraction sp3 carbons):
-- Higher Fsp3 = more saturated, less flat
-- Target: > 0.42 for drug-likeness
+- Higher Fsp3 = more saturated, better 3D character
+- < 0.25: Flat/aromatic
+- 0.25–0.42: Moderate 3D
+- \> 0.42: Good 3D character (target for drug-likeness)
+
+**Reference (Fsp3):** Lovering et al. (2009). Escape from flatland. *Journal of Medicinal Chemistry*, 52(21), 6752–6756.
 
 **Stereocenters:**
 - Count of chiral centers
@@ -69,57 +93,87 @@ Multiple complexity metrics:
 
 ## CNS MPO (Multiparameter Optimization)
 
-Predicts CNS penetration using 6 properties:
+Pfizer's Central Nervous System Multiparameter Optimization score predicts CNS penetration likelihood on a 0–6 scale.
 
-- LogP (optimal: 2-3)
-- LogD at pH 7.4
-- TPSA (optimal: < 90 Å²)
-- HBD (optimal: ≤ 2)
-- pKa
-- MW (optimal: < 360)
+### Component Scoring
+
+Each component scores 0–1, and the total is the sum of all 6 components:
+
+| Parameter | Score = 1.0 | Linear decrease | Score = 0 |
+|-----------|-------------|----------------|-----------|
+| **MW** | ≤ 360 Da | 360–500 Da | > 500 Da |
+| **LogP** | ≤ 3.0 | 3.0–5.0 | > 5.0 |
+| **TPSA** | ≤ 40 A² | 40–90 A² | > 90 A² |
+| **HBD** | 0 | 1–3 (−0.25 per donor) | > 3 |
+| **LogD** | 0.5 (estimated) | — | — |
+| **pKa** | 0.5 (estimated) | — | — |
+
+:::info Placeholder Values
+LogD and pKa components use placeholder values (0.5 each) as these require experimental data or more complex models to calculate accurately.
+:::
+
+### Interpretation
 
 | CNS MPO Score | Interpretation |
 |---------------|---------------|
-| **5-6** | Highly likely CNS penetrant |
-| **3-4** | Possible CNS penetrant |
-| **0-2** | Unlikely CNS penetrant |
+| **≥ 5** | Excellent CNS penetration |
+| **4–5** | Good CNS penetration |
+| **3–4** | Moderate |
+| **< 3** | Poor CNS penetration |
+
+**Reference:** Wager et al. (2010). Moving beyond rules: the development of a CNS MPO approach. *ACS Chemical Neuroscience*, 1(6), 435–449.
 
 ## Bioavailability Predictions
 
 **Oral Absorption:**
-- Based on TPSA (≤ 140 Å²) and Lipinski compliance
-- `true` if likely orally bioavailable
+
+```
+oral_absorption_likely = lipinski_ok AND veber_ok
+```
+
+Where `lipinski_ok` = MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10 and `veber_ok` = rotatable bonds ≤ 10, TPSA ≤ 140.
 
 **CNS Penetration:**
-- Based on TPSA (< 90 Å²) and molecular weight
-- `true` if blood-brain barrier penetration likely
+
+```
+cns_penetration_likely = TPSA ≤ 90 AND MW ≤ 450 AND HBD ≤ 3 AND 1 ≤ LogP ≤ 4
+```
 
 ## Pfizer 3/75 Rule
 
-Reduces toxicity risk:
+A toxicity risk indicator:
 
-- LogP < 3
-- TPSA > 75 Å²
+```
+at_risk = LogP > 3 AND TPSA < 75
+```
 
-Developed from analysis of toxic compounds. Passing reduces risk of non-specific binding and toxicity.
+Compounds meeting both criteria have statistically higher rates of toxicity and off-target promiscuity.
+
+**Reference:** Hughes et al. (2008). Physiochemical drug properties associated with in vivo toxicological outcomes. *Bioorganic & Medicinal Chemistry Letters*, 18(17), 4872–4875.
 
 ## GSK 4/400 Rule
 
-Lead-like properties:
+GlaxoSmithKline's compound quality guideline:
 
-- MW ≤ 400 Da
-- LogP ≤ 4
+```
+favorable = MW ≤ 400 AND LogP ≤ 4
+```
 
-Provides room for optimization while maintaining drug-likeness.
+Provides room for optimization while maintaining favorable ADMET properties.
+
+**Reference:** Gleeson (2008). Generation of a set of simple, interpretable ADMET rules of thumb. *Journal of Medicinal Chemistry*, 51(4), 817–834.
 
 ## Golden Triangle
 
-Plots MW vs LogD to define optimal space:
+Abbott's optimal property space for balanced permeability and metabolic stability:
 
-- MW: 200-500 Da
-- LogD: -2 to 5
+```
+in_triangle = 200 ≤ MW ≤ 450 AND −0.5 ≤ LogP ≤ 5
+```
 
-Molecules in the "golden triangle" have favorable balance of potency and ADMET properties.
+Molecules within this space tend to have favorable permeability-metabolism balance.
+
+**Reference:** Johnson et al. (2009). Using the Golden Triangle to optimize clearance and oral absorption. *Bioorganic & Medicinal Chemistry Letters*, 19(17), 5560–5564.
 
 ## API Usage
 

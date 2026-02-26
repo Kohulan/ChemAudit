@@ -1,14 +1,15 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, X, FileSpreadsheet, Database, ChevronDown, AlertCircle, CheckCircle2, Shield, FlaskConical } from 'lucide-react';
+import { Upload, X, FileSpreadsheet, Database, ChevronDown, AlertCircle, CheckCircle2, Shield, FlaskConical, BarChart3 } from 'lucide-react';
 import { batchApi } from '../../services/api';
 import { useLimits } from '../../context/ConfigContext';
 import { ClayButton } from '../ui/ClayButton';
 import type { CSVColumnsResponse } from '../../types/batch';
 
 interface BatchUploadProps {
-  onUploadSuccess: (jobId: string, totalMolecules: number) => void;
+  onUploadSuccess: (jobId: string, totalMolecules: number, options?: { includeAnalytics: boolean }) => void;
   onUploadError: (error: string) => void;
   disabled?: boolean;
+  profileId?: number | null;
 }
 
 // Threshold for showing confirmation before processing
@@ -34,6 +35,7 @@ export function BatchUpload({
   onUploadSuccess,
   onUploadError,
   disabled = false,
+  profileId,
 }: BatchUploadProps) {
   const limits = useLimits();
   const [isDragging, setIsDragging] = useState(false);
@@ -48,6 +50,7 @@ export function BatchUpload({
   const [includeExtendedSafety, setIncludeExtendedSafety] = useState(false);
   const [includeChemblAlerts, setIncludeChemblAlerts] = useState(false);
   const [includeStandardization, setIncludeStandardization] = useState(false);
+  const [includeAnalytics, setIncludeAnalytics] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -193,9 +196,10 @@ export function BatchUpload({
           includeExtended: includeExtendedSafety,
           includeChembl: includeChemblAlerts,
           includeStandardization: includeStandardization,
-        }
+        },
+        profileId
       );
-      onUploadSuccess(response.job_id, response.total_molecules);
+      onUploadSuccess(response.job_id, response.total_molecules, { includeAnalytics });
     } catch (e: any) {
       const errorMessage =
         e.response?.data?.detail || e.message || 'Upload failed';
@@ -521,6 +525,40 @@ export function BatchUpload({
                 </p>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                   Structural alerts curated by pharmaceutical companies: Bristol-Myers Squibb, Dundee, GlaxoSmithKline, Inpharmatica, Lilly (LINT), MLSMR, and SureChEMBL. These are aggressive filters designed for drug discovery — many flagged compounds may be acceptable outside that context.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Analysis option */}
+      {selectedFile && !isAnalyzing && (
+        <div className="bg-[var(--color-surface-elevated)] rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[var(--color-primary)]" />
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">Complete Analysis</p>
+            </div>
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              Run advanced analytics after validation completes, including chemical space visualization and scaffold diversity.
+            </p>
+          </div>
+          <div className="p-4">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={includeAnalytics}
+                onChange={(e) => setIncludeAnalytics(e.target.checked)}
+                disabled={isUploading}
+                className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+              />
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                  Run Complete Analysis
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  Computes scaffold diversity (Murcko decomposition), chemical space PCA/t-SNE projections, deduplication analysis, and property statistics. Disable this for faster validation-only runs.
                 </p>
               </div>
             </label>

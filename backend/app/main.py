@@ -2,6 +2,7 @@
 ChemAudit API - Chemical Structure Validation Suite
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -10,15 +11,50 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+logger = logging.getLogger(__name__)
+
+# =============================================================================
+# Deep Validation Check Registration Assertion (ROADMAP success criteria #5)
+# =============================================================================
+# All 16 deep validation check names expected to be registered at startup.
+# Uses logger.warning (not hard assert) to allow partial deployments during
+# development. The CI-level hard assertion is in test_deep_complexity_checks.py.
+EXPECTED_DEEP_VALIDATION_CHECKS = {
+    # M1.1: Stereo & Tautomer
+    "stereoisomer_enumeration",  # DVAL-01+02
+    "tautomer_detection",  # DVAL-03
+    "aromatic_system_validation",  # DVAL-04
+    "coordinate_dimension",  # DVAL-05
+    # M1.2: Chemical Composition
+    "mixture_detection",  # DVAL-06
+    "solvent_contamination",  # DVAL-07
+    "inorganic_filter",  # DVAL-08
+    "radical_detection",  # DVAL-09
+    "isotope_label_detection",  # DVAL-10
+    "trivial_molecule",  # DVAL-11
+    # M1.3: Structural Complexity
+    "hypervalent_atoms",  # DVAL-12
+    "polymer_detection",  # DVAL-13
+    "ring_strain",  # DVAL-14
+    "macrocycle_detection",  # DVAL-15
+    "charged_species",  # DVAL-16
+    "explicit_hydrogen_audit",  # DVAL-17
+}
+
 from app.api.routes import (
     alerts,
     api_keys,
     batch,
+    bookmarks,
     config,
     export,
     health,
+    history,
     integrations,
+    permalinks,
+    profiles,
     scoring,
+    session,
     standardization,
     validation,
 )
@@ -50,6 +86,66 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+
+    # Check that all expected deep validation checks are registered
+    from app.services.validation.registry import CheckRegistry
+
+    registered = set(CheckRegistry.get_all().keys())
+    missing = EXPECTED_DEEP_VALIDATION_CHECKS - registered
+    if missing:
+        logger.warning(
+            "Startup check: missing deep validation checks: %s. "
+            "Ensure all three M1.x plans have been executed.",
+            missing,
+        )
+    else:
+        logger.info(
+            "Startup check passed: all %d deep validation checks registered.",
+            len(EXPECTED_DEEP_VALIDATION_CHECKS),
+        )
+
+    # Initialize database tables and stamp Alembic for fresh databases
+    try:
+        from sqlalchemy import inspect as sa_inspect
+        from sqlalchemy import text
+
+        from app.db import Base, async_session, engine
+        from app.services.profiles.service import ProfileService
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created/verified")
+
+        # Stamp Alembic at head if no alembic_version table exists (fresh DB)
+        async with engine.connect() as conn:
+            has_alembic = await conn.run_sync(
+                lambda sc: "alembic_version" in sa_inspect(sc).get_table_names()
+            )
+        if not has_alembic:
+            async with engine.begin() as conn:
+                await conn.execute(text(
+                    "CREATE TABLE IF NOT EXISTS alembic_version "
+                    "(version_num VARCHAR(32) NOT NULL, "
+                    "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                ))
+                await conn.execute(text(
+                    "INSERT INTO alembic_version (version_num) VALUES ('002')"
+                ))
+            logger.info("Stamped alembic_version at head (fresh database)")
+
+        # Seed preset scoring profiles
+        async with async_session() as db:
+            await ProfileService().seed_presets(db)
+    except Exception as e:
+        logger.warning("Database initialization failed: %s — DB features unavailable", e)
+
+    # Initialize OPSIN for IUPAC name conversion (graceful fallback)
+    try:
+        from app.services.iupac.converter import init_opsin
+
+        init_opsin()
+    except Exception as e:
+        logger.warning("OPSIN initialization failed: %s — IUPAC input unavailable", e)
 
     # Initialize WebSocket manager Redis connection
     await manager.init_redis()
@@ -162,6 +258,11 @@ app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
 app.include_router(config.router, prefix="/api/v1", tags=["config"])
+app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
+app.include_router(session.router, prefix="/api/v1", tags=["session"])
+app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
+app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
+app.include_router(history.router, prefix="/api/v1", tags=["history"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:

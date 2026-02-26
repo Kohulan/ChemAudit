@@ -3,6 +3,7 @@ import { Leaf, FlaskConical, Sparkles } from 'lucide-react';
 import type { NPLikenessResult } from '../../types/scoring';
 import { cn } from '../../lib/utils';
 import { InfoTooltip } from '../ui/Tooltip';
+import { useCountUp } from '../../hooks/useCountUp';
 
 interface NPLikenessScoreProps {
   result: NPLikenessResult;
@@ -15,11 +16,11 @@ function getScoreCategory(score: number) {
   if (score >= 1.0) return {
     label: 'Natural Product-like',
     icon: Leaf,
-    gradient: 'from-yellow-500 to-amber-400',
-    bg: 'bg-yellow-500/10',
-    text: 'text-amber-500 dark:text-yellow-400',
-    border: 'border-yellow-500/20',
-    glow: 'shadow-yellow-500/30',
+    gradient: 'from-emerald-500 to-green-400',
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    border: 'border-emerald-500/20',
+    glow: 'shadow-emerald-500/30',
     description: 'Structural features commonly found in natural products',
   };
   if (score >= -0.3) return {
@@ -35,11 +36,11 @@ function getScoreCategory(score: number) {
   return {
     label: 'Synthetic-like',
     icon: FlaskConical,
-    gradient: 'from-amber-500 to-orange-400',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-500',
-    border: 'border-amber-500/20',
-    glow: 'shadow-amber-500/30',
+    gradient: 'from-red-500 to-rose-400',
+    bg: 'bg-red-500/10',
+    text: 'text-red-600 dark:text-red-400',
+    border: 'border-red-500/20',
+    glow: 'shadow-red-500/30',
     description: 'Features more common in synthetic compounds',
   };
 }
@@ -49,6 +50,7 @@ function getScoreCategory(score: number) {
  */
 export function NPLikenessScore({ result }: NPLikenessScoreProps) {
   const { score, interpretation, caveats } = result;
+  const animatedScore = useCountUp(score, 2, 800, 300);
 
   // Scale is -5 to +5, position as percentage (0-100)
   const markerPosition = ((score + 5) / 10) * 100;
@@ -120,8 +122,8 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
             'px-3 py-1.5 rounded-lg',
             category.bg, category.border, 'border'
           )}>
-            <span className={cn('text-lg font-bold', category.text)}>
-              {score >= 0 ? '+' : ''}{score.toFixed(2)}
+            <span className={cn('text-lg font-bold tabular-nums', category.text)}>
+              {animatedScore >= 0 ? '+' : ''}{animatedScore.toFixed(2)}
             </span>
           </div>
         </div>
@@ -131,11 +133,11 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
           <div className="relative h-10">
             {/* Scale track background */}
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3 rounded-full overflow-hidden bg-[var(--color-surface-sunken)]">
-              {/* Gradient fill */}
+              {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural) */}
               <div
                 className="absolute inset-0 opacity-80"
                 style={{
-                  background: 'linear-gradient(to right, #ea580c 0%, #f59e0b 20%, #94a3b8 50%, #fbbf24 80%, #eab308 100%)'
+                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)'
                 }}
               />
             </div>
@@ -157,7 +159,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               )} />
               {/* Marker dot */}
               <div className={cn(
-                'relative w-6 h-6 rounded-full border-2 border-white shadow-lg',
+                'relative w-6 h-6 rounded-full border-2 border-white',
                 `bg-gradient-to-br ${category.gradient}`,
                 `shadow-lg ${category.glow}`
               )}>
@@ -169,12 +171,12 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
 
           {/* Scale labels */}
           <div className="flex justify-between text-[10px] mt-2 px-1">
-            <span className="text-amber-500 font-medium flex items-center gap-1">
+            <span className="text-red-500 dark:text-red-400 font-medium flex items-center gap-1">
               <FlaskConical className="w-3 h-3" />
               Synthetic
             </span>
             <span className="text-[var(--color-text-muted)]">Mixed</span>
-            <span className="text-amber-500 dark:text-yellow-400 font-medium flex items-center gap-1">
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
               <Leaf className="w-3 h-3" />
               Natural
             </span>

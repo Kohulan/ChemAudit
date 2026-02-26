@@ -1,14 +1,16 @@
 """
 Batch Processing API Routes
 
-Endpoints for batch file upload, job status, and results retrieval.
+Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
+import json
 import uuid
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import (
     APIRouter,
+    Body,
     Depends,
     File,
     Form,
@@ -17,10 +19,16 @@ from fastapi import (
     Request,
     UploadFile,
 )
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.schemas.analytics import (
+    AnalysisStatus,
+    AnalyticsTriggerResponse,
+    BatchAnalyticsResponse,
+)
 from app.schemas.batch import (
     BatchJobStatus,
     BatchResultItem,
@@ -29,6 +37,8 @@ from app.schemas.batch import (
     BatchUploadResponse,
     CSVColumnsResponse,
 )
+from app.services.analytics.storage import analytics_storage
+from app.services.batch.analytics_tasks import run_expensive_analytics
 from app.services.batch.file_parser import (
     detect_csv_columns,
     parse_csv,
@@ -37,9 +47,19 @@ from app.services.batch.file_parser import (
 )
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import result_storage
+from app.services.batch.subset_actions import (
+    export_subset,
+    rescore_subset,
+    revalidate_subset,
+)
 from app.services.batch.tasks import cancel_batch_job, process_batch_job
 
 router = APIRouter()
+
+
+def _parse_json_field(value: Any) -> Any:
+    """Parse a field that may be stored as a JSON string or already a dict/list."""
+    return json.loads(value) if isinstance(value, str) else value
 
 
 @router.post("/batch/upload", response_model=BatchUploadResponse)
@@ -66,6 +86,14 @@ async def upload_batch(
     include_standardization: bool = Form(
         default=False,
         description="Run ChEMBL standardization pipeline on each molecule",
+    ),
+    notification_email: Optional[str] = Form(
+        default=None,
+        description="Email address for batch completion notification (overrides global setting)",
+    ),
+    profile_id: Optional[int] = Form(
+        default=None,
+        description="Scoring profile ID for profile-based desirability scoring",
     ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
@@ -176,8 +204,40 @@ async def upload_batch(
         "include_standardization": include_standardization,
     }
 
+    # If profile selected, fetch thresholds and attach to safety_options
+    if profile_id is not None:
+        import json
+
+        from app.db import async_session
+        from app.services.profiles.service import ProfileService
+
+        async with async_session() as db:
+            profile = await ProfileService().get(db, profile_id)
+        if profile is None:
+            raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
+        safety_options["profile_id"] = profile.id
+        safety_options["profile_name"] = profile.name
+        safety_options["profile_thresholds"] = (
+            json.loads(profile.thresholds)
+            if isinstance(profile.thresholds, str)
+            else profile.thresholds
+        )
+        safety_options["profile_weights"] = (
+            json.loads(profile.weights)
+            if isinstance(profile.weights, str)
+            else profile.weights
+        )
+
     # Start batch processing
     process_batch_job(job_id, mol_dicts, safety_options=safety_options)
+
+    # Store notification email for this job (if provided or globally configured)
+    email_target = notification_email or settings.NOTIFICATION_EMAIL
+    if email_target:
+        from app.services.batch.progress_tracker import progress_tracker as _pt
+
+        r = _pt._get_redis()
+        r.set(f"batch:email:{job_id}", email_target, ex=settings.BATCH_RESULT_TTL)
 
     return BatchUploadResponse(
         job_id=job_id,
@@ -387,6 +447,115 @@ async def cancel_batch(
     }
 
 
+@router.get("/batch/{job_id}/analytics", response_model=BatchAnalyticsResponse)
+@limiter.limit("120/minute", key_func=get_rate_limit_key)
+async def get_batch_analytics(
+    request: Request,
+    job_id: str,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Get analytics status and cached results for a completed batch job.
+
+    Returns status for all analytics types and any results that are ready.
+    Analytics are computed asynchronously after batch processing completes.
+
+    - **job_id**: Batch job identifier from the upload response.
+    """
+    status_data = analytics_storage.get_status(job_id)
+    if status_data is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Analytics not available for job {job_id}. "
+            "Job may still be processing or results have expired.",
+        )
+
+    # Build validated status dict
+    status_dict: dict[str, AnalysisStatus] = {
+        analysis_type: AnalysisStatus(**entry)
+        for analysis_type, entry in status_data.items()
+    }
+
+    # Fetch completed results
+    result_field_map = {
+        "deduplication": "deduplication",
+        "scaffold": "scaffold",
+        "chemical_space": "chemical_space",
+        "similarity_search": "similarity_matrix",
+        "mmp": "mmp",
+        "statistics": "statistics",
+    }
+
+    result_kwargs: dict[str, Any] = {}
+    for analysis_type, field_name in result_field_map.items():
+        entry = status_dict.get(analysis_type)
+        if entry and entry.status == "complete":
+            raw = analytics_storage.get_result(job_id, analysis_type)
+            if raw is not None:
+                result_kwargs[field_name] = raw
+
+    return BatchAnalyticsResponse(
+        job_id=job_id,
+        status=status_dict,
+        **result_kwargs,
+    )
+
+
+_ALLOWED_EXPENSIVE_ANALYSES = {
+    "scaffold",
+    "chemical_space",
+    "mmp",
+    "similarity_search",
+    "rgroup",
+}
+
+
+@router.post(
+    "/batch/{job_id}/analytics/{analysis_type}",
+    response_model=AnalyticsTriggerResponse,
+)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def trigger_batch_analytics(
+    request: Request,
+    job_id: str,
+    analysis_type: str,
+    params: Optional[dict[str, Any]] = Body(default=None),
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Trigger an expensive analytics computation for a completed batch job.
+
+    Supported analysis types:
+    - **scaffold**: Murcko scaffold diversity analysis.
+    - **chemical_space**: PCA or t-SNE 2-D chemical space embedding.
+    - **mmp**: Matched molecular pair analysis (requires activity_column param).
+    - **similarity_search**: Nearest-neighbor similarity search.
+    - **rgroup**: R-group decomposition (requires core_smarts param).
+
+    Optional params body (JSON object):
+    - `method`: "pca" or "tsne" (for chemical_space)
+    - `activity_column`: property key for MMP cliff detection
+    - `query_smiles`: query SMILES for similarity_search
+    - `query_index`: query molecule index for similarity_search
+    - `top_k`: number of neighbors to return (similarity_search)
+    - `core_smarts`: SMARTS pattern for R-group core
+    """
+    if analysis_type not in _ALLOWED_EXPENSIVE_ANALYSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown analysis type '{analysis_type}'. "
+            f"Allowed: {sorted(_ALLOWED_EXPENSIVE_ANALYSES)}",
+        )
+
+    run_expensive_analytics.delay(job_id, analysis_type, params)
+
+    return AnalyticsTriggerResponse(
+        job_id=job_id,
+        analysis_type=analysis_type,
+        status="queued",
+    )
+
+
 @router.post("/batch/detect-columns", response_model=CSVColumnsResponse)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def detect_columns(
@@ -435,3 +604,247 @@ async def detect_columns(
             status_code=400,
             detail=f"Failed to analyze CSV: {str(e)}",
         )
+
+
+# =============================================================================
+# Batch Subset Actions
+# =============================================================================
+
+
+class SubsetRequest(BaseModel):
+    """Request body for subset actions."""
+
+    indices: List[int]
+
+
+class SubsetRescoreRequest(BaseModel):
+    """Request body for subset re-score action."""
+
+    indices: List[int]
+    profile_id: Optional[int] = None
+
+
+class SubsetExportRequest(BaseModel):
+    """Request body for subset export action."""
+
+    indices: List[int]
+    format: str = "csv"
+
+
+@router.post("/batch/{job_id}/subset/revalidate")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_revalidate(
+    request: Request,
+    job_id: str,
+    body: SubsetRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Re-validate a subset of molecules from an existing batch job.
+
+    Creates a new batch job with the selected molecules.
+    Returns the new job_id for tracking progress.
+    """
+    try:
+        new_job_id = revalidate_subset(job_id, body.indices)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return {
+        "new_job_id": new_job_id,
+        "source_job_id": job_id,
+        "molecule_count": len(body.indices),
+        "action": "revalidate",
+    }
+
+
+@router.post("/batch/{job_id}/subset/rescore")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_rescore(
+    request: Request,
+    job_id: str,
+    body: SubsetRescoreRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Re-score a subset of molecules, optionally with a custom scoring profile.
+
+    Creates a new batch job for the selected molecules.
+    Returns the new job_id for tracking progress.
+    """
+    # Build safety_options with full profile data if profile_id is given
+    safety_options: Dict[str, Any] = {}
+    if body.profile_id is not None:
+        try:
+            from app.db import async_session
+            from app.services.profiles.service import ProfileService
+
+            async with async_session() as session:
+                profile = await ProfileService().get(session, body.profile_id)
+                if profile:
+                    safety_options["profile_id"] = profile.id
+                    safety_options["profile_name"] = profile.name
+                    safety_options["profile_thresholds"] = _parse_json_field(
+                        profile.thresholds
+                    )
+                    safety_options["profile_weights"] = _parse_json_field(
+                        profile.weights
+                    )
+        except Exception:
+            pass  # Proceed without profile if fetch fails
+
+    try:
+        new_job_id = rescore_subset(
+            job_id, body.indices, safety_options=safety_options
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return {
+        "new_job_id": new_job_id,
+        "source_job_id": job_id,
+        "molecule_count": len(body.indices),
+        "action": "rescore",
+        "profile_id": body.profile_id,
+    }
+
+
+@router.post("/batch/{job_id}/subset/export")
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def subset_export(
+    request: Request,
+    job_id: str,
+    body: SubsetExportRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Export a subset of molecules in the specified format.
+
+    Returns a file download with the exported data.
+    """
+    from datetime import datetime
+
+    from fastapi.responses import StreamingResponse
+
+    try:
+        export_buffer = export_subset(job_id, body.indices, body.format)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+    # Determine media type and extension
+    from app.services.export.base import ExporterFactory, ExportFormat
+
+    export_format = ExportFormat(body.format)
+    exporter = ExporterFactory.create(export_format)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"subset_{job_id[:8]}_{timestamp}.{exporter.file_extension}"
+
+    def iterfile():
+        export_buffer.seek(0)
+        while chunk := export_buffer.read(1024 * 1024):
+            yield chunk
+
+    return StreamingResponse(
+        iterfile(),
+        media_type=exporter.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/batch/{job_id}/subset/score-inline")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def score_subset_inline(
+    request: Request,
+    job_id: str,
+    body: SubsetRescoreRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Score a subset of molecules with a profile inline (no Celery).
+
+    Reads existing batch results, applies profile desirability scoring,
+    and returns scored molecules synchronously.
+    """
+    from app.db import async_session
+    from app.services.profiles.service import ProfileService
+    from app.services.scoring.profile_scoring import compute_profile_result
+
+    if body.profile_id is None:
+        raise HTTPException(status_code=400, detail="profile_id is required")
+
+    # Fetch profile
+    try:
+        async with async_session() as session:
+            profile = await ProfileService().get(session, body.profile_id)
+    except Exception:
+        profile = None
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    thresholds = _parse_json_field(profile.thresholds)
+    weights = _parse_json_field(profile.weights)
+
+    # Fetch existing batch results for the selected indices
+    result_data = result_storage.get_results(
+        job_id=job_id, page=1, page_size=10000
+    )
+    all_results = result_data.get("results", [])
+    indices_set = set(body.indices)
+    subset = [r for r in all_results if r.get("index") in indices_set]
+
+    if not subset:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No results found for job {job_id} with given indices",
+        )
+
+    # Score each molecule using existing property data
+    scored = []
+    for mol in subset:
+        scoring = mol.get("scoring") or {}
+        dl = scoring.get("druglikeness") or {}
+        admet = scoring.get("admet") or {}
+        mol_properties = {
+            "mw": dl.get("mw"),
+            "logp": dl.get("logp"),
+            "hbd": dl.get("hbd"),
+            "hba": dl.get("hba"),
+            "tpsa": dl.get("tpsa"),
+            "rotatable_bonds": dl.get("rotatable_bonds"),
+            "aromatic_rings": dl.get("aromatic_rings"),
+            "fsp3": admet.get("fsp3"),
+        }
+        try:
+            profile_result = compute_profile_result(
+                properties=mol_properties,
+                profile_id=profile.id,
+                profile_name=profile.name,
+                thresholds=thresholds,
+                weights=weights,
+            )
+        except Exception:
+            profile_result = {
+                "profile_id": profile.id,
+                "profile_name": profile.name,
+                "score": None,
+                "properties": {},
+                "error": "Scoring failed for this molecule",
+            }
+        scored.append(
+            {
+                "index": mol.get("index"),
+                "name": mol.get("name"),
+                "smiles": mol.get("smiles"),
+                "profile": profile_result,
+            }
+        )
+
+    return {
+        "profile_name": profile.name,
+        "profile_id": profile.id,
+        "molecules": scored,
+    }

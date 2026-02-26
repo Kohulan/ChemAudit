@@ -1,5 +1,6 @@
 import { Fragment, useState, useRef, useEffect } from 'react';
-import { AlertTriangle, ShieldAlert, FlaskConical, Atom } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, ShieldAlert, FlaskConical, Atom, ExternalLink } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
@@ -43,6 +44,7 @@ export function BatchResultsTable({
   selectedIndices,
   onSelectionChange,
 }: BatchResultsTableProps) {
+  const navigate = useNavigate();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
@@ -71,6 +73,10 @@ export function BatchResultsTable({
   const pageIndices = results.map(r => r.index);
   const allPageSelected = pageIndices.length > 0 && pageIndices.every(idx => selectedIndices.has(idx));
   const somePageSelected = pageIndices.some(idx => selectedIndices.has(idx)) && !allPageSelected;
+
+  // Determine if profile column is shown (conditional 10th column)
+  const hasProfileColumn = results.some(r => r.scoring?.profile);
+  const colCount = hasProfileColumn ? 10 : 9;
 
   // Update header checkbox indeterminate state
   useEffect(() => {
@@ -218,6 +224,14 @@ export function BatchResultsTable({
               >
                 Safety {sortBy === 'safety' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
+              {results.some(r => r.scoring?.profile) && (
+                <th
+                  className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
+                  onClick={() => handleSort('profile_score')}
+                >
+                  Profile {sortBy === 'profile_score' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
+                </th>
+              )}
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
                 onClick={() => handleSort('status')}
@@ -235,14 +249,14 @@ export function BatchResultsTable({
           <tbody className="divide-y divide-[var(--color-border)]">
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={colCount} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto mb-2" />
                   Loading results...
                 </td>
               </tr>
             ) : results.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                <td colSpan={colCount} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
                   No results match the current filters.
                 </td>
               </tr>
@@ -311,6 +325,24 @@ export function BatchResultsTable({
                         );
                       })()}
                     </td>
+                    {hasProfileColumn && (
+                      <td className="px-4 py-3 text-center">
+                        {result.scoring?.profile?.score != null ? (
+                          <span className={cn(
+                            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                            result.scoring.profile.score >= 80
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : result.scoring.profile.score >= 50
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                          )}>
+                            {result.scoring.profile.score.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--color-text-muted)]">--</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
@@ -346,7 +378,7 @@ export function BatchResultsTable({
                   {/* Expanded details — bento grid layout */}
                   {expandedRow === result.index && (
                     <tr>
-                      <td colSpan={9} className="p-0">
+                      <td colSpan={colCount} className="p-0">
                         <div className="px-3 py-3 bg-[var(--color-surface-sunken)] border-t border-[var(--color-border)]">
                           {/* Error banner — full width */}
                           {result.error && (
@@ -542,6 +574,31 @@ export function BatchResultsTable({
                                       <CopyButton text={result.smiles} size={13} className="mt-0.5 flex-shrink-0" />
                                     </div>
                                   )}
+                                  {/* Full Analysis button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate('/', {
+                                        state: {
+                                          fromBatch: true,
+                                          smiles: result.standardization?.standardized_smiles || result.smiles,
+                                          moleculeName: result.name,
+                                          moleculeIndex: result.index,
+                                        },
+                                      });
+                                    }}
+                                    className={cn(
+                                      'mt-2 w-full flex items-center justify-center gap-2',
+                                      'px-3 py-2 rounded-lg text-xs font-medium',
+                                      'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                                      'border border-[var(--color-primary)]/20',
+                                      'hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/40',
+                                      'transition-all duration-200 cursor-pointer'
+                                    )}
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Full Analysis
+                                  </button>
                                 </>
                               ) : (
                                 <div className="flex-1 flex items-center justify-center rounded-xl bg-red-500/5 border border-red-500/10 min-h-[180px]">
@@ -670,6 +727,7 @@ export function BatchResultsTable({
           </button>
         </div>
       </div>
+
     </div>
   );
 }

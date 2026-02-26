@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Cpu, Fingerprint, Scale, ChevronRight, Sparkles, AlertCircle, Layers, Database } from 'lucide-react';
-import type { MLReadinessResult } from '../../types/scoring';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Shield, FlaskConical, Puzzle, Binary,
+  ChevronDown, AlertTriangle, Sparkles, Check, X, Info,
+} from 'lucide-react';
+import type { MLReadinessResult, MLDimension, MLDimensionItem } from '../../types/scoring';
 import { ScoreChart } from './ScoreChart';
 import { InfoTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
+
+/** Format a score: integers display without decimals, fractional values get 1 decimal place. */
+function fmt(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
 
 interface MLReadinessScoreProps {
   result: MLReadinessResult;
@@ -12,58 +20,199 @@ interface MLReadinessScoreProps {
   breakdownOnly?: boolean;
 }
 
-/**
- * Get color config based on percentage
- */
-function getScoreColor(percentage: number) {
-  if (percentage >= 80) return {
-    gradient: 'from-yellow-500 to-amber-400',
-    bg: 'bg-yellow-500/10',
-    text: 'text-amber-500 dark:text-yellow-400',
-    border: 'border-yellow-500/20',
-    glow: 'shadow-yellow-500/20',
+/** Color config by score thresholds */
+function getScoreColor(score: number, maxScore: number) {
+  const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  if (pct >= 85) return {
+    gradient: 'from-emerald-500 to-green-400',
+    bg: 'bg-emerald-500/10',
+    bgRaw: 'emerald',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    border: 'border-emerald-500/20',
+    ring: 'ring-emerald-500/20',
+    stroke: '#10b981',
+    track: 'rgba(16, 185, 129, 0.15)',
   };
-  if (percentage >= 50) return {
+  if (pct >= 70) return {
+    gradient: 'from-teal-500 to-cyan-400',
+    bg: 'bg-teal-500/10',
+    bgRaw: 'teal',
+    text: 'text-teal-600 dark:text-teal-400',
+    border: 'border-teal-500/20',
+    ring: 'ring-teal-500/20',
+    stroke: '#14b8a6',
+    track: 'rgba(20, 184, 166, 0.15)',
+  };
+  if (pct >= 50) return {
+    gradient: 'from-amber-500 to-yellow-400',
+    bg: 'bg-amber-500/10',
+    bgRaw: 'amber',
+    text: 'text-amber-600 dark:text-amber-400',
+    border: 'border-amber-500/20',
+    ring: 'ring-amber-500/20',
+    stroke: '#f59e0b',
+    track: 'rgba(245, 158, 11, 0.15)',
+  };
+  if (pct >= 30) return {
     gradient: 'from-orange-500 to-orange-400',
     bg: 'bg-orange-500/10',
-    text: 'text-orange-500',
+    bgRaw: 'orange',
+    text: 'text-orange-600 dark:text-orange-400',
     border: 'border-orange-500/20',
-    glow: 'shadow-orange-500/20',
+    ring: 'ring-orange-500/20',
+    stroke: '#f97316',
+    track: 'rgba(249, 115, 22, 0.15)',
   };
   return {
     gradient: 'from-red-500 to-red-400',
     bg: 'bg-red-500/10',
-    text: 'text-red-500',
+    bgRaw: 'red',
+    text: 'text-red-600 dark:text-red-400',
     border: 'border-red-500/20',
-    glow: 'shadow-red-500/20',
+    ring: 'ring-red-500/20',
+    stroke: '#ef4444',
+    track: 'rgba(239, 68, 68, 0.15)',
   };
 }
 
-/** Fingerprint type descriptions */
-const FINGERPRINT_INFO: Record<string, { name: string; description: string }> = {
-  morgan: { name: 'Morgan (ECFP)', description: 'Circular fingerprint based on atom connectivity' },
-  morgan_features: { name: 'Morgan Features (FCFP)', description: 'Circular fingerprint with pharmacophore features' },
-  maccs: { name: 'MACCS', description: '166 predefined structural keys' },
-  atompair: { name: 'Atom Pair', description: 'Encodes pairs of atoms and topological distances' },
-  topological_torsion: { name: 'Topological Torsion', description: 'Encodes torsion angle patterns' },
-  rdkit_fp: { name: 'RDKit', description: 'Daylight-like path enumeration fingerprint' },
-  avalon: { name: 'Avalon', description: 'Fast substructure fingerprint' },
+/** Tier-based guidance — visible at a glance, no tooltip needed */
+const TIER_GUIDANCE: Record<string, string> = {
+  Excellent: 'Suitable for most ML workflows without modification.',
+  Good: 'Suitable for ML with minor preprocessing.',
+  Moderate: 'Usable, but may need filtering or augmentation in ML pipelines.',
+  Limited: 'Likely to cause issues in ML models — consider alternatives.',
+  Poor: 'Not recommended for ML use without significant preprocessing.',
 };
 
-interface BreakdownCardProps {
-  icon: React.ReactNode;
-  label: string;
+/** Short labels for dimension tags */
+const DIM_SHORT: Record<string, string> = {
+  structural_quality: 'Structure',
+  property_profile: 'Properties',
+  complexity_feasibility: 'Complexity',
+  representation_quality: 'Representation',
+};
+
+/** Dimension icon mapping */
+const DIMENSION_ICONS: Record<string, React.ReactNode> = {
+  structural_quality: <Shield className="w-5 h-5" />,
+  property_profile: <FlaskConical className="w-5 h-5" />,
+  complexity_feasibility: <Puzzle className="w-5 h-5" />,
+  representation_quality: <Binary className="w-5 h-5" />,
+};
+
+/** Dimension tooltips with What/How/Why/Citation */
+const DIMENSION_TOOLTIPS: Record<string, { title: string; content: React.ReactNode }> = {
+  structural_quality: {
+    title: 'Structural Quality (20 pts)',
+    content: (
+      <div className="text-xs space-y-2">
+        <p><strong>What:</strong> Whether the molecule is structurally clean for ML pipelines.</p>
+        <p><strong>How:</strong> Binary checks: single component, organic elements, no radicals, reasonable charge, no dummy atoms.</p>
+        <p><strong>Why:</strong> Multi-component mixtures, metals, and radicals cause descriptor calculation failures and model bias.</p>
+        <p className="text-white/50">Lipinski et al. (1997) Adv. Drug Deliv. Rev. 23:3-25</p>
+      </div>
+    ),
+  },
+  property_profile: {
+    title: 'Property Profile (35 pts)',
+    content: (
+      <div className="text-xs space-y-2">
+        <p><strong>What:</strong> Physicochemical properties scored against QED-derived ideal ranges.</p>
+        <p><strong>How:</strong> Desirability function (0-1) for MW, LogP, TPSA, HBD, HBA, rotatable bonds, aromatic rings.</p>
+        <p><strong>Why:</strong> ML models trained on drug-like chemical space perform best when test molecules fall within typical property ranges.</p>
+        <p className="text-white/50">Bickerton et al. (2012) Nature Chemistry 4:90-98</p>
+      </div>
+    ),
+  },
+  complexity_feasibility: {
+    title: 'Complexity & Feasibility (25 pts)',
+    content: (
+      <div className="text-xs space-y-2">
+        <p><strong>What:</strong> Drug-likeness quality, synthetic feasibility, 3D character, stereocenter count.</p>
+        <p><strong>How:</strong> QED (0-1 scaled to 8pts), SA Score (inverse, 8pts), Fsp3 (desirability, 4pts), stereocenters (5pts with undefined penalty).</p>
+        <p><strong>Why:</strong> Overly complex or synthetically intractable molecules are poor ML training data.</p>
+        <p className="text-white/50">Ertl &amp; Schuffenhauer (2009) J. Cheminf. 1:8; Lovering et al. (2009) J. Med. Chem. 52:6752</p>
+      </div>
+    ),
+  },
+  representation_quality: {
+    title: 'Representation Quality (20 pts)',
+    content: (
+      <div className="text-xs space-y-2">
+        <p><strong>What:</strong> How well the molecule can be represented computationally.</p>
+        <p><strong>How:</strong> Descriptor completeness (451 RDKit), fingerprint generation (7 types), bit density (1-30% ideal), conformer generation (ETKDGv3).</p>
+        <p><strong>Why:</strong> Molecules that fail descriptor/FP calculations produce NaN values that break ML models. Conformer generation tests 3D feasibility.</p>
+        <p className="text-white/50">Rogers &amp; Hahn (2010) J. Chem. Inf. Model. 50:742-754</p>
+      </div>
+    ),
+  },
+};
+
+/** Mini circular score ring for dimension cards */
+function MiniScoreRing({
+  score,
+  maxScore,
+  color,
+  delay = 0,
+}: {
   score: number;
   maxScore: number;
-  detail: string;
-  subDetail?: string;
+  color: ReturnType<typeof getScoreColor>;
   delay?: number;
-  tooltip?: React.ReactNode;
+}) {
+  const pct = maxScore > 0 ? score / maxScore : 0;
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - pct);
+
+  return (
+    <div className="relative w-14 h-14 flex-shrink-0">
+      <svg className="w-14 h-14 -rotate-90" viewBox="0 0 52 52">
+        <circle
+          cx="26" cy="26" r={radius}
+          fill="none"
+          stroke={color.track}
+          strokeWidth="4"
+        />
+        <motion.circle
+          cx="26" cy="26" r={radius}
+          fill="none"
+          stroke={color.stroke}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1, delay: delay + 0.3, ease: 'easeOut' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={cn('text-sm font-bold leading-none', color.text)}>
+          {fmt(score)}
+        </span>
+        <span className="text-[9px] text-[var(--color-text-muted)] leading-tight">
+          /{fmt(maxScore)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
-function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay = 0, tooltip }: BreakdownCardProps) {
-  const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-  const color = getScoreColor(percentage);
+/** Expandable dimension card */
+function DimensionCard({
+  dimKey,
+  dimension,
+  delay = 0,
+}: {
+  dimKey: string;
+  dimension: MLDimension;
+  delay?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const color = getScoreColor(dimension.score, dimension.max_score);
+  const icon = DIMENSION_ICONS[dimKey];
+  const tooltip = DIMENSION_TOOLTIPS[dimKey];
+  const percentage = dimension.max_score > 0 ? (dimension.score / dimension.max_score) * 100 : 0;
 
   return (
     <motion.div
@@ -71,51 +220,74 @@ function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       className={cn(
-        'relative rounded-2xl p-4',
+        'group relative rounded-2xl overflow-hidden',
         'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface)]',
         'border border-[var(--color-border)]',
-        'hover:border-[var(--color-primary)]/30 hover:shadow-lg hover:shadow-[var(--color-primary)]/5',
-        'transition-all duration-300'
+        'hover:border-[var(--color-primary)]/30',
+        'hover:shadow-lg hover:shadow-[var(--color-primary)]/5',
+        'transition-all duration-200'
       )}
     >
-      {/* Background glow effect - clipped to prevent overflow */}
+      {/* Dual background glow */}
       <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-        <div
-          className={cn(
-            'absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20',
-            color.bg
-          )}
-        />
+        <div className={cn(
+          'absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl opacity-[0.12]',
+          'transition-opacity duration-300 group-hover:opacity-[0.2]',
+          color.bg,
+        )} />
+        <div className={cn(
+          'absolute -bottom-8 -left-8 w-24 h-24 rounded-full blur-2xl opacity-[0.06]',
+          color.bg,
+        )} />
       </div>
 
-      <div className="relative">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center',
-              color.bg, color.text
-            )}>
-              {icon}
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">{label}</h4>
-                {tooltip}
-              </div>
-              <p className="text-xs text-[var(--color-text-muted)]">{detail}</p>
-            </div>
+      {/* Header — always visible */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="relative w-full p-4 text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          {/* Icon */}
+          <div className={cn(
+            'w-10 h-10 rounded-xl flex items-center justify-center',
+            'transition-all duration-200',
+            color.bg, color.text,
+            'group-hover:shadow-md',
+          )}>
+            {icon}
           </div>
-          <div className="text-right">
-            <div className={cn('text-2xl font-bold', color.text)}>
-              {score.toFixed(0)}
+
+          {/* Name + meta */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-semibold text-[var(--color-text-primary)] text-sm truncate">
+                {dimension.name}
+              </h4>
+              {tooltip && <InfoTooltip title={tooltip.title} content={tooltip.content} asSpan />}
             </div>
-            <div className="text-xs text-[var(--color-text-muted)]">/ {maxScore}</div>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              {dimension.items.length} check{dimension.items.length !== 1 ? 's' : ''}
+              <span className="mx-1.5 opacity-30">|</span>
+              <span className={cn('font-medium', color.text)}>
+                {Math.round(percentage)}%
+              </span>
+            </p>
           </div>
+
+          {/* Mini score ring */}
+          <MiniScoreRing score={dimension.score} maxScore={dimension.max_score} color={color} delay={delay} />
+
+          {/* Chevron */}
+          <motion.div
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" />
+          </motion.div>
         </div>
 
         {/* Progress bar */}
-        <div className="h-2 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
@@ -123,83 +295,204 @@ function BreakdownCard({ icon, label, score, maxScore, detail, subDetail, delay 
             className={cn('h-full rounded-full bg-gradient-to-r', color.gradient)}
           />
         </div>
+      </button>
 
-        {/* Sub detail */}
-        {subDetail && (
-          <p className="mt-2 text-xs text-[var(--color-text-muted)]">{subDetail}</p>
+      {/* Expandable items */}
+      <AnimatePresence>
+        {expanded && dimension.items.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-0.5">
+              <div className="border-t border-[var(--color-border)]/60 mb-2" />
+              {dimension.items.map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: idx * 0.04 }}
+                >
+                  <ItemRow item={item} />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/** Single scored item row */
+function ItemRow({ item }: { item: MLDimensionItem }) {
+  const pct = item.max_score > 0 ? (item.score / item.max_score) * 100 : 0;
+  const color = getScoreColor(item.score, item.max_score);
+
+  return (
+    <div className={cn(
+      'flex items-center justify-between py-2 px-2.5 rounded-xl',
+      'hover:bg-[var(--color-surface-sunken)]/60 transition-colors duration-150',
+    )}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* Status indicator */}
+        {item.passed !== undefined && item.passed !== null ? (
+          <div className={cn(
+            'w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0',
+            item.passed
+              ? 'bg-emerald-500/15 text-emerald-500'
+              : 'bg-red-500/15 text-red-500',
+          )}>
+            {item.passed
+              ? <Check className="w-3 h-3" strokeWidth={3} />
+              : <X className="w-3 h-3" strokeWidth={3} />
+            }
+          </div>
+        ) : (
+          <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-[var(--color-surface-sunken)]">
+            <Info className="w-3 h-3 text-[var(--color-text-muted)]" />
+          </div>
+        )}
+
+        {/* Name + subtitle */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium text-[var(--color-text-secondary)]">{item.name}</span>
+            {item.tooltip && (
+              <InfoTooltip title={item.name} content={<p className="text-xs">{item.tooltip}</p>} />
+            )}
+          </div>
+          {item.subtitle && (
+            <p className="text-[10px] text-[var(--color-text-muted)] truncate font-mono mt-0.5">
+              {item.subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Score + bar */}
+      <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="w-20 h-1.5 bg-[var(--color-surface-sunken)] rounded-full overflow-hidden">
+          <div
+            className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-500', color.gradient)}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className={cn('text-xs font-semibold tabular-nums min-w-[3.5rem] text-right', color.text)}>
+          {fmt(item.score)}/{fmt(item.max_score)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Caveats banner */
+function CaveatsBanner({ caveats }: { caveats: string[] }) {
+  if (caveats.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        'relative rounded-xl overflow-hidden',
+        'bg-amber-500/5 border border-amber-500/15',
+      )}
+    >
+      {/* Left accent bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600 rounded-l-xl" />
+
+      <div className="flex items-start gap-2.5 p-3 pl-4">
+        <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 tracking-wide uppercase">
+            Caveats
+          </p>
+          <ul className="text-xs text-[var(--color-text-secondary)] space-y-1">
+            {caveats.map((caveat, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                {caveat}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-/**
- * Fingerprint badges component
- */
-function FingerprintBadges({ successful, failed }: { successful: string[]; failed: string[] }) {
+/** Supplementary info pills */
+function SupplementaryPills({ supplementary }: { supplementary: Record<string, unknown> }) {
+  const pills: { label: string; value: string; ok: boolean }[] = [];
+
+  if (supplementary.lipinski_violations !== undefined) {
+    const v = supplementary.lipinski_violations as number;
+    pills.push({
+      label: 'Lipinski',
+      value: `${v} violation${v !== 1 ? 's' : ''}`,
+      ok: v <= 1,
+    });
+  }
+  if (supplementary.veber_passed !== undefined) {
+    const passed = supplementary.veber_passed as boolean;
+    pills.push({
+      label: 'Veber',
+      value: passed ? 'Pass' : 'Fail',
+      ok: passed,
+    });
+  }
+
+  if (pills.length === 0) return null;
+
   return (
-    <div className="flex flex-wrap gap-1 mt-2">
-      {successful.map((fp) => {
-        const info = FINGERPRINT_INFO[fp] || { name: fp, description: '' };
-        return (
-          <span
-            key={fp}
-            title={info.description}
-            className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
-              'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
-              'border border-yellow-500/20'
-            )}
-          >
-            {info.name}
-          </span>
-        );
-      })}
-      {failed.map((fp) => {
-        const info = FINGERPRINT_INFO[fp] || { name: fp, description: '' };
-        return (
-          <span
-            key={fp}
-            title={`Failed: ${info.description}`}
-            className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
-              'bg-red-500/10 text-red-600 dark:text-red-400',
-              'border border-red-500/20 line-through'
-            )}
-          >
-            {info.name}
-          </span>
-        );
-      })}
+    <div className="flex flex-wrap gap-2">
+      {pills.map((pill) => (
+        <span
+          key={pill.label}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+            'transition-colors duration-150',
+            pill.ok
+              ? 'bg-emerald-500/8 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15'
+              : 'bg-red-500/8 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/15'
+          )}
+        >
+          <div className={cn(
+            'w-4 h-4 rounded flex items-center justify-center',
+            pill.ok ? 'bg-emerald-500/20' : 'bg-red-500/20',
+          )}>
+            {pill.ok ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : <X className="w-2.5 h-2.5" strokeWidth={3} />}
+          </div>
+          <span className="font-semibold">{pill.label}</span>
+          <span className="opacity-70">{pill.value}</span>
+        </span>
+      ))}
     </div>
   );
 }
 
 /**
- * Displays ML-readiness score with radial chart, breakdown bars, and informative tooltips.
+ * ML-Readiness Score — 4-dimension scientific assessment.
  */
 export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessScoreProps) {
-  const [showFailedDescriptors, setShowFailedDescriptors] = useState(false);
-  const [showFingerprintDetails, setShowFingerprintDetails] = useState(false);
-  const { score, breakdown, interpretation, failed_descriptors } = result;
+  const { score, label, breakdown, caveats, supplementary, interpretation } = result;
 
-  // Calculate total descriptors
-  const totalDescriptors = breakdown.descriptors_total +
-    (breakdown.autocorr2d_total || 0) +
-    (breakdown.mqn_total || 0);
-  const successfulDescriptors = breakdown.descriptors_successful +
-    (breakdown.autocorr2d_successful || 0) +
-    (breakdown.mqn_successful || 0);
+  const dimensions: { key: string; dim: MLDimension }[] = [
+    { key: 'structural_quality', dim: breakdown.structural_quality },
+    { key: 'property_profile', dim: breakdown.property_profile },
+    { key: 'complexity_feasibility', dim: breakdown.complexity_feasibility },
+    { key: 'representation_quality', dim: breakdown.representation_quality },
+  ];
 
-  // Combined descriptor score
-  const combinedDescriptorScore = breakdown.descriptors_score +
-    (breakdown.additional_descriptors_score || 0);
-  const combinedDescriptorMax = breakdown.descriptors_max +
-    (breakdown.additional_descriptors_max || 0);
+  const calculation = `Score = Structural Quality (${fmt(breakdown.structural_quality.score)}/${fmt(breakdown.structural_quality.max_score)}) + Property Profile (${fmt(breakdown.property_profile.score)}/${fmt(breakdown.property_profile.max_score)}) + Complexity (${fmt(breakdown.complexity_feasibility.score)}/${fmt(breakdown.complexity_feasibility.max_score)}) + Representation (${fmt(breakdown.representation_quality.score)}/${fmt(breakdown.representation_quality.max_score)}) = ${fmt(score)}`;
 
-  // Calculation explanation
-  const calculation = `Score = Descriptors (${combinedDescriptorMax}pts) + Fingerprints (${breakdown.fingerprints_max}pts) + Size (${breakdown.size_max}pts)
-= ${combinedDescriptorScore.toFixed(0)} + ${breakdown.fingerprints_score.toFixed(0)} + ${breakdown.size_score.toFixed(0)} = ${score}`;
+  const overallColor = getScoreColor(score, 100);
 
   if (breakdownOnly) {
     return (
@@ -218,206 +511,76 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
             <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">ML Readiness Analysis</h4>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  ML Readiness: {label}
+                </h4>
+                <span className={cn(
+                  'text-xs font-bold px-2 py-0.5 rounded-md tabular-nums',
+                  overallColor.bg, overallColor.text,
+                )}>
+                  {score}/100
+                </span>
                 <InfoTooltip
                   title="What is ML Readiness?"
                   content={
                     <div className="text-xs space-y-2">
-                      <p>ML Readiness measures how suitable a molecule is for machine learning applications in cheminformatics.</p>
-                      <p className="text-white/80">A high ML Readiness score indicates:</p>
+                      <p>ML Readiness measures how suitable a molecule is for machine learning applications across 4 scientific dimensions.</p>
                       <ul className="list-disc list-inside space-y-1 text-white/70">
-                        <li><strong>Descriptor Coverage:</strong> Most molecular descriptors (physical, topological, electronic properties) can be calculated without errors</li>
-                        <li><strong>Fingerprint Generation:</strong> Multiple fingerprint types (Morgan, MACCS, etc.) can be successfully generated for similarity searches and model training</li>
-                        <li><strong>Appropriate Size:</strong> The molecule is within typical size ranges for drug-like or lead-like compounds</li>
+                        <li><strong>Structural Quality (20pts):</strong> Clean structure for ML pipelines</li>
+                        <li><strong>Property Profile (35pts):</strong> Drug-like physicochemical properties</li>
+                        <li><strong>Complexity & Feasibility (25pts):</strong> QED, synthesizability, 3D character</li>
+                        <li><strong>Representation Quality (20pts):</strong> Descriptor/fingerprint completeness</li>
                       </ul>
-                      <p className="text-white/60 mt-2">Molecules with low ML Readiness may cause issues in QSAR/QSPR models, virtual screening, or property prediction pipelines.</p>
                     </div>
                   }
                 />
               </div>
-              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{interpretation}</p>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-2.5">
+                {TIER_GUIDANCE[label] || interpretation}
+              </p>
+              {/* Dimension health tags */}
+              <div className="flex flex-wrap gap-1.5">
+                {dimensions.map(({ key, dim }) => {
+                  const dimColor = getScoreColor(dim.score, dim.max_score);
+                  const pct = dim.max_score > 0 ? Math.round((dim.score / dim.max_score) * 100) : 0;
+                  return (
+                    <span
+                      key={key}
+                      className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[var(--color-surface-sunken)]"
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: dimColor.stroke }}
+                      />
+                      <span className="text-[var(--color-text-muted)]">{DIM_SHORT[key]}</span>
+                      <span className={cn('font-medium tabular-nums', dimColor.text)}>{pct}%</span>
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Breakdown cards grid */}
+        {/* Caveats */}
+        <CaveatsBanner caveats={caveats} />
+
+        {/* Dimension cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Standard Descriptors Card */}
-          <BreakdownCard
-            icon={<Cpu className="w-5 h-5" />}
-            label="Standard Descriptors"
-            score={breakdown.descriptors_score}
-            maxScore={breakdown.descriptors_max}
-            detail={`${breakdown.descriptors_successful}/${breakdown.descriptors_total} calculated`}
-            subDetail="Physical, topological, and functional group descriptors"
-            delay={0.1}
-            tooltip={
-              <InfoTooltip
-                title="Standard Descriptors (217)"
-                content={
-                  <div className="text-xs space-y-1">
-                    <p>RDKit's CalcMolDescriptors including:</p>
-                    <ul className="list-disc list-inside text-white/70">
-                      <li>Physical properties (MW, LogP, TPSA)</li>
-                      <li>Topological indices (Chi, Kappa)</li>
-                      <li>85 functional group counts</li>
-                    </ul>
-                  </div>
-                }
-              />
-            }
-          />
-
-          {/* Additional Descriptors Card */}
-          {(breakdown.additional_descriptors_max || 0) > 0 && (
-            <BreakdownCard
-              icon={<Layers className="w-5 h-5" />}
-              label="Additional Descriptors"
-              score={breakdown.additional_descriptors_score || 0}
-              maxScore={breakdown.additional_descriptors_max || 5}
-              detail={`${(breakdown.autocorr2d_successful || 0) + (breakdown.mqn_successful || 0)}/${(breakdown.autocorr2d_total || 192) + (breakdown.mqn_total || 42)} calculated`}
-              subDetail={`AUTOCORR2D: ${breakdown.autocorr2d_successful || 0}/${breakdown.autocorr2d_total || 192} | MQN: ${breakdown.mqn_successful || 0}/${breakdown.mqn_total || 42}`}
-              delay={0.15}
-              tooltip={
-                <InfoTooltip
-                  title="Additional 2D Descriptors (234)"
-                  content={
-                    <div className="text-xs space-y-1">
-                      <p><strong>AUTOCORR2D (192):</strong> 2D autocorrelation descriptors</p>
-                      <p><strong>MQN (42):</strong> Molecular Quantum Numbers - atom and bond type counts</p>
-                    </div>
-                  }
-                />
-              }
-            />
-          )}
-
-          {/* Fingerprints Card */}
-          <BreakdownCard
-            icon={<Fingerprint className="w-5 h-5" />}
-            label="Fingerprints"
-            score={breakdown.fingerprints_score}
-            maxScore={breakdown.fingerprints_max}
-            detail={`${breakdown.fingerprints_successful.length}/7 types generated`}
-            delay={0.2}
-            tooltip={
-              <InfoTooltip
-                title="Molecular Fingerprints (7 types)"
-                content={
-                  <div className="text-xs space-y-1">
-                    <ul className="list-disc list-inside text-white/70">
-                      <li><strong>Morgan (ECFP):</strong> Circular, atom connectivity</li>
-                      <li><strong>Morgan Features (FCFP):</strong> Pharmacophore-aware</li>
-                      <li><strong>MACCS:</strong> 166 structural keys</li>
-                      <li><strong>Atom Pair:</strong> Atom pairs + distances</li>
-                      <li><strong>Topological Torsion:</strong> Torsion patterns</li>
-                      <li><strong>RDKit:</strong> Daylight-like paths</li>
-                      <li><strong>Avalon:</strong> Fast substructure FP</li>
-                    </ul>
-                  </div>
-                }
-              />
-            }
-          />
-
-          {/* Size Card */}
-          <BreakdownCard
-            icon={<Scale className="w-5 h-5" />}
-            label="Size"
-            score={breakdown.size_score}
-            maxScore={breakdown.size_max}
-            detail={breakdown.size_category}
-            subDetail={breakdown.molecular_weight !== null ? `MW: ${breakdown.molecular_weight.toFixed(1)} Da | Atoms: ${breakdown.num_atoms}` : undefined}
-            delay={0.25}
-          />
+          {dimensions.map(({ key, dim }, i) => (
+            <DimensionCard key={key} dimKey={key} dimension={dim} delay={0.1 + i * 0.05} />
+          ))}
         </div>
 
-        {/* Fingerprint badges (expandable) */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <button
-            onClick={() => setShowFingerprintDetails(!showFingerprintDetails)}
-            className={cn(
-              'w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl',
-              'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
-              'text-sm text-[var(--color-text-secondary)]',
-              'hover:bg-[var(--color-surface-sunken)] transition-colors'
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              <span>View fingerprint types ({breakdown.fingerprints_successful.length} successful)</span>
-            </div>
-            <ChevronRight className={cn(
-              'w-4 h-4 transition-transform',
-              showFingerprintDetails && 'rotate-90'
-            )} />
-          </button>
-          {showFingerprintDetails && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-2 p-3 bg-[var(--color-surface-sunken)] rounded-xl"
-            >
-              <FingerprintBadges
-                successful={breakdown.fingerprints_successful}
-                failed={breakdown.fingerprints_failed}
-              />
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* Failed descriptors (collapsible) */}
-        {failed_descriptors.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <button
-              onClick={() => setShowFailedDescriptors(!showFailedDescriptors)}
-              className={cn(
-                'w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl',
-                'bg-amber-500/5 border border-amber-500/10',
-                'text-sm text-amber-600 dark:text-amber-400',
-                'hover:bg-amber-500/10 transition-colors'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                <span>{failed_descriptors.length} descriptors could not be calculated</span>
-              </div>
-              <ChevronRight className={cn(
-                'w-4 h-4 transition-transform',
-                showFailedDescriptors && 'rotate-90'
-              )} />
-            </button>
-            {showFailedDescriptors && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="mt-2 p-3 bg-[var(--color-surface-sunken)] rounded-xl text-xs text-[var(--color-text-muted)] font-mono max-h-32 overflow-y-auto"
-              >
-                {failed_descriptors.join(', ')}
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-
-        {/* Total descriptors summary */}
-        <div className="text-center text-xs text-[var(--color-text-muted)] pt-2">
-          Total: {successfulDescriptors}/{totalDescriptors} descriptors | 7 fingerprint types
-        </div>
+        {/* Supplementary pills */}
+        <SupplementaryPills supplementary={supplementary} />
       </div>
     );
   }
 
-  // Full view with header
+  // Full view with header + score chart
   return (
     <div className="card-chem p-6">
       {/* Header */}
@@ -435,23 +598,21 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
                 title="What is ML Readiness?"
                 content={
                   <div className="text-xs space-y-2">
-                    <p>ML Readiness measures how suitable a molecule is for machine learning applications in cheminformatics.</p>
-                    <p className="text-white/80">A high ML Readiness score indicates:</p>
+                    <p>A scientifically meaningful 0-100 score across 4 dimensions assessing how suitable a molecule is for machine learning applications.</p>
                     <ul className="list-disc list-inside space-y-1 text-white/70">
-                      <li><strong>Descriptor Coverage:</strong> Most molecular descriptors can be calculated without errors</li>
-                      <li><strong>Fingerprint Generation:</strong> Multiple fingerprint types can be successfully generated</li>
-                      <li><strong>Appropriate Size:</strong> The molecule is within typical size ranges</li>
+                      <li><strong>Structural Quality:</strong> Clean structure checks</li>
+                      <li><strong>Property Profile:</strong> Desirability-scored properties</li>
+                      <li><strong>Complexity:</strong> QED, SA Score, Fsp3, stereo</li>
+                      <li><strong>Representation:</strong> Descriptor/FP completeness</li>
                     </ul>
-                    <p className="text-white/60 mt-2">Low scores may cause issues in QSAR models, virtual screening, or property prediction.</p>
                   </div>
                 }
               />
             </div>
-            <p className="text-sm text-chem-dark/50">Suitability for machine learning models</p>
+            <p className="text-sm text-chem-dark/50">Scientific suitability for ML models</p>
           </div>
         </div>
 
-        {/* Main Score */}
         <ScoreChart
           score={score}
           label="ML-Readiness"
@@ -464,94 +625,52 @@ export function MLReadinessScore({ result, breakdownOnly = false }: MLReadinessS
 
       {/* Interpretation */}
       <div className="bg-chem-primary/5 rounded-xl p-4 mb-6">
-        <p className="text-sm text-chem-dark/80">{interpretation}</p>
+        <p className="text-sm text-chem-dark/80 mb-2.5">
+          {TIER_GUIDANCE[label] || interpretation}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {dimensions.map(({ key, dim }) => {
+            const dimColor = getScoreColor(dim.score, dim.max_score);
+            const pct = dim.max_score > 0 ? Math.round((dim.score / dim.max_score) * 100) : 0;
+            return (
+              <span
+                key={key}
+                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-chem-primary/5 border border-chem-primary/10"
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: dimColor.stroke }}
+                />
+                <span className="text-chem-dark/50">{DIM_SHORT[key]}</span>
+                <span className={cn('font-medium tabular-nums', dimColor.text)}>{pct}%</span>
+              </span>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Score Breakdown */}
+      {/* Caveats */}
+      {caveats.length > 0 && (
+        <div className="mb-6">
+          <CaveatsBanner caveats={caveats} />
+        </div>
+      )}
+
+      {/* Dimension breakdown */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-chem-dark/70 uppercase tracking-wide flex items-center gap-2">
+        <h4 className="text-sm font-semibold text-chem-dark/70 uppercase tracking-wide">
           Score Breakdown
-          <InfoTooltip
-            title="How ML-Readiness is Calculated"
-            content={
-              <div className="space-y-2 text-xs">
-                <p>The ML-Readiness score measures how suitable a molecule is for machine learning models.</p>
-                <ul className="list-disc list-inside space-y-1 text-white/70">
-                  <li>Standard Descriptors (35pts): 217 RDKit descriptors</li>
-                  <li>Additional Descriptors (5pts): AUTOCORR2D (192) + MQN (42)</li>
-                  <li>Fingerprints (40pts): 7 fingerprint types</li>
-                  <li>Size (20pts): Molecular weight and atom count</li>
-                </ul>
-                <p className="text-white/50 mt-2">Total: 451 descriptors + 7 fingerprint types</p>
-              </div>
-            }
-          />
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <BreakdownCard
-            icon={<Cpu className="w-5 h-5" />}
-            label="Standard Descriptors"
-            score={breakdown.descriptors_score}
-            maxScore={breakdown.descriptors_max}
-            detail={`${breakdown.descriptors_successful}/${breakdown.descriptors_total}`}
-            delay={0}
-          />
-          {(breakdown.additional_descriptors_max || 0) > 0 && (
-            <BreakdownCard
-              icon={<Layers className="w-5 h-5" />}
-              label="Additional Descriptors"
-              score={breakdown.additional_descriptors_score || 0}
-              maxScore={breakdown.additional_descriptors_max || 5}
-              detail={`AUTOCORR2D + MQN`}
-              delay={0.05}
-            />
-          )}
-          <BreakdownCard
-            icon={<Fingerprint className="w-5 h-5" />}
-            label="Fingerprints"
-            score={breakdown.fingerprints_score}
-            maxScore={breakdown.fingerprints_max}
-            detail={`${breakdown.fingerprints_successful.length}/7 types`}
-            delay={0.1}
-          />
-          <BreakdownCard
-            icon={<Scale className="w-5 h-5" />}
-            label="Size"
-            score={breakdown.size_score}
-            maxScore={breakdown.size_max}
-            detail={breakdown.size_category}
-            delay={0.15}
-          />
+          {dimensions.map(({ key, dim }, i) => (
+            <DimensionCard key={key} dimKey={key} dimension={dim} delay={i * 0.05} />
+          ))}
         </div>
 
-        {/* Fingerprint badges */}
-        <div className="mt-4">
-          <h5 className="text-xs font-medium text-chem-dark/60 mb-2">Fingerprint Types</h5>
-          <FingerprintBadges
-            successful={breakdown.fingerprints_successful}
-            failed={breakdown.fingerprints_failed}
-          />
-        </div>
+        {/* Supplementary info */}
+        <SupplementaryPills supplementary={supplementary} />
       </div>
-
-      {/* Failed Descriptors */}
-      {failed_descriptors.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-chem-dark/10">
-          <button
-            onClick={() => setShowFailedDescriptors(!showFailedDescriptors)}
-            className="flex items-center gap-2 text-sm text-chem-dark/60 hover:text-chem-dark transition-colors"
-          >
-            <ChevronRight className={cn('w-4 h-4 transition-transform', showFailedDescriptors && 'rotate-90')} />
-            <span>{failed_descriptors.length} descriptors could not be calculated</span>
-          </button>
-          {showFailedDescriptors && (
-            <div className="mt-3 p-4 bg-chem-dark/5 rounded-lg text-xs text-chem-dark/60 font-mono max-h-32 overflow-y-auto">
-              {failed_descriptors.join(', ')}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

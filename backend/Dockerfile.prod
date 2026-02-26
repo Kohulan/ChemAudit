@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # Stage 2: Runtime - Slim production image
 FROM python:3.11-slim
 
-# Install only runtime dependencies required for RDKit and WeasyPrint
+# Install only runtime dependencies required for RDKit, WeasyPrint, and OPSIN (Java JRE)
 RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxext6 \
@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y \
     shared-mime-info \
     libpq5 \
     curl \
+    default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -46,6 +47,10 @@ RUN useradd -m -u 1000 appuser
 
 # Set working directory
 WORKDIR /app
+
+# Download OPSIN JAR for IUPAC name conversion
+RUN mkdir -p /app/data && curl -L -o /app/data/opsin.jar \
+    https://github.com/dan2097/opsin/releases/download/2.8.0/opsin-cli-2.8.0-jar-with-dependencies.jar
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
@@ -73,6 +78,9 @@ EXPOSE 8000
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+# Entrypoint runs Alembic migrations before starting the app
+ENTRYPOINT ["bash", "entrypoint.sh"]
 
 # Use gunicorn with uvicorn workers for production
 # Worker count is configurable via GUNICORN_WORKERS env var

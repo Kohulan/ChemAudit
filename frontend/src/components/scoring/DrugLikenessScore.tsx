@@ -10,6 +10,7 @@ import {
 import type { DrugLikenessResult } from '../../types/scoring';
 import { InfoTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
+import { useCountUp } from '../../hooks/useCountUp';
 
 interface DrugLikenessScoreProps {
   result: DrugLikenessResult;
@@ -60,7 +61,7 @@ function PropertyRow({
               ? 'text-emerald-600 dark:text-emerald-400'
               : 'text-red-600 dark:text-red-400'
         )}>
-          {typeof value === 'number' ? value.toFixed(2) : value}
+          {typeof value === 'number' ? (Number.isInteger(value) ? String(value) : value.toFixed(2)) : value}
         </span>
         {threshold && (
           <span className="text-xs text-[var(--color-text-muted)]">({threshold})</span>
@@ -76,6 +77,7 @@ function PropertyRow({
 export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
   const [showExtended, setShowExtended] = useState(false);
   const { lipinski, qed, veber, ro3, ghose, egan, muegge, interpretation } = result;
+  const animatedQed = useCountUp(qed.score, 2, 800, 300);
 
   // QED color based on score
   const qedColor = qed.score >= 0.67
@@ -134,8 +136,8 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
               }
             />
           </div>
-          <div className={cn('text-2xl font-bold', qedColor)}>
-            {qed.score.toFixed(2)}
+          <div className={cn('text-2xl font-bold tabular-nums', qedColor)}>
+            {animatedQed.toFixed(2)}
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-1">
             {qed.interpretation}

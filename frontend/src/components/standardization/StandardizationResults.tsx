@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { ComparisonView } from './ComparisonView';
 import { StepsList } from './StepsList';
+import { ProvenanceTimeline } from './ProvenanceTimeline';
 import type { StandardizationResult } from '../../types/standardization';
 
 interface StandardizationResultsProps {
@@ -134,16 +135,20 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
         </div>
       )}
 
-      {/* Pipeline Steps */}
+      {/* Pipeline Steps / Provenance Timeline */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <h4 className="font-semibold text-gray-900 mb-4">
           Standardization Pipeline
         </h4>
-        <StepsList
-          steps={result.steps_applied}
-          checkerIssues={result.checker_issues}
-          excludedFragments={result.excluded_fragments}
-        />
+        {result.provenance ? (
+          <ProvenanceTimeline provenance={result.provenance} />
+        ) : (
+          <StepsList
+            steps={result.steps_applied}
+            checkerIssues={result.checker_issues}
+            excludedFragments={result.excluded_fragments}
+          />
+        )}
       </div>
     </div>
   );

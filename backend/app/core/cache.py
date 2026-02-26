@@ -25,6 +25,10 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Increment when validation checks change to invalidate stale cached results.
+# Phase 1 (M1.1): bumped to v2 to invalidate pre-Phase-1 cache entries.
+CHECKS_VERSION = "v2"
+
 
 def validation_cache_key(
     inchikey: Optional[str],
@@ -33,7 +37,7 @@ def validation_cache_key(
     """
     Generate cache key for validation results.
 
-    Key format: validation:{inchikey}:{checks_hash}
+    Key format: validation:{CHECKS_VERSION}:{inchikey}:{checks_hash}
 
     Args:
         inchikey: InChIKey of the molecule (27 characters)
@@ -44,7 +48,7 @@ def validation_cache_key(
 
     Example:
         >>> validation_cache_key("BSYNRYMUTXBXSQ-UHFFFAOYSA-N", ["parsability", "valence"])
-        "validation:BSYNRYMUTXBXSQ-UHFFFAOYSA-N:a1b2c3d4"
+        "validation:v2:BSYNRYMUTXBXSQ-UHFFFAOYSA-N:a1b2c3d4"
     """
     if not inchikey:
         return None
@@ -58,7 +62,7 @@ def validation_cache_key(
     # Short hash of checks for key uniqueness (SHA256 for security)
     checks_hash = hashlib.sha256(checks_str.encode()).hexdigest()[:16]
 
-    return f"validation:{inchikey}:{checks_hash}"
+    return f"validation:{CHECKS_VERSION}:{inchikey}:{checks_hash}"
 
 
 async def get_cached_validation(
@@ -148,8 +152,8 @@ async def invalidate_cached_validation(
         return 0
 
     try:
-        # Find all cache keys for this inchikey
-        pattern = f"validation:{inchikey}:*"
+        # Find all cache keys for this inchikey across all versions
+        pattern = f"validation:*:{inchikey}:*"
         keys = []
         async for key in redis.scan_iter(pattern):
             keys.append(key)

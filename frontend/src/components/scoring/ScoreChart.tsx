@@ -17,12 +17,11 @@ interface ScoreChartProps {
   interpretation?: string;
   /** Show as compact version */
   compact?: boolean;
+  /** Color variant: 'warm' (amber/yellow) or 'cool' (blue/cyan) */
+  variant?: 'warm' | 'cool';
 }
 
-/**
- * Get color configuration based on score value
- */
-function getScoreColor(score: number, isDark: boolean): {
+type ScoreColorConfig = {
   fill: string;
   text: string;
   bg: string;
@@ -30,7 +29,17 @@ function getScoreColor(score: number, isDark: boolean): {
   gradientId: string;
   startColor: string;
   endColor: string;
-} {
+};
+
+/**
+ * Get color configuration based on score value
+ */
+function getScoreColor(score: number, isDark: boolean, variant: 'warm' | 'cool' = 'warm'): ScoreColorConfig {
+  if (variant === 'cool') return getCoolColor(score, isDark);
+  return getWarmColor(score, isDark);
+}
+
+function getWarmColor(score: number, isDark: boolean): ScoreColorConfig {
   if (score >= 80) {
     return {
       fill: isDark ? '#fcd34d' : '#b45309',
@@ -64,6 +73,41 @@ function getScoreColor(score: number, isDark: boolean): {
   };
 }
 
+function getCoolColor(score: number, isDark: boolean): ScoreColorConfig {
+  // Matches the app's primary "Laboratory Crimson" (rose-500 → red-600 → rose-700)
+  if (score >= 80) {
+    return {
+      fill: isDark ? '#e11d48' : '#be123c',
+      text: 'text-rose-600 dark:text-rose-400',
+      bg: 'bg-rose-500/10 dark:bg-rose-400/15',
+      label: 'Excellent',
+      gradientId: 'scoreGradientCoolExcellent',
+      startColor: isDark ? '#f43f5e' : '#f43f5e',  // rose-500
+      endColor: isDark ? '#be123c' : '#9f1239',     // rose-700 → rose-800
+    };
+  }
+  if (score >= 50) {
+    return {
+      fill: isDark ? '#dc2626' : '#b91c1c',
+      text: 'text-red-600 dark:text-red-400',
+      bg: 'bg-red-500/10 dark:bg-red-400/15',
+      label: 'Fair',
+      gradientId: 'scoreGradientCoolFair',
+      startColor: isDark ? '#ef4444' : '#ef4444',   // red-500
+      endColor: isDark ? '#991b1b' : '#7f1d1d',     // red-800 → red-900
+    };
+  }
+  return {
+    fill: isDark ? '#78716c' : '#57534e',
+    text: 'text-stone-600 dark:text-stone-400',
+    bg: 'bg-stone-500/10 dark:bg-stone-400/15',
+    label: 'Poor',
+    gradientId: 'scoreGradientCoolPoor',
+    startColor: isDark ? '#a8a29e' : '#78716c',
+    endColor: isDark ? '#57534e' : '#44403c',
+  };
+}
+
 /**
  * Radial score chart with gradient fill and interactive tooltip
  */
@@ -74,13 +118,23 @@ export function ScoreChart({
   calculation,
   interpretation,
   compact = false,
+  variant = 'warm',
 }: ScoreChartProps) {
   const { isDark } = useThemeContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const [animated, setAnimated] = useState(false);
   const clampedScore = Math.max(0, Math.min(100, score));
-  const color = getScoreColor(clampedScore, isDark);
+  const color = getScoreColor(clampedScore, isDark, variant);
   const backgroundFill = isDark ? '#374151' : '#e5e7eb';
+
+  // Trigger mount animation for compact gauge
+  useEffect(() => {
+    if (compact) {
+      const timer = setTimeout(() => setAnimated(true), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [compact]);
 
   // Delay chart render until container has valid dimensions
   useEffect(() => {
@@ -107,8 +161,95 @@ export function ScoreChart({
     },
   ];
 
-  const chartContent = (
-    <div ref={containerRef} className={cn('relative', compact ? '' : 'p-2')} style={{ width: size, height: size }}>
+  // Custom SVG gauge for compact mode — glow, gradient arc, tick marks, mount animation
+  const renderCompactGauge = () => {
+    const cx = size / 2;
+    const cy = size / 2;
+    const strokeWidth = 7;
+    const radius = (size / 2) - strokeWidth - 4;
+    const circumference = 2 * Math.PI * radius;
+    const targetArc = circumference * (clampedScore / 100);
+    const arcLength = animated ? targetArc : 0;
+    const tickCount = 20;
+    const tickRadius = radius + strokeWidth / 2 + 3;
+    const glowId = `glow-${color.gradientId}`;
+    const gradId = `grad-${color.gradientId}`;
+
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={color.startColor} />
+              <stop offset="100%" stopColor={color.endColor} />
+            </linearGradient>
+            <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feFlood floodColor={color.endColor} floodOpacity="0.4" result="color" />
+              <feComposite in="color" in2="blur" operator="in" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Tick marks */}
+          {Array.from({ length: tickCount }, (_, i) => {
+            const angle = (i / tickCount) * 360;
+            const rad = (angle * Math.PI) / 180;
+            const filled = animated && i / tickCount <= clampedScore / 100;
+            const x1 = cx + (tickRadius - 2) * Math.cos(rad);
+            const y1 = cy + (tickRadius - 2) * Math.sin(rad);
+            const x2 = cx + (tickRadius + 2) * Math.cos(rad);
+            const y2 = cy + (tickRadius + 2) * Math.sin(rad);
+            return (
+              <line
+                key={i}
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={filled ? color.endColor : (isDark ? '#374151' : '#d1d5db')}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                opacity={filled ? 0.7 : 0.3}
+                style={{ transition: `all 800ms ease-out ${i * 30}ms` }}
+              />
+            );
+          })}
+
+          {/* Track */}
+          <circle
+            cx={cx} cy={cy} r={radius}
+            fill="none"
+            stroke={backgroundFill}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+
+          {/* Score arc with glow — animated from 0 on mount */}
+          <circle
+            cx={cx} cy={cy} r={radius}
+            fill="none"
+            stroke={`url(#${gradId})`}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${arcLength} ${circumference}`}
+            filter={`url(#${glowId})`}
+            style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          />
+        </svg>
+
+        {/* Center content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+          <span className={cn('text-2xl font-bold tabular-nums', color.text)}>
+            {Math.round(clampedScore)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  const chartContent = compact ? renderCompactGauge() : (
+    <div ref={containerRef} className="relative p-2" style={{ width: size, height: size }}>
       {/* SVG Gradient Definitions */}
       <svg width="0" height="0" className="absolute">
         <defs>
@@ -129,14 +270,14 @@ export function ScoreChart({
 
       {/* Chart - only render when container has valid dimensions */}
       {isReady && (
-        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <RadialBarChart
             innerRadius="70%"
             outerRadius="100%"
             data={data}
             startAngle={90}
             endAngle={-270}
-            barSize={compact ? 8 : 12}
+            barSize={12}
           >
             <PolarAngleAxis
               type="number"
@@ -157,14 +298,12 @@ export function ScoreChart({
 
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn(compact ? 'text-2xl' : 'text-4xl', 'font-bold', color.text)}>
+        <span className={cn('text-4xl font-bold', color.text)}>
           {Math.round(clampedScore)}
         </span>
-        {!compact && (
-          <span className="text-xs text-text-muted uppercase tracking-wider mt-1">
-            Score
-          </span>
-        )}
+        <span className="text-xs text-text-muted uppercase tracking-wider mt-1">
+          Score
+        </span>
       </div>
     </div>
   );
