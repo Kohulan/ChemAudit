@@ -3,6 +3,7 @@ import { Upload, X, FileSpreadsheet, Database, ChevronDown, AlertCircle, CheckCi
 import { batchApi } from '../../services/api';
 import { useLimits } from '../../context/ConfigContext';
 import { ClayButton } from '../ui/ClayButton';
+import { logger } from '../../lib/logger';
 import type { CSVColumnsResponse } from '../../types/batch';
 
 interface BatchUploadProps {
@@ -176,7 +177,7 @@ export function BatchUpload({
           nameColForUpload = selectedNameColumn ? 'Name' : '';
         } catch (extractError: any) {
           // If extraction fails, fall back to full file upload with original column names
-          console.warn('Column extraction failed, uploading full file:', extractError);
+          logger.warn('Column extraction failed, uploading full file:', extractError);
           fileToUpload = selectedFile;
           smilesColForUpload = selectedSmilesColumn;
           nameColForUpload = selectedNameColumn;

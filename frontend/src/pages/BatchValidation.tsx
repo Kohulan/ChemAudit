@@ -19,6 +19,7 @@ import { useBrushSelection, setSelection, toggleIndex, clearSelection } from '..
 import { useLimits } from '../context/ConfigContext';
 import { batchApi, permalinksApi } from '../services/api';
 import { cn } from '../lib/utils';
+import { logger } from '../lib/logger';
 import type {
   BatchPageState,
   BatchResultsResponse,
@@ -262,7 +263,7 @@ export function BatchValidationPage() {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to create permalink:', err);
+      logger.error('Failed to create permalink:', err);
     }
   }, [jobId]);
 

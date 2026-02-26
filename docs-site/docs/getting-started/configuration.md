@@ -38,10 +38,15 @@ Never commit your `.env` file to version control. Keep secrets secure and rotate
 | `POSTGRES_USER` | Database username | `chemaudit` |
 | `POSTGRES_DB` | Database name | `chemaudit` |
 | `DATABASE_URL` | Full database connection string | Auto-generated from above |
-| `REDIS_URL` | Redis connection string | `redis://redis:6379` |
+| `REDIS_PASSWORD` | Redis authentication password | `changeme_redis` |
+| `REDIS_URL` | Redis connection string | `redis://:${REDIS_PASSWORD}@redis:6379/0` |
 | `DEBUG` | Enable debug mode | `false` |
 | `CORS_ORIGINS_STR` | Allowed CORS origins (comma-separated) | `http://localhost:3002` |
 | `GRAFANA_PASSWORD` | Grafana admin password | `admin` |
+
+:::warning Redis Authentication
+Redis authentication is enforced in both development and production. The `REDIS_URL` must include the password. If you see `Authentication required` errors, ensure `REDIS_PASSWORD` is set in your `.env` file and `REDIS_URL` includes it.
+:::
 
 ### Development vs Production
 
@@ -51,6 +56,10 @@ In development (using `docker-compose.yml`), services are exposed on individual 
 
 :::info Production Mode
 In production (using `docker-compose.prod.yml`), all services run behind Nginx on port 80/443.
+:::
+
+:::danger Startup Secret Validation
+When `DEBUG=false`, ChemAudit validates that `SECRET_KEY`, `API_KEY_ADMIN_SECRET`, and `CSRF_SECRET_KEY` do not contain placeholder values (`CHANGE_ME`). The application will refuse to start until secure values are set. Use `openssl rand -hex 64` to generate secrets, or run `deploy.sh` which auto-generates them.
 :::
 
 ## Deployment Profiles

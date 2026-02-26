@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { logger } from '../lib/logger';
 
 // Extend axios config type to support retry flag
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -126,18 +127,16 @@ import type {
 } from '../types/workflow';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
-export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || 'http://localhost:8001/docs';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || '/docs';
 export const DEBUG_MODE = import.meta.env.VITE_DEBUG === 'true';
 
 // Debug logging in development
-if (DEBUG_MODE) {
-  console.log('[ChemAudit API] Configuration:', {
-    apiUrl: API_BASE_URL,
-    docsUrl: API_DOCS_URL,
-    environment: import.meta.env.MODE,
-  });
-}
+logger.info('[ChemAudit API] Configuration:', {
+  apiUrl: API_BASE_URL,
+  docsUrl: API_DOCS_URL,
+  environment: import.meta.env.MODE,
+});
 
 // CSRF token management
 let csrfToken: string | null = null;
@@ -148,12 +147,10 @@ async function fetchCsrfToken(): Promise<string> {
   try {
     const response = await axios.get(`${API_BASE_URL}/csrf-token`, { withCredentials: true });
     csrfToken = response.data.csrf_token;
-    if (DEBUG_MODE) {
-      console.log('[ChemAudit API] CSRF token fetched');
-    }
+    logger.info('[ChemAudit API] CSRF token fetched');
     return csrfToken!;
   } catch (error) {
-    console.error('[ChemAudit API] Failed to fetch CSRF token:', error);
+    logger.error('[ChemAudit API] Failed to fetch CSRF token:', error);
     throw error;
   }
 }
@@ -182,7 +179,7 @@ api.interceptors.request.use(async (config) => {
       config.headers['X-CSRF-Token'] = token;
     } catch {
       // Continue without token - let the server reject if needed
-      console.warn('[ChemAudit API] Proceeding without CSRF token');
+      logger.warn('[ChemAudit API] Proceeding without CSRF token');
     }
   }
   return config;
