@@ -13,6 +13,7 @@ import {
 import type { ADMETResult } from '../../types/scoring';
 import { InfoTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
+import { useCountUp } from '../../hooks/useCountUp';
 
 interface ADMETScoreProps {
   result: ADMETResult;
@@ -79,6 +80,8 @@ function MetricCard({
   delay?: number;
 }) {
   const color = getClassColor(classification);
+  const numericValue = typeof value === 'number' ? value : null;
+  const animated = useCountUp(numericValue ?? 0, 2, 800, delay * 1000 + 200);
 
   return (
     <motion.div
@@ -105,8 +108,8 @@ function MetricCard({
           </div>
         </div>
         <div className="text-right">
-          <div className={cn('text-xl font-bold', color.text)}>
-            {typeof value === 'number' ? value.toFixed(2) : value}
+          <div className={cn('text-xl font-bold tabular-nums', color.text)}>
+            {numericValue !== null ? animated.toFixed(2) : value}
             {unit && <span className="text-xs font-normal ml-1">{unit}</span>}
           </div>
           <span className={cn('text-xs px-2 py-0.5 rounded-full', color.bg, color.text)}>
@@ -377,7 +380,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 <RuleCard
                   name="Pfizer 3/75 Rule"
                   passed={pfizer_rule.passed}
-                  values={`LogP: ${pfizer_rule.logp.toFixed(1)}, TPSA: ${pfizer_rule.tpsa.toFixed(0)}`}
+                  values={`LogP: ${pfizer_rule.logp.toFixed(1)}, TPSA: ${pfizer_rule.tpsa.toFixed(1)}`}
                   description={pfizer_rule.interpretation}
                   delay={0}
                   tooltip={
