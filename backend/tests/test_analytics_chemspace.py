@@ -45,7 +45,7 @@ _DIVERSE_20 = _DIVERSE_10 + [
     "CC1=CC(=O)c2ccccc2C1=O",  # methyl-naphthoquinone
     "O=C(O)c1ccccc1O",         # salicylic acid
     "Nc1ccc(cc1)S(N)(=O)=O",   # sulfanilamide
-    "c1ccc2[nH]cccc2c1",       # indole
+    "c1ccc2[nH]ccc2c1",        # indole
     "O=C1CCCN1",               # pyrrolidinone
     "CC(O)=O",                 # acetic acid
     "NCC(=O)O",                # glycine
