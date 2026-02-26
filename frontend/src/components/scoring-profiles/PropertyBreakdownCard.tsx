@@ -16,7 +16,7 @@ function PropertyRow({ label, value, unit }: { label: string; value: string | nu
     <div className="flex items-center justify-between py-1.5 border-b border-[var(--color-border)]/50 last:border-0">
       <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
       <span className="text-sm font-medium text-[var(--color-text-primary)]">
-        {typeof value === 'number' ? value.toFixed(2) : value}
+        {typeof value === 'number' ? (Number.isInteger(value) ? String(value) : value.toFixed(2)) : value}
         {unit && <span className="text-xs text-[var(--color-text-muted)] ml-1">{unit}</span>}
       </span>
     </div>

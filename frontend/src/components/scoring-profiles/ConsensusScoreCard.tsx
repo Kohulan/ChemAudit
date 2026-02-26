@@ -107,7 +107,7 @@ export function ConsensusScoreCard({ data }: ConsensusScoreCardProps) {
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-red-600 dark:text-red-400'
                           )}>
-                            {typeof v.value === 'number' ? v.value.toFixed(2) : v.value}
+                            {typeof v.value === 'number' ? (Number.isInteger(v.value) ? String(v.value) : v.value.toFixed(2)) : v.value}
                           </span>
                           <span className="text-xs text-[var(--color-text-muted)]">
                             ({v.threshold})

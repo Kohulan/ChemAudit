@@ -640,12 +640,6 @@ export function BatchValidationPage() {
                 selectedIndices={selectedIndices}
                 isOpen={subsetPanelOpen}
                 onClose={() => setSubsetPanelOpen(false)}
-                onNewJob={(newJobId) => {
-                  setSubsetPanelOpen(false);
-                  setJobId(newJobId);
-                  setPageState('processing');
-                  selectionDispatch(clearSelection());
-                }}
               />
             )}
           </motion.div>

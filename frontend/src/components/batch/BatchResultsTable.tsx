@@ -1,5 +1,6 @@
 import { Fragment, useState, useRef, useEffect } from 'react';
-import { AlertTriangle, ShieldAlert, FlaskConical, Atom } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, ShieldAlert, FlaskConical, Atom, ExternalLink } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
@@ -43,6 +44,7 @@ export function BatchResultsTable({
   selectedIndices,
   onSelectionChange,
 }: BatchResultsTableProps) {
+  const navigate = useNavigate();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
@@ -572,6 +574,31 @@ export function BatchResultsTable({
                                       <CopyButton text={result.smiles} size={13} className="mt-0.5 flex-shrink-0" />
                                     </div>
                                   )}
+                                  {/* Full Analysis button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate('/', {
+                                        state: {
+                                          fromBatch: true,
+                                          smiles: result.standardization?.standardized_smiles || result.smiles,
+                                          moleculeName: result.name,
+                                          moleculeIndex: result.index,
+                                        },
+                                      });
+                                    }}
+                                    className={cn(
+                                      'mt-2 w-full flex items-center justify-center gap-2',
+                                      'px-3 py-2 rounded-lg text-xs font-medium',
+                                      'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                                      'border border-[var(--color-primary)]/20',
+                                      'hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/40',
+                                      'transition-all duration-200 cursor-pointer'
+                                    )}
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Full Analysis
+                                  </button>
                                 </>
                               ) : (
                                 <div className="flex-1 flex items-center justify-center rounded-xl bg-red-500/5 border border-red-500/10 min-h-[180px]">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, FileText, Table2, FlaskConical, Braces, FileBarChart, Fingerprint, Copy, Network, LayoutGrid } from 'lucide-react';
+import { Download, X, FileText, Table2, FlaskConical, Braces, FileBarChart, Fingerprint, Copy, Network, LayoutGrid, Image } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
 import { Badge } from '../ui/Badge';
 import { EXPORT_FORMATS, PDF_SECTION_OPTIONS } from '../../types/workflow';
@@ -35,6 +35,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('csv');
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [includeImages, setIncludeImages] = useState(false);
   const [pdfSections, setPdfSections] = useState<Set<string>>(
     new Set(PDF_SECTION_OPTIONS.filter((s) => s.defaultChecked).map((s) => s.id))
   );
@@ -65,39 +66,37 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
     try {
       const params = new URLSearchParams({ format: selectedFormat });
 
-      // Add PDF sections if PDF format is selected
       if (selectedFormat === 'pdf' && pdfSections.size > 0) {
         params.set('sections', Array.from(pdfSections).join(','));
       }
-
-      let response: Response;
-
-      if (!isSelectedMode) {
-        const url = `/api/v1/batch/${jobId}/export?${params.toString()}`;
-        response = await fetch(url);
-      } else {
-        const indicesArray = Array.from(selectedIndices).sort((a, b) => a - b);
-
-        if (indicesArray.length <= 200) {
-          params.set('indices', indicesArray.join(','));
-          const url = `/api/v1/batch/${jobId}/export?${params.toString()}`;
-          response = await fetch(url);
-        } else {
-          const url = `/api/v1/batch/${jobId}/export?${params.toString()}`;
-          response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ indices: indicesArray }),
-          });
-        }
+      if (selectedFormat === 'excel' && includeImages) {
+        params.set('include_images', 'true');
       }
+
+      const indicesArray = isSelectedMode
+        ? Array.from(selectedIndices).sort((a, b) => a - b)
+        : null;
+
+      let fetchOptions: RequestInit | undefined;
+      if (indicesArray && indicesArray.length > 200) {
+        // Large selection: send indices in POST body to avoid URL length limits
+        fetchOptions = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ indices: indicesArray }),
+        };
+      } else if (indicesArray) {
+        params.set('indices', indicesArray.join(','));
+      }
+
+      const exportUrl = `/api/v1/batch/${jobId}/export?${params.toString()}`;
+      const response = await fetch(exportUrl, fetchOptions);
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.detail || 'Export failed');
       }
 
-      // Get filename from Content-Disposition header or generate default
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = filePreview;
       if (contentDisposition) {
@@ -105,7 +104,6 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
         if (match) filename = match[1];
       }
 
-      // Download file
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -204,6 +202,39 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                     </div>
                   )}
                 </label>
+
+                {/* Excel structure images option — inline, after the Excel format card */}
+                {format.value === 'excel' && selectedFormat === 'excel' && (
+                  <AnimatePresence>
+                    <motion.div
+                      key="excel-images"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="border border-[var(--color-border)] rounded-xl p-4 bg-[var(--color-surface-sunken)]/50">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={includeImages}
+                            onChange={(e) => setIncludeImages(e.target.checked)}
+                            className="mt-0.5 rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Image className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                              <span className="text-sm font-medium text-[var(--color-text-primary)]">Include 2D structure images</span>
+                            </div>
+                            <p className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-1 ml-6">
+                              Embeds RDKit-rendered molecule images in each row. Increases file size and export time for large batches.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
 
                 {/* PDF Section Selection — inline, immediately after the PDF format card */}
                 {format.value === 'pdf' && selectedFormat === 'pdf' && (
