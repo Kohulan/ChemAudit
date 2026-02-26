@@ -8,8 +8,6 @@ unparseable SMILES, representative-index selection).
 
 from __future__ import annotations
 
-import pytest
-
 from app.services.analytics.deduplication import (
     compute_all_dedup_levels,
     compute_exact_dedup,
@@ -17,7 +15,6 @@ from app.services.analytics.deduplication import (
     compute_stereo_dedup,
     compute_tautomer_dedup,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helper

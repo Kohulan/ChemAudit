@@ -23,7 +23,6 @@ from app.services.analytics.statistics import (
     compute_quality_score,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helper: build a synthetic result dict
 # ---------------------------------------------------------------------------

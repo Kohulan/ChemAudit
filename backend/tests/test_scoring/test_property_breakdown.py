@@ -4,7 +4,6 @@ Tests for property breakdown scoring module.
 Tests TPSA per-atom, LogP per-atom, Bertz detail, and Fsp3 detail.
 """
 
-import pytest
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors
 

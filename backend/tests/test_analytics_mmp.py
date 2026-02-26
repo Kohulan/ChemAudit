@@ -18,10 +18,8 @@ from app.services.analytics.mmp import (
     MAX_MMP_BATCH_SIZE,
     MAX_PAIRS_RETURNED,
     _compute_activity_cliffs,
-    _detect_mmp_pairs,
     compute_mmp_analysis,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

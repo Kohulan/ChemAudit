@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from rdkit import Chem
-from rdkit.Chem import Descriptors, QED
+from rdkit.Chem import QED, Descriptors
 
 from app.services.standardization.fragment_dict import classify_fragment
 

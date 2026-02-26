@@ -22,7 +22,6 @@ from app.services.standardization.fragment_dict import (
 )
 from app.services.standardization.provenance import ProvenancePipeline
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

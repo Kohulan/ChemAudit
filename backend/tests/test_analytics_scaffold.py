@@ -8,13 +8,10 @@ edge cases (empty batch, acyclic molecules, invalid SMARTS).
 
 import math
 
-import pytest
-
 from app.services.analytics.scaffold_analysis import (
     compute_rgroup_decomposition,
     compute_scaffold_analysis,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

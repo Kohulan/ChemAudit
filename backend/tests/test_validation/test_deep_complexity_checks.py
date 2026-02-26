@@ -29,7 +29,6 @@ from app.services.validation.checks.deep_complexity import (
     RingStrainCheck,
 )
 
-
 # =============================================================================
 # TestHypervalentAtoms
 # =============================================================================
@@ -773,10 +772,9 @@ class TestRegistration:
 
     def test_all_m13_checks_registered(self):
         """All 6 M1.3 check names must be in CheckRegistry."""
-        from app.services.validation.registry import CheckRegistry
-
         # Import the module to ensure registration happens
         import app.services.validation.checks.deep_complexity  # noqa: F401
+        from app.services.validation.registry import CheckRegistry
 
         registered = set(CheckRegistry.get_all().keys())
         m13_checks = {
@@ -834,12 +832,11 @@ class TestAllDeepValidationChecks:
 
     def test_all_16_deep_validation_checks_registered(self):
         """Hard assert: all 16 deep validation checks (M1.1+M1.2+M1.3) are registered."""
-        from app.services.validation.registry import CheckRegistry
-
         # Import all three deep check modules to trigger registration
         import app.services.validation.checks.deep_complexity  # noqa: F401
         import app.services.validation.checks.deep_composition  # noqa: F401
         import app.services.validation.checks.deep_stereo_tautomer  # noqa: F401
+        from app.services.validation.registry import CheckRegistry
 
         EXPECTED_DEEP_VALIDATION_CHECKS = {
             # M1.1: Stereo & Tautomer

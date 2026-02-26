@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from app.schemas.validation import MoleculeInfo
 
-
 # ---------------------------------------------------------------------------
 # Provenance schemas (Phase 02, Plan 01 — Milestone 2.1)
 # ---------------------------------------------------------------------------

@@ -496,8 +496,6 @@ class DrugLikenessScorer:
         Returns a fractional 0-5 score counting pass/fail across
         Lipinski, Veber, Egan, Ghose, and Muegge.
         """
-        result = self.score(mol, include_extended=True)
-
         # Compute common descriptors for threshold checks
         mw = Descriptors.MolWt(mol)
         logp = Crippen.MolLogP(mol)

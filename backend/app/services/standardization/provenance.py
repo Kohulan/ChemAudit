@@ -15,7 +15,6 @@ from typing import Optional
 
 from chembl_structure_pipeline import checker, get_parent_mol, standardizer
 from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from app.schemas.standardization import (
@@ -25,9 +24,9 @@ from app.schemas.standardization import (
     ProvStageRecord,
     RadicalChange,
     RingChange,
+    StandardizationProvenance,
     StereoCenterDetailSchema,
     StereoProvenance,
-    StandardizationProvenance,
     TautomerProvenance,
 )
 from app.services.standardization.chembl_pipeline import (
@@ -324,7 +323,7 @@ class ProvenancePipeline:
         input_smiles = self._safe_smiles(mol)
         try:
             molblock = Chem.MolToMolBlock(mol)
-            issues = checker.check_molblock(molblock)
+            checker.check_molblock(molblock)
             applied = True
             # Checker does not change the molecule — output = input
             return ProvStageRecord(
@@ -369,7 +368,7 @@ class ProvenancePipeline:
 
         try:
             before_rings = list(before_mol.GetRingInfo().AtomRings())
-            after_rings = list(after_mol.GetRingInfo().AtomRings())
+            list(after_mol.GetRingInfo().AtomRings())  # ensure ring info computed
 
             # Match rings by their sorted atom index sets
             # After standardization with atom count preserved, rings correspond 1:1

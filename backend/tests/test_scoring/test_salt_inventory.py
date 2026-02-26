@@ -2,7 +2,6 @@
 Tests for salt/counterion inventory scoring module.
 """
 
-import pytest
 from rdkit import Chem
 
 from app.services.scoring.salt_inventory import (

@@ -12,7 +12,6 @@ Covers:
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
@@ -21,16 +20,9 @@ from app.schemas.analytics import (
     AnalyticsTriggerResponse,
     BatchAnalyticsResponse,
     DeduplicationGroup,
-    DeduplicationResult,
-    PropertyStats,
-    QualityScore,
-    ScaffoldGroup,
-    ScaffoldResult,
-    StatisticsResult,
 )
 from app.services.analytics.storage import AnalyticsStorage
 from app.services.batch.result_aggregator import ResultStorage
-
 
 # ---------------------------------------------------------------------------
 # Config settings
@@ -96,7 +88,6 @@ def test_analytics_storage_store_result():
 
     mock_redis.set.assert_called_once()
     call_args = mock_redis.set.call_args
-    key = call_args[0][0] if call_args[0] else call_args[1].get("name", call_args[0][0])
     # Verify key and TTL
     args, kwargs = call_args
     assert "batch:analytics:deduplication:job-1" in args[0]

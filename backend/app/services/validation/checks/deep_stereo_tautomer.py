@@ -9,7 +9,6 @@ Implements DVAL-01 through DVAL-05:
 """
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
 from rdkit.Chem.MolStandardize import rdMolStandardize
 

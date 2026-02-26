@@ -388,7 +388,6 @@ class TestRegistration:
         """All 4 M1.1 check names must appear in CheckRegistry.get_all()."""
         # Force import to trigger registration
         import app.services.validation.checks.deep_stereo_tautomer  # noqa: F401
-
         from app.services.validation.registry import CheckRegistry
 
         registered = set(CheckRegistry.get_all().keys())

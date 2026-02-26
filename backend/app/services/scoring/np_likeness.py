@@ -13,8 +13,8 @@ Typical range: -5 to +5 (most molecules fall within -3 to +3)
 """
 
 import gzip
-import pickle
 import os
+import pickle
 import sys
 from dataclasses import dataclass, field
 from functools import lru_cache

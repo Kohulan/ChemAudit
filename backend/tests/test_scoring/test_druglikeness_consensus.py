@@ -2,7 +2,6 @@
 Tests for consensus drug-likeness scoring, lead-likeness, and ligand efficiency.
 """
 
-import pytest
 from rdkit import Chem
 
 from app.services.scoring.druglikeness import (

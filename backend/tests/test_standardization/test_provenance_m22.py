@@ -5,24 +5,19 @@ stereochemistry normalization tracking (STD-06).
 
 import pytest
 from rdkit import Chem
-from rdkit.Chem import AllChem
 
 from app.schemas.standardization import (
-    ProvStageRecord,
     RingChange,
     StereoCenterDetailSchema,
     StereoProvenance,
-    StandardizationProvenance,
 )
 from app.services.standardization.chembl_pipeline import StandardizationOptions
 from app.services.standardization.provenance import ProvenancePipeline
 from app.services.standardization.stereo_tracker import (
     StereoCenterDetail,
-    StereoComparison,
     StereoInfo,
     StereoTracker,
 )
-
 
 # ---------------------------------------------------------------------------
 # TestRingAromaticityTracking (STD-05)
