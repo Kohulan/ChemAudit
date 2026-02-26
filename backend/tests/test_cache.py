@@ -25,11 +25,12 @@ class TestValidationCacheKey:
         """Test cache key generation with valid InChIKey."""
         key = validation_cache_key("BSYNRYMUTXBXSQ-UHFFFAOYSA-N", None)
         assert key is not None
-        assert key.startswith("validation:BSYNRYMUTXBXSQ-UHFFFAOYSA-N:")
-        # Should have 16-character SHA256 hash suffix
+        assert key.startswith("validation:v2:BSYNRYMUTXBXSQ-UHFFFAOYSA-N:")
+        # Format: validation:{version}:{inchikey}:{checks_hash}
         parts = key.split(":")
-        assert len(parts) == 3
-        assert len(parts[2]) == 16
+        assert len(parts) == 4
+        assert parts[1] == "v2"
+        assert len(parts[3]) == 16
 
     def test_cache_key_with_checks(self):
         """Test cache key includes checks hash."""

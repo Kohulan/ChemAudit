@@ -8,35 +8,36 @@
 import type { MoleculeInfo } from './validation';
 
 /**
- * Breakdown of ML-readiness score components.
+ * A single scored item within an ML dimension.
+ */
+export interface MLDimensionItem {
+  name: string;
+  score: number;
+  max_score: number;
+  passed?: boolean;
+  subtitle?: string;
+  tooltip?: string;
+}
+
+/**
+ * A scored ML dimension with its constituent items.
+ */
+export interface MLDimension {
+  name: string;
+  score: number;
+  max_score: number;
+  items: MLDimensionItem[];
+  details: Record<string, unknown>;
+}
+
+/**
+ * Breakdown of ML-readiness score into 4 dimensions.
  */
 export interface MLReadinessBreakdown {
-  // Standard descriptors (CalcMolDescriptors - 217 descriptors)
-  descriptors_score: number;
-  descriptors_max: number;
-  descriptors_successful: number;
-  descriptors_total: number;
-
-  // Additional descriptors (AUTOCORR2D + MQN)
-  additional_descriptors_score: number;
-  additional_descriptors_max: number;
-  autocorr2d_successful: number;
-  autocorr2d_total: number;
-  mqn_successful: number;
-  mqn_total: number;
-
-  // Fingerprints (7 types)
-  fingerprints_score: number;
-  fingerprints_max: number;
-  fingerprints_successful: string[];
-  fingerprints_failed: string[];
-
-  // Size constraints
-  size_score: number;
-  size_max: number;
-  molecular_weight: number | null;
-  num_atoms: number | null;
-  size_category: 'optimal' | 'acceptable' | 'out_of_range' | 'error' | 'unknown';
+  structural_quality: MLDimension;
+  property_profile: MLDimension;
+  complexity_feasibility: MLDimension;
+  representation_quality: MLDimension;
 }
 
 /**
@@ -44,9 +45,12 @@ export interface MLReadinessBreakdown {
  */
 export interface MLReadinessResult {
   score: number;
+  label: string;
+  color: string;
   breakdown: MLReadinessBreakdown;
+  caveats: string[];
+  supplementary: Record<string, unknown>;
   interpretation: string;
-  failed_descriptors: string[];
 }
 
 /**
@@ -168,11 +172,20 @@ export interface DrugLikenessResult {
 // =============================================================================
 
 /**
+ * Enriched detail for a single matched alert pattern.
+ */
+export interface AlertDetail {
+  name: string;
+  category: string;
+}
+
+/**
  * Result for a single filter category.
  */
 export interface FilterAlertResult {
   passed: boolean;
   alerts: string[];
+  alert_details?: AlertDetail[];
   alert_count: number;
 }
 
@@ -328,6 +341,270 @@ export interface AggregatorLikelihoodResult {
   aromatic_rings: number;
   risk_factors: string[];
   interpretation: string;
+  confidence: number;
+  evidence: Array<Record<string, unknown>>;
+}
+
+// =============================================================================
+// Consensus Drug-Likeness Types
+// =============================================================================
+
+/**
+ * Per-property result within a rule set.
+ */
+export interface RuleViolation {
+  property: string;
+  value: number;
+  threshold: string;
+  result: 'pass' | 'fail';
+}
+
+/**
+ * Detail for a single rule set in consensus scoring.
+ */
+export interface RuleSetDetail {
+  name: string;
+  passed: boolean;
+  violations: RuleViolation[];
+}
+
+/**
+ * Consensus drug-likeness score across 5 rule sets.
+ */
+export interface ConsensusScore {
+  score: number;
+  total: number;
+  rule_sets: RuleSetDetail[];
+  interpretation: string;
+}
+
+// =============================================================================
+// Lead-Likeness Types
+// =============================================================================
+
+/**
+ * Lead-likeness assessment result.
+ */
+export interface LeadLikeness {
+  passed: boolean;
+  violations: number;
+  properties: Record<string, number>;
+  thresholds: Record<string, string>;
+  violation_details: RuleViolation[];
+}
+
+// =============================================================================
+// Salt Inventory Types
+// =============================================================================
+
+/**
+ * A single fragment from a salt-form molecule.
+ */
+export interface SaltFragment {
+  smiles: string;
+  name: string;
+  category: string;
+  mw: number;
+  heavy_atom_count: number;
+}
+
+/**
+ * Salt/counterion inventory result.
+ */
+export interface SaltInventory {
+  has_salts: boolean;
+  parent_smiles: string;
+  fragments: SaltFragment[];
+  total_fragments: number;
+  interpretation: string;
+}
+
+// =============================================================================
+// Ligand Efficiency Types
+// =============================================================================
+
+/**
+ * Ligand efficiency result.
+ */
+export interface LigandEfficiency {
+  le: number | null;
+  heavy_atom_count: number;
+  activity_value: number | null;
+  activity_type: string | null;
+  proxy_used: boolean;
+  interpretation: string;
+}
+
+// =============================================================================
+// Property Breakdown Types
+// =============================================================================
+
+/**
+ * Per-atom property contribution.
+ */
+export interface AtomContribution {
+  atom_index: number;
+  symbol: string;
+  contribution: number;
+}
+
+/**
+ * Per-functional-group property contribution.
+ */
+export interface FunctionalGroupContribution {
+  group_name: string;
+  contribution: number;
+  atom_indices: number[];
+}
+
+/**
+ * TPSA per-atom breakdown.
+ */
+export interface TPSABreakdown {
+  total: number;
+  atom_contributions: AtomContribution[];
+  functional_group_summary: FunctionalGroupContribution[];
+}
+
+/**
+ * LogP per-atom breakdown.
+ */
+export interface LogPBreakdown {
+  total: number;
+  atom_contributions: AtomContribution[];
+  functional_group_summary: FunctionalGroupContribution[];
+}
+
+/**
+ * Bertz complexity detail.
+ */
+export interface BertzDetail {
+  bertz_ct: number;
+  num_bonds: number;
+  num_atoms: number;
+  num_rings: number;
+  num_aromatic_rings: number;
+  ring_complexity: number;
+  interpretation: string;
+}
+
+/**
+ * Per-carbon hybridization data.
+ */
+export interface CarbonHybridization {
+  atom_index: number;
+  symbol: string;
+  hybridization: string;
+}
+
+/**
+ * Fsp3 per-carbon detail.
+ */
+export interface Fsp3Detail {
+  fsp3: number;
+  total_carbons: number;
+  sp3_count: number;
+  sp2_count: number;
+  sp_count: number;
+  per_carbon: CarbonHybridization[];
+  interpretation: string;
+}
+
+// =============================================================================
+// NP-Likeness Breakdown Types
+// =============================================================================
+
+/**
+ * A single NP fragment contribution.
+ */
+export interface NPFragment {
+  smiles: string;
+  contribution: number;
+  bit_id: number;
+  radius: number;
+  center_atom_idx: number;
+  classification: 'np_characteristic' | 'synthetic_characteristic' | 'neutral';
+}
+
+/**
+ * NP-likeness fragment breakdown.
+ */
+export interface NPBreakdown {
+  score: number;
+  confidence: number;
+  fragments: NPFragment[];
+  total_fragments: number;
+  np_fragment_count: number;
+  synthetic_fragment_count: number;
+  interpretation: string;
+}
+
+// =============================================================================
+// Bioavailability Radar & BOILED-Egg Types
+// =============================================================================
+
+/**
+ * A single axis of the bioavailability radar.
+ */
+export interface RadarAxis {
+  name: string;
+  actual_value: number;
+  normalized: number;
+  optimal_min: number;
+  optimal_max: number;
+  in_range: boolean;
+  property_name: string;
+  unit: string;
+}
+
+/**
+ * Bioavailability radar result.
+ */
+export interface BioavailabilityRadar {
+  axes: RadarAxis[];
+  overall_in_range_count: number;
+  interpretation: string;
+}
+
+/**
+ * Ellipse parameters for BOILED-Egg model.
+ */
+export interface EllipseParams {
+  cx: number;
+  cy: number;
+  a: number;
+  b: number;
+}
+
+/**
+ * BOILED-Egg classification result.
+ */
+export interface BoiledEgg {
+  wlogp: number;
+  tpsa: number;
+  gi_absorbed: boolean;
+  bbb_permeant: boolean;
+  region: 'yolk' | 'white' | 'grey';
+  gi_ellipse: EllipseParams | null;
+  bbb_ellipse: EllipseParams | null;
+  interpretation: string;
+}
+
+/**
+ * A single molecule's radar profile.
+ */
+export interface RadarProfile {
+  smiles: string;
+  axes: RadarAxis[];
+  is_reference: boolean;
+}
+
+/**
+ * Multi-molecule radar comparison.
+ */
+export interface RadarComparison {
+  profiles: RadarProfile[];
+  reference: RadarProfile | null;
 }
 
 // =============================================================================
@@ -344,7 +621,18 @@ export type ScoringType =
   | 'druglikeness'
   | 'safety_filters'
   | 'admet'
-  | 'aggregator';
+  | 'aggregator'
+  | 'consensus'
+  | 'lead_likeness'
+  | 'salt_inventory'
+  | 'ligand_efficiency'
+  | 'tpsa_breakdown'
+  | 'logp_breakdown'
+  | 'bertz_detail'
+  | 'fsp3_detail'
+  | 'np_breakdown'
+  | 'bioavailability_radar'
+  | 'boiled_egg';
 
 /**
  * Request for molecule scoring.
@@ -368,6 +656,17 @@ export interface ScoringResponse {
   safety_filters: SafetyFilterResult | null;
   admet: ADMETResult | null;
   aggregator: AggregatorLikelihoodResult | null;
+  consensus: ConsensusScore | null;
+  lead_likeness: LeadLikeness | null;
+  salt_inventory: SaltInventory | null;
+  ligand_efficiency: LigandEfficiency | null;
+  tpsa_breakdown: TPSABreakdown | null;
+  logp_breakdown: LogPBreakdown | null;
+  bertz_detail: BertzDetail | null;
+  fsp3_detail: Fsp3Detail | null;
+  np_breakdown: NPBreakdown | null;
+  bioavailability_radar: BioavailabilityRadar | null;
+  boiled_egg: BoiledEgg | null;
   execution_time_ms: number;
 }
 

@@ -2,10 +2,12 @@
 Excel Exporter
 
 Exports batch results to Excel format with conditional formatting using XlsxWriter.
+Optionally embeds 2D chemical structure images rendered via RDKit.
 """
 
+import logging
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -17,9 +19,72 @@ from .base import (
     count_alerts_by_catalog,
 )
 
+logger = logging.getLogger(__name__)
+
+# Image dimensions (pixels) and corresponding Excel cell sizing
+STRUCTURE_IMG_WIDTH = 150
+STRUCTURE_IMG_HEIGHT = 150
+# Excel row height in points (1 pt ≈ 1.33 px). Add padding for cell borders.
+STRUCTURE_ROW_HEIGHT = 118
+# Excel column width in character units (1 char ≈ 7.5 px at default font)
+STRUCTURE_COL_WIDTH = 22
+
 
 class ExcelExporter(BaseExporter):
     """Export batch results to Excel format with formatting."""
+
+    def __init__(self, include_images: bool = False):
+        self._include_images = include_images
+
+    @staticmethod
+    def _mol_to_png_bytes(smiles: str) -> Optional[BytesIO]:
+        """Render a SMILES string as a PNG image and return as BytesIO buffer."""
+        try:
+            from rdkit import Chem
+            from rdkit.Chem import Draw
+
+            mol = Chem.MolFromSmiles(smiles)
+            if mol is None:
+                return None
+
+            img = Draw.MolToImage(mol, size=(STRUCTURE_IMG_WIDTH, STRUCTURE_IMG_HEIGHT))
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            return buf
+        except Exception:
+            logger.debug("Failed to render structure for SMILES: %s", smiles, exc_info=True)
+            return None
+
+    def _embed_structure_images(self, worksheet: Any, results: List[Dict[str, Any]]) -> None:
+        """Render and embed 2D structure PNGs into the worksheet's structure column."""
+        img_col = 1  # Column B (after index)
+
+        for row_idx, result in enumerate(results):
+            excel_row = row_idx + 1  # +1 for header row
+            worksheet.set_row(excel_row, STRUCTURE_ROW_HEIGHT)
+
+            # Prefer canonical SMILES, fall back to input
+            validation = result.get("validation") or {}
+            smiles = validation.get("canonical_smiles") or result.get("smiles", "")
+            if not smiles:
+                continue
+
+            img_buf = self._mol_to_png_bytes(smiles)
+            if img_buf is None:
+                continue
+
+            worksheet.insert_image(
+                excel_row,
+                img_col,
+                f"structure_{row_idx}.png",
+                {
+                    "image_data": img_buf,
+                    "x_offset": 4,
+                    "y_offset": 4,
+                    "positioning": 1,  # Move and size with cells
+                },
+            )
 
     def export(self, results: List[Dict[str, Any]]) -> BytesIO:
         """
@@ -45,7 +110,6 @@ class ExcelExporter(BaseExporter):
         alert_distribution: Dict[str, int] = {}
 
         for idx, result in enumerate(results):
-            # Get validation data - use 'or {}' to handle None values
             validation = result.get("validation") or {}
             scoring = result.get("scoring") or {}
             alerts = result.get("alerts") or {}
@@ -54,11 +118,9 @@ class ExcelExporter(BaseExporter):
             if status == "success":
                 successful_count += 1
 
-            # Get scores
             overall_score = validation.get("overall_score", 0)
             ml_score = scoring.get("ml_readiness_score", 0) if scoring else 0
 
-            # Get QED and SA scores
             qed_score = None
             sa_score = None
             lipinski_passed = None
@@ -99,56 +161,55 @@ class ExcelExporter(BaseExporter):
             for catalog, cnt in count_alerts_by_catalog(alerts).items():
                 alert_distribution[catalog] = alert_distribution.get(catalog, 0) + cnt
 
-            # Collect issues for summary
+            # Collect issues for summary (limit to first 3)
             issues = validation.get("issues", [])
             issues_summary = "; ".join(
-                [
-                    f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
-                    for issue in issues[:3]
-                ]  # Limit to first 3 issues
+                f"{issue.get('check_name', 'unknown')}: {issue.get('message', '')}"
+                for issue in issues[:3]
             )
 
-            row = {
-                "index": idx + 1,
-                "name": result.get("name", ""),
-                "input_smiles": result.get("smiles", ""),
-                "canonical_smiles": validation.get("canonical_smiles", ""),
-                "inchikey": validation.get("inchikey", ""),
-                "overall_score": overall_score,
-                "ml_readiness_score": ml_score,
-                "qed_score": qed_score if qed_score is not None else "",
-                "sa_score": sa_score if sa_score is not None else "",
-                "np_likeness_score": (
-                    scoring.get("np_likeness_score", 0) if scoring else 0
-                ),
-                "alerts_count": alerts_count,
-                "issues_summary": issues_summary,
-                "standardized_smiles": result.get("standardized_smiles", ""),
-            }
+            row = {"index": idx + 1}
+            if self._include_images:
+                row["structure"] = ""
+            row.update(
+                {
+                    "name": result.get("name", ""),
+                    "input_smiles": result.get("smiles", ""),
+                    "canonical_smiles": validation.get("canonical_smiles", ""),
+                    "inchikey": validation.get("inchikey", ""),
+                    "overall_score": overall_score,
+                    "ml_readiness_score": ml_score,
+                    "qed_score": qed_score if qed_score is not None else "",
+                    "sa_score": sa_score if sa_score is not None else "",
+                    "np_likeness_score": scoring.get("np_likeness_score", 0)
+                    if scoring
+                    else 0,
+                    "alerts_count": alerts_count,
+                    "issues_summary": issues_summary,
+                    "standardized_smiles": result.get("standardized_smiles", ""),
+                }
+            )
             rows.append(row)
 
-        # Create DataFrame
         df = pd.DataFrame(rows)
-
-        # Create BytesIO buffer
         bytes_buffer = BytesIO()
 
-        # Write to Excel with xlsxwriter engine
         with pd.ExcelWriter(bytes_buffer, engine="xlsxwriter") as writer:
-            # Write main results sheet
             df.to_excel(writer, sheet_name="Results", index=False)
-
-            # Get workbook and worksheet objects
             workbook = writer.book
             worksheet = writer.sheets["Results"]
+
+            # Column offset: 1 extra column when structure images are present
+            img_offset = 1 if self._include_images else 0
 
             # Define formats for conditional coloring
             green_format = workbook.add_format({"bg_color": "#C6EFCE"})
             yellow_format = workbook.add_format({"bg_color": "#FFEB9C"})
             red_format = workbook.add_format({"bg_color": "#FFC7CE"})
 
-            # Apply conditional formatting to score columns (overall_score=5, ml_readiness_score=6)
-            for col_idx in [5, 6]:
+            # Score columns are at indices 5 and 6 without images, shifted by 1 with images
+            score_col_indices = [5 + img_offset, 6 + img_offset]
+            for col_idx in score_col_indices:
                 worksheet.conditional_format(
                     1,
                     col_idx,
@@ -192,10 +253,17 @@ class ExcelExporter(BaseExporter):
 
             # Auto-fit column widths (approximate)
             for idx, col in enumerate(df.columns):
+                if self._include_images and col == "structure":
+                    # Fixed width for image column
+                    worksheet.set_column(idx, idx, STRUCTURE_COL_WIDTH)
+                    continue
                 # Calculate max width
                 max_width = max(df[col].astype(str).map(len).max(), len(str(col)))
                 # Add some padding
                 worksheet.set_column(idx, idx, min(max_width + 2, 50))
+
+            if self._include_images:
+                self._embed_structure_images(worksheet, results)
 
             # Create summary sheet
             total_count = len(results)
@@ -256,9 +324,7 @@ class ExcelExporter(BaseExporter):
                     summary_worksheet.write(row_offset, 1, count)
                     row_offset += 1
 
-        # Seek to beginning
         bytes_buffer.seek(0)
-
         return bytes_buffer
 
     @property

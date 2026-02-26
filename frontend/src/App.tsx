@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
@@ -22,6 +22,12 @@ const AboutPage = lazy(() =>
 );
 const PrivacyPage = lazy(() =>
   import('./pages/Privacy').then(module => ({ default: module.PrivacyPage }))
+);
+const BookmarksPage = lazy(() =>
+  import('./pages/Bookmarks').then(module => ({ default: module.BookmarksPage }))
+);
+const HistoryPage = lazy(() =>
+  import('./pages/History').then(module => ({ default: module.HistoryPage }))
 );
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
@@ -85,6 +91,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="single"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -99,6 +106,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="batch"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -109,10 +117,42 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/bookmarks"
+            element={
+              <motion.div
+                key="bookmarks"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <BookmarksPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <motion.div
+                key="history"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <HistoryPage />
+              </motion.div>
+            }
+          />
+          <Route path="/profiles" element={<Navigate to="/batch" replace />} />
+          <Route
             path="/about"
             element={
               <motion.div
                 key="about"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -127,6 +167,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="privacy"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -141,6 +182,7 @@ function AppRoutes() {
             element={
               <motion.div
                 key="not-found"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -166,7 +208,7 @@ function AppWithSplash() {
 
   // Ensure splash shows for minimum time (matches splash animation duration)
   useEffect(() => {
-    const timer = setTimeout(() => setMinTimeElapsed(true), 1600);
+    const timer = setTimeout(() => setMinTimeElapsed(true), 2600);
     return () => clearTimeout(timer);
   }, []);
 

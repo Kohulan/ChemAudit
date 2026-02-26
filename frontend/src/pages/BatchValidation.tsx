@@ -1,14 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useBatchCache } from '../contexts/BatchCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock } from 'lucide-react';
+import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Share2, Check } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
 import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
+import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
+import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
+import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
+import { BatchTimeline } from '../components/batch/BatchTimeline';
+import { ProfileSidebar } from '../components/batch/ProfileSidebar';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
+import { useBatchAnalytics } from '../hooks/useBatchAnalytics';
+import { useBrushSelection, setSelection, toggleIndex, clearSelection } from '../hooks/useBrushSelection';
 import { useLimits } from '../context/ConfigContext';
-import { batchApi } from '../services/api';
+import { batchApi, permalinksApi } from '../services/api';
 import { cn } from '../lib/utils';
 import type {
   BatchPageState,
@@ -23,6 +31,7 @@ import type {
  */
 export function BatchValidationPage() {
   const limits = useLimits();
+  const { getCache, setCache, clearCache } = useBatchCache();
 
   // Page state machine
   const [pageState, setPageState] = useState<BatchPageState>('upload');
@@ -37,7 +46,20 @@ export function BatchValidationPage() {
   const [filters, setFilters] = useState<BatchResultsFilters>({});
   const [sortBy, setSortBy] = useState<SortField>('index');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedIndices, selectionDispatch] = useBrushSelection();
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [includeAnalytics, setIncludeAnalytics] = useState(true);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+  const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Analytics data for timeline and comparison radar
+  const { data: analyticsData, status: analyticsStatus, error: analyticsError, progress: analyticsProgress, retrigger: analyticsRetrigger } = useBatchAnalytics(
+    pageState === 'results' && includeAnalytics ? jobId : null,
+    ['scaffold', 'chemical_space']
+  );
 
   // WebSocket progress
   const { progress, isConnected } = useBatchProgress(
@@ -45,9 +67,10 @@ export function BatchValidationPage() {
   );
 
   // Handle successful upload
-  const handleUploadSuccess = useCallback((newJobId: string, _molecules: number) => {
+  const handleUploadSuccess = useCallback((newJobId: string, _molecules: number, options?: { includeAnalytics: boolean }) => {
     setJobId(newJobId);
     setError(null);
+    setIncludeAnalytics(options?.includeAnalytics ?? true);
     setPageState('processing');
   }, []);
 
@@ -172,13 +195,74 @@ export function BatchValidationPage() {
 
   // Handle selection change
   const handleSelectionChange = useCallback((indices: Set<number>) => {
-    setSelectedIndices(indices);
-  }, []);
+    selectionDispatch(setSelection(indices));
+  }, [selectionDispatch]);
 
   // Handle clear selection
   const handleClearSelection = useCallback(() => {
-    setSelectedIndices(new Set());
+    selectionDispatch(clearSelection());
+  }, [selectionDispatch]);
+
+  // Handle compare button click — fetch molecules from API (not paginated local data)
+  const handleCompare = useCallback(async () => {
+    if (!jobId || selectedIndices.size === 0) return;
+    const indices = Array.from(selectedIndices).slice(0, 2);
+
+    setCompareLoading(true);
+    try {
+      const results: import('../types/batch').BatchResult[] = [];
+      for (const idx of indices) {
+        // Compute the page that contains this molecule index (sort_by=index asc)
+        const pageNum = Math.floor(idx / pageSize) + 1;
+        const data = await batchApi.getBatchResults(jobId, pageNum, pageSize, {
+          sort_by: 'index',
+          sort_dir: 'asc',
+        });
+        const mol = data.results.find((r) => r.index === idx);
+        if (mol) results.push(mol);
+      }
+      setComparisonResults(results);
+      setCompareMode(true);
+    } catch (e: any) {
+      setError(e.message || 'Failed to fetch molecules for comparison');
+    } finally {
+      setCompareLoading(false);
+    }
+  }, [jobId, selectedIndices, pageSize]);
+
+  // Handle close comparison panel
+  const handleCloseCompare = useCallback(() => {
+    setCompareMode(false);
+    setComparisonResults([]);
   }, []);
+
+  // Handle removing a molecule from comparison
+  const handleRemoveFromCompare = useCallback((index: number) => {
+    // index is the position in comparisonResults array (0 or 1)
+    const molIndex = comparisonResults[index]?.index;
+    if (molIndex !== undefined) {
+      selectionDispatch(toggleIndex(molIndex));
+      setComparisonResults((prev) => prev.filter((_, i) => i !== index));
+    }
+    // If removing leaves 0, close the panel
+    if (comparisonResults.length <= 1) {
+      setCompareMode(false);
+    }
+  }, [comparisonResults, selectionDispatch]);
+
+  // Handle share permalink
+  const handleShare = useCallback(async () => {
+    if (!jobId) return;
+    try {
+      const result = await permalinksApi.createPermalink(jobId);
+      const url = `${window.location.origin}/report/${result.short_id}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to create permalink:', err);
+    }
+  }, [jobId]);
 
   // Reset to upload state
   const handleStartNew = useCallback(() => {
@@ -190,8 +274,49 @@ export function BatchValidationPage() {
     setFilters({});
     setSortBy('index');
     setSortDir('asc');
-    setSelectedIndices(new Set());
+    setCompareMode(false);
+    setComparisonResults([]);
+    selectionDispatch(clearSelection());
+    clearCache();
+  }, [selectionDispatch, clearCache]);
+
+  // Restore cached batch state on mount (when navigating back to this page)
+  const didRestore = useRef(false);
+  useEffect(() => {
+    if (didRestore.current) return;
+    didRestore.current = true;
+    const cached = getCache();
+    if (cached && cached.jobId) {
+      setPageState(cached.pageState);
+      setJobId(cached.jobId);
+      setResultsData(cached.resultsData);
+      setPage(cached.page);
+      setPageSize(cached.pageSize);
+      setFilters(cached.filters);
+      setSortBy(cached.sortBy);
+      setSortDir(cached.sortDir);
+      setIncludeAnalytics(cached.includeAnalytics);
+      setSelectedProfileId(cached.selectedProfileId ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist batch state to cache whenever it changes
+  useEffect(() => {
+    if (!jobId) return;
+    setCache({
+      pageState,
+      jobId,
+      resultsData,
+      page,
+      pageSize,
+      filters,
+      sortBy,
+      sortDir,
+      includeAnalytics,
+      selectedProfileId,
+    });
+  }, [pageState, jobId, resultsData, page, pageSize, filters, sortBy, sortDir, includeAnalytics, selectedProfileId, setCache]);
 
   return (
     <div className={cn(
@@ -284,9 +409,15 @@ export function BatchValidationPage() {
                   </p>
                 </div>
               </div>
+              <ProfileSidebar
+                selectedProfileId={selectedProfileId}
+                onProfileChange={setSelectedProfileId}
+                disabled={pageState !== 'upload'}
+              />
               <BatchUpload
                 onUploadSuccess={handleUploadSuccess}
                 onUploadError={handleUploadError}
+                profileId={selectedProfileId}
               />
             </div>
 
@@ -339,15 +470,48 @@ export function BatchValidationPage() {
             transition={{ duration: 0.4 }}
             className="space-y-6"
           >
-            {/* Start new batch button */}
-            <div className="flex justify-end">
-              <ClayButton
-                variant="primary"
-                onClick={handleStartNew}
-                leftIcon={<RotateCcw className="w-4 h-4" />}
-              >
-                Start New Batch
-              </ClayButton>
+            {/* Top bar: quick-nav + Start New Batch */}
+            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
+              <div className="flex items-center justify-between gap-4">
+                {/* Quick-nav clay pills */}
+                <nav className="flex gap-2.5" aria-label="Jump to section">
+                  {includeAnalytics && (
+                    <ClayButton
+                      variant="accent"
+                      size="sm"
+                      onClick={() => document.getElementById('section-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      leftIcon={<BarChart3 className="w-3.5 h-3.5" />}
+                    >
+                      Analytics
+                    </ClayButton>
+                  )}
+                  <ClayButton
+                    variant="stone"
+                    size="sm"
+                    onClick={() => document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    leftIcon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+                  >
+                    Detailed Results
+                  </ClayButton>
+                </nav>
+
+                <div className="flex items-center gap-2">
+                  <ClayButton
+                    size="sm"
+                    onClick={handleShare}
+                    leftIcon={shareCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                  >
+                    {shareCopied ? 'Link copied!' : 'Share'}
+                  </ClayButton>
+                  <ClayButton
+                    variant="primary"
+                    onClick={handleStartNew}
+                    leftIcon={<RotateCcw className="w-4 h-4" />}
+                  >
+                    Start New Batch
+                  </ClayButton>
+                </div>
+              </div>
             </div>
 
             {/* Summary */}
@@ -375,8 +539,52 @@ export function BatchValidationPage() {
               </div>
             )}
 
-            {/* Results table */}
-            <div className="card p-6">
+            {/* Analytics & Visualizations (overview first) */}
+            {jobId && includeAnalytics && (
+              <div id="section-analytics" className="card p-6 scroll-mt-20">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
+                      Analytics &amp; Visualizations
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Interactive charts for batch analysis
+                    </p>
+                  </div>
+                </div>
+
+                {/* Batch Timeline (VIZ-09) */}
+                {resultsData.statistics && (
+                  <div className="mb-6">
+                    <BatchTimeline
+                      statistics={resultsData.statistics}
+                      analyticsStatus={analyticsData?.status ?? null}
+                    />
+                  </div>
+                )}
+
+                <BatchAnalyticsPanel
+                  jobId={jobId}
+                  statistics={resultsData.statistics}
+                  results={resultsData.results}
+                  selectedIndices={selectedIndices}
+                  onSelectionChange={handleSelectionChange}
+                  analyticsData={analyticsData}
+                  analyticsStatus={analyticsStatus}
+                  analyticsError={analyticsError}
+                  analyticsProgress={analyticsProgress}
+                  onRetrigger={analyticsRetrigger}
+                  onCompare={handleCompare}
+                  onOpenActions={() => setSubsetPanelOpen(true)}
+                />
+              </div>
+            )}
+
+            {/* Detailed Results table (drill-down) */}
+            <div id="section-results" className="card p-6 scroll-mt-20">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
                   <FileSpreadsheet className="w-5 h-5" />
@@ -408,6 +616,32 @@ export function BatchValidationPage() {
                 onSelectionChange={handleSelectionChange}
               />
             </div>
+
+            {/* Molecule Comparison Panel (VIZ-07) */}
+            {compareLoading && (
+              <div className="card p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto mb-3" />
+                <p className="text-sm text-[var(--color-text-muted)]">Fetching molecules for comparison...</p>
+              </div>
+            )}
+            {compareMode && comparisonResults.length > 0 && (
+              <MoleculeComparisonPanel
+                molecules={comparisonResults}
+                datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                onClose={handleCloseCompare}
+                onRemoveMolecule={handleRemoveFromCompare}
+              />
+            )}
+
+            {/* Subset Action Panel */}
+            {jobId && (
+              <SubsetActionPanel
+                jobId={jobId}
+                selectedIndices={selectedIndices}
+                isOpen={subsetPanelOpen}
+                onClose={() => setSubsetPanelOpen(false)}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

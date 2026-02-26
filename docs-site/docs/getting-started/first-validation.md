@@ -34,7 +34,8 @@ Click the **Validate** button. Within seconds, you'll see comprehensive results 
 - **Validation**: Structural checks and overall score
 - **Alerts**: Structural alert screening (PAINS, BRENK, etc.)
 - **Scoring**: ML-readiness, drug-likeness, ADMET, and more
-- **Standardization**: ChEMBL-compatible structure cleanup
+- **Scoring Profiles**: Consensus drug-likeness, lead/fragment-likeness, bioavailability radar
+- **Standardization**: ChEMBL-compatible structure cleanup with provenance
 - **Database Lookup**: Cross-references to PubChem, ChEMBL, COCONUT
 
 ### Step 4: Interpret Results

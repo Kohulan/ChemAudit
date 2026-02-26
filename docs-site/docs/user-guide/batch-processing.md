@@ -82,6 +82,7 @@ Ethanol,CCO,Inactive,46.07
    - Extended safety filters (NIH, ZINC)
    - ChEMBL alerts
    - Standardization pipeline
+   - Scoring profile (expand the **Scoring Profile** sidebar to select a preset or custom profile)
 5. **Click** "Upload and Process"
 6. **Monitor** real-time progress via WebSocket
 7. **View results** with sorting, filtering, and pagination
@@ -153,6 +154,8 @@ curl http://localhost:8001/api/v1/batch/{job_id}/stats
 | **include_extended_safety** | Screen against NIH and ZINC filters | `false` |
 | **include_chembl_alerts** | Screen against ChEMBL pharma filters | `false` |
 | **include_standardization** | Run ChEMBL standardization pipeline | `false` |
+| **profile_id** | Apply a [scoring profile](/docs/user-guide/scoring/profiles) to score each molecule | None |
+| **notification_email** | Email address for [completion notification](/docs/user-guide/subset-actions#email-notifications) | None |
 
 :::warning Performance Impact
 Enabling all options increases processing time. For large batches, consider running with basic options first, then re-process specific molecules if needed.
@@ -180,6 +183,7 @@ Filter and sort results to focus on molecules of interest:
 - `safety`: Safety filter score
 - `status`: Success/error status
 - `issues`: Number of validation issues
+- `profile_score`: Profile desirability score (when a profile is applied)
 
 ### Sort Direction
 
@@ -289,9 +293,41 @@ Export error molecules separately, fix them manually, and re-upload. The batch i
 4. **Enable caching**: Results are cached by InChIKey for 1 hour
 5. **Use filters wisely**: Basic validation is fastest; add options as needed
 
+## Analytics
+
+After batch processing completes, automatic analytics run immediately (deduplication and statistics). On-demand analytics are available for deeper exploration:
+
+- **Scaffold analysis** — Murcko scaffold extraction, diversity metrics
+- **Chemical space mapping** — PCA or t-SNE projections
+- **Matched molecular pairs** — BRICS fragmentation, activity cliffs
+- **Interactive visualizations** — Score histograms, property scatter plots, treemaps, chemical space scatter with linked brushing
+
+See [Batch Analytics](/docs/user-guide/batch-analytics) for full details.
+
+## Subset Actions
+
+Select molecules from the results table to perform targeted operations:
+
+- **Re-validate** — Create a new job from selected molecules
+- **Re-score** — Apply a different scoring profile to the selection
+- **Export subset** — Export only selected molecules
+- **Compare** — Side-by-side comparison of 1–2 molecules with property radar overlay
+
+See [Subset Actions & Sharing](/docs/user-guide/subset-actions) for full details.
+
+## Sharing & Notifications
+
+- **Permalinks** — Share batch results via short-lived URLs (30-day expiry)
+- **Email notifications** — Receive completion emails by providing `notification_email` during upload
+- **Webhooks** — Integrate with pipelines via HMAC-signed HTTP callbacks
+
+See [Subset Actions & Sharing](/docs/user-guide/subset-actions#sharing--permalinks) for configuration details.
+
 ## Next Steps
 
-- **[Exporting Results](/docs/user-guide/exporting-results)** - Export in multiple formats
-- **[Structural Alerts](/docs/user-guide/structural-alerts)** - Understanding alert screening
-- **[Scoring](/docs/user-guide/scoring/overview)** - Interpreting molecular scores
-- **[WebSocket API](/docs/api/websocket)** - Integrate real-time progress
+- **[Batch Analytics](/docs/user-guide/batch-analytics)** — Interactive analytics and visualizations
+- **[Subset Actions](/docs/user-guide/subset-actions)** — Work with molecule selections
+- **[Exporting Results](/docs/user-guide/exporting-results)** — Export in multiple formats
+- **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — Custom property scoring for batches
+- **[Structural Alerts](/docs/user-guide/structural-alerts)** — Understanding alert screening
+- **[WebSocket API](/docs/api/websocket)** — Integrate real-time progress

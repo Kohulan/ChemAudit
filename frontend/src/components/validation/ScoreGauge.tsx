@@ -110,7 +110,7 @@ Clamped to range 0-100`;
 
       {/* Chart - only render when container has valid dimensions */}
       {isReady && (
-        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <RadialBarChart
             innerRadius="65%"
             outerRadius="100%"

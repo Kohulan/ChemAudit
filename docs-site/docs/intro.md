@@ -13,12 +13,16 @@ description: ChemAudit - Comprehensive chemical structure validation suite for d
 
 ChemAudit helps you ensure chemical structure quality across your research workflow:
 
-- **Validate** molecules with detailed structural checks
+- **Validate** molecules with detailed structural checks (SMILES, InChI, MOL, or IUPAC names)
 - **Screen** for problematic substructures using industry-standard alert catalogs
 - **Score** molecules for ML-readiness, drug-likeness, and ADMET properties
-- **Standardize** structures using the ChEMBL-compatible pipeline
+- **Standardize** structures using the ChEMBL-compatible pipeline with full provenance tracking
 - **Process** batches of up to 1 million molecules with real-time progress tracking
-- **Export** results in multiple formats (CSV, Excel, SDF, JSON, PDF)
+- **Analyze** datasets with interactive charts, chemical space maps, and scaffold analysis
+- **Bookmark** results and track validation **history** with an immutable audit trail
+- **Compare** molecules side-by-side with property radar overlays
+- **Share** results via permalinks and receive **notifications** on completion
+- **Export** results in 9 formats (CSV, Excel, SDF, JSON, PDF, Fingerprints, Dedup, Scaffold, Property Matrix)
 
 ## Key Features
 
@@ -53,6 +57,46 @@ Standardize structures using a pipeline compatible with ChEMBL's curation workfl
 - Salt and solvent removal
 - Parent molecule extraction
 - Optional tautomer canonicalization
+
+### Batch Analytics & Visualizations
+
+Explore batch results with interactive charts and chemical space mapping:
+
+- Deduplication across 4 levels (exact, tautomer, stereo, salt-form)
+- Scaffold analysis with diversity metrics
+- PCA and t-SNE chemical space projections
+- Matched molecular pairs and activity cliff detection
+- Linked brushing across all visualizations
+
+### Bookmarks & History
+
+Save validation snapshots and maintain an audit trail:
+
+- Bookmark molecules with tags and notes
+- Browse validation history with filtering by date, outcome, and source
+- Submit bookmarks as batch jobs
+- Session-scoped privacy with GDPR-compliant data erasure
+
+### Scoring Profiles
+
+Evaluate molecules against customizable property criteria:
+
+- 8 built-in presets (Lipinski, Lead-like, Fragment, CNS, Ghose, Veber, PPI, NP)
+- Custom profile builder with 8 property thresholds and weights
+- Apply profiles to batch jobs or re-score subsets inline
+- Export/import profiles as JSON for sharing
+
+### IUPAC Name Support
+
+Enter chemical names directly — ChemAudit auto-detects IUPAC names, common names, and trade names, converting them to SMILES via OPSIN or PubChem before validation.
+
+### Notifications & Sharing
+
+Stay informed and share results:
+
+- Email notifications on batch completion
+- Webhook callbacks with HMAC-SHA256 signatures
+- Shareable permalinks for batch reports (30-day expiry)
 
 ### Database Integration
 
@@ -93,11 +137,14 @@ docker-compose up -d
 
 Ready to get started? Here's where to go next:
 
-- **[Getting Started](/docs/getting-started/installation)** - Install and configure ChemAudit
-- **[User Guide](/docs/user-guide/single-validation)** - Learn all features
-- **[API Reference](/docs/api/overview)** - Integrate ChemAudit into your workflow
-- **[Deployment](/docs/deployment/docker)** - Deploy to production
-- **[Troubleshooting](/docs/troubleshooting)** - Solve common issues
+- **[Getting Started](/docs/getting-started/installation)** — Install and configure ChemAudit
+- **[User Guide](/docs/user-guide/single-validation)** — Learn all features
+- **[Batch Analytics](/docs/user-guide/batch-analytics)** — Interactive dataset exploration
+- **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — Custom property scoring
+- **[Bookmarks & History](/docs/user-guide/bookmarks-history)** — Save and track results
+- **[API Reference](/docs/api/overview)** — Integrate ChemAudit into your workflow
+- **[Deployment](/docs/deployment/docker)** — Deploy to production
+- **[Troubleshooting](/docs/troubleshooting)** — Solve common issues
 
 ## External Resources
 

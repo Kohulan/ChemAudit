@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom,
@@ -18,6 +19,9 @@ import {
   Share2,
   ChevronDown,
   Download,
+  Microscope,
+  BarChart3,
+  ArrowLeft,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -28,6 +32,8 @@ import { ScoringResults } from '../components/scoring/ScoringResults';
 import { ScoreChart } from '../components/scoring/ScoreChart';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
+import { DeepValidationTab } from '../components/validation/DeepValidationTab';
+import { ScoringProfilesTab } from '../components/scoring-profiles';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
@@ -37,7 +43,9 @@ import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
+import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
+import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
@@ -53,7 +61,79 @@ const EXAMPLE_MOLECULES = [
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
-type TabType = 'validate' | 'database' | 'alerts' | 'standardize';
+/**
+ * Detect whether input looks like IUPAC or SMILES.
+ * Heuristic: SMILES typically contain special characters like (, ), =, #, @, /, \, [, ], digits adjacent to atoms.
+ * IUPAC names tend to be longer, contain common suffixes, and lack SMILES-specific characters.
+ */
+function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
+  const trimmed = value.trim();
+  if (!trimmed) return 'ambiguous';
+
+  // Strong SMILES indicators: brackets, ring closures, branch notation
+  const smilesChars = /[[\]()=#@/\\]/;
+  if (smilesChars.test(trimmed)) return 'smiles';
+
+  // If starts with InChI marker
+  if (trimmed.startsWith('InChI=')) return 'smiles'; // treat InChI as SMILES-like (non-IUPAC)
+
+  // IUPAC suffixes
+  const iupacSuffixes = [
+    'ane', 'ene', 'yne', 'ol', 'al', 'one', 'oic acid', 'amine', 'amide',
+    'ate', 'ester', 'ether', 'ose', 'ide', 'ine', 'ite', 'yl', 'benzene',
+    'phenol', 'acetic', 'acid', 'alcohol',
+  ];
+  const lower = trimmed.toLowerCase();
+  const hasIupacSuffix = iupacSuffixes.some((s) => lower.endsWith(s));
+
+  // Contains spaces (typical for IUPAC, never in SMILES)
+  if (trimmed.includes(' ') || hasIupacSuffix) return 'iupac';
+
+  // All alphabetic with hyphens and numbers (common IUPAC pattern)
+  if (/^[a-zA-Z0-9,'-]+$/.test(trimmed) && trimmed.length > 8 && /[a-z]{3,}/.test(lower)) {
+    return 'iupac';
+  }
+
+  return 'ambiguous';
+}
+
+/** Compact severity summary tags for the quality card */
+function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
+  const counts = { critical: 0, error: 0, warning: 0 };
+  for (const issue of issues) {
+    const sev = issue.severity as keyof typeof counts;
+    if (sev in counts) counts[sev]++;
+  }
+  const passed = totalChecks - issues.length;
+
+  const TAG_STYLES: Record<string, string> = {
+    critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {totalChecks > 0 && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]">
+          {passed}/{totalChecks} passed
+        </span>
+      )}
+      {Object.entries(counts).map(([severity, count]) =>
+        count > 0 ? (
+          <span key={severity} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${TAG_STYLES[severity]}`}>
+            {count} {severity}
+          </span>
+        ) : null
+      )}
+      {issues.length === 0 && totalChecks > 0 && (
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+          All clear
+        </span>
+      )}
+    </div>
+  );
+}
 
 interface TabConfig {
   id: TabType;
@@ -68,6 +148,18 @@ const TABS: TabConfig[] = [
     label: 'Validate & Score',
     icon: <CheckCircle2 className="w-4 h-4" />,
     description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
+  },
+  {
+    id: 'deep-validation',
+    label: 'Deep Validation',
+    icon: <Microscope className="w-4 h-4" />,
+    description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
+  },
+  {
+    id: 'scoring-profiles',
+    label: 'Scoring Profiles',
+    icon: <BarChart3 className="w-4 h-4" />,
+    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar, and BOILED-Egg',
   },
   {
     id: 'database',
@@ -89,28 +181,75 @@ const TABS: TabConfig[] = [
   },
 ];
 
-// Descriptions for each validation check
+/** Shape of `location.state` when navigating to SingleValidation */
+interface LocationState {
+  bookmarkId?: number;
+  smiles?: string;
+  fromBatch?: boolean;
+  moleculeName?: string;
+  moleculeIndex?: number;
+}
+
 const CHECK_DESCRIPTIONS: Record<string, string> = {
+  // Basic checks
   parsability: 'Verifies the input string can be parsed into a valid molecular structure by RDKit.',
   sanitization: 'Checks if RDKit can sanitize the molecule (assign aromaticity, add implicit hydrogens, validate bonds).',
   valence: 'Validates that all atoms have chemically valid valence states (e.g., carbon with 4 bonds, nitrogen with 3).',
   aromaticity: 'Confirms aromatic ring systems are properly defined and assigned by RDKit\'s aromaticity model.',
   connectivity: 'Checks molecular connectivity - ensures the structure is a single connected component without fragments.',
+  // Stereo checks
   undefined_stereocenters: 'Identifies chiral centers (sp3 carbons with 4 different substituents) that lack R/S stereochemistry assignment.',
   undefined_doublebond_stereo: 'Finds double bonds that could have E/Z isomerism but lack defined geometry.',
   conflicting_stereo: 'Detects contradictory stereochemistry assignments that cannot exist in a real molecule.',
+  // Representation checks
   smiles_roundtrip: 'Tests if converting SMILES → molecule → SMILES preserves the structure identity.',
   inchi_generation: 'Verifies that a valid InChI identifier can be generated for the molecule.',
   inchi_roundtrip: 'Tests if converting to InChI and back preserves the molecular structure.',
+  // Deep: Stereo & Tautomers
+  stereoisomer_enumeration: 'Finds undefined stereocenters and enumerates possible stereoisomers (up to 128). Helps identify ambiguous chirality.',
+  tautomer_detection: 'Detects tautomeric forms and identifies the canonical tautomer. Reports whether the input matches the canonical form.',
+  aromatic_system_validation: 'Checks for unusual aromatic ring sizes (not 5 or 6 membered) and charged aromatic atoms that may indicate issues.',
+  coordinate_dimension: 'Reports whether the molecule has 2D coordinates, 3D coordinates, or no coordinate information.',
+  // Deep: Chemical Composition
+  mixture_detection: 'Detects multi-fragment inputs (dot-separated SMILES) and classifies each fragment as drug, salt, solvent, or unknown.',
+  solvent_contamination: 'Screens for common lab solvents (water, DMSO, DMF, methanol, etc.) that may contaminate the input structure.',
+  inorganic_filter: 'Flags molecules lacking carbon (inorganic) or containing metal atoms (organometallic) that may not suit standard validation.',
+  radical_detection: 'Identifies atoms with unpaired radical electrons that may indicate unstable or reactive species.',
+  isotope_label_detection: 'Detects isotope-labeled atoms (deuterium, carbon-13, etc.) often used in pharmacokinetic studies.',
+  trivial_molecule: 'Flags molecules with 3 or fewer heavy atoms as too small for meaningful chemical validation.',
+  // Deep: Structural Complexity
+  hypervalent_atoms: 'Detects atoms exceeding their normal valence limits, which may indicate unusual bonding or input errors.',
+  polymer_detection: 'Identifies possible polymers via SGroup markers, molecular weight above 1500 Da, or dummy atom attachment points.',
+  ring_strain: 'Flags 3-membered (cyclopropane) and 4-membered (cyclobutane) rings that have significant ring strain.',
+  macrocycle_detection: 'Identifies macrocyclic rings with more than 12 atoms, common in natural products and cyclic peptides.',
+  charged_species: 'Reports formal charges, identifies zwitterions (net charge zero with both positive and negative atoms).',
+  explicit_hydrogen_audit: 'Reports atoms with explicit hydrogen specifications and detects H atom objects from AddHs() processing.',
+};
+
+const CHECK_SEVERITY_STYLES: Record<string, string> = {
+  pass: 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
+  critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
 };
 
 export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { getCache, setCache, clearCache } = useValidationCache();
   const [molecule, setMolecule] = useState('');
+
+  // Batch origin context — shows back-to-batch bar when navigated from BatchResultsTable
+  const locState = location.state as LocationState | null;
+  const batchOrigin = locState?.fromBatch
+    ? { moleculeName: locState.moleculeName, moleculeIndex: locState.moleculeIndex }
+    : null;
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
-  const { validate, result, error, isLoading, reset } = useValidation();
+  const { validate, result, error, isLoading, reset, restore } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
 
@@ -152,6 +291,29 @@ export function SingleValidationPage() {
   const [alertError, setAlertError] = useState<AlertError | null>(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(['PAINS', 'BRENK']);
+  const [chemblExpanded, setChemblExpanded] = useState(false);
+
+  const CHEMBL_CATALOGS = [
+    { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
+    { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
+    { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
+    { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
+    { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
+    { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
+    { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
+  ];
+
+  const toggleAllChembl = (enabled: boolean) => {
+    const chemblIds = CHEMBL_CATALOGS.map((c) => c.id);
+    if (enabled) {
+      setSelectedCatalogs((prev) => [...new Set([...prev, ...chemblIds])]);
+    } else {
+      setSelectedCatalogs((prev) => prev.filter((c) => !chemblIds.includes(c)));
+    }
+  };
+
+  const allChemblSelected = CHEMBL_CATALOGS.every((c) => selectedCatalogs.includes(c.id));
+  const someChemblSelected = CHEMBL_CATALOGS.some((c) => selectedCatalogs.includes(c.id));
 
   // Scoring state
   const [scoringResult, setScoringResult] = useState<ScoringResponse | null>(null);
@@ -176,6 +338,11 @@ export function SingleValidationPage() {
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // IUPAC auto-detection
+  const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
+  const [forceInputType, setForceInputType] = useState<'smiles' | 'iupac' | null>(null);
+  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' ? null : detectedType);
+
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
     pubchem: PubChemResult | null;
@@ -184,12 +351,16 @@ export function SingleValidationPage() {
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
+  // Use canonical SMILES from validation result when available (handles IUPAC/common names)
+  const resolvedSmiles = result?.molecule_info?.canonical_smiles || molecule.trim();
+
   const handleValidate = async () => {
     if (!molecule.trim()) return;
     await validate({
       molecule: molecule.trim(),
       format: 'auto',
       preserve_aromatic: preferAromaticSmiles,
+      input_type: effectiveInputType ?? 'auto',
     });
     // Add to recent molecules on successful validation (validate updates result/error)
     // We'll check result in useEffect after validation completes
@@ -201,8 +372,8 @@ export function SingleValidationPage() {
     setAlertError(null);
     try {
       const response = await alertsApi.screenAlerts({
-        molecule: molecule.trim(),
-        format: 'auto',
+        molecule: resolvedSmiles,
+        format: 'smiles',
         catalogs: selectedCatalogs,
       });
       setAlertResult(response);
@@ -219,7 +390,7 @@ export function SingleValidationPage() {
     setScoringLoading(true);
     setScoringError(null);
     try {
-      const response = await scoringApi.getScoring(molecule.trim(), 'auto');
+      const response = await scoringApi.getScoring(resolvedSmiles, 'smiles');
       setScoringResult(response);
     } catch (err) {
       setScoringError(err as ScoringError);
@@ -235,8 +406,8 @@ export function SingleValidationPage() {
     setStandardizationError(null);
     try {
       const response = await standardizationApi.standardize({
-        molecule: molecule.trim(),
-        format: 'auto',
+        molecule: resolvedSmiles,
+        format: 'smiles',
         options: { include_tautomer: includeTautomer, preserve_stereo: true },
       });
       setStandardizationResult(response);
@@ -252,7 +423,7 @@ export function SingleValidationPage() {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
     try {
-      const results = await integrationsApi.lookupAll({ smiles: molecule.trim() });
+      const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
     } catch (err) {
       console.error('Database lookup error:', err);
@@ -286,6 +457,95 @@ export function SingleValidationPage() {
     setShowCIP(false);
   };
 
+  // Restore cached results on mount (from navigation cache or bookmark snapshot)
+  const didRestore = useRef(false);
+  useEffect(() => {
+    if (didRestore.current) return;
+    didRestore.current = true;
+
+    // Priority 0: Navigated from batch results — auto-validate the molecule
+    if (locState?.fromBatch && locState.smiles) {
+      setMolecule(locState.smiles);
+      setActiveTab('validate');
+      validate({ molecule: locState.smiles, format: 'auto', preserve_aromatic: false });
+      return;
+    }
+
+    // Priority 1: Restore from bookmark snapshot (navigated from Bookmarks page)
+    if (locState?.bookmarkId) {
+      getSnapshot(locState.bookmarkId).then((snapshot) => {
+        if (snapshot) {
+          setMolecule(snapshot.molecule);
+          setActiveTab('validate');
+          if (snapshot.validationResult) restore(snapshot.validationResult);
+          if (snapshot.alertResult) setAlertResult(snapshot.alertResult);
+          if (snapshot.scoringResult) setScoringResult(snapshot.scoringResult);
+          if (snapshot.standardizationResult) setStandardizationResult(snapshot.standardizationResult);
+          if (snapshot.databaseResults) setDatabaseResults(snapshot.databaseResults);
+        } else if (locState.smiles) {
+          // No snapshot (different device / cleared) — auto-validate
+          setMolecule(locState.smiles);
+          validate({ molecule: locState.smiles, preserve_aromatic: false });
+        }
+      }).catch(() => {
+        // IndexedDB error — fallback to auto-validate
+        if (locState.smiles) {
+          setMolecule(locState.smiles);
+          validate({ molecule: locState.smiles, preserve_aromatic: false });
+        }
+      });
+      // Clear location state to prevent re-restore on subsequent navigations
+      window.history.replaceState({}, '');
+      return;
+    }
+
+    // Priority 2: Restore from in-memory navigation cache
+    const cached = getCache();
+    if (cached && !searchParams.get('smiles')) {
+      setMolecule(cached.molecule);
+      setActiveTab(cached.activeTab);
+      if (cached.result) restore(cached.result);
+      if (cached.alertResult) setAlertResult(cached.alertResult);
+      if (cached.scoringResult) setScoringResult(cached.scoringResult);
+      if (cached.standardizationResult) setStandardizationResult(cached.standardizationResult);
+      if (cached.databaseResults) setDatabaseResults(cached.databaseResults);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist results to cache whenever they change
+  useEffect(() => {
+    if (!molecule.trim()) return;
+    setCache({
+      molecule: molecule.trim(),
+      activeTab,
+      result,
+      alertResult,
+      scoringResult,
+      standardizationResult,
+      databaseResults,
+    });
+  }, [molecule, activeTab, result, alertResult, scoringResult, standardizationResult, databaseResults, setCache]);
+
+  // Save snapshot to IndexedDB after bookmark is created
+  const handleAfterBookmark = useCallback(async (bookmarkId: number) => {
+    try {
+      await saveSnapshot({
+        bookmarkId,
+        source: 'single_validation',
+        molecule: molecule.trim(),
+        savedAt: new Date().toISOString(),
+        validationResult: result,
+        alertResult,
+        scoringResult,
+        standardizationResult,
+        databaseResults,
+      });
+    } catch (err) {
+      console.error('Failed to save bookmark snapshot:', err);
+    }
+  }, [molecule, result, alertResult, scoringResult, standardizationResult, databaseResults]);
+
   // Handler for locking atom highlighting (persists for SVG download)
   const handleAtomLock = useCallback((atoms: number[]) => {
     if (atoms.length > 0) {
@@ -300,7 +560,7 @@ export function SingleValidationPage() {
   const handleReset = () => {
     setMolecule('');
     resetAll();
-    // Clear URL params
+    clearCache();
     setSearchParams({});
   };
 
@@ -375,6 +635,46 @@ export function SingleValidationPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
+      {/* Back to Batch bar — shown when navigated from batch results */}
+      {batchOrigin && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className={cn(
+            'sticky top-0 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5',
+            'bg-[var(--color-surface-elevated)]/90 backdrop-blur-md',
+            'border-b border-[var(--color-primary)]/20',
+            'shadow-[0_2px_12px_var(--glow-soft)]'
+          )}
+        >
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <button
+              onClick={() => navigate('/batch')}
+              className={cn(
+                'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium',
+                'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                'border border-[var(--color-primary)]/20',
+                'hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/40',
+                'transition-all duration-200 cursor-pointer'
+              )}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Batch
+            </button>
+            <span className="text-xs text-[var(--color-text-muted)]">
+              Viewing full analysis
+              {batchOrigin.moleculeName && (
+                <> for <span className="font-medium text-[var(--color-text-secondary)]">{batchOrigin.moleculeName}</span></>
+              )}
+              {!batchOrigin.moleculeName && batchOrigin.moleculeIndex !== undefined && (
+                <> for molecule <span className="font-medium text-[var(--color-text-secondary)]">#{batchOrigin.moleculeIndex + 1}</span></>
+              )}
+            </span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div
         className="text-center pt-4"
@@ -468,6 +768,47 @@ export function SingleValidationPage() {
             </div>
             <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
 
+            {/* IUPAC / SMILES detection badge */}
+            <AnimatePresence>
+              {molecule.trim() && detectedType !== 'ambiguous' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <div className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
+                    (effectiveInputType === 'iupac')
+                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                  )}>
+                    {effectiveInputType === 'iupac' ? (
+                      <>Detected as IUPAC name</>
+                    ) : (
+                      <>Parsed as SMILES</>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setForceInputType(effectiveInputType === 'iupac' ? 'smiles' : 'iupac')}
+                    className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
+                  >
+                    Force {effectiveInputType === 'iupac' ? 'SMILES' : 'IUPAC'}
+                  </button>
+                  {forceInputType && (
+                    <button
+                      onClick={() => setForceInputType(null)}
+                      className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                    >
+                      (auto)
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* IUPAC conversion result badge */}
             <div className="mt-4 flex items-center gap-3">
               <ClayButton
                 onClick={handleReset}
@@ -483,6 +824,14 @@ export function SingleValidationPage() {
               >
                 Share
               </ClayButton>
+              {/* Bookmark button - show after validation result */}
+              {result && molecule.trim() && (
+                <BookmarkButton
+                  smiles={result.molecule_info.canonical_smiles || molecule.trim()}
+                  source="single_validation"
+                  onAfterBookmark={handleAfterBookmark}
+                />
+              )}
             </div>
 
             {/* Parsing Failed Message - Suggest trying validation */}
@@ -598,9 +947,49 @@ export function SingleValidationPage() {
                         {result.molecule_info.canonical_smiles && (
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
-                                {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                                  {showKekulized && moleculeInfo?.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                                </span>
+                                <InfoTooltip
+                                  size="small"
+                                  position="right"
+                                  title={showKekulized ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                                  content={
+                                    <div className="space-y-2 text-xs">
+                                      <p>
+                                        <span className="text-zinc-400">Generated by: </span>
+                                        <span className="font-semibold text-white">
+                                          {result.molecule_info.canonical_smiles_source || 'RDKit (Python)'}
+                                        </span>
+                                      </p>
+                                      <p>
+                                        <span className="text-zinc-400">Notation: </span>
+                                        {showKekulized ? 'Kekulized (explicit double bonds)' : 'Canonical (aromatic notation)'}
+                                      </p>
+                                      <p className="text-zinc-300 leading-relaxed">
+                                        Canonical SMILES provides a unique, deterministic string for each molecule.
+                                        Different toolkits (RDKit, OpenBabel, CDK, OEChem) use different canonicalization
+                                        algorithms and may produce different — but equally valid — canonical forms for the
+                                        same molecule.
+                                      </p>
+                                      <div className="pt-1.5 border-t border-white/15 text-zinc-400 space-y-1">
+                                        <p className="italic">
+                                          RDKit: Open-Source Cheminformatics.{' '}
+                                          <a href="https://www.rdkit.org" target="_blank" rel="noopener noreferrer"
+                                            className="text-amber-400 underline underline-offset-2 hover:text-amber-300">
+                                            rdkit.org
+                                          </a>
+                                        </p>
+                                        <p>Weininger, D. <em>J. Chem. Inf. Comput. Sci.</em> 1989, 29, 97–101.</p>
+                                      </div>
+                                    </div>
+                                  }
+                                />
+                                {result.input_interpretation?.detected_as === 'iupac' && (
+                                  <span className="text-[10px] text-green-600 dark:text-green-400">(converted from IUPAC name)</span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2">
                                 {moleculeInfo?.kekulizedSmiles && (
                                   <button
@@ -671,9 +1060,43 @@ export function SingleValidationPage() {
                       </div>
                       <div className="mt-3">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
-                            {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+                              {showKekulized && moleculeInfo.kekulizedSmiles ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                            </span>
+                            <InfoTooltip
+                              size="small"
+                              position="right"
+                              title={showKekulized ? 'Kekulized SMILES' : 'Canonical SMILES'}
+                              content={
+                                <div className="space-y-2 text-xs">
+                                  <p>
+                                    <span className="text-zinc-400">Generated by: </span>
+                                    <span className="font-semibold text-white">RDKit.js (client-side)</span>
+                                  </p>
+                                  <p>
+                                    <span className="text-zinc-400">Notation: </span>
+                                    {showKekulized ? 'Kekulized (explicit double bonds)' : 'Canonical (aromatic notation)'}
+                                  </p>
+                                  <p className="text-zinc-300 leading-relaxed">
+                                    This is a client-side preview generated by RDKit.js (WebAssembly).
+                                    After validation, the canonical SMILES will be recomputed by the
+                                    server-side RDKit (Python) which may produce a different canonical form.
+                                  </p>
+                                  <div className="pt-1.5 border-t border-white/15 text-zinc-400 space-y-1">
+                                    <p className="italic">
+                                      RDKit: Open-Source Cheminformatics.{' '}
+                                      <a href="https://www.rdkit.org" target="_blank" rel="noopener noreferrer"
+                                        className="text-amber-400 underline underline-offset-2 hover:text-amber-300">
+                                        rdkit.org
+                                      </a>
+                                    </p>
+                                    <p>Weininger, D. <em>J. Chem. Inf. Comput. Sci.</em> 1989, 29, 97–101.</p>
+                                  </div>
+                                </div>
+                              }
+                            />
+                          </div>
                           <div className="flex items-center gap-2">
                             {moleculeInfo.kekulizedSmiles && (
                               <button
@@ -774,6 +1197,43 @@ export function SingleValidationPage() {
                   </div>
                 )}
 
+                {/* Deep Validation Tab */}
+                {activeTab === 'deep-validation' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <p className="text-[var(--color-text-secondary)] text-sm">
+                        Advanced structure analysis covering stereoisomer enumeration, tautomer detection,
+                        chemical composition guards, and structural complexity flags for comprehensive compound profiling.
+                      </p>
+                    </div>
+                    {!result && (
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={isLoading}
+                        leftIcon={<Play className="w-4 h-4" />}
+                      >
+                        Validate
+                      </ClayButton>
+                    )}
+                    {result && (
+                      <DeepValidationTab
+                        checks={result.all_checks}
+                        onHighlightAtoms={setHighlightedAtoms}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Scoring Profiles Tab */}
+                {activeTab === 'scoring-profiles' && (
+                  <ScoringProfilesTab smiles={resolvedSmiles} />
+                )}
+
                 {/* Database Lookup Tab */}
                 {activeTab === 'database' && (
                   <div className="space-y-4">
@@ -829,6 +1289,7 @@ export function SingleValidationPage() {
                     {/* Catalog selector */}
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] mb-2">Select catalogs to screen:</p>
+                      {/* Core catalogs */}
                       <div className="flex flex-wrap gap-2">
                         {['PAINS', 'BRENK', 'NIH', 'ZINC'].map((catalog) => (
                           <button
@@ -844,6 +1305,50 @@ export function SingleValidationPage() {
                             {catalog}
                           </button>
                         ))}
+                      </div>
+
+                      {/* ChEMBL catalogs — collapsible group */}
+                      <div className="mt-3 border border-[var(--color-border)] rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setChemblExpanded(!chemblExpanded)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm bg-[var(--color-surface-sunken)] hover:bg-[var(--color-surface-sunken)]/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={allChemblSelected}
+                              ref={(el) => { if (el) el.indeterminate = someChemblSelected && !allChemblSelected; }}
+                              onChange={(e) => { e.stopPropagation(); toggleAllChembl(e.target.checked); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                            />
+                            <span className="font-medium text-[var(--color-text-primary)]">ChEMBL Filters</span>
+                            {someChemblSelected && (
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                ({CHEMBL_CATALOGS.filter((c) => selectedCatalogs.includes(c.id)).length}/{CHEMBL_CATALOGS.length})
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={cn('w-4 h-4 text-[var(--color-text-muted)] transition-transform', chemblExpanded && 'rotate-180')} />
+                        </button>
+                        {chemblExpanded && (
+                          <div className="px-3 py-2 flex flex-wrap gap-2 border-t border-[var(--color-border)]">
+                            {CHEMBL_CATALOGS.map((catalog) => (
+                              <button
+                                key={catalog.id}
+                                onClick={() => toggleCatalog(catalog.id)}
+                                className={cn(
+                                  'px-3 py-1.5 text-sm rounded-lg transition-all',
+                                  selectedCatalogs.includes(catalog.id)
+                                    ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
+                                    : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-transparent hover:border-[var(--color-border)]'
+                                )}
+                              >
+                                {catalog.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1169,7 +1674,7 @@ export function SingleValidationPage() {
                   >
                     {/* Quality Score */}
                     <div className="card-gradient p-4 sm:p-5">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                             <Target className="w-4 h-4" />
@@ -1182,15 +1687,28 @@ export function SingleValidationPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className={cn(
-                          'text-3xl font-bold tracking-tight',
-                          qualityScore !== null && qualityScore >= 70 && 'text-gradient text-glow'
-                        )}>
-                          {qualityScore !== null ? Math.round(qualityScore) : '--'}
-                        </span>
-                        <span className="text-xs text-[var(--color-text-muted)]">/100</span>
+                      <div className="flex justify-center">
+                        {qualityScore !== null ? (
+                          <ScoreChart
+                            score={qualityScore}
+                            label="Validation Quality"
+                            size={100}
+                            compact
+                            variant="cool"
+                          />
+                        ) : (
+                          <div className="w-[100px] h-[100px] flex items-center justify-center">
+                            <span className="text-3xl font-bold text-[var(--color-text-muted)]">--</span>
+                          </div>
+                        )}
                       </div>
+                      {/* Issue severity tags */}
+                      {result && (
+                        <IssueSeverityTags
+                          issues={result.issues || []}
+                          totalChecks={result.all_checks?.length || 0}
+                        />
+                      )}
                     </div>
 
                     {/* ML Readiness */}
@@ -1288,38 +1806,37 @@ export function SingleValidationPage() {
                           {result.all_checks.map((check, index) => (
                             <div
                               key={`${check.check_name}-${index}`}
-                              className="flex items-center justify-between py-2 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
+                              className="py-2.5 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
-                                  {check.passed ? '✓' : '✗'}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
+                                    {check.passed ? '✓' : '✗'}
+                                  </span>
+                                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                    {check.check_name.replace(/_/g, ' ')}
+                                  </span>
+                                  {CHECK_DESCRIPTIONS[check.check_name] && (
+                                    <InfoTooltip
+                                      content={CHECK_DESCRIPTIONS[check.check_name]}
+                                      position="right"
+                                    />
+                                  )}
+                                </div>
+                                <span
+                                  className={cn(
+                                    'text-xs px-2 py-1 rounded-md font-medium shrink-0',
+                                    CHECK_SEVERITY_STYLES[check.passed ? 'pass' : check.severity] ?? CHECK_SEVERITY_STYLES.info
+                                  )}
+                                >
+                                  {check.passed ? 'PASS' : check.severity.toUpperCase()}
                                 </span>
-                                <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                                  {check.check_name.replace(/_/g, ' ')}
-                                </span>
-                                {CHECK_DESCRIPTIONS[check.check_name] && (
-                                  <InfoTooltip
-                                    content={CHECK_DESCRIPTIONS[check.check_name]}
-                                    position="right"
-                                  />
-                                )}
                               </div>
-                              <span
-                                className={cn(
-                                  'text-xs px-2 py-1 rounded-md font-medium',
-                                  check.passed
-                                    ? 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400'
-                                    : check.severity === 'critical'
-                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                                    : check.severity === 'error'
-                                    ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-                                    : check.severity === 'warning'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                    : 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
-                                )}
-                              >
-                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
-                              </span>
+                              {check.message && (
+                                <p className="text-xs text-[var(--color-text-muted)] mt-1 ml-6">
+                                  {check.message}
+                                </p>
+                              )}
                             </div>
                           ))}
                         </motion.div>

@@ -16,7 +16,8 @@ from typing import List, Optional
 
 from rdkit import Chem
 
-from .filter_catalog import get_filter_catalog
+from .filter_catalog import AVAILABLE_CATALOGS, get_filter_catalog
+from .pattern_categories import classify_pattern
 
 
 class AlertSeverity(str, Enum):
@@ -37,6 +38,11 @@ class AlertResult:
     matched_atoms: List[int]
     catalog_source: str
     smarts: Optional[str] = None  # The matching SMARTS pattern if available
+    reference: Optional[str] = None
+    scope: Optional[str] = None
+    filter_set: Optional[str] = None
+    catalog_description: Optional[str] = None
+    category: Optional[str] = None
 
 
 @dataclass
@@ -207,6 +213,36 @@ class AlertManager:
                         # Try to get additional info
                         description = pattern_name
 
+                        # Extract RDKit entry metadata
+                        reference = None
+                        scope = None
+                        filter_set_id = None
+                        try:
+                            prop_list = entry.GetPropList()
+                            if "Reference" in prop_list:
+                                reference = entry.GetProp("Reference")
+                            if "Scope" in prop_list:
+                                scope = entry.GetProp("Scope")
+                            if "FilterSet" in prop_list:
+                                filter_set_id = entry.GetProp("FilterSet")
+                        except Exception:
+                            pass
+
+                        # Get catalog description from AVAILABLE_CATALOGS
+                        cat_key = catalog_type.upper()
+                        cat_meta = AVAILABLE_CATALOGS.get(cat_key, {})
+                        catalog_desc = cat_meta.get("name", cat_key)
+
+                        # If entry-level reference is just a GitHub URL,
+                        # prefer catalog-level reference
+                        if reference and "github.com" in reference:
+                            catalog_ref = cat_meta.get("reference")
+                            if catalog_ref:
+                                reference = catalog_ref
+
+                        # Classify pattern into concern category
+                        category = classify_pattern(pattern_name, catalog_type)
+
                         # Try to get SMARTS if available
                         smarts = None
                         try:
@@ -231,6 +267,11 @@ class AlertManager:
                             matched_atoms=matched_atoms,
                             catalog_source=catalog_type.upper(),
                             smarts=smarts,
+                            reference=reference,
+                            scope=scope,
+                            filter_set=filter_set_id,
+                            catalog_description=catalog_desc,
+                            category=category,
                         )
                         result.alerts.append(alert)
 

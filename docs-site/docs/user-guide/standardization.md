@@ -227,6 +227,58 @@ Shows structural differences between original and standardized:
 }
 ```
 
+## Standardization Provenance
+
+Enable detailed provenance tracking to see exactly what changed at each pipeline stage. This is useful for auditing, debugging, and understanding how your molecule was transformed.
+
+### Enabling Provenance
+
+Add `include_provenance=true` to the API request:
+
+```bash
+curl -X POST http://localhost:8001/api/v1/standardize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "molecule": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+    "options": {
+      "include_provenance": true
+    }
+  }'
+```
+
+### What Provenance Tracks
+
+Each of the four pipeline stages reports detailed changes:
+
+| Change Type | What It Records |
+|-------------|----------------|
+| **Charge changes** | Atom index, element, before/after charge, normalization rule, SMARTS pattern |
+| **Bond changes** | Bond index, atom pair, before/after bond type, rule name |
+| **Ring changes** | Ring atoms, ring size, before/after aromaticity |
+| **Radical changes** | Atom index, element, before/after radical electrons |
+| **Fragment removal** | SMILES, fragment name (from 55-entry dictionary), role (salt/solvent/counterion), molecular weight |
+
+### Tautomer Provenance
+
+When tautomer canonicalization is enabled, provenance includes:
+
+- Canonical tautomer SMILES
+- Number of tautomers enumerated
+- Modified atoms and bonds
+- Complexity flag (set when >100 tautomers were enumerated)
+- Whether stereochemistry was stripped
+
+### DVAL Cross-References
+
+Provenance records link back to deep validation findings, such as:
+
+- "DVAL-01: 2 undefined stereocenters detected"
+- "DVAL-03: 15 tautomers enumerated"
+
+### UI: Provenance Timeline
+
+In the web interface, provenance appears as a vertical timeline below the standardization results. Stages with changes auto-expand to show detailed change cards. Stages with no changes remain collapsed.
+
 ## Use Cases
 
 ### Database Curation

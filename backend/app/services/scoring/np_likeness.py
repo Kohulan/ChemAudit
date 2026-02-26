@@ -13,13 +13,15 @@ Typical range: -5 to +5 (most molecules fall within -3 to +3)
 """
 
 import gzip
+import os
 import pickle
+import sys
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
-from rdkit import Chem
+from rdkit import Chem, RDConfig
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
 
@@ -31,6 +33,46 @@ class NPLikenessResult:
     interpretation: str
     caveats: list = field(default_factory=list)
     details: dict = field(default_factory=dict)
+
+
+@dataclass
+class NPFragment:
+    """A single fragment contributing to the NP-likeness score."""
+
+    smiles: str
+    contribution: float
+    bit_id: int
+    radius: int
+    center_atom_idx: int
+    classification: str  # "np_characteristic", "synthetic_characteristic", "neutral"
+
+
+@dataclass
+class NPBreakdownResult:
+    """NP-likeness breakdown with per-fragment contributions."""
+
+    score: float
+    confidence: float  # 0-1
+    fragments: List[NPFragment] = field(default_factory=list)
+    total_fragments: int = 0
+    np_fragment_count: int = 0
+    synthetic_fragment_count: int = 0
+    interpretation: str = ""
+
+
+@lru_cache(maxsize=1)
+def _load_npscorer_fscore():
+    """Load the npscorer fscore dict from RDKit Contrib (cached)."""
+    try:
+        np_score_path = os.path.join(RDConfig.RDContribDir, "NP_Score")
+        if np_score_path not in sys.path:
+            sys.path.insert(0, np_score_path)
+        import npscorer  # type: ignore[import-untyped]
+
+        fscore = npscorer.readNPModel()
+        return fscore
+    except Exception:
+        return None
 
 
 class NPLikenessScorer:
@@ -313,6 +355,126 @@ class NPLikenessScorer:
             )
 
 
+    def calculate_breakdown(self, mol: Chem.Mol) -> NPBreakdownResult:
+        """
+        Calculate NP-likeness with per-fragment breakdown.
+
+        Uses the npscorer from RDKit Contrib to decompose the NP score
+        into individual Morgan fingerprint bit contributions.
+
+        Args:
+            mol: RDKit molecule object
+
+        Returns:
+            NPBreakdownResult with per-fragment contributions
+        """
+        if mol is None:
+            return NPBreakdownResult(
+                score=0.0,
+                confidence=0.0,
+                interpretation="Invalid molecule",
+            )
+
+        # Get the standard NP score first
+        standard_result = self.score(mol)
+        np_score = standard_result.score
+
+        # Try to load fscore model
+        fscore = _load_npscorer_fscore()
+        if fscore is None:
+            # Fallback: return score without fragment detail
+            return NPBreakdownResult(
+                score=np_score,
+                confidence=0.5,
+                interpretation=standard_result.interpretation
+                + " (Fragment breakdown unavailable: npscorer model not found.)",
+            )
+
+        # Get Morgan FP with bitInfo for fragment decomposition
+        info: dict = {}
+        fp = rdMolDescriptors.GetMorganFingerprint(mol, 2, bitInfo=info)
+        bits = fp.GetNonzeroElements()
+
+        fragments: List[NPFragment] = []
+        total_score = 0.0
+        count = 0
+
+        for bit_id, bit_count in bits.items():
+            if bit_id in fscore:
+                contribution = fscore[bit_id]
+                total_score += contribution
+                count += 1
+
+                # Get atom environment for this bit
+                smiles_str = ""
+                center_atom_idx = -1
+                radius = 0
+
+                if bit_id in info and info[bit_id]:
+                    center_atom_idx, radius = info[bit_id][0]
+                    try:
+                        if radius == 0:
+                            # Just the center atom
+                            smiles_str = mol.GetAtomWithIdx(center_atom_idx).GetSymbol()
+                        else:
+                            env = Chem.FindAtomEnvironmentOfRadiusN(
+                                mol, radius, center_atom_idx
+                            )
+                            if env:
+                                submol = Chem.PathToSubmol(mol, env)
+                                smiles_str = Chem.MolToSmiles(submol)
+                            else:
+                                smiles_str = mol.GetAtomWithIdx(
+                                    center_atom_idx
+                                ).GetSymbol()
+                    except Exception:
+                        smiles_str = f"bit_{bit_id}"
+
+                # Classify
+                if contribution > 0:
+                    classification = "np_characteristic"
+                elif contribution < 0:
+                    classification = "synthetic_characteristic"
+                else:
+                    classification = "neutral"
+
+                fragments.append(
+                    NPFragment(
+                        smiles=smiles_str,
+                        contribution=round(contribution, 4),
+                        bit_id=bit_id,
+                        radius=radius,
+                        center_atom_idx=center_atom_idx,
+                        classification=classification,
+                    )
+                )
+
+        # Sort by absolute contribution descending
+        fragments.sort(key=lambda f: abs(f.contribution), reverse=True)
+
+        np_count = sum(1 for f in fragments if f.classification == "np_characteristic")
+        syn_count = sum(
+            1 for f in fragments if f.classification == "synthetic_characteristic"
+        )
+
+        # Compute confidence
+        num_heavy = mol.GetNumHeavyAtoms()
+        if count > 0 and num_heavy > 0:
+            confidence = min(1.0, count / (num_heavy * 1.5))
+        else:
+            confidence = 0.0
+
+        return NPBreakdownResult(
+            score=np_score,
+            confidence=round(confidence, 4),
+            fragments=fragments,
+            total_fragments=len(fragments),
+            np_fragment_count=np_count,
+            synthetic_fragment_count=syn_count,
+            interpretation=standard_result.interpretation,
+        )
+
+
 # Module-level convenience function
 _scorer = NPLikenessScorer()
 
@@ -328,3 +490,16 @@ def calculate_np_likeness(mol: Chem.Mol) -> NPLikenessResult:
         NPLikenessResult with score (-5 to +5), interpretation, and caveats
     """
     return _scorer.score(mol)
+
+
+def calculate_np_breakdown(mol: Chem.Mol) -> NPBreakdownResult:
+    """
+    Calculate NP-likeness with per-fragment breakdown.
+
+    Args:
+        mol: RDKit molecule object
+
+    Returns:
+        NPBreakdownResult with per-fragment contributions
+    """
+    return _scorer.calculate_breakdown(mol)
