@@ -13,7 +13,7 @@ dependencies = [
     "gunicorn>=21.2.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.0.0",
-    "rdkit>=2024.3.0",
+    "rdkit==2025.9.5",
     "molvs>=0.1.1",
     "sqlalchemy>=2.0.0",
     "asyncpg>=0.29.0",

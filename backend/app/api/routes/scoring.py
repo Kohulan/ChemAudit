@@ -52,6 +52,8 @@ from app.schemas.scoring import (
     LigandEfficiencySchema,
     LipinskiSchema,
     LogPBreakdownSchema,
+    MLDimensionItemSchema,
+    MLDimensionSchema,
     MLReadinessBreakdownSchema,
     MLReadinessResultSchema,
     MoleculeInfoSchema,
@@ -198,23 +200,21 @@ async def score_molecule(
         ml_result = calculate_ml_readiness(mol)
         ml_readiness_result = MLReadinessResultSchema(
             score=ml_result.score,
+            label=ml_result.label,
+            color=ml_result.color,
             breakdown=MLReadinessBreakdownSchema(
-                descriptors_score=ml_result.breakdown.descriptors_score,
-                descriptors_max=ml_result.breakdown.descriptors_max,
-                descriptors_successful=ml_result.breakdown.descriptors_successful,
-                descriptors_total=ml_result.breakdown.descriptors_total,
-                fingerprints_score=ml_result.breakdown.fingerprints_score,
-                fingerprints_max=ml_result.breakdown.fingerprints_max,
-                fingerprints_successful=ml_result.breakdown.fingerprints_successful,
-                fingerprints_failed=ml_result.breakdown.fingerprints_failed,
-                size_score=ml_result.breakdown.size_score,
-                size_max=ml_result.breakdown.size_max,
-                molecular_weight=ml_result.breakdown.molecular_weight,
-                num_atoms=ml_result.breakdown.num_atoms,
-                size_category=ml_result.breakdown.size_category,
+                structural_quality=_ml_dimension_to_schema(ml_result.breakdown.structural_quality),
+                property_profile=_ml_dimension_to_schema(ml_result.breakdown.property_profile),
+                complexity_feasibility=_ml_dimension_to_schema(
+                    ml_result.breakdown.complexity_feasibility,
+                ),
+                representation_quality=_ml_dimension_to_schema(
+                    ml_result.breakdown.representation_quality,
+                ),
             ),
+            caveats=ml_result.caveats,
+            supplementary=ml_result.supplementary,
             interpretation=ml_result.interpretation,
-            failed_descriptors=ml_result.failed_descriptors,
         )
 
     if "np_likeness" in body.include:
@@ -868,6 +868,27 @@ def _calculate_boiled_egg_route(mol: Chem.Mol) -> BoiledEggSchema:
         gi_ellipse=gi_ellipse,
         bbb_ellipse=bbb_ellipse,
         interpretation=result.interpretation,
+    )
+
+
+def _ml_dimension_to_schema(dim) -> MLDimensionSchema:
+    """Convert an MLDimension dataclass to its Pydantic schema."""
+    return MLDimensionSchema(
+        name=dim.name,
+        score=dim.score,
+        max_score=dim.max_score,
+        items=[
+            MLDimensionItemSchema(
+                name=item.name,
+                score=item.score,
+                max_score=item.max_score,
+                passed=item.passed,
+                subtitle=item.subtitle,
+                tooltip=item.tooltip,
+            )
+            for item in dim.items
+        ],
+        details=dim.details,
     )
 
 

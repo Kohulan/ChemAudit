@@ -6,35 +6,36 @@
  */
 
 /**
- * Breakdown of ML-readiness score components.
+ * A single scored item within an ML dimension.
+ */
+export interface MLDimensionItem {
+  name: string;
+  score: number;
+  max_score: number;
+  passed?: boolean;
+  subtitle?: string;
+  tooltip?: string;
+}
+
+/**
+ * A scored ML dimension with its constituent items.
+ */
+export interface MLDimension {
+  name: string;
+  score: number;
+  max_score: number;
+  items: MLDimensionItem[];
+  details: Record<string, unknown>;
+}
+
+/**
+ * Breakdown of ML-readiness score into 4 dimensions.
  */
 export interface MLReadinessBreakdown {
-  // Standard descriptors (CalcMolDescriptors - 217 descriptors)
-  descriptors_score: number;
-  descriptors_max: number;
-  descriptors_successful: number;
-  descriptors_total: number;
-
-  // Additional descriptors (AUTOCORR2D + MQN)
-  additional_descriptors_score: number;
-  additional_descriptors_max: number;
-  autocorr2d_successful: number;
-  autocorr2d_total: number;
-  mqn_successful: number;
-  mqn_total: number;
-
-  // Fingerprints (7 types)
-  fingerprints_score: number;
-  fingerprints_max: number;
-  fingerprints_successful: string[];
-  fingerprints_failed: string[];
-
-  // Size constraints
-  size_score: number;
-  size_max: number;
-  molecular_weight: number | null;
-  num_atoms: number | null;
-  size_category: 'optimal' | 'acceptable' | 'out_of_range' | 'error' | 'unknown';
+  structural_quality: MLDimension;
+  property_profile: MLDimension;
+  complexity_feasibility: MLDimension;
+  representation_quality: MLDimension;
 }
 
 /**
@@ -42,9 +43,12 @@ export interface MLReadinessBreakdown {
  */
 export interface MLReadinessResult {
   score: number;
+  label: string;
+  color: string;
   breakdown: MLReadinessBreakdown;
+  caveats: string[];
+  supplementary: Record<string, unknown>;
   interpretation: string;
-  failed_descriptors: string[];
 }
 
 /**

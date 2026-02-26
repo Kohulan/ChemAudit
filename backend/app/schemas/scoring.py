@@ -615,41 +615,49 @@ class ComparisonRequest(BaseModel):
 
 
 # =============================================================================
-# ML-Readiness Schemas (existing)
+# ML-Readiness Schemas (4-dimension redesign)
 # =============================================================================
 
 
+class MLDimensionItemSchema(BaseModel):
+    """A single scored item within a dimension."""
+
+    name: str = Field(description="Item name")
+    score: float = Field(description="Points earned")
+    max_score: float = Field(description="Maximum possible points")
+    passed: Optional[bool] = Field(None, description="Pass/fail (for binary checks)")
+    subtitle: Optional[str] = Field(None, description="Contextual subtitle (e.g. actual value)")
+    tooltip: Optional[str] = Field(None, description="Explanatory tooltip text")
+
+
+class MLDimensionSchema(BaseModel):
+    """A scored dimension with constituent items."""
+
+    name: str = Field(description="Dimension name")
+    score: float = Field(description="Dimension score")
+    max_score: float = Field(description="Maximum dimension score")
+    items: List[MLDimensionItemSchema] = Field(
+        default_factory=list, description="Scored items within this dimension"
+    )
+    details: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional dimension-specific data"
+    )
+
+
 class MLReadinessBreakdownSchema(BaseModel):
-    """Breakdown of ML-readiness score components."""
+    """Breakdown of ML-readiness score into 4 dimensions."""
 
-    descriptors_score: float = Field(
-        description="Score for descriptor calculability (0-40)"
+    structural_quality: MLDimensionSchema = Field(
+        description="Structural Quality (20 pts)"
     )
-    descriptors_max: float = Field(default=40.0, description="Maximum descriptor score")
-    descriptors_successful: int = Field(
-        description="Number of successfully calculated descriptors"
+    property_profile: MLDimensionSchema = Field(
+        description="Property Profile (35 pts)"
     )
-    descriptors_total: int = Field(description="Total number of descriptors attempted")
-
-    fingerprints_score: float = Field(
-        description="Score for fingerprint generation (0-40)"
+    complexity_feasibility: MLDimensionSchema = Field(
+        description="Complexity & Feasibility (25 pts)"
     )
-    fingerprints_max: float = Field(
-        default=40.0, description="Maximum fingerprint score"
-    )
-    fingerprints_successful: List[str] = Field(
-        description="Successfully generated fingerprint types"
-    )
-    fingerprints_failed: List[str] = Field(
-        default_factory=list, description="Failed fingerprint types"
-    )
-
-    size_score: float = Field(description="Score for size constraints (0-20)")
-    size_max: float = Field(default=20.0, description="Maximum size score")
-    molecular_weight: Optional[float] = Field(None, description="Molecular weight")
-    num_atoms: Optional[int] = Field(None, description="Number of atoms")
-    size_category: str = Field(
-        description="Size category: optimal, acceptable, or out_of_range"
+    representation_quality: MLDimensionSchema = Field(
+        description="Representation Quality (20 pts)"
     )
 
 
@@ -657,14 +665,20 @@ class MLReadinessResultSchema(BaseModel):
     """Result of ML-readiness scoring."""
 
     score: int = Field(ge=0, le=100, description="Overall ML-readiness score (0-100)")
+    label: str = Field(description="Score label (Excellent/Good/Moderate/Limited/Poor)")
+    color: str = Field(description="Color key (green/teal/amber/orange/red)")
     breakdown: MLReadinessBreakdownSchema = Field(
-        description="Score breakdown by component"
+        description="Score breakdown by 4 dimensions"
+    )
+    caveats: List[str] = Field(
+        default_factory=list, description="Relevant structural warnings"
+    )
+    supplementary: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Informational data not used in scoring (e.g. Lipinski, Veber)",
     )
     interpretation: str = Field(
         description="Human-readable interpretation of the score"
-    )
-    failed_descriptors: List[str] = Field(
-        default_factory=list, description="List of failed descriptor names"
     )
 
 
