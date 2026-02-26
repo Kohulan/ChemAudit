@@ -64,12 +64,17 @@ async def get_data_scope(request: Request) -> tuple[Optional[str], Optional[str]
 async def set_rls_context(
     db: AsyncSession, session_id: Optional[str], api_key_hash: Optional[str]
 ) -> None:
-    """Set PostgreSQL session variables for RLS policy evaluation."""
+    """Set PostgreSQL session variables for RLS policy evaluation.
+
+    Uses set_config() instead of SET LOCAL because SET doesn't support
+    bind parameters in PostgreSQL (asyncpg translates :param to $1).
+    The third argument (true) makes it transaction-local, same as SET LOCAL.
+    """
     await db.execute(
-        text("SET LOCAL app.session_id = :sid"),
+        text("SELECT set_config('app.session_id', :sid, true)"),
         {"sid": session_id or ""},
     )
     await db.execute(
-        text("SET LOCAL app.api_key_hash = :akh"),
+        text("SELECT set_config('app.api_key_hash', :akh, true)"),
         {"akh": api_key_hash or ""},
     )
