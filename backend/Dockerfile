@@ -34,5 +34,8 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
+# Entrypoint runs Alembic migrations before starting the app
+ENTRYPOINT ["bash", "entrypoint.sh"]
+
 # Run uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

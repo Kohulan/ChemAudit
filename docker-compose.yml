@@ -72,6 +72,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: chemaudit-celery-worker
+    entrypoint: []
     command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS:-4} -Q default -n worker-default@%h
     volumes:
       - ./backend:/app
@@ -83,6 +84,8 @@ services:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
     depends_on:
+      backend:
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -93,6 +96,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: chemaudit-celery-worker-priority
+    entrypoint: []
     command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS_PRIORITY:-2} -Q high_priority -n worker-priority@%h
     volumes:
       - ./backend:/app
@@ -104,6 +108,8 @@ services:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
     depends_on:
+      backend:
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped

@@ -104,13 +104,35 @@ async def lifespan(app: FastAPI):
             len(EXPECTED_DEEP_VALIDATION_CHECKS),
         )
 
-    # Initialize database tables (development auto-create)
+    # Initialize database tables and run migrations
     try:
         from app.db import Base, async_session, engine
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created/verified")
+
+        # Stamp Alembic at head if no alembic_version table exists (fresh DB)
+        try:
+            from sqlalchemy import inspect, text
+
+            async with engine.connect() as conn:
+                has_alembic = await conn.run_sync(
+                    lambda sc: "alembic_version" in inspect(sc).get_table_names()
+                )
+            if not has_alembic:
+                async with engine.begin() as conn:
+                    await conn.execute(text(
+                        "CREATE TABLE IF NOT EXISTS alembic_version "
+                        "(version_num VARCHAR(32) NOT NULL, "
+                        "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                    ))
+                    await conn.execute(text(
+                        "INSERT INTO alembic_version (version_num) VALUES ('002')"
+                    ))
+                logger.info("Stamped alembic_version at head (fresh database)")
+        except Exception as e:
+            logger.warning("Alembic stamp failed: %s", e)
 
         # Seed preset scoring profiles
         try:
