@@ -902,24 +902,30 @@ export function SingleValidationPage() {
                   {/* Show detailed info if validation result available, otherwise basic info */}
                   {result ? (
                     <div className="space-y-3">
-                      {/* Stats row */}
-                      <div className="grid grid-cols-4 gap-2 text-center">
-                        {result.molecule_info.num_atoms && (
+                      {/* Stats row — all from backend */}
+                      <div className="grid grid-cols-5 gap-2 text-center">
+                        {result.molecule_info.num_atoms != null && (
                           <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
                             <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_atoms}</div>
                             <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
                           </div>
                         )}
-                        {moleculeInfo?.numBonds && (
+                        {result.molecule_info.num_bonds != null && (
                           <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numBonds}</div>
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_bonds}</div>
                             <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Bonds</div>
                           </div>
                         )}
-                        {moleculeInfo?.numRings !== undefined && (
+                        {result.molecule_info.num_rings != null && (
                           <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numRings}</div>
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_rings}</div>
                             <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Rings</div>
+                          </div>
+                        )}
+                        {result.molecule_info.num_aromatic_rings != null && result.molecule_info.num_aromatic_rings > 0 && (
+                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
+                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_aromatic_rings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Arom.</div>
                           </div>
                         )}
                         {result.molecule_info.molecular_weight && (
@@ -1605,8 +1611,8 @@ export function SingleValidationPage() {
                       </svg>
                       <span>
                         {moleculeInfo.numStereocenters > 0 && `${moleculeInfo.numStereocenters} stereocenter${moleculeInfo.numStereocenters > 1 ? 's' : ''}`}
-                        {moleculeInfo.numStereocenters > 0 && /[/\\]/.test(moleculeInfo.canonicalSmiles) && ' + '}
-                        {/[/\\]/.test(moleculeInfo.canonicalSmiles) && 'E/Z bonds'}
+                        {moleculeInfo.numStereocenters > 0 && moleculeInfo.hasEZStereo && ' + '}
+                        {moleculeInfo.hasEZStereo && 'E/Z bonds'}
                       </span>
                     </div>
                     {showCIP && (

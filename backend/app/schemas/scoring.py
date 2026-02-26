@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.validation import MoleculeInfo
+
 # =============================================================================
 # Drug-likeness Schemas
 # =============================================================================
@@ -777,20 +779,11 @@ class ScoringRequest(BaseModel):
         return v
 
 
-class MoleculeInfoSchema(BaseModel):
-    """Basic molecule information."""
-
-    input_string: str = Field(description="Original input string")
-    canonical_smiles: Optional[str] = Field(None, description="Canonical SMILES")
-    molecular_formula: Optional[str] = Field(None, description="Molecular formula")
-    molecular_weight: Optional[float] = Field(None, description="Molecular weight")
-
-
 class ScoringResponse(BaseModel):
     """Response containing scoring results."""
 
     status: str = Field(default="completed", description="Request status")
-    molecule_info: MoleculeInfoSchema = Field(description="Basic molecule information")
+    molecule_info: MoleculeInfo = Field(description="Basic molecule information")
     ml_readiness: Optional[MLReadinessResultSchema] = Field(
         None, description="ML-readiness scoring results"
     )
