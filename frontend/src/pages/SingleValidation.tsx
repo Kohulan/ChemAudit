@@ -181,7 +181,6 @@ const TABS: TabConfig[] = [
   },
 ];
 
-// Descriptions for each validation check
 /** Shape of `location.state` when navigating to SingleValidation */
 interface LocationState {
   bookmarkId?: number;
@@ -192,17 +191,47 @@ interface LocationState {
 }
 
 const CHECK_DESCRIPTIONS: Record<string, string> = {
+  // Basic checks
   parsability: 'Verifies the input string can be parsed into a valid molecular structure by RDKit.',
   sanitization: 'Checks if RDKit can sanitize the molecule (assign aromaticity, add implicit hydrogens, validate bonds).',
   valence: 'Validates that all atoms have chemically valid valence states (e.g., carbon with 4 bonds, nitrogen with 3).',
   aromaticity: 'Confirms aromatic ring systems are properly defined and assigned by RDKit\'s aromaticity model.',
   connectivity: 'Checks molecular connectivity - ensures the structure is a single connected component without fragments.',
+  // Stereo checks
   undefined_stereocenters: 'Identifies chiral centers (sp3 carbons with 4 different substituents) that lack R/S stereochemistry assignment.',
   undefined_doublebond_stereo: 'Finds double bonds that could have E/Z isomerism but lack defined geometry.',
   conflicting_stereo: 'Detects contradictory stereochemistry assignments that cannot exist in a real molecule.',
+  // Representation checks
   smiles_roundtrip: 'Tests if converting SMILES → molecule → SMILES preserves the structure identity.',
   inchi_generation: 'Verifies that a valid InChI identifier can be generated for the molecule.',
   inchi_roundtrip: 'Tests if converting to InChI and back preserves the molecular structure.',
+  // Deep: Stereo & Tautomers
+  stereoisomer_enumeration: 'Finds undefined stereocenters and enumerates possible stereoisomers (up to 128). Helps identify ambiguous chirality.',
+  tautomer_detection: 'Detects tautomeric forms and identifies the canonical tautomer. Reports whether the input matches the canonical form.',
+  aromatic_system_validation: 'Checks for unusual aromatic ring sizes (not 5 or 6 membered) and charged aromatic atoms that may indicate issues.',
+  coordinate_dimension: 'Reports whether the molecule has 2D coordinates, 3D coordinates, or no coordinate information.',
+  // Deep: Chemical Composition
+  mixture_detection: 'Detects multi-fragment inputs (dot-separated SMILES) and classifies each fragment as drug, salt, solvent, or unknown.',
+  solvent_contamination: 'Screens for common lab solvents (water, DMSO, DMF, methanol, etc.) that may contaminate the input structure.',
+  inorganic_filter: 'Flags molecules lacking carbon (inorganic) or containing metal atoms (organometallic) that may not suit standard validation.',
+  radical_detection: 'Identifies atoms with unpaired radical electrons that may indicate unstable or reactive species.',
+  isotope_label_detection: 'Detects isotope-labeled atoms (deuterium, carbon-13, etc.) often used in pharmacokinetic studies.',
+  trivial_molecule: 'Flags molecules with 3 or fewer heavy atoms as too small for meaningful chemical validation.',
+  // Deep: Structural Complexity
+  hypervalent_atoms: 'Detects atoms exceeding their normal valence limits, which may indicate unusual bonding or input errors.',
+  polymer_detection: 'Identifies possible polymers via SGroup markers, molecular weight above 1500 Da, or dummy atom attachment points.',
+  ring_strain: 'Flags 3-membered (cyclopropane) and 4-membered (cyclobutane) rings that have significant ring strain.',
+  macrocycle_detection: 'Identifies macrocyclic rings with more than 12 atoms, common in natural products and cyclic peptides.',
+  charged_species: 'Reports formal charges, identifies zwitterions (net charge zero with both positive and negative atoms).',
+  explicit_hydrogen_audit: 'Reports atoms with explicit hydrogen specifications and detects H atom objects from AddHs() processing.',
+};
+
+const CHECK_SEVERITY_STYLES: Record<string, string> = {
+  pass: 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
+  critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
 };
 
 export function SingleValidationPage() {
@@ -1771,38 +1800,37 @@ export function SingleValidationPage() {
                           {result.all_checks.map((check, index) => (
                             <div
                               key={`${check.check_name}-${index}`}
-                              className="flex items-center justify-between py-2 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
+                              className="py-2.5 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
-                                  {check.passed ? '✓' : '✗'}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
+                                    {check.passed ? '✓' : '✗'}
+                                  </span>
+                                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                    {check.check_name.replace(/_/g, ' ')}
+                                  </span>
+                                  {CHECK_DESCRIPTIONS[check.check_name] && (
+                                    <InfoTooltip
+                                      content={CHECK_DESCRIPTIONS[check.check_name]}
+                                      position="right"
+                                    />
+                                  )}
+                                </div>
+                                <span
+                                  className={cn(
+                                    'text-xs px-2 py-1 rounded-md font-medium shrink-0',
+                                    CHECK_SEVERITY_STYLES[check.passed ? 'pass' : check.severity] ?? CHECK_SEVERITY_STYLES.info
+                                  )}
+                                >
+                                  {check.passed ? 'PASS' : check.severity.toUpperCase()}
                                 </span>
-                                <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                                  {check.check_name.replace(/_/g, ' ')}
-                                </span>
-                                {CHECK_DESCRIPTIONS[check.check_name] && (
-                                  <InfoTooltip
-                                    content={CHECK_DESCRIPTIONS[check.check_name]}
-                                    position="right"
-                                  />
-                                )}
                               </div>
-                              <span
-                                className={cn(
-                                  'text-xs px-2 py-1 rounded-md font-medium',
-                                  check.passed
-                                    ? 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400'
-                                    : check.severity === 'critical'
-                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                                    : check.severity === 'error'
-                                    ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-                                    : check.severity === 'warning'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                    : 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
-                                )}
-                              >
-                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
-                              </span>
+                              {check.message && (
+                                <p className="text-xs text-[var(--color-text-muted)] mt-1 ml-6">
+                                  {check.message}
+                                </p>
+                              )}
                             </div>
                           ))}
                         </motion.div>
