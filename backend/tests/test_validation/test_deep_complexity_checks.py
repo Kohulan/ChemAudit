@@ -838,7 +838,7 @@ class TestAllDeepValidationChecks:
         import app.services.validation.checks.deep_stereo_tautomer  # noqa: F401
         from app.services.validation.registry import CheckRegistry
 
-        EXPECTED_DEEP_VALIDATION_CHECKS = {
+        expected_deep_validation_checks = {
             # M1.1: Stereo & Tautomer
             "stereoisomer_enumeration",  # DVAL-01+02
             "tautomer_detection",  # DVAL-03
@@ -861,7 +861,7 @@ class TestAllDeepValidationChecks:
         }
 
         registered = set(CheckRegistry.get_all().keys())
-        missing = EXPECTED_DEEP_VALIDATION_CHECKS - registered
+        missing = expected_deep_validation_checks - registered
         assert not missing, f"CI check: missing deep validation checks: {missing}"
 
     def test_check_file_count_matches_registry(self):

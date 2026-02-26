@@ -131,7 +131,6 @@ export const ScaffoldTreemap = React.memo(function ScaffoldTreemap({
   }, [data]);
 
   const handleClick = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (node: any) => {
       if (node?.moleculeIndices) {
         onSelectionChange(new Set(node.moleculeIndices as number[]));

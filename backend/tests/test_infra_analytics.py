@@ -136,9 +136,13 @@ def test_analytics_storage_init_status():
     def fake_set(key, value, ex=None):
         store[key] = value
 
+    def fake_get(key):
+        return store.get(key)
+
     storage = AnalyticsStorage()
     mock_redis = MagicMock()
     mock_redis.set.side_effect = fake_set
+    mock_redis.get.side_effect = fake_get
     storage._redis = mock_redis
 
     storage.init_status("job-2", auto_analyses=["deduplication", "statistics"])
