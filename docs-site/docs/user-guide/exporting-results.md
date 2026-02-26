@@ -17,6 +17,10 @@ Export your batch processing results in multiple formats for analysis, reporting
 | **SDF** | `.sdf` | Structure-data exchange | Compatible with chemistry tools |
 | **JSON** | `.json` | Programmatic processing | Full data fidelity, nested structures |
 | **PDF** | `.pdf` | Professional reports, archival | Charts, molecule images, statistics |
+| **Fingerprint Matrix** | `.zip` | ML pipeline input | Morgan/MACCS/RDKit FPs in CSV + numpy |
+| **Deduplicated Set** | `.zip` | Dataset curation | Summary + annotated CSVs with group IDs |
+| **Scaffold-Grouped** | `.csv` | SAR analysis | Murcko scaffolds + group assignments |
+| **Property Matrix** | `.zip` | Comprehensive analysis | Flat CSV + 4-sheet Excel |
 
 ## How to Export
 
@@ -262,6 +266,93 @@ Professional report document with:
 For batches larger than 1,000 molecules, PDF exports include only summary statistics and the first 100 molecules to keep file size manageable.
 :::
 
+### Fingerprint Matrix Export
+
+Generates a ZIP containing 9 files — 3 fingerprint types in 3 formats each:
+
+| Fingerprint | Bits | File Prefix |
+|------------|------|-------------|
+| Morgan ECFP4 (radius 2) | 2,048 | `morgan` |
+| MACCS keys | 167 | `maccs` |
+| RDKit path-based | 2,048 | `rdkit` |
+
+Each fingerprint is exported as `.csv`, `.npy` (numpy array), and `.npz` (compressed numpy). Molecules that failed parsing are skipped. Ideal for feeding directly into ML pipelines.
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=fingerprint" -o fingerprints.zip
+```
+
+### Deduplicated Set Export
+
+Generates a ZIP with two CSV files:
+
+- **dedup_summary.csv** — One row per unique canonical SMILES group: group_id, representative SMILES, group size, duplicate indices, dedup level
+- **dedup_annotated.csv** — All molecules with group_id, is_representative flag, dedup_level, validation score, and InChIKey
+
+Ideal for dataset curation — quickly identify and remove duplicates while preserving provenance.
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=dedup" -o deduplicated.zip
+```
+
+### Scaffold-Grouped Export
+
+Single CSV with Murcko scaffold assignments:
+
+- `scaffold_smiles` — the Murcko scaffold SMILES (empty string for acyclic molecules)
+- `scaffold_group` — integer group ID (0 for acyclic, 1+ for scaffold groups)
+- Plus: index, SMILES, name, status, overall score, ML-readiness score, InChIKey
+
+Ideal for SAR analysis and scaffold-based dataset organization.
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=scaffold" -o scaffolds.csv
+```
+
+### Property Matrix Export
+
+Generates a ZIP with two files:
+
+- **properties_flat.csv** — All properties as columns in a single flat table
+- **properties.xlsx** — Multi-sheet Excel workbook:
+  - **Descriptors**: MW, LogP, TPSA, HBD, HBA, Rotatable Bonds, Aromatic Rings, Fsp3, Heavy Atom Count, Ring Count
+  - **Scores**: Validation, ML-readiness, QED, SA, NP-likeness, Lipinski violations
+  - **Alerts**: Per-catalog alert counts (PAINS, BRENK, NIH, Glaxo) and alert names
+  - **Identifiers**: SMILES, name, InChIKey, status
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=property_matrix" -o properties.zip
+```
+
+### PDF Section Selection
+
+PDF exports support selecting specific sections via the `sections` parameter:
+
+| Section Key | Content |
+|-------------|---------|
+| `validation_summary` | Overall statistics and pass rates |
+| `score_distribution` | Score histogram charts |
+| `alert_frequency` | Alert count bar charts |
+| `chemical_space` | Chemical space scatter plot |
+| `scaffold_treemap` | Scaffold frequency visualization |
+| `statistics` | Property statistics tables |
+| `correlation_matrix` | Property correlation heatmap |
+| `mmp_pairs` | Matched molecular pair summary |
+
+All sections are included by default. To select specific sections:
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=pdf&sections=validation_summary,score_distribution" -o summary.pdf
+```
+
+### Excel Structure Images
+
+Add `include_images=true` to embed 2D structure PNG images in the Excel export:
+
+```bash
+curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=excel&include_images=true" -o results_with_images.xlsx
+```
+
 ## Filter Options
 
 ### Score Filters
@@ -341,5 +432,7 @@ curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=excel&status=suc
 
 ## Next Steps
 
-- **[Batch Processing](/docs/user-guide/batch-processing)** - Process large datasets
-- **[API Reference](/docs/api/endpoints)** - Full export API documentation
+- **[Batch Processing](/docs/user-guide/batch-processing)** — Process large datasets
+- **[Batch Analytics](/docs/user-guide/batch-analytics)** — Analytics that power advanced exports
+- **[Subset Actions](/docs/user-guide/subset-actions)** — Export selected molecules only
+- **[API Reference](/docs/api/endpoints)** — Full export API documentation

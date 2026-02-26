@@ -114,6 +114,21 @@ cp config/medium.yml config/custom.yml
 ./deploy.sh custom
 ```
 
+
+### Notification & Integration Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NOTIFICATION_EMAIL` | Global email for batch completion notifications | None |
+| `SMTP_HOST` | SMTP server hostname | None |
+| `SMTP_PORT` | SMTP server port | `587` |
+| `SMTP_USER` | SMTP authentication username | None |
+| `SMTP_PASS` | SMTP authentication password | None |
+| `WEBHOOK_URL` | Webhook endpoint URL for batch completion callbacks | None |
+| `WEBHOOK_SECRET` | HMAC-SHA256 signing secret for webhook payloads | None |
+| `OPSIN_JAR_PATH` | Path to OPSIN JAR for IUPAC name conversion | Auto-provisioned in Docker |
+| `BASE_URL` | Public URL for report links in emails and webhooks | `http://localhost:3002` |
+
 ## Dynamic Limit Discovery
 
 The frontend automatically discovers deployment limits from the backend API:

@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     # ==========================================================================
     VALIDATION_CACHE_TTL: int = 3600  # 1 hour in seconds
     VALIDATION_CACHE_ENABLED: bool = True
+    # Batch result TTL — 24h to support analytics (INFRA-01)
+    BATCH_RESULT_TTL: int = 86400
 
     # ==========================================================================
     # Metrics
@@ -102,6 +104,33 @@ class Settings(BaseSettings):
 
     # Deployment profile
     DEPLOYMENT_PROFILE: str = "medium"
+
+    # ==========================================================================
+    # SMTP Settings (for batch completion email notifications)
+    # ==========================================================================
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@chemaudit.local"
+    SMTP_TLS: bool = True
+    NOTIFICATION_EMAIL: str = ""  # Default recipient for batch completion emails (empty = disabled)
+
+    # ==========================================================================
+    # Webhook Settings (for batch completion notifications)
+    # ==========================================================================
+    WEBHOOK_URL: str = ""  # Endpoint to POST on batch completion (empty = disabled)
+    WEBHOOK_SECRET: str = ""  # HMAC signing secret for webhook payloads
+
+    # ==========================================================================
+    # OPSIN Settings (IUPAC name to SMILES conversion)
+    # ==========================================================================
+    OPSIN_JAR_PATH: str = "/app/data/opsin.jar"
+
+    # ==========================================================================
+    # Application Base URL (for webhook payloads and email links)
+    # ==========================================================================
+    BASE_URL: str = "http://localhost:3002"
 
     # ==========================================================================
     # External API endpoints

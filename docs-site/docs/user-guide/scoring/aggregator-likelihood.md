@@ -21,15 +21,37 @@ Aggregation is concentration-dependent and can be disrupted by detergents.
 
 ## How It's Calculated
 
-The aggregator likelihood score is based on multiple physicochemical properties:
+The aggregator risk score (0–1) is the sum of triggered risk increments, capped at 1.0:
 
-| Property | Contribution | Reasoning |
-|----------|--------------|-----------|
-| **LogP** | High LogP increases risk | Hydrophobic molecules aggregate |
-| **TPSA** | Low TPSA increases risk | Poor water solubility promotes aggregation |
-| **Molecular Weight** | Moderate MW increases risk | Sweet spot for aggregation |
-| **Aromatic Rings** | More rings increase risk | Planar aromatics stack |
-| **Known Patterns** | Specific scaffolds | Empirically known aggregators |
+### Risk Indicators
+
+| Indicator | Condition | Risk Increment |
+|-----------|-----------|---------------|
+| High lipophilicity | LogP > 4.0 | +0.30 |
+| Moderate lipophilicity | LogP 3.0–4.0 | +0.15 |
+| Low polar surface | TPSA < 40 A² | +0.20 |
+| Extended aromatics | ≥ 4 aromatic rings | +0.20 |
+| Moderate aromatics | 3 aromatic rings | +0.10 |
+| Large molecular weight | MW > 500 Da | +0.10 |
+| High conjugation | Aromatic fraction > 0.7 and > 20 heavy atoms | +0.15 |
+| Known scaffold match | SMARTS pattern match | +0.20 per match |
+
+### Known Aggregator Scaffolds (SMARTS-based)
+
+The following empirically known aggregator scaffolds are matched:
+
+- Rhodanines
+- Quinones
+- Catechols
+- Curcumin-like structures
+- Phenol-sulfonamides
+- Flavonoids
+- Acridines
+- Phenothiazines
+- Extended conjugated polyenes
+- Azo compounds
+
+**Confidence:** `triggered_indicators / total_indicators`
 
 ## Output
 
@@ -223,8 +245,12 @@ Always validate aggregation experimentally for critical compounds. Computational
 4. **Document risk scores**: Track aggregator scores for future reference
 5. **Filter libraries**: Remove high-risk aggregators before screening
 
+## Reference
+
+Irwin, J. J. et al. (2015). An aggregation advisor for ligand discovery. *Journal of Medicinal Chemistry*, 58(17), 7076–7087.
+
 ## Next Steps
 
-- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** - Structural alert screening
-- **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** - Drug-likeness filters
-- **[Scoring Overview](/docs/user-guide/scoring/overview)** - All scoring systems
+- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** — Structural alert screening
+- **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** — Drug-likeness filters
+- **[Scoring Overview](/docs/user-guide/scoring/overview)** — All scoring systems

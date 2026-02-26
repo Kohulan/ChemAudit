@@ -101,17 +101,53 @@ Derived from 1,2000 compounds with known oral bioavailability.
 
 ## Muegge Filter
 
-Multiple criteria for drug-likeness:
+Comprehensive 9-parameter filter for druglike chemical space:
 
-- MW: 200-600 Da
-- LogP: -2 to 5
-- TPSA ≤ 150 Å²
-- Rings ≤ 7
-- Carbons > 4
-- Heteroatoms > 1
-- Rotatable bonds ≤ 15
-- H-bond acceptors ≤ 10
-- H-bond donors ≤ 5
+| Property | Threshold |
+|----------|-----------|
+| Molecular Weight | 200–600 Da |
+| LogP | −2 to 5 |
+| TPSA | ≤ 150 A² |
+| Ring Count | ≤ 7 |
+| Carbon Count | > 4 |
+| Heteroatom Count | > 1 |
+| Rotatable Bonds | ≤ 15 |
+| H-Bond Donors | ≤ 5 |
+| H-Bond Acceptors | ≤ 10 |
+
+**Pass criterion:** All 9 parameters must pass (0 violations).
+
+**Reference:** Muegge et al. (2001). Simple selection criteria for drug-like chemical matter. *Journal of Medicinal Chemistry*, 44(12), 1841–1846.
+
+## Consensus Drug-Likeness (0–5)
+
+A composite score counting how many of the major filter sets the molecule passes:
+
+1. Lipinski (≤ 1 violation)
+2. Veber (both parameters pass)
+3. Egan (both parameters pass)
+4. Ghose (all parameters in range)
+5. Muegge (all 9 parameters pass)
+
+| Score | Interpretation |
+|-------|----------------|
+| **5** | Excellent drug-likeness |
+| **4** | Very good |
+| **3** | Acceptable |
+| **2** | Borderline |
+| **0–1** | Poor drug-likeness |
+
+## Lead-Likeness
+
+Identifies molecules in lead-like chemical space, which provides room for optimization during hit-to-lead campaigns.
+
+| Property | Threshold |
+|----------|-----------|
+| Molecular Weight | 200–350 Da |
+| LogP | −1 to 3 |
+| Rotatable Bonds | ≤ 7 |
+
+**Pass criterion:** All must pass.
 
 ## API Usage
 
@@ -235,8 +271,18 @@ Use drug-likeness filters for prioritization, not as strict cutoffs. Always cons
 4. **Don't over-optimize**: Chasing perfect drug-likeness can sacrifice potency
 5. **Validate experimentally**: Predicted properties should be confirmed
 
+## References
+
+1. Bickerton, G. R. et al. (2012). Quantifying the chemical beauty of drugs. *Nature Chemistry*, 4(2), 90–98.
+2. Congreve, M. et al. (2003). A 'rule of three' for fragment-based lead discovery? *Drug Discovery Today*, 8(19), 876–877.
+3. Egan, W. J. et al. (2000). Prediction of drug absorption using multivariate statistics. *Journal of Medicinal Chemistry*, 43(21), 3867–3877.
+4. Ghose, A. K. et al. (1999). A knowledge-based approach in designing combinatorial or medicinal chemistry libraries. *Journal of Combinatorial Chemistry*, 1(1), 55–68.
+5. Lipinski, C. A. et al. (2001). Experimental and computational approaches to estimate solubility and permeability. *Advanced Drug Delivery Reviews*, 46(1-3), 3–26.
+6. Muegge, I. et al. (2001). Simple selection criteria for drug-like chemical matter. *Journal of Medicinal Chemistry*, 44(12), 1841–1846.
+7. Veber, D. F. et al. (2002). Molecular properties that influence the oral bioavailability of drug candidates. *Journal of Medicinal Chemistry*, 45(12), 2615–2623.
+
 ## Next Steps
 
-- **[Scoring Overview](/docs/user-guide/scoring/overview)** - All scoring systems
-- **[ADMET](/docs/user-guide/scoring/admet)** - ADMET predictions
-- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** - Structural alerts
+- **[Scoring Overview](/docs/user-guide/scoring/overview)** — All scoring systems
+- **[ADMET](/docs/user-guide/scoring/admet)** — ADMET predictions
+- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** — Structural alerts

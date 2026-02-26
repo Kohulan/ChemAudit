@@ -95,6 +95,11 @@ async def screen_alerts(
             matched_atoms=alert.matched_atoms,
             catalog_source=alert.catalog_source,
             smarts=alert.smarts,
+            reference=alert.reference,
+            scope=alert.scope,
+            filter_set=alert.filter_set,
+            catalog_description=alert.catalog_description,
+            category=alert.category,
         )
         for alert in screening_result.alerts
     ]
@@ -135,6 +140,10 @@ async def list_catalogs(
             pattern_count=cat_info["pattern_count"],
             severity=cat_info["severity"],
             note=cat_info.get("note"),
+            reference=cat_info.get("reference"),
+            scope=cat_info.get("scope"),
+            doi=cat_info.get("doi"),
+            pmid=cat_info.get("pmid"),
         )
 
     return CatalogListResponse(

@@ -83,6 +83,17 @@ const clayButtonVariants = cva(
           'hover:shadow-[inset_2px_2px_8px_rgba(255,255,255,0.45),inset_-2px_-2px_8px_rgba(0,0,0,0.25),0_8px_28px_rgba(239,68,68,0.45)]',
           'border border-red-300/30',
         ].join(' '),
+        stone: [
+          // Dark Stone — rich espresso, warm earthy depth
+          'bg-gradient-to-br from-stone-500 via-stone-600 to-stone-800',
+          'dark:from-stone-600 dark:via-stone-700 dark:to-stone-900',
+          'text-white',
+          // Stone claymorphism with warm earthy glow
+          'shadow-[inset_2px_2px_6px_rgba(255,255,255,0.25),inset_-2px_-2px_6px_rgba(0,0,0,0.25),0_6px_20px_rgba(87,83,78,0.35)]',
+          'hover:shadow-[inset_2px_2px_8px_rgba(255,255,255,0.35),inset_-2px_-2px_8px_rgba(0,0,0,0.3),0_8px_28px_rgba(87,83,78,0.45)]',
+          'border border-stone-400/30',
+          'dark:border-stone-500/20',
+        ].join(' '),
       },
       size: {
         sm: 'px-4 py-2 text-xs rounded-2xl min-h-[32px]',

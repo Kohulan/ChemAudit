@@ -74,6 +74,10 @@ class ExportFormat(str, Enum):
     SDF = "sdf"
     JSON = "json"
     PDF = "pdf"
+    FINGERPRINT = "fingerprint"
+    DEDUP = "dedup"
+    SCAFFOLD = "scaffold"
+    PROPERTY_MATRIX = "property_matrix"
 
 
 class BaseExporter(ABC):

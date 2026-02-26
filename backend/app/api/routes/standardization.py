@@ -14,6 +14,7 @@ from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
 from app.schemas.standardization import (
     CheckerIssue,
+    StandardizationProvenance,
     StandardizationResult,
     StandardizationStep,
     StandardizeRequest,
@@ -26,11 +27,13 @@ from app.services.standardization.chembl_pipeline import (
     StandardizationOptions,
     StandardizationPipeline,
 )
+from app.services.standardization.provenance import ProvenancePipeline
 
 router = APIRouter()
 
-# Singleton pipeline instance
+# Singleton pipeline instances
 _pipeline = StandardizationPipeline()
+_provenance_pipeline = ProvenancePipeline()
 
 
 @router.post("/standardize", response_model=StandardizeResponse)
@@ -91,13 +94,21 @@ async def standardize_molecule(
     options = StandardizationOptions(
         include_tautomer=body.options.include_tautomer,
         preserve_stereo=body.options.preserve_stereo,
+        include_provenance=body.options.include_provenance,
     )
 
-    # Run standardization pipeline
-    pipeline_result = _pipeline.standardize(mol, options)
+    # Run standardization pipeline (with or without provenance)
+    prov_schema: Optional[StandardizationProvenance] = None
+    if body.options.include_provenance:
+        pipeline_result, provenance = _provenance_pipeline.standardize_with_provenance(
+            mol, options, dval_results=body.options.dval_results
+        )
+        prov_schema = provenance
+    else:
+        pipeline_result = _pipeline.standardize(mol, options)
 
     # Convert internal result to schema
-    result = _convert_pipeline_result(pipeline_result)
+    result = _convert_pipeline_result(pipeline_result, provenance=prov_schema)
 
     execution_time = int((time.time() - start_time) * 1000)
 
@@ -154,15 +165,21 @@ async def get_standardization_options():
     }
 
 
-def _convert_pipeline_result(pipeline_result) -> StandardizationResult:
+def _convert_pipeline_result(
+    pipeline_result,
+    provenance: Optional[StandardizationProvenance] = None,
+) -> StandardizationResult:
     """
     Convert internal pipeline result to API schema.
 
     Args:
-        pipeline_result: Internal StandardizationResult from chembl_pipeline
+        pipeline_result: Internal StandardizationResult from chembl_pipeline.
+        provenance: Optional StandardizationProvenance to include in the response.
+            When None (default), the provenance field in the response will be null,
+            preserving backward compatibility for existing API consumers.
 
     Returns:
-        StandardizationResult schema for API response
+        StandardizationResult schema for API response.
     """
     # Convert steps
     steps = [
@@ -221,4 +238,5 @@ def _convert_pipeline_result(pipeline_result) -> StandardizationResult:
         stereo_comparison=stereo_comparison,
         structure_comparison=structure_comparison,
         mass_change_percent=pipeline_result.mass_change_percent,
+        provenance=provenance,
     )

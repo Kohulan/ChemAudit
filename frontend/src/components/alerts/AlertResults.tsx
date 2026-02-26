@@ -150,27 +150,35 @@ export function AlertResults({
       {groupByCatalog && screenedCatalogs.length > 1 ? (
         // Grouped view
         <div className="space-y-6">
-          {Object.entries(alertsByCatalog).map(([catalog, catalogAlerts]) => (
-            <div key={catalog}>
-              <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100">
-                  {catalog}
-                </span>
-                <span className="text-sm text-gray-500">
-                  ({catalogAlerts.length} alert{catalogAlerts.length !== 1 ? 's' : ''})
-                </span>
-              </h4>
-              <div className="space-y-3">
-                {catalogAlerts.map((alert, index) => (
-                  <AlertCard
-                    key={`${alert.pattern_name}-${index}`}
-                    alert={alert}
-                    onAtomHover={onHighlightAtoms}
-                  />
-                ))}
+          {Object.entries(alertsByCatalog).map(([catalog, catalogAlerts]) => {
+            const sampleAlert = catalogAlerts[0];
+            return (
+              <div key={catalog}>
+                <div className="mb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                      {sampleAlert?.catalog_description || catalog}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      ({catalogAlerts.length} alert{catalogAlerts.length !== 1 ? 's' : ''})
+                    </span>
+                  </div>
+                  {sampleAlert?.scope && (
+                    <p className="text-xs text-gray-500 mt-1 ml-0.5 italic">{sampleAlert.scope}</p>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {catalogAlerts.map((alert, index) => (
+                    <AlertCard
+                      key={`${alert.pattern_name}-${index}`}
+                      alert={alert}
+                      onAtomHover={onHighlightAtoms}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         // Flat view

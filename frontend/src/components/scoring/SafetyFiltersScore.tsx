@@ -12,9 +12,92 @@ import type { SafetyFilterResult, FilterAlertResult, ChEMBLAlertsResult } from '
 import { InfoTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
+const CATEGORY_BADGE: Record<string, string> = {
+  'Reactive Group': 'bg-red-100 text-red-700',
+  'Toxicophore': 'bg-rose-100 text-rose-700',
+  'Metabolic Liability': 'bg-amber-100 text-amber-700',
+  'Assay Interference': 'bg-purple-100 text-purple-700',
+  'Physicochemical': 'bg-slate-100 text-slate-700',
+  'Unwanted Functionality': 'bg-gray-100 text-gray-600',
+};
+
+function formatPatternName(name: string): string {
+  return name
+    .replace(/\(\d+\)$/, '')
+    .trim()
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 interface SafetyFiltersScoreProps {
   result: SafetyFilterResult;
 }
+
+/**
+ * Catalog metadata for display — sourced from AVAILABLE_CATALOGS (backend).
+ * Keeps frontend descriptions consistent with the enriched alert data.
+ */
+const FILTER_INFO: Record<string, { label: string; description: string; citation: string }> = {
+  PAINS: {
+    label: 'PAINS (Pan-Assay Interference Compounds)',
+    description: 'Identifies compounds that appear active in multiple assay types due to non-specific mechanisms such as aggregation, redox cycling, or fluorescence interference.',
+    citation: 'Baell JB, Holloway GA. J Med Chem 53 (2010) 2719-2740.',
+  },
+  Brenk: {
+    label: 'Brenk Structural Alerts',
+    description: 'Flags compounds with known problematic functional groups associated with toxicity or unfavourable pharmacokinetic properties.',
+    citation: 'Brenk R et al. ChemMedChem 3 (2008) 435-444.',
+  },
+  NIH: {
+    label: 'NIH MLPCN Exclusion Filters',
+    description: 'Reactive and interference compounds excluded from NIH Molecular Libraries screening collection.',
+    citation: 'Jadhav A et al. J Med Chem 53 (2010) 37-51.',
+  },
+  ZINC: {
+    label: 'ZINC Druglike Filters',
+    description: 'Reactivity and drug-likeness filters used by the ZINC purchasable compound database.',
+    citation: 'Irwin JJ, Shoichet BK. J Chem Inf Model 45 (2005) 177-182.',
+  },
+};
+
+const CHEMBL_FILTER_INFO: Record<string, { label: string; description: string; citation: string }> = {
+  bms: {
+    label: 'BMS HTS Desirability Filters',
+    description: 'Functional group filters for HTS compound selection at Bristol-Myers Squibb.',
+    citation: 'Pearce BC et al. J Chem Inf Model 46 (2006) 1060-1068.',
+  },
+  dundee: {
+    label: 'Dundee NTD Screening Filters',
+    description: 'Alerts developed for neglected tropical disease screening at the University of Dundee.',
+    citation: 'Brenk R et al. ChemMedChem 3 (2008) 435-444.',
+  },
+  glaxo: {
+    label: 'Glaxo Hard Filters',
+    description: 'Reactive and toxic group filters for lead optimisation at GlaxoSmithKline.',
+    citation: 'Hann M et al. J Chem Inf Comput Sci 39 (1999) 897-902.',
+  },
+  inpharmatica: {
+    label: 'Inpharmatica Unwanted Fragments',
+    description: 'Fragments flagged as undesirable in drug-like compounds by Inpharmatica.',
+    citation: 'ChEMBL structural alerts collection.',
+  },
+  lint: {
+    label: 'Lilly MedChem Rules (LINT)',
+    description: 'Medicinal chemistry structural alerts developed at Eli Lilly to flag undesirable compounds.',
+    citation: 'Bruns RF, Watson IA. J Med Chem 55 (2012) 9763-9772.',
+  },
+  mlsmr: {
+    label: 'NIH MLSMR Excluded Functionality',
+    description: 'Functional groups excluded from the NIH Molecular Libraries Small Molecule Repository.',
+    citation: 'NIH Chemical Genomics Center guidelines.',
+  },
+  schembl: {
+    label: 'SureChEMBL Non-chemical Patterns',
+    description: 'Filters for non-chemical entities and patent noise in the SureChEMBL patent-mined database.',
+    citation: 'Papadatos G et al. Nucleic Acids Res 44 (2016) D1220-D1228.',
+  },
+};
 
 /**
  * Individual filter result display
@@ -22,11 +105,13 @@ interface SafetyFiltersScoreProps {
 function FilterCard({
   name,
   description,
+  citation,
   result,
   delay = 0
 }: {
   name: string;
   description: string;
+  citation?: string;
   result: FilterAlertResult;
   delay?: number;
 }) {
@@ -54,7 +139,12 @@ function FilterCard({
             <ShieldAlert className="w-4 h-4 text-red-500" />
           )}
           <span className="text-sm font-medium text-[var(--color-text-primary)]">{name}</span>
-          <InfoTooltip title={name} content={<span className="text-xs">{description}</span>} />
+          <InfoTooltip title={name} content={
+            <div className="text-xs space-y-1">
+              <p>{description}</p>
+              {citation && <p className="text-[var(--color-text-muted)] italic">{citation}</p>}
+            </div>
+          } />
         </div>
         <span
           className={cn(
@@ -89,12 +179,18 @@ function FilterCard({
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="mt-2 p-2 rounded-lg bg-red-500/5 text-xs text-red-600 dark:text-red-400 max-h-24 overflow-y-auto"
+              className="mt-2 p-2 rounded-lg bg-red-500/5 text-xs max-h-32 overflow-y-auto space-y-1"
             >
-              {result.alerts.map((alert, i) => (
-                <div key={i} className="flex items-start gap-1.5 py-0.5">
-                  <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                  <span>{alert}</span>
+              {(result.alert_details && result.alert_details.length > 0
+                ? result.alert_details
+                : result.alerts.map((a) => ({ name: a, category: 'Unwanted Functionality' }))
+              ).map((detail, i) => (
+                <div key={i} className="flex items-center gap-1.5 py-0.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0 text-red-500" />
+                  <span className="text-[var(--color-text-secondary)]">{formatPatternName(detail.name)}</span>
+                  <span className={cn('px-1.5 py-0 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                    {detail.category}
+                  </span>
                 </div>
               ))}
             </motion.div>
@@ -111,15 +207,7 @@ function FilterCard({
 function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
   const [expanded, setExpanded] = useState(false);
 
-  const alertFilters = [
-    { key: 'bms', name: 'BMS', desc: 'Bristol-Myers Squibb reactive groups' },
-    { key: 'dundee', name: 'Dundee', desc: 'University of Dundee alerts' },
-    { key: 'glaxo', name: 'Glaxo', desc: 'GSK structural alerts' },
-    { key: 'inpharmatica', name: 'Inpharmatica', desc: 'Inpharmatica alerts' },
-    { key: 'lint', name: 'LINT', desc: 'Lilly internal alerts' },
-    { key: 'mlsmr', name: 'MLSMR', desc: 'Molecular Libraries alerts' },
-    { key: 'schembl', name: 'SureChEMBL', desc: 'SureChEMBL reactivity' },
-  ];
+  const alertFilterKeys = ['bms', 'dundee', 'glaxo', 'inpharmatica', 'lint', 'mlsmr', 'schembl'] as const;
 
   return (
     <motion.div
@@ -149,7 +237,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
             title="ChEMBL Structural Alerts"
             content={
               <span className="text-xs">
-                Additional structural alerts from pharmaceutical companies (BMS, Dundee, Glaxo, etc.)
+                Curated structural alert filter sets from pharmaceutical companies and screening centres, aggregated in ChEMBL.
               </span>
             }
           />
@@ -178,26 +266,53 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
           animate={{ opacity: 1, height: 'auto' }}
           className="mt-3 space-y-1"
         >
-          {alertFilters.map(filter => {
-            const filterResult = chembl[filter.key as keyof ChEMBLAlertsResult] as FilterAlertResult | null;
-            if (!filterResult) return null;
+          {alertFilterKeys.map(key => {
+            const filterResult = chembl[key as keyof ChEMBLAlertsResult] as FilterAlertResult | null;
+            const info = CHEMBL_FILTER_INFO[key];
+            if (!filterResult || !info) return null;
 
             return (
-              <div key={filter.key} className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2">
-                  {filterResult.passed ? (
-                    <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                  ) : (
-                    <ShieldAlert className="w-3 h-3 text-red-500" />
-                  )}
-                  <span className="text-[var(--color-text-secondary)]">{filter.name}</span>
+              <div key={key} className="py-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    {filterResult.passed ? (
+                      <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                    ) : (
+                      <ShieldAlert className="w-3 h-3 text-red-500" />
+                    )}
+                    <span className="text-[var(--color-text-secondary)]">{info.label}</span>
+                    <InfoTooltip
+                      asSpan
+                      title={info.label}
+                      content={
+                        <div className="text-xs space-y-1">
+                          <p>{info.description}</p>
+                          <p className="text-[var(--color-text-muted)] italic">{info.citation}</p>
+                        </div>
+                      }
+                    />
+                  </div>
+                  <span className={cn(
+                    'text-xs',
+                    filterResult.passed ? 'text-emerald-500' : 'text-red-500'
+                  )}>
+                    {filterResult.passed ? 'Pass' : `${filterResult.alert_count} alert${filterResult.alert_count !== 1 ? 's' : ''}`}
+                  </span>
                 </div>
-                <span className={cn(
-                  'text-xs',
-                  filterResult.passed ? 'text-emerald-500' : 'text-red-500'
-                )}>
-                  {filterResult.passed ? 'Pass' : `${filterResult.alert_count} alerts`}
-                </span>
+                {/* Show enriched alert details when filter has alerts */}
+                {!filterResult.passed && filterResult.alert_details && filterResult.alert_details.length > 0 && (
+                  <div className="ml-5 mt-1 space-y-0.5">
+                    {filterResult.alert_details.map((detail, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                        <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-red-400" />
+                        <span className="text-[var(--color-text-muted)]">{formatPatternName(detail.name)}</span>
+                        <span className={cn('px-1.5 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                          {detail.category}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -266,37 +381,26 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
 
       {/* Filter cards */}
       <div className="space-y-2">
-        <FilterCard
-          name="PAINS"
-          description="Pan Assay Interference Compounds - 480 patterns that cause false positives in HTS. 📖 Baell & Holloway. J Med Chem (2010)"
-          result={pains}
-          delay={0.1}
-        />
-        <FilterCard
-          name="Brenk"
-          description="Structural alerts for toxicity and unfavorable pharmacokinetics. 📖 Brenk et al. ChemMedChem (2008)"
-          result={brenk}
-          delay={0.15}
-        />
-        {nih && (
-          <FilterCard
-            name="NIH"
-            description="NIH Molecular Libraries structural alerts for HTS interference"
-            result={nih}
-            delay={0.2}
-          />
-        )}
-        {zinc && (
-          <FilterCard
-            name="ZINC"
-            description="Drug-likeness and reactivity filters from ZINC database"
-            result={zinc}
-            delay={0.25}
-          />
-        )}
-        {chembl && (
-          <ChEMBLAlertsSection chembl={chembl} />
-        )}
+        {([
+          { key: 'PAINS', result: pains, delay: 0.1 },
+          { key: 'Brenk', result: brenk, delay: 0.15 },
+          { key: 'NIH', result: nih, delay: 0.2 },
+          { key: 'ZINC', result: zinc, delay: 0.25 },
+        ] as const).map(({ key, result: filterResult, delay }) => {
+          if (!filterResult) return null;
+          const info = FILTER_INFO[key];
+          return (
+            <FilterCard
+              key={key}
+              name={info.label}
+              description={info.description}
+              citation={info.citation}
+              result={filterResult}
+              delay={delay}
+            />
+          );
+        })}
+        {chembl && <ChEMBLAlertsSection chembl={chembl} />}
       </div>
 
       {/* Interpretation */}

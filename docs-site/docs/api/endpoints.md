@@ -442,6 +442,197 @@ List all API keys (metadata only, not the actual key values).
 
 Revoke an API key. Returns 204 No Content on success.
 
+## Bookmarks
+
+### GET /bookmarks
+
+List bookmarks with pagination and optional filters.
+
+**Query Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `page` | int | Page number (default: 1) |
+| `page_size` | int | Results per page (1-200, default: 50) |
+| `tag` | string | Filter by tag |
+| `search` | string | SMILES substring search |
+| `source` | string | Filter by source |
+
+### POST /bookmarks
+
+Create a new bookmark. Returns 201.
+
+**Request:**
+
+```json
+{
+  "smiles": "CCO",
+  "name": "Ethanol",
+  "tags": ["simple", "alcohol"],
+  "notes": "Test molecule",
+  "source": "single_validation"
+}
+```
+
+### PUT /bookmarks/\{id\}
+
+Update bookmark tags and notes. Returns 404 if not found.
+
+### DELETE /bookmarks/\{id\}
+
+Delete a single bookmark. Returns 204 on success.
+
+### DELETE /bookmarks/bulk
+
+Bulk delete bookmarks by IDs. Query parameter: `ids` (list of integers). Returns 204.
+
+### POST /bookmarks/batch-submit
+
+Submit selected bookmarks as a new batch job.
+
+**Request:**
+
+```json
+{
+  "bookmark_ids": [1, 2, 3]
+}
+```
+
+## History
+
+### GET /history
+
+Paginated validation audit trail with filters.
+
+**Query Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `page` | int | Page number (default: 1) |
+| `page_size` | int | Results per page (1-200, default: 50) |
+| `date_from` | ISO8601 | Filter entries after this date |
+| `date_to` | ISO8601 | Filter entries before this date |
+| `outcome` | string | `pass`, `warn`, or `fail` |
+| `source` | string | `single` or `batch` |
+| `smiles_search` | string | SMILES substring match |
+
+### GET /history/stats
+
+Get summary statistics: total validations, outcome distribution, source distribution.
+
+## Scoring Profiles
+
+### GET /profiles
+
+List all scoring profiles (8 presets + user-created).
+
+### POST /profiles
+
+Create a custom scoring profile. Returns 201.
+
+### GET /profiles/\{id\}
+
+Get a single profile by ID.
+
+### PUT /profiles/\{id\}
+
+Update a custom profile. Returns 400 if attempting to modify a preset.
+
+### DELETE /profiles/\{id\}
+
+Soft-delete a custom profile. Returns 400 for presets. Returns 204 on success.
+
+### POST /profiles/\{id\}/duplicate
+
+Duplicate any profile (including presets) as a new custom profile. Returns 201.
+
+### GET /profiles/\{id\}/export
+
+Export a profile as JSON for sharing.
+
+### POST /profiles/import
+
+Import a profile from JSON. Returns 201.
+
+## Batch Analytics
+
+### GET /batch/\{job_id\}/analytics
+
+Get analytics status and cached results for a completed batch job.
+
+### POST /batch/\{job_id\}/analytics/\{type\}
+
+Trigger an on-demand analytics computation. Types: `scaffold`, `chemical_space`, `mmp`, `similarity_search`, `rgroup`.
+
+**Optional body parameters:**
+
+| Param | Type | Used By |
+|-------|------|---------|
+| `method` | string | chemical_space (`pca` or `tsne`) |
+| `activity_column` | string | mmp (property key for cliff detection) |
+| `query_smiles` | string | similarity_search |
+| `query_index` | int | similarity_search |
+| `top_k` | int | similarity_search (default: 10) |
+| `core_smarts` | string | rgroup (SMARTS pattern) |
+
+## Batch Subset Actions
+
+### POST /batch/\{job_id\}/subset/revalidate
+
+Re-validate a subset as a new batch job. Body: `{"indices": [0, 5, 12]}`.
+
+### POST /batch/\{job_id\}/subset/rescore
+
+Re-score a subset with a different profile. Body: `{"indices": [0, 5], "profile_id": 3}`.
+
+### POST /batch/\{job_id\}/subset/score-inline
+
+Synchronous inline scoring. Body: `{"indices": [0, 5], "profile_id": 4}`.
+
+### POST /batch/\{job_id\}/subset/export
+
+Export selected molecules only. Body: `{"indices": [0, 5], "format": "csv"}`.
+
+## Similarity
+
+### POST /validate/similarity
+
+Calculate ECFP4 Tanimoto similarity between two molecules.
+
+**Request:**
+
+```json
+{
+  "smiles_a": "CC(=O)Oc1ccccc1C(=O)O",
+  "smiles_b": "CC(=O)Nc1ccc(O)cc1"
+}
+```
+
+## Permalinks
+
+### POST /permalinks
+
+Create a shareable permalink for a batch report. Returns short_id, URL, and 30-day expiry.
+
+### GET /report/\{short_id\}
+
+Resolve a permalink. Returns job data and snapshot. Returns 410 Gone if expired.
+
+## Session
+
+### DELETE /me/data
+
+GDPR erasure — permanently deletes all bookmarks and history for the current session or API key.
+
+**Response:**
+
+```json
+{
+  "status": "purged",
+  "deleted": {"bookmarks": 42, "history": 150}
+}
+```
+
 ## Next Steps
 
 - **[Authentication](/docs/api/authentication)** - API key setup

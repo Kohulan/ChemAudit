@@ -12,13 +12,13 @@ ChemAudit provides comprehensive molecular scoring across multiple dimensions to
 
 | Score Type | What It Measures | Range | Use Case |
 |------------|------------------|-------|----------|
-| **[ML-Readiness](/docs/user-guide/scoring/ml-readiness)** | Suitability for machine learning | 0-100 | Dataset curation, model training |
-| **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** | Compliance with drug-like rules | Multiple filters | Drug discovery, lead identification |
-| **[Safety Filters](/docs/user-guide/scoring/safety-filters)** | Structural alert screening | Pass/Fail | Compound library filtering |
-| **[ADMET](/docs/user-guide/scoring/admet)** | Absorption, Distribution, Metabolism, Excretion, Toxicity | Various | Lead optimization, candidate selection |
-| **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** | Natural product similarity | -5 to +5 | Natural product research, diversity analysis |
-| **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** | Murcko scaffold extraction | N/A | SAR analysis, scaffold hopping |
-| **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** | Colloidal aggregation risk | Low/Medium/High | Assay design, hit validation |
+| **[ML-Readiness](/docs/user-guide/scoring/ml-readiness)** | 4-dimension assessment: structural quality, property profile, complexity, representability | 0–100 | Dataset curation, model training |
+| **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** | 7 filters (Lipinski, QED, Veber, Ro3, Ghose, Egan, Muegge) + consensus + lead-likeness | Multiple | Drug discovery, lead identification |
+| **[Safety Filters](/docs/user-guide/scoring/safety-filters)** | PAINS, Brenk, NIH, ZINC, ChEMBL (7 sub-catalogs) structural alerts | Pass/Fail | Compound library filtering |
+| **[ADMET](/docs/user-guide/scoring/admet)** | SA Score, ESOL solubility, CNS MPO, Pfizer/GSK/Golden Triangle rules | Various | Lead optimization, candidate selection |
+| **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** | Fragment-based natural product similarity (7 categories) | −5 to +5 | Natural product research, diversity analysis |
+| **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** | Murcko scaffold extraction (standard + generic) | N/A | SAR analysis, scaffold hopping |
+| **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** | 6 risk indicators + 10 known SMARTS patterns | 0–1 | Assay design, hit validation |
 
 ## How to Use Scoring
 
@@ -166,10 +166,11 @@ Use these statistics to:
 
 Explore individual scoring systems in detail:
 
-- **[ML-Readiness](/docs/user-guide/scoring/ml-readiness)** - Descriptor and fingerprint calculability
-- **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** - Lipinski, QED, Veber, and more
-- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** - PAINS, BRENK, NIH, ZINC, ChEMBL
-- **[ADMET](/docs/user-guide/scoring/admet)** - Synthetic accessibility, solubility, bioavailability
-- **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** - Natural product classification
-- **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** - Murcko scaffold extraction
-- **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** - Colloidal aggregation risk
+- **[ML-Readiness](/docs/user-guide/scoring/ml-readiness)** — 4-dimension assessment (structural quality, properties, complexity, representability)
+- **[Drug-likeness](/docs/user-guide/scoring/drug-likeness)** — Lipinski, QED, Veber, Ro3, Ghose, Egan, Muegge, consensus, lead-likeness
+- **[Safety Filters](/docs/user-guide/scoring/safety-filters)** — PAINS, Brenk, NIH, ZINC, ChEMBL (7 sub-catalogs)
+- **[ADMET](/docs/user-guide/scoring/admet)** — SA Score, ESOL, CNS MPO, Pfizer/GSK/Golden Triangle rules
+- **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** — Fragment-based natural product classification (7 categories)
+- **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** — Murcko scaffold extraction (standard + generic)
+- **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** — 6 risk indicators + known SMARTS patterns
+- **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — 8 presets + custom profile builder with desirability scoring
