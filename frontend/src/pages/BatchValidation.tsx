@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useBatchCache } from '../contexts/BatchCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Share2, Check } from 'lucide-react';
@@ -31,6 +32,7 @@ import type {
  */
 export function BatchValidationPage() {
   const limits = useLimits();
+  const location = useLocation();
   const { getCache, setCache, clearCache } = useBatchCache();
 
   // Page state machine
@@ -300,6 +302,19 @@ export function BatchValidationPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Restore from permalink navigation (location.state.permalinkJobId)
+  const didRestorePermalink = useRef(false);
+  useEffect(() => {
+    if (didRestorePermalink.current) return;
+    const state = location.state as { permalinkJobId?: string } | null;
+    if (!state?.permalinkJobId) return;
+    didRestorePermalink.current = true;
+    // Clear the location state so refresh doesn't re-trigger
+    window.history.replaceState({}, '', '/batch');
+    setJobId(state.permalinkJobId);
+    setPageState('results');
+  }, [location.state]);
 
   // Persist batch state to cache whenever it changes
   useEffect(() => {
