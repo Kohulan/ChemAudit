@@ -16,6 +16,7 @@ interface BookmarkButtonProps {
   jobId?: string;
   isBookmarked?: boolean;
   onBookmark?: (bookmarked: boolean) => void;
+  onAfterBookmark?: (bookmarkId: number) => void;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function BookmarkButton({
   jobId,
   isBookmarked: initialBookmarked = false,
   onBookmark,
+  onAfterBookmark,
   className,
 }: BookmarkButtonProps) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
@@ -36,7 +38,7 @@ export function BookmarkButton({
     if (isLoading || !smiles.trim() || bookmarked) return;
     setIsLoading(true);
     try {
-      await bookmarksApi.createBookmark({
+      const bookmark = await bookmarksApi.createBookmark({
         smiles: smiles.trim(),
         name: name ?? undefined,
         source: source ?? 'single_validation',
@@ -44,6 +46,7 @@ export function BookmarkButton({
       });
       setBookmarked(true);
       onBookmark?.(true);
+      onAfterBookmark?.(bookmark.id);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 2000);
     } catch {
@@ -51,7 +54,7 @@ export function BookmarkButton({
     } finally {
       setIsLoading(false);
     }
-  }, [bookmarked, smiles, name, source, jobId, onBookmark, isLoading]);
+  }, [bookmarked, smiles, name, source, jobId, onBookmark, onAfterBookmark, isLoading]);
 
   return (
     <div className="relative inline-flex">

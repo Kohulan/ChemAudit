@@ -2,15 +2,17 @@
  * Reusable bookmark list with checkboxes, tag filtering, search, and bulk actions.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Trash2, Play, ChevronDown, ChevronUp, Tag, ChevronLeft, ChevronRight,
+  Eye,
 } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
 import { Badge } from '../ui/Badge';
 import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
+import { getSnapshotIds } from '../../lib/bookmarkStore';
 import type { Bookmark } from '../../types/workflow';
 
 interface BookmarkListProps {
@@ -29,6 +31,7 @@ interface BookmarkListProps {
   onDelete: (id: number) => void;
   onBulkDelete: (ids: number[]) => void;
   onSubmitAsBatch: (ids: number[]) => void;
+  onOpenBookmark?: (bookmark: Bookmark) => void;
 }
 
 export function BookmarkList({
@@ -47,16 +50,24 @@ export function BookmarkList({
   onDelete,
   onBulkDelete,
   onSubmitAsBatch,
+  onOpenBookmark,
 }: BookmarkListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activeTag, setActiveTag] = useState<string | undefined>();
+  const [snapshotIds, setSnapshotIds] = useState<Set<number>>(new Set());
 
+  const items = bookmarks ?? [];
   const totalPages = Math.ceil(total / pageSize);
-  const allSelected = bookmarks.length > 0 && bookmarks.every((b) => selectedIds.has(b.id));
+  const allSelected = items.length > 0 && items.every((b) => selectedIds.has(b.id));
+
+  // Load snapshot IDs to show indicator badges
+  useEffect(() => {
+    getSnapshotIds().then(setSnapshotIds).catch(() => {});
+  }, [bookmarks]);
 
   // Collect unique tags across all visible bookmarks
-  const allTags = Array.from(new Set(bookmarks.flatMap((b) => b.tags)));
+  const allTags = Array.from(new Set(items.flatMap((b) => b.tags)));
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +90,7 @@ export function BookmarkList({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
       {/* Search and tag filter bar */}
       <div className="flex flex-wrap items-center gap-3">
         <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px]">
@@ -187,14 +198,14 @@ export function BookmarkList({
                   Loading bookmarks...
                 </td>
               </tr>
-            ) : bookmarks.length === 0 ? (
+            ) : items.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-8 text-center text-[var(--color-text-muted)]">
                   No bookmarks found
                 </td>
               </tr>
             ) : (
-              bookmarks.map((bookmark) => (
+              items.map((bookmark) => (
                 <tr
                   key={bookmark.id}
                   className={cn(
@@ -211,7 +222,7 @@ export function BookmarkList({
                       className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
                     />
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="relative px-3 py-2.5">
                     <button
                       onClick={() => setExpandedRow(expandedRow === bookmark.id ? null : bookmark.id)}
                       className="flex items-center gap-1.5 text-left"
@@ -232,6 +243,15 @@ export function BookmarkList({
                         </code>
                       </div>
                     </button>
+                    {/* Snapshot indicator */}
+                    {snapshotIds.has(bookmark.id) && (
+                      <span
+                        className="inline-flex ml-2 px-1.5 py-0.5 text-[9px] font-medium rounded bg-green-500/10 text-green-600 dark:text-green-400 uppercase tracking-wider"
+                        title="Full validation results saved"
+                      >
+                        Results saved
+                      </span>
+                    )}
                     {/* Expanded row */}
                     <AnimatePresence>
                       {expandedRow === bookmark.id && (
@@ -275,13 +295,29 @@ export function BookmarkList({
                     <span className="text-xs text-[var(--color-text-muted)]">{bookmark.source ?? '--'}</span>
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => onDelete(bookmark.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
-                      title="Delete bookmark"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      {onOpenBookmark && (
+                        <button
+                          onClick={() => onOpenBookmark(bookmark)}
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+                            'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+                            'hover:bg-[var(--color-primary)]/20'
+                          )}
+                          title={snapshotIds.has(bookmark.id) ? 'View saved results' : 'View and validate'}
+                        >
+                          <Eye className="w-3 h-3" />
+                          View
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onDelete(bookmark.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
+                        title="Delete bookmark"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

@@ -10,6 +10,8 @@ import { Star, Beaker } from 'lucide-react';
 import { BookmarkList } from '../components/bookmarks/BookmarkList';
 import { Badge } from '../components/ui/Badge';
 import { useBookmarks } from '../hooks/useBookmarks';
+import { deleteSnapshot } from '../lib/bookmarkStore';
+import type { Bookmark } from '../types/workflow';
 
 export function BookmarksPage() {
   const navigate = useNavigate();
@@ -55,13 +57,41 @@ export function BookmarksPage() {
     async (ids: number[]) => {
       try {
         const result = await submitAsBatch(ids);
-        // Navigate to batch page with the new job
         navigate(`/batch?job=${result.job_id}`);
       } catch (err) {
         console.error('Failed to submit as batch:', err);
       }
     },
     [submitAsBatch, navigate]
+  );
+
+  const handleOpenBookmark = useCallback(
+    (bookmark: Bookmark) => {
+      if (bookmark.source === 'batch' && bookmark.job_id) {
+        navigate(`/batch?job=${bookmark.job_id}`);
+      } else {
+        navigate('/', { state: { bookmarkId: bookmark.id, smiles: bookmark.smiles } });
+      }
+    },
+    [navigate]
+  );
+
+  const handleDelete = useCallback(
+    async (id: number) => {
+      await removeBookmark(id);
+      deleteSnapshot(id).catch(() => {});
+    },
+    [removeBookmark]
+  );
+
+  const handleBulkDelete = useCallback(
+    async (ids: number[]) => {
+      await bulkDelete(ids);
+      for (const id of ids) {
+        deleteSnapshot(id).catch(() => {});
+      }
+    },
+    [bulkDelete]
   );
 
   return (
@@ -141,9 +171,10 @@ export function BookmarksPage() {
               onPageChange={handlePageChange}
               onSearch={handleSearch}
               onTagFilter={handleTagFilter}
-              onDelete={removeBookmark}
-              onBulkDelete={bulkDelete}
+              onDelete={handleDelete}
+              onBulkDelete={handleBulkDelete}
               onSubmitAsBatch={handleSubmitAsBatch}
+              onOpenBookmark={handleOpenBookmark}
             />
           </div>
         )}
