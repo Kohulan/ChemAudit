@@ -574,6 +574,46 @@ async def trigger_batch_analytics(
             f"Allowed: {sorted(_ALLOWED_EXPENSIVE_ANALYSES)}",
         )
 
+    # --- Idempotency check: avoid unnecessary re-computation ----------------
+    # Without this, every trigger call unconditionally sets "computing" and
+    # dispatches a Celery task — even when the result is already cached.
+    # This defeats the Celery task's own idempotency guard (which checks for
+    # "complete" status that the route already overwrote to "computing").
+    status_data = analytics_storage.get_status(job_id)
+    if status_data:
+        current_entry = status_data.get(analysis_type, {})
+        current_status_val = (
+            current_entry.get("status") if isinstance(current_entry, dict) else None
+        )
+
+        if current_status_val == "computing":
+            # Already computing — don't dispatch a duplicate task.
+            return AnalyticsTriggerResponse(
+                job_id=job_id,
+                analysis_type=analysis_type,
+                status="already_computing",
+            )
+
+        if current_status_val == "complete":
+            # For chemical_space: allow re-computation when a *different*
+            # method is requested (e.g. PCA stored, user wants t-SNE).
+            needs_recompute = False
+            if analysis_type == "chemical_space" and params and params.get("method"):
+                stored = analytics_storage.get_result(job_id, "chemical_space")
+                if stored and stored.get("method") != params["method"]:
+                    needs_recompute = True
+
+            if not needs_recompute:
+                return AnalyticsTriggerResponse(
+                    job_id=job_id,
+                    analysis_type=analysis_type,
+                    status="already_complete",
+                )
+
+    # Set status to "computing" immediately so frontend polling sees the
+    # transition before the Celery worker picks up the task.
+    analytics_storage.update_status(job_id, analysis_type, "computing")
+
     run_expensive_analytics.delay(job_id, analysis_type, params)
 
     return AnalyticsTriggerResponse(

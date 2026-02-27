@@ -93,7 +93,7 @@ export function ProfileSidebar({ selectedProfileId, onProfileChange, disabled }:
         {/* Subtle gradient background when collapsed */}
         {!isExpanded && (
           <div
-            className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+            className="absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity duration-300"
             style={{ background: 'var(--gradient-primary-subtle)' }}
           />
         )}
@@ -112,7 +112,7 @@ export function ProfileSidebar({ selectedProfileId, onProfileChange, disabled }:
           )}
         </AnimatePresence>
 
-        <div className="relative flex items-center gap-3">
+        <div className="relative z-10 flex items-center gap-3">
           {/* Icon with gradient fill */}
           <div className="relative flex-shrink-0">
             <div className={cn(
@@ -196,7 +196,7 @@ export function ProfileSidebar({ selectedProfileId, onProfileChange, disabled }:
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className={cn(
-              'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200',
+              'relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200',
               isExpanded
                 ? 'text-white shadow-[0_0_8px_var(--glow-primary)]'
                 : 'text-[var(--color-accent)] group-hover:text-white group-hover:shadow-[0_0_8px_var(--glow-primary)]'

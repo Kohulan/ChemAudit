@@ -31,7 +31,6 @@ import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/use
 import { cn } from '../../lib/utils';
 
 interface BatchAnalyticsPanelProps {
-  jobId: string;
   statistics: BatchStatistics | null;
   results: BatchResult[];
   selectedIndices: Set<number>;
@@ -40,7 +39,7 @@ interface BatchAnalyticsPanelProps {
   analyticsStatus?: AnalyticsHookStatus;
   analyticsError?: string | null;
   analyticsProgress?: AnalyticsProgressInfo;
-  onRetrigger: (type: string) => void;
+  onRetrigger: (type: string, params?: Record<string, string>) => void;
   onCompare?: () => void;
   onOpenActions?: () => void;
 }
@@ -204,7 +203,7 @@ function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
   progress?: AnalyticsProgressInfo;
   status?: AnalyticsHookStatus;
   error?: string | null;
-  onRetrigger: (type: string) => void;
+  onRetrigger: (type: string, params?: Record<string, string>) => void;
 }) {
   if (!progress || status === 'idle' || status === 'complete') return null;
 
@@ -298,7 +297,6 @@ function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
 }
 
 export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
-  jobId,
   statistics,
   results,
   selectedIndices,
@@ -660,7 +658,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                   onColorByChange={setChemSpaceColorProp}
                   selectedIndices={selectedIndices}
                   onSelectionChange={onSelectionChange}
-                  jobId={jobId}
+                  onTriggerTsne={() => onRetrigger('chemical_space', { method: 'tsne' })}
                 />
               )}
             </ChartCard>
