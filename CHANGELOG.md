@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.1](https://github.com/Kohulan/ChemAudit/compare/v1.2.0...v1.2.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* allow Swagger UI CDN assets in Content-Security-Policy ([aa0cbe7](https://github.com/Kohulan/ChemAudit/commit/aa0cbe716629dac601a101b64cf1c6060fcbef79))
+* allow Swagger UI CDN assets in Content-Security-Policy ([a4d69ec](https://github.com/Kohulan/ChemAudit/commit/a4d69ec51cb97acca710387c72cc58feb50d692c))
+* enable API docs (Swagger, ReDoc) in production ([771524e](https://github.com/Kohulan/ChemAudit/commit/771524ed8543e60e8ae715b17b4b9a43cb9a0d9a))
+* enable API docs (Swagger, ReDoc) in production ([cbba13d](https://github.com/Kohulan/ChemAudit/commit/cbba13da3dd203a6fde8f2e55b34bd9bffc0fbb3))
+
 ## [1.2.0](https://github.com/Kohulan/ChemAudit/compare/v1.1.3...v1.2.0) (2026-02-27)
 
 
