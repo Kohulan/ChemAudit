@@ -1207,6 +1207,31 @@ function ScientificReferences() {
       ],
     },
     {
+      title: 'Bioavailability & Permeation',
+      icon: <Activity className="w-4 h-4" />,
+      color: 'from-indigo-500/20 to-blue-500/10',
+      references: [
+        {
+          method: 'SwissADME / Bioavailability Radar',
+          citation: 'Daina A, Michielin O, Zoete V. SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemistry friendliness of small molecules. Sci Rep. 2017;7:42717.',
+          doi: '10.1038/srep42717',
+          tooltip: 'Daina et al. Sci Rep (2017)',
+        },
+        {
+          method: 'BOILED-Egg (GI Absorption / BBB Permeation)',
+          citation: 'Daina A, Zoete V. A BOILED-Egg to predict gastrointestinal absorption and brain penetration of small molecules. ChemMedChem. 2016;11(11):1117-1121.',
+          doi: '10.1002/cmdc.201600182',
+          tooltip: 'Daina & Zoete. ChemMedChem (2016)',
+        },
+        {
+          method: 'Wildman-Crippen LogP (WLOGP)',
+          citation: 'Wildman SA, Crippen GM. Prediction of physicochemical parameters by atomic contributions. J Chem Inf Comput Sci. 1999;39(5):868-873.',
+          doi: '10.1021/ci990307l',
+          tooltip: 'Wildman & Crippen. J Chem Inf Comput Sci (1999)',
+        },
+      ],
+    },
+    {
       title: 'Software & Pipelines',
       icon: <Code2 className="w-4 h-4" />,
       color: 'from-blue-500/20 to-indigo-500/10',
