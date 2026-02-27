@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import type { BioavailabilityRadar, BoiledEgg } from '../../types/scoring';
 import { cn } from '../../lib/utils';
+import { InfoTooltip } from '../ui/Tooltip';
 
 interface BioavailabilityCardProps {
   radar: BioavailabilityRadar | null;
@@ -43,9 +44,43 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
       {radar && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Bioavailability Radar
-            </h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Bioavailability Radar
+              </h4>
+              <InfoTooltip
+                title="Bioavailability Radar"
+                content={
+                  <div className="text-xs space-y-2">
+                    <p>
+                      6-axis normalized assessment of oral bioavailability based on key
+                      physicochemical properties. Each axis evaluates whether a property
+                      falls within the optimal drug-like range.
+                    </p>
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="border-b border-white/20">
+                          <th className="text-left py-0.5 text-zinc-400">Axis</th>
+                          <th className="text-left py-0.5 text-zinc-400">Property</th>
+                          <th className="text-left py-0.5 text-zinc-400">Range</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>LIPO</td><td>WLOGP</td><td>-0.7 to 5.0</td></tr>
+                        <tr><td>SIZE</td><td>MW</td><td>150–500 Da</td></tr>
+                        <tr><td>POLAR</td><td>TPSA</td><td>20–130 A^2</td></tr>
+                        <tr><td>INSOLU</td><td>LogS</td><td>-6 to 0</td></tr>
+                        <tr><td>INSATU</td><td>Fsp3</td><td>{'\u2265'} 0.25</td></tr>
+                        <tr><td>FLEX</td><td>RotBonds</td><td>{'\u2264'} 9</td></tr>
+                      </tbody>
+                    </table>
+                    <p className="text-zinc-400 italic">
+                      Daina, Michielin & Zoete. Sci. Rep. 2017, 7, 42717
+                    </p>
+                  </div>
+                }
+              />
+            </div>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
               radar.overall_in_range_count >= 5
@@ -157,9 +192,44 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
       {boiledEgg && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              BOILED-Egg Classification
-            </h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                BOILED-Egg Classification
+              </h4>
+              <InfoTooltip
+                title="BOILED-Egg Model"
+                content={
+                  <div className="text-xs space-y-2">
+                    <p>
+                      <strong>B</strong>rain <strong>O</strong>r <strong>I</strong>ntestina<strong>L</strong>{' '}
+                      <strong>E</strong>stimate<strong>D</strong> permeation method. Predicts passive
+                      gastrointestinal (GI) absorption and blood-brain barrier (BBB) penetration
+                      using an elliptical model on TPSA vs WLOGP.
+                    </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                        <span><strong>White</strong> — GI absorbed (93% accuracy)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                        <span><strong>Yolk</strong> — BBB permeant (90% accuracy)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block" />
+                        <span><strong>Grey</strong> — Neither absorbed nor permeant</span>
+                      </div>
+                    </div>
+                    <p className="text-zinc-400">
+                      Validated on 46 FDA NCEs with 83% accuracy.
+                    </p>
+                    <p className="text-zinc-400 italic">
+                      Daina & Zoete. ChemMedChem 2016, 11, 1117–1121
+                    </p>
+                  </div>
+                }
+              />
+            </div>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium capitalize',
               getRegionColor(boiledEgg.region).replace('text-', 'bg-').replace('500', '500/10'),
