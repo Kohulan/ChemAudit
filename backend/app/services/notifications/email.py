@@ -33,7 +33,7 @@ def _render_email_template(job_id: str, stats: dict) -> str:
     Returns:
         Rendered HTML string
     """
-    env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
+    env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)), autoescape=True)
     template = env.get_template("batch_complete.html")
     return template.render(
         job_id=job_id,

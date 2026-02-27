@@ -13,6 +13,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - FOWNER
+      - DAC_READ_SEARCH
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chemaudit}"]
       interval: 10s
@@ -24,13 +34,17 @@ services:
     image: redis:7-alpine
     container_name: chemaudit-redis-prod
     restart: unless-stopped
-    command: redis-server --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy allkeys-lru
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     networks:
       - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,9 +74,15 @@ services:
         - NO_PROXY=${NO_PROXY:-}
     container_name: chemaudit-backend-prod
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemaudit}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemaudit}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
@@ -78,7 +98,8 @@ services:
       - API_KEY_MAX_EXPIRY_DAYS=${API_KEY_MAX_EXPIRY_DAYS:-365}
       - RATE_LIMIT_BAN_THRESHOLD=${RATE_LIMIT_BAN_THRESHOLD:-100}
       - RATE_LIMIT_BAN_DURATION_MINUTES=${RATE_LIMIT_BAN_DURATION_MINUTES:-60}
-      - CORS_ORIGINS_STR=${CORS_ORIGINS:?CORS_ORIGINS is required for production}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:?CORS_ORIGINS_STR is required for production}
+      - DEBUG=false
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
     deploy:
       resources:
@@ -108,14 +129,27 @@ services:
         - HTTPS_PROXY=${HTTPS_PROXY:-}
     container_name: chemaudit-celery-worker-prod
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS:-4} -Q default -n worker-default@%h
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemaudit}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemaudit}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
+      # Security settings (required — Celery imports app.core.config)
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:?CORS_ORIGINS_STR is required for production}
+      - DEBUG=false
     deploy:
       resources:
         limits:
@@ -143,14 +177,27 @@ services:
         - HTTPS_PROXY=${HTTPS_PROXY:-}
     container_name: chemaudit-celery-worker-priority-prod
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS_PRIORITY:-2} -Q high_priority -n worker-priority@%h
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemaudit}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemaudit}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
+      # Security settings (required — Celery imports app.core.config)
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:?CORS_ORIGINS_STR is required for production}
+      - DEBUG=false
     deploy:
       resources:
         limits:
@@ -173,6 +220,15 @@ services:
     image: nginx:1.25-alpine
     container_name: chemaudit-nginx-prod
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"

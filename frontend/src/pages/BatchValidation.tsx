@@ -19,6 +19,7 @@ import { useBrushSelection, setSelection, toggleIndex, clearSelection } from '..
 import { useLimits } from '../context/ConfigContext';
 import { batchApi, permalinksApi } from '../services/api';
 import { cn } from '../lib/utils';
+import { logger } from '../lib/logger';
 import type {
   BatchPageState,
   BatchResultsResponse,
@@ -262,7 +263,7 @@ export function BatchValidationPage() {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to create permalink:', err);
+      logger.error('Failed to create permalink:', err);
     }
   }, [jobId]);
 
@@ -307,14 +308,29 @@ export function BatchValidationPage() {
   const didRestorePermalink = useRef(false);
   useEffect(() => {
     if (didRestorePermalink.current) return;
-    const state = location.state as { permalinkJobId?: string } | null;
+    const state = location.state as { permalinkJobId?: string; permalinkSnapshot?: Record<string, unknown> } | null;
     if (!state?.permalinkJobId) return;
     didRestorePermalink.current = true;
     // Clear the location state so refresh doesn't re-trigger
     window.history.replaceState({}, '', '/batch');
-    setJobId(state.permalinkJobId);
+
+    const permalinkJobId = state.permalinkJobId;
+    setJobId(permalinkJobId);
     setPageState('results');
-  }, [location.state]);
+
+    // Fetch results for the permalink job
+    setResultsLoading(true);
+    batchApi.getBatchResults(permalinkJobId, 1, pageSize, {}).then((data) => {
+      setResultsData(data);
+      setPage(1);
+      setFilters({});
+    }).catch((e: any) => {
+      setError(e.message || 'Failed to load permalink results');
+      setPageState('upload');
+    }).finally(() => {
+      setResultsLoading(false);
+    });
+  }, [location.state, pageSize]);
 
   // Persist batch state to cache whenever it changes
   useEffect(() => {
@@ -582,7 +598,6 @@ export function BatchValidationPage() {
                 )}
 
                 <BatchAnalyticsPanel
-                  jobId={jobId}
                   statistics={resultsData.statistics}
                   results={resultsData.results}
                   selectedIndices={selectedIndices}

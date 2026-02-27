@@ -5,10 +5,12 @@
  * Supports >800 points without browser jank.
  * Features: color-by property, hit detection, brush selection rectangle,
  * click-to-toggle, and PNG download via canvas.toBlob().
+ *
+ * Both PCA and t-SNE results are cached client-side so switching between
+ * them is instant with no API calls or recomputation.
  */
 
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { batchApi } from '../../../services/api';
 import type { ChemSpaceCoordinates } from '../../../types/analytics';
 import type { BatchResult } from '../../../types/batch';
 
@@ -19,12 +21,20 @@ interface ChemicalSpaceScatterProps {
   onColorByChange: (prop: string) => void;
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
-  jobId: string;
+  onTriggerTsne: () => void;
 }
 
 const PROPERTY_OPTIONS = ['overall_score', 'QED', 'SA_score', 'Fsp3'];
 const MARGIN = 40;
 const CANVAS_HEIGHT = 400;
+
+const GLASS_BTN =
+  'text-xs px-4 py-1.5 rounded-lg font-medium backdrop-blur-md bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:bg-white/20 dark:hover:bg-white/10 hover:shadow-[0_4px_24px_rgba(0,0,0,0.12)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
+
+const TOGGLE_BASE = 'text-xs px-3.5 py-1.5 font-medium transition-all duration-200';
+const TOGGLE_ACTIVE = 'bg-[var(--color-primary)]/15 text-[var(--color-primary)]';
+const TOGGLE_INACTIVE =
+  'bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 hover:text-[var(--color-text-secondary)]';
 
 function getPropertyValue(r: BatchResult, prop: string): number | null {
   if (r.status !== 'success') return null;
@@ -65,7 +75,7 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
   onColorByChange,
   selectedIndices,
   onSelectionChange,
-  jobId,
+  onTriggerTsne,
 }: ChemicalSpaceScatterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +95,30 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
   } | null>(null);
   const brushStartRef = useRef<{ x: number; y: number } | null>(null);
   const [triggeringTsne, setTriggeringTsne] = useState(false);
+
+  // --------------- Client-side PCA / t-SNE cache ---------------
+  // Both results are cached so switching is instant with zero API calls.
+  // State (not refs) so React re-renders when cache updates.
+  const [pcaCache, setPcaCache] = useState<ChemSpaceCoordinates | null>(null);
+  const [tsneCache, setTsneCache] = useState<ChemSpaceCoordinates | null>(null);
+  const [displayMethod, setDisplayMethod] = useState<'pca' | 'tsne'>('pca');
+
+  // Sync incoming data into the appropriate cache, auto-switch display,
+  // and clear the t-SNE spinner when its data arrives.
+  useEffect(() => {
+    if (!data) return;
+    const method = data.method as 'pca' | 'tsne';
+    if (method === 'pca') setPcaCache(data);
+    if (method === 'tsne') {
+      setTsneCache(data);
+      setTriggeringTsne(false);
+    }
+    setDisplayMethod(method);
+  }, [data]);
+
+  // The data actually rendered on canvas
+  const displayData = displayMethod === 'tsne' ? tsneCache : pcaCache;
+  const hasTsneCache = tsneCache !== null;
 
   // Build color value range
   const { colorMin, colorMax, colorMap } = useMemo(() => {
@@ -123,7 +157,7 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
   // Draw canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !data) return;
+    if (!canvas || !displayData) return;
 
     const dpr = window.devicePixelRatio || 1;
     const logicalW = canvasWidth;
@@ -146,11 +180,11 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
       .trim() || '#f8f9fa';
     ctx.fillRect(0, 0, logicalW, logicalH);
 
-    if (data.coordinates.length === 0) return;
+    if (displayData.coordinates.length === 0) return;
 
     // Compute coordinate range
     let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-    for (const coord of data.coordinates) {
+    for (const coord of displayData.coordinates) {
       if (coord[0] < xMin) xMin = coord[0];
       if (coord[0] > xMax) xMax = coord[0];
       if (coord[1] < yMin) yMin = coord[1];
@@ -181,8 +215,8 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     ctx.fillStyle = 'rgba(128, 128, 128, 0.8)';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    const xLabel = data.method === 'pca' ? 'PC1' : 't-SNE 1';
-    const yLabel = data.method === 'pca' ? 'PC2' : 't-SNE 2';
+    const xLabel = displayData.method === 'pca' ? 'PC1' : 't-SNE 1';
+    const yLabel = displayData.method === 'pca' ? 'PC2' : 't-SNE 2';
     ctx.fillText(xLabel, logicalW / 2, logicalH - 8);
     ctx.save();
     ctx.translate(12, logicalH / 2);
@@ -194,14 +228,16 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     const hasSelection = selectedIndices.size > 0;
     const newPoints: PointData[] = [];
 
-    for (let i = 0; i < data.coordinates.length; i++) {
-      const [cx, cy] = data.coordinates[i];
-      const molIdx = data.molecule_indices[i];
+    for (let i = 0; i < displayData.coordinates.length; i++) {
+      const [cx, cy] = displayData.coordinates[i];
+      const molIdx = displayData.molecule_indices[i];
       const px = MARGIN + ((cx - xMin) / xRange) * plotW;
       const py = MARGIN + plotH - ((cy - yMin) / yRange) * plotH;
 
-      const cVal = colorMap.get(molIdx) ?? 0;
-      const color = valueToColor(cVal, colorMin, colorMax);
+      const cVal = colorMap.get(molIdx);
+      const color = cVal !== undefined
+        ? valueToColor(cVal, colorMin, colorMax)
+        : 'rgba(148, 163, 184, 0.35)';
 
       newPoints.push({ px, py, index: molIdx, color });
     }
@@ -255,7 +291,7 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     }
 
     pointsRef.current = newPoints;
-  }, [data, canvasWidth, selectedIndices, colorMap, colorMin, colorMax, brushRect]);
+  }, [displayData, canvasWidth, selectedIndices, colorMap, colorMin, colorMax, brushRect]);
 
   // Hit detection on mousemove (debounced)
   const mouseMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -417,16 +453,11 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     [onSelectionChange]
   );
 
-  // Compute t-SNE trigger
-  const handleTriggerTsne = useCallback(async () => {
+  // Compute t-SNE — delegates to parent hook for the one-time API call.
+  const handleTriggerTsne = useCallback(() => {
     setTriggeringTsne(true);
-    try {
-      await batchApi.triggerAnalytics(jobId, 'chemical_space', { method: 'tsne' });
-    } catch {
-      // Ignore — parent polling will pick it up
-    }
-    setTriggeringTsne(false);
-  }, [jobId]);
+    onTriggerTsne();
+  }, [onTriggerTsne]);
 
   // PNG download
   const handleDownload = useCallback(() => {
@@ -442,7 +473,7 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     }, 'image/png');
   }, []);
 
-  if (!data) {
+  if (!displayData) {
     return (
       <div className="flex items-center justify-center h-[400px] text-sm text-[var(--color-text-muted)]">
         <div className="animate-pulse space-y-3 w-full">
@@ -453,8 +484,8 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
     );
   }
 
-  const canShowTsne =
-    data.method === 'pca' && results.length <= 2000;
+  // Show "Compute t-SNE" only if t-SNE hasn't been computed yet
+  const canComputeTsne = !hasTsneCache && !triggeringTsne && results.length <= 2000;
 
   return (
     <div className="space-y-3">
@@ -475,14 +506,39 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
           </select>
         </label>
 
-        {canShowTsne && (
+        {/* Compute t-SNE: one-time API call, only shown when not yet cached */}
+        {canComputeTsne && (
           <button
             onClick={handleTriggerTsne}
-            disabled={triggeringTsne}
-            className="text-xs px-3 py-1 rounded-md bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors disabled:opacity-50"
+            className={`${GLASS_BTN} text-[var(--color-primary)]`}
           >
-            {triggeringTsne ? 'Computing...' : 'Compute t-SNE'}
+            Compute t-SNE
           </button>
+        )}
+
+        {/* Computing spinner */}
+        {triggeringTsne && (
+          <span className="text-xs text-[var(--color-text-muted)] animate-pulse">
+            Computing t-SNE...
+          </span>
+        )}
+
+        {/* Instant toggle: only when both methods are cached */}
+        {hasTsneCache && (
+          <div className="inline-flex rounded-lg overflow-hidden border border-white/20 dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md">
+            <button
+              onClick={() => setDisplayMethod('pca')}
+              className={`${TOGGLE_BASE} ${displayMethod === 'pca' ? TOGGLE_ACTIVE : TOGGLE_INACTIVE}`}
+            >
+              PCA
+            </button>
+            <button
+              onClick={() => setDisplayMethod('tsne')}
+              className={`${TOGGLE_BASE} ${displayMethod === 'tsne' ? TOGGLE_ACTIVE : TOGGLE_INACTIVE}`}
+            >
+              t-SNE
+            </button>
+          </div>
         )}
 
         <button
@@ -493,7 +549,7 @@ export const ChemicalSpaceScatter = React.memo(function ChemicalSpaceScatter({
         </button>
 
         <span className="text-xs text-[var(--color-text-muted)]">
-          {data.method.toUpperCase()} | {data.coordinates.length} points
+          {displayData.method.toUpperCase()} | {displayData.coordinates.length} points
         </span>
       </div>
 

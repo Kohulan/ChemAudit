@@ -19,6 +19,7 @@ ChemAudit provides comprehensive molecular scoring across multiple dimensions to
 | **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** | Fragment-based natural product similarity (7 categories) | −5 to +5 | Natural product research, diversity analysis |
 | **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** | Murcko scaffold extraction (standard + generic) | N/A | SAR analysis, scaffold hopping |
 | **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** | 6 risk indicators + 10 known SMARTS patterns | 0–1 | Assay design, hit validation |
+| **[Bioavailability & Permeation](/docs/user-guide/scoring/bioavailability-permeation)** | 6-axis radar (LIPO, SIZE, POLAR, INSOLU, INSATU, FLEX) + BOILED-Egg GI/BBB | Radar: 0–6 in range; Egg: yolk/white/grey | Oral bioavailability, CNS drug design |
 
 ## How to Use Scoring
 
@@ -173,4 +174,5 @@ Explore individual scoring systems in detail:
 - **[NP-Likeness](/docs/user-guide/scoring/np-likeness)** — Fragment-based natural product classification (7 categories)
 - **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** — Murcko scaffold extraction (standard + generic)
 - **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** — 6 risk indicators + known SMARTS patterns
+- **[Bioavailability & Permeation](/docs/user-guide/scoring/bioavailability-permeation)** — 6-axis radar + BOILED-Egg GI absorption and BBB penetration
 - **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — 8 presets + custom profile builder with desirability scoring

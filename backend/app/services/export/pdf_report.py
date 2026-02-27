@@ -94,7 +94,7 @@ class PDFReportGenerator(BaseExporter):
         template_dir = Path(__file__).parent.parent.parent / "templates" / "reports"
         if not template_dir.exists():
             raise FileNotFoundError(f"Template directory not found: {template_dir}")
-        self.env = Environment(loader=FileSystemLoader(str(template_dir)))
+        self.env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         try:
             self.template = self.env.get_template("batch_report.html")
         except Exception as e:
