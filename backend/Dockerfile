@@ -31,6 +31,10 @@ RUN pip install --no-cache-dir -e .
 # Copy application code
 COPY . .
 
+# Run as non-root user for security (matches Dockerfile.prod pattern)
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose port
 EXPOSE 8000
 

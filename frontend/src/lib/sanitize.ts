@@ -203,6 +203,25 @@ export function sanitizeHtml(html: string | null | undefined): string {
 }
 
 /**
+ * Validate that a URL uses a safe scheme (http/https).
+ * Returns the URL if safe, or '#' if potentially dangerous.
+ */
+export function safeHref(url: string | undefined | null): string {
+  if (!url) return '#';
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return url;
+    }
+    return '#';
+  } catch {
+    // Relative URLs are safe
+    if (url.startsWith('/')) return url;
+    return '#';
+  }
+}
+
+/**
  * Escape HTML entities in a string.
  *
  * Use for text content that should be displayed literally,

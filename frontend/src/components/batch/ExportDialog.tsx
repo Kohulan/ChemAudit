@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, FileText, Table2, FlaskConical, Braces, FileBarChart, Fingerprint, Copy, Network, LayoutGrid, Image } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
 import { Badge } from '../ui/Badge';
+import { api } from '../../services/api';
+import { logger } from '../../lib/logger';
 import { EXPORT_FORMATS, PDF_SECTION_OPTIONS } from '../../types/workflow';
 import type { ExportFormat } from '../../types/workflow';
 
@@ -77,34 +79,31 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
         ? Array.from(selectedIndices).sort((a, b) => a - b)
         : null;
 
-      let fetchOptions: RequestInit | undefined;
+      let response;
       if (indicesArray && indicesArray.length > 200) {
         // Large selection: send indices in POST body to avoid URL length limits
-        fetchOptions = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ indices: indicesArray }),
-        };
-      } else if (indicesArray) {
-        params.set('indices', indicesArray.join(','));
+        response = await api.post(
+          `/batch/${jobId}/export?${params.toString()}`,
+          { indices: indicesArray },
+          { responseType: 'blob' }
+        );
+      } else {
+        if (indicesArray) {
+          params.set('indices', indicesArray.join(','));
+        }
+        response = await api.get(`/batch/${jobId}/export?${params.toString()}`, {
+          responseType: 'blob',
+        });
       }
 
-      const exportUrl = `/api/v1/batch/${jobId}/export?${params.toString()}`;
-      const response = await fetch(exportUrl, fetchOptions);
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || 'Export failed');
-      }
-
-      const contentDisposition = response.headers.get('Content-Disposition');
+      const contentDisposition = response.headers['content-disposition'];
       let filename = filePreview;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?([^"]+)"?/);
         if (match) filename = match[1];
       }
 
-      const blob = await response.blob();
+      const blob = response.data as Blob;
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -115,8 +114,15 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
       window.URL.revokeObjectURL(downloadUrl);
 
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed');
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { detail?: string } } };
+        const detail = axiosErr.response?.data?.detail;
+        setError(detail || 'Export failed');
+      } else {
+        setError(err instanceof Error ? err.message : 'Export failed');
+      }
+      logger.error('Export failed:', err);
     } finally {
       setIsExporting(false);
     }

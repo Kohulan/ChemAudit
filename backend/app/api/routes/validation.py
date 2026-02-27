@@ -22,6 +22,7 @@ from app.core.cache import (
     validation_cache_key,
 )
 from app.core.config import settings
+from app.core.error_sanitizer import safe_error_detail
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import create_session_id, ensure_session_cookie, get_data_scope
@@ -324,7 +325,7 @@ async def validate_molecule_async(
         task.revoke(terminate=True)
         raise HTTPException(
             status_code=504,
-            detail=f"Validation timed out or failed: {str(e)}",
+            detail=safe_error_detail(e, "Validation timed out or failed"),
         )
 
 

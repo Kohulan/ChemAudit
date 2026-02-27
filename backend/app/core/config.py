@@ -4,10 +4,16 @@ Configuration management for ChemAudit backend.
 Uses pydantic-settings for environment variable management.
 """
 
+import logging
 from typing import List
 
-from pydantic import ConfigDict, computed_field
+from pydantic import ConfigDict, computed_field, model_validator
 from pydantic_settings import BaseSettings
+
+_config_logger = logging.getLogger(__name__)
+
+# Insecure default values that must be replaced in production
+_INSECURE_DEFAULTS = frozenset({"CHANGE_ME_IN_PRODUCTION", ""})
 
 
 class Settings(BaseSettings):
@@ -18,10 +24,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    # Database
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://chemaudit:chemaudit@localhost:5432/chemaudit"
-    )
+    # Database — placeholder; override via DATABASE_URL env var in all environments
+    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost:5432/chemaudit"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
@@ -145,6 +149,26 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _check_insecure_defaults(self) -> "Settings":
+        """Reject insecure default secrets when DEBUG is False."""
+        secret_fields = ("SECRET_KEY", "API_KEY_ADMIN_SECRET", "CSRF_SECRET_KEY")
+        for field_name in secret_fields:
+            value = getattr(self, field_name)
+            if value in _INSECURE_DEFAULTS:
+                if not self.DEBUG:
+                    raise ValueError(
+                        f"{field_name} still has an insecure default value. "
+                        f"Set a strong secret via environment variable before "
+                        f"running in production (DEBUG=False)."
+                    )
+                _config_logger.warning(
+                    "%s has an insecure default value. "
+                    "This is acceptable for local development only.",
+                    field_name,
+                )
+        return self
 
 
 settings = Settings()

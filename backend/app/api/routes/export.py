@@ -4,16 +4,22 @@ Export API Routes
 Endpoints for exporting batch results in various formats.
 """
 
+import logging
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.core.ownership import verify_job_access
+from app.core.rate_limit import get_rate_limit_key, limiter
+from app.core.security import get_api_key
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.batch.result_aggregator import result_storage
 from app.services.export.base import ExporterFactory, ExportFormat
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -116,9 +122,10 @@ def _export_results(
     try:
         export_buffer = exporter.export(results)
     except Exception as e:
+        logger.error("Export failed for job %s: %s", job_id, e)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to export results: {str(e)}",
+            detail="Failed to export results",
         )
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -140,7 +147,9 @@ def _export_results(
 
 
 @router.get("/batch/{job_id}/export")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def export_batch_results(
+    request: Request,
     job_id: str,
     format: ExportFormat = Query(..., description="Export format"),
     score_min: Optional[int] = Query(
@@ -164,6 +173,7 @@ async def export_batch_results(
         False,
         description="Include 2D structure images in Excel export. Only used with Excel format.",
     ),
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Export batch results to specified format.
@@ -193,6 +203,8 @@ async def export_batch_results(
     (by their index field) are included in the export. Invalid or out-of-range
     indices are silently skipped.
     """
+    verify_job_access(request, job_id)
+
     indices_list = _parse_indices(indices)
     sections_list = (
         [s.strip() for s in sections.split(",") if s.strip()] if sections else None
@@ -205,7 +217,9 @@ async def export_batch_results(
 
 
 @router.post("/batch/{job_id}/export")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def export_batch_results_post(
+    request: Request,
     job_id: str,
     body: ExportRequest,
     format: ExportFormat = Query(..., description="Export format"),
@@ -222,6 +236,7 @@ async def export_batch_results_post(
         False,
         description="Include 2D structure images in Excel export. Only used with Excel format.",
     ),
+    api_key: Optional[str] = Depends(get_api_key),
 ):
     """
     Export batch results to specified format (POST version for large selections).
@@ -249,6 +264,8 @@ async def export_batch_results_post(
     }
     ```
     """
+    verify_job_access(request, job_id)
+
     return _export_results(
         job_id, format, score_min, score_max, status,
         body.indices, include_images=include_images,

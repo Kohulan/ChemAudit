@@ -8,6 +8,7 @@ import { SplashScreen } from './components/ui/SplashScreen';
 import { ErrorFallback } from './components/error/ErrorFallback';
 import { ConfigProvider } from './context/ConfigContext';
 import { useRDKit } from './hooks/useRDKit';
+import { logger } from './lib/logger';
 import { cn } from './lib/utils';
 
 // Eagerly import the home page to avoid Suspense flash after splash
@@ -288,7 +289,7 @@ function App() {
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
           onError={(error, errorInfo) => {
-            console.error('Uncaught error:', error, errorInfo);
+            logger.error('Uncaught error:', error, errorInfo);
           }}
           onReset={() => {
             window.location.href = '/';

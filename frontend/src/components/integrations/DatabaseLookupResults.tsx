@@ -1,4 +1,5 @@
 import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../../types/integrations';
+import { safeHref } from '../../lib/sanitize';
 const pubchemLogo = '/assets/logos/pubchem.png';
 const chemblLogo = '/assets/logos/chembl.png';
 const coconutLogo = '/assets/logos/coconut.png';
@@ -85,7 +86,7 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
           )}
           {result.url && (
             <a
-              href={result.url}
+              href={safeHref(result.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
@@ -185,7 +186,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
 
           {result.url && (
             <a
-              href={result.url}
+              href={safeHref(result.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800"
@@ -261,7 +262,7 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
 
           {result.url && (
             <a
-              href={result.url}
+              href={safeHref(result.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"

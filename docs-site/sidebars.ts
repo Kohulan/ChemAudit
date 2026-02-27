@@ -35,6 +35,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/scoring/np-likeness',
             'user-guide/scoring/scaffold-analysis',
             'user-guide/scoring/aggregator-likelihood',
+            'user-guide/scoring/bioavailability-permeation',
             'user-guide/scoring/profiles',
           ],
         },
