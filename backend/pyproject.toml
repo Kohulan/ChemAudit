@@ -36,6 +36,8 @@ dependencies = [
     "argon2-cffi>=23.1.0",
     "openTSNE>=1.0.0",
     "jpype1>=1.5.0",
+    "pillow>=12.1.1",
+    "protobuf>=5.29.6",
 ]
 
 [project.optional-dependencies]

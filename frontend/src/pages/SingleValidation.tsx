@@ -46,6 +46,7 @@ import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../s
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
 import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
+import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
@@ -257,11 +258,12 @@ export function SingleValidationPage() {
   useEffect(() => {
     const smilesFromUrl = searchParams.get('smiles');
     if (smilesFromUrl) {
-      setMolecule(decodeURIComponent(smilesFromUrl));
+      // searchParams.get() already decodes URI components — no need for decodeURIComponent
+      setMolecule(smilesFromUrl);
       // Auto-validate after loading from URL
       setTimeout(() => {
         validate({
-          molecule: decodeURIComponent(smilesFromUrl),
+          molecule: smilesFromUrl,
           format: 'auto',
           preserve_aromatic: false,
         });
@@ -426,7 +428,7 @@ export function SingleValidationPage() {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
     } catch (err) {
-      console.error('Database lookup error:', err);
+      logger.error('Database lookup error:', err);
       setDatabaseResults(null);
     } finally {
       setDatabaseLoading(false);
@@ -542,7 +544,7 @@ export function SingleValidationPage() {
         databaseResults,
       });
     } catch (err) {
-      console.error('Failed to save bookmark snapshot:', err);
+      logger.error('Failed to save bookmark snapshot:', err);
     }
   }, [molecule, result, alertResult, scoringResult, standardizationResult, databaseResults]);
 
@@ -576,7 +578,7 @@ export function SingleValidationPage() {
       setShareToastVisible(true);
       setTimeout(() => setShareToastVisible(false), 3000);
     } catch (err) {
-      console.error('Failed to copy URL:', err);
+      logger.error('Failed to copy URL:', err);
     }
   };
 

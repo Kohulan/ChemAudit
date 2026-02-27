@@ -156,14 +156,38 @@ def run_expensive_analytics(
         )
         return
 
-    # Skip if already complete (idempotency guard)
+    # Skip if already complete (idempotency guard / defense-in-depth).
+    # The route handler now performs its own idempotency check, but this
+    # guard remains as a safety net for race conditions (e.g. two requests
+    # dispatching concurrently).
     current_status = analytics_storage.get_status(job_id)
     if current_status and current_status.get(analysis_type, {}).get("status") == "complete":
-        logger.info(
-            "run_expensive_analytics: %s already complete for job %s, skipping.",
-            analysis_type, job_id,
-        )
-        return
+        if analysis_type == "chemical_space" and params.get("method"):
+            stored = analytics_storage.get_result(job_id, "chemical_space")
+            if stored and stored.get("method") != params["method"]:
+                logger.info(
+                    "run_expensive_analytics: re-computing %s for job %s "
+                    "(method %s -> %s).",
+                    analysis_type, job_id, stored.get("method"), params["method"],
+                )
+            else:
+                logger.info(
+                    "run_expensive_analytics: %s already complete for job %s "
+                    "with same method, skipping.",
+                    analysis_type, job_id,
+                )
+                # Restore status to "complete" — the route may have set it to
+                # "computing" before this task ran.
+                analytics_storage.update_status(job_id, analysis_type, "complete")
+                return
+        else:
+            logger.info(
+                "run_expensive_analytics: %s already complete for job %s, skipping.",
+                analysis_type, job_id,
+            )
+            # Restore status to "complete" (same reason as above).
+            analytics_storage.update_status(job_id, analysis_type, "complete")
+            return
 
     analytics_storage.update_status(job_id, analysis_type, "computing")
 

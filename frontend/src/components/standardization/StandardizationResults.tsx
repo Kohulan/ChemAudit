@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { ComparisonView } from './ComparisonView';
 import { StepsList } from './StepsList';
 import { ProvenanceTimeline } from './ProvenanceTimeline';
+import { logger } from '../../lib/logger';
 import type { StandardizationResult } from '../../types/standardization';
 
 interface StandardizationResultsProps {
@@ -28,7 +29,7 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('Failed to copy:', err);
+        logger.error('Failed to copy:', err);
       }
     }
   };
