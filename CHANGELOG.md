@@ -1,5 +1,85 @@
 # Changelog
 
+## [1.2.0](https://github.com/Kohulan/ChemAudit/compare/v1.1.3...v1.2.0) (2026-02-27)
+
+
+### Features
+
+* add /profiles route with PresetPicker and ProfileBuilder, nav link in header ([aae56ad](https://github.com/Kohulan/ChemAudit/commit/aae56ad7b8730d4d00f2fd91bfc418c6efa8fc32))
+* add /report/:shortId permalink route for shared batch reports ([17465c2](https://github.com/Kohulan/ChemAudit/commit/17465c22f4ebb80ef36ec0433a7284c4df9b0d49))
+* add /report/:shortId permalink route for shared batch reports ([2d3cc95](https://github.com/Kohulan/ChemAudit/commit/2d3cc95eb2b9b75897d1f45f2afe07c3f466e313))
+* add /report/:shortId permalink route for shared batch reports ([f95b250](https://github.com/Kohulan/ChemAudit/commit/f95b250f0052024a86f966c8d88490b8fdf1e1ea))
+* add Bioavailability & Permeation references to About page ([e27d29a](https://github.com/Kohulan/ChemAudit/commit/e27d29a62457e09d4ee348f40e74e41f9279f3bd))
+* add bookmark result snapshots with IndexedDB storage ([86ae31a](https://github.com/Kohulan/ChemAudit/commit/86ae31abf8745ef3271a900ce8850e904c3790a3))
+* add conditional Profile Score column to batch results table ([3068e1f](https://github.com/Kohulan/ChemAudit/commit/3068e1fc860354b8e96bf4db666c33e7c46c650b))
+* add desirability-based profile scoring module ([5e8de57](https://github.com/Kohulan/ChemAudit/commit/5e8de5751a672f44fb3ba8d36326de1334f8c839))
+* add informational tooltips to Bioavailability Radar and BOILED-Egg sections ([c396f4b](https://github.com/Kohulan/ChemAudit/commit/c396f4bc08e4babb43969487e1bfe2cd1916806d))
+* add pattern category classifier for structural alerts ([f2fd38f](https://github.com/Kohulan/ChemAudit/commit/f2fd38fdeff6bb07aa8e30015d46fffed6a39a7c))
+* add profile score distribution chart to batch analytics ([eddb58a](https://github.com/Kohulan/ChemAudit/commit/eddb58ae4c5624333532808b52766732ac88da18))
+* add profile_id to batch upload API and types ([6784831](https://github.com/Kohulan/ChemAudit/commit/6784831146c135a17e69630c24c7c36c7f9c6af5))
+* add profile_score sort extractor and profile stats to aggregator ([220d290](https://github.com/Kohulan/ChemAudit/commit/220d2902be4b1489dba5648e48db87639430a68a))
+* add rotatable_bonds and aromatic_rings to batch results ([f2089da](https://github.com/Kohulan/ChemAudit/commit/f2089daefc229b6b19897dcf6ef05fc85d8043f4))
+* add scoring visual polish with count-up animations and chart variants ([50af474](https://github.com/Kohulan/ChemAudit/commit/50af4741d57b4ed7fcc0927548ba5a77f3ee5e06))
+* add session auto-purge, privacy page overhaul, and integration tests ([d311925](https://github.com/Kohulan/ChemAudit/commit/d3119254af24bf1d1d9ba4047991be449cf53266))
+* add session-based data isolation for bookmarks and history ([9c2e7cb](https://github.com/Kohulan/ChemAudit/commit/9c2e7cbc9652b41d419b05d6ec5f0eef06a88467))
+* add tooltips and result messages to all 27 validation checks ([6572263](https://github.com/Kohulan/ChemAudit/commit/6572263a4ab7658b6cd8fb6e83e4ce4dc85fed66))
+* add validation cache, canonical SMILES source, and batch-to-single navigation ([ee2f934](https://github.com/Kohulan/ChemAudit/commit/ee2f9347639884252f3fa55e0cf5142dc9a1e959))
+* batch UX overhaul — reorder sections, fix compare bug, add quick-nav and outlier popover ([a1a7a8b](https://github.com/Kohulan/ChemAudit/commit/a1a7a8be39298395a6841fdf46654c6c0ee93e34))
+* create ProfileSidebar component for batch upload flow ([66dffee](https://github.com/Kohulan/ChemAudit/commit/66dffee79118e88bf9cda4d49e814f118a27e8c8))
+* enhance batch UX with comparison panel, export dialog, and subset actions ([4b070dd](https://github.com/Kohulan/ChemAudit/commit/4b070ddd9118d4bde74dd83c5b78cee95e57d05c))
+* enrich AVAILABLE_CATALOGS with citations, DOIs, and scope descriptions ([88c2c85](https://github.com/Kohulan/ChemAudit/commit/88c2c85437ec6d99635d9a8d94caecbdc0f42010))
+* enrich structural alerts with catalog context, citations, and categories ([b3eba8e](https://github.com/Kohulan/ChemAudit/commit/b3eba8ef669e1df96cafc09bf41fce9cfc174c79))
+* expand BOILED-Egg tooltip with model details, boundaries, and cross-validation stats ([9eb7ea3](https://github.com/Kohulan/ChemAudit/commit/9eb7ea31d40401ee690097e3d7fd6ee840adfd05))
+* extract RDKit entry metadata and classify alert patterns ([2821336](https://github.com/Kohulan/ChemAudit/commit/28213369c90a85574e91e2c4ef9c1f729e2c10cc))
+* implement fingerprint and deduplication exporters ([b7eec50](https://github.com/Kohulan/ChemAudit/commit/b7eec5062dc304ba109847e756daa78c24c4292c))
+* implement IUPAC converter, enhanced PDF sections, and tests ([cbfd4f0](https://github.com/Kohulan/ChemAudit/commit/cbfd4f056c984b05dd9905c66c6f7f5ec128b1ad))
+* implement notifications, permalinks, and audit trail ([77cd4ec](https://github.com/Kohulan/ChemAudit/commit/77cd4ecfa651fe77a250543b8507a5b8dbe323bc))
+* implement profiles CRUD with 8 presets, bookmarks, and batch subset actions ([d17b4be](https://github.com/Kohulan/ChemAudit/commit/d17b4becdf57479b2af45946bc7e4e27759cf0d4))
+* implement scaffold and property matrix exporters with tests ([06fcc1c](https://github.com/Kohulan/ChemAudit/commit/06fcc1cea826ff3c1947b2384639a5744c964e2b))
+* improve batch analytics, chemical space scatter, and profile sidebar ([e276f43](https://github.com/Kohulan/ChemAudit/commit/e276f43b9c903e3631b347907ffc509470bbacc6))
+* improve export pipeline, IUPAC conversion, and deployment config ([da9ca07](https://github.com/Kohulan/ChemAudit/commit/da9ca07d93b62d9caccb871f8c73df7c24db42b5))
+* integrate Phase 6 features into frontend — profiles, bookmarks, history, IUPAC, exports ([136cd38](https://github.com/Kohulan/ChemAudit/commit/136cd38057ddc6639e795600aeb726ebe1cf8d62))
+* integrate SubsetActionPanel and Share permalink button in BatchValidation ([c588ea6](https://github.com/Kohulan/ChemAudit/commit/c588ea6a6793519aba55aecf997e18f6151699dd))
+* move PDF checkboxes inline below PDF card and update input placeholder ([acc9406](https://github.com/Kohulan/ChemAudit/commit/acc94067b926ea6ad75e8c0e6f16c0295bd884de))
+* provision OPSIN runtime dependencies for IUPAC conversion ([89df01a](https://github.com/Kohulan/ChemAudit/commit/89df01ad39798b8ce799e6a5763893408b695f7d))
+* redesign header as floating glass pill with code simplification ([4bb9216](https://github.com/Kohulan/ChemAudit/commit/4bb92169f9650866ce467df08854541a802e8e8b))
+* redesign ML readiness scorer with 4-dimension scientific assessment ([17e9289](https://github.com/Kohulan/ChemAudit/commit/17e92899678857be4235f3e36637841edc5b91eb))
+* restyle bookmark button with ClayButton label and clear results on tab switch ([6e6dbda](https://github.com/Kohulan/ChemAudit/commit/6e6dbda410bb635356d05f8b3145f4e9f59ca51d))
+* set up SQLAlchemy ORM foundation with 4 models and Alembic ([a0b54eb](https://github.com/Kohulan/ChemAudit/commit/a0b54eb3c2d47bfeb88830f0959692a246d9271e))
+* wire batch audit trail and webhook dispatch on completion ([8e74c80](https://github.com/Kohulan/ChemAudit/commit/8e74c808b278311045a7b66c40b2e48a244e6aac))
+* wire email dispatch in batch aggregation tasks and add NOTIFICATION_EMAIL config ([b85ab2e](https://github.com/Kohulan/ChemAudit/commit/b85ab2eec16f0ca26bdc58100111488adfa38d5a))
+* wire profile scoring into batch upload and Celery processing ([732064e](https://github.com/Kohulan/ChemAudit/commit/732064e6b24fdda81eb0f54965f72ab5fbfaebd2))
+* wire ProfileSidebar into batch validation upload flow ([a69c9aa](https://github.com/Kohulan/ChemAudit/commit/a69c9aae9ea282e97c8eaff90bae391ca2b5ae7f))
+
+
+### Bug Fixes
+
+* add SETGID/SETUID capabilities to Redis container for user switc… ([84f7b45](https://github.com/Kohulan/ChemAudit/commit/84f7b456cb738291f06f02f664f8606f6a7f8eae))
+* add SETGID/SETUID capabilities to Redis container for user switching ([d764874](https://github.com/Kohulan/ChemAudit/commit/d764874b8922568756e7b2880c2890d36e2db8d0))
+* comprehensive security hardening across backend, frontend, and infrastructure ([8196f65](https://github.com/Kohulan/ChemAudit/commit/8196f65db20889ec020bfea0f0e83613f7168aea))
+* move Actions button next to Compare and wire onNewJob to navigate to new batch job ([c1e5b35](https://github.com/Kohulan/ChemAudit/commit/c1e5b359b2108de859828e46753d0754c9a24587))
+* resolve CI lint errors and test failures ([967268e](https://github.com/Kohulan/ChemAudit/commit/967268ea99b3674be84d7ffe568a804137646753))
+* resolve CI lint errors and test failures ([2a40acb](https://github.com/Kohulan/ChemAudit/commit/2a40acb76237bd90dead42c4e5525ab8ae5a1053))
+* resolve lint errors and clean up unused variables across backend ([cd6c1e7](https://github.com/Kohulan/ChemAudit/commit/cd6c1e79bace5e3dabf1f8bb588fb3338d58d3e3))
+* resolve merge conflict in standardization types ([7c1204a](https://github.com/Kohulan/ChemAudit/commit/7c1204aa5aca22c97e7d86f425bb57b2b21e2f73))
+* resolve permalink results not loading and improve scoring profile visibility ([ee57ed8](https://github.com/Kohulan/ChemAudit/commit/ee57ed882448fd60d62296bbd7362bdab088ab30))
+* use set_config() instead of SET LOCAL for RLS session variables ([9daae3d](https://github.com/Kohulan/ChemAudit/commit/9daae3df364d05a7238d7d36cb0a6f2de95bd030))
+* wire Alembic migrations into Docker startup and fix RLS session vars ([1f5b48b](https://github.com/Kohulan/ChemAudit/commit/1f5b48bd09f2212faf44b38d747c1df3fa4ffb90))
+
+
+### Documentation
+
+* add Bioavailability & Permeation docs page, update overview and sidebar ([6393191](https://github.com/Kohulan/ChemAudit/commit/63931916c96f8c0a9d6fe3f96672896a5398f001))
+* add design and implementation plans for features_v1 work ([f424351](https://github.com/Kohulan/ChemAudit/commit/f424351b2b99ab1ac9d59129f3de52c7ebe239c2))
+* add scoring methodology reference and update user guide ([ec83ca5](https://github.com/Kohulan/ChemAudit/commit/ec83ca5b0401ec51ea4d8f30d3eacb47f8cd33e7))
+* complete 06-06 backend integration gap closure plan ([b412f73](https://github.com/Kohulan/ChemAudit/commit/b412f7393a440ac60c3c3b9cd75b0ad6e0a91fc4))
+* complete 06-09 email dispatch wiring plan — WORK-13 done ([bebe8f6](https://github.com/Kohulan/ChemAudit/commit/bebe8f673c03a37759e83a726d67b9dc83eb46da))
+* complete advanced export formats plan ([2a00492](https://github.com/Kohulan/ChemAudit/commit/2a00492858bcd82ebed6ac19f0eb778c6827bdd1))
+* overhaul Docusaurus site with 5 new pages and 15 page updates ([049fa5d](https://github.com/Kohulan/ChemAudit/commit/049fa5d9c765d16a09aeb3bbb3e3a2b463247553))
+* update About page with complete safety filter citations and accurate stats ([b3d36d1](https://github.com/Kohulan/ChemAudit/commit/b3d36d17a6250bce40f7ec46637a55c7a7d5f6ed))
+* update privacy policy with IP logging, API key persistence, and localStorage disclosures ([9391dc3](https://github.com/Kohulan/ChemAudit/commit/9391dc3db90c2e3c60e2a9a557afacba59b84484))
+* update ROADMAP and STATE for 06-08 completion — phase 6 fully complete ([0b10545](https://github.com/Kohulan/ChemAudit/commit/0b10545183a0486d18e37230d64f491afb334ab0))
+
 ## [1.1.3](https://github.com/Kohulan/ChemAudit/compare/v1.1.2...v1.1.3) (2026-02-24)
 
 
