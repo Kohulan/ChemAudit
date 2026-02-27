@@ -33,7 +33,7 @@ interface UseBatchAnalyticsReturn {
   status: AnalyticsHookStatus;
   error: string | null;
   progress: AnalyticsProgressInfo;
-  retrigger: (type: string) => void;
+  retrigger: (type: string, params?: Record<string, string>) => void;
 }
 
 const TERMINAL_STATUSES = ['complete', 'failed', 'skipped'];
@@ -100,6 +100,27 @@ function findStuckTypes(
     const st = responseStatus[type];
     return st && !TERMINAL_STATUSES.includes(st.status);
   });
+}
+
+/**
+ * Merge a fresh analytics response with the previous state, preserving result
+ * fields the backend omits for types still "computing". This prevents a
+ * retrigger (e.g. t-SNE) from wiping previously loaded data (e.g. PCA).
+ */
+function mergeAnalyticsData(
+  prev: BatchAnalyticsResponse | null,
+  next: BatchAnalyticsResponse,
+): BatchAnalyticsResponse {
+  if (!prev) return next;
+  return {
+    ...next,
+    deduplication: next.deduplication ?? prev.deduplication,
+    scaffold: next.scaffold ?? prev.scaffold,
+    chemical_space: next.chemical_space ?? prev.chemical_space,
+    similarity_matrix: next.similarity_matrix ?? prev.similarity_matrix,
+    mmp: next.mmp ?? prev.mmp,
+    statistics: next.statistics ?? prev.statistics,
+  };
 }
 
 /**
@@ -215,10 +236,12 @@ export function useBatchAnalytics(
       elapsedSeconds: 0,
     });
 
-    // Fire-and-forget trigger for each expensive type
-    for (const type of triggerTypes) {
-      batchApi.triggerAnalytics(jobId, type).catch(() => {});
-    }
+    // Trigger each expensive type and wait for backend acknowledgement
+    // before polling. Without this, the first GET can arrive before any
+    // POST is processed, yielding a 404 (analytics storage not yet init).
+    const triggers = triggerTypes.map(type =>
+      batchApi.triggerAnalytics(jobId, type).catch(() => {})
+    );
 
     const poll = async () => {
       if (!mountedRef.current) return;
@@ -227,7 +250,7 @@ export function useBatchAnalytics(
         const response = await batchApi.getAnalytics(jobId);
         if (!mountedRef.current) return;
 
-        setData(response);
+        setData(prev => mergeAnalyticsData(prev, response));
         backoffRef.current = BASE_POLL_MS;
         consecutiveErrorsRef.current = 0;
 
@@ -245,6 +268,7 @@ export function useBatchAnalytics(
         if (result.nextStatus) {
           if (result.errorMessage) setError(result.errorMessage);
           setStatus(result.nextStatus);
+          timeoutRef.current = null; // Clear so retrigger can restart polling
           return; // Stop polling
         }
 
@@ -264,6 +288,7 @@ export function useBatchAnalytics(
           if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
             setError('Analytics initialization timed out. The batch may still be processing.');
             setStatus('error');
+            timeoutRef.current = null;
             return;
           }
 
@@ -286,14 +311,17 @@ export function useBatchAnalytics(
           const errMsg = e instanceof Error ? e.message : 'Failed to fetch analytics';
           setError(errMsg);
           setStatus('error');
+          timeoutRef.current = null;
         } else {
           timeoutRef.current = setTimeout(poll, backoffRef.current);
         }
       }
     };
 
-    // Start polling
-    poll();
+    // Start polling only after triggers are acknowledged
+    Promise.all(triggers).then(() => {
+      if (mountedRef.current) poll();
+    });
 
     return () => {
       if (timeoutRef.current) {
@@ -310,7 +338,7 @@ export function useBatchAnalytics(
   }, [jobId]);
 
   const retrigger = useCallback(
-    (type: string) => {
+    async (type: string, params?: Record<string, string>) => {
       if (!jobId) return;
 
       setStatus('computing');
@@ -319,50 +347,77 @@ export function useBatchAnalytics(
       startTimeRef.current = Date.now();
       consecutiveErrorsRef.current = 0;
 
-      batchApi.triggerAnalytics(jobId, type).catch(() => {});
+      // Await the trigger so the backend status transitions to "computing"
+      // before we start polling. Without this, the first poll can see the
+      // OLD "complete" status (e.g. PCA) and exit immediately.
+      try {
+        await batchApi.triggerAnalytics(jobId, type, params);
+      } catch {
+        // Trigger failed — still start polling in case backend processed it
+      }
 
-      // Restart polling if stopped
-      if (!timeoutRef.current) {
-        const poll = async () => {
+      // Always start a fresh poll loop for the retriggered type.
+      // If a previous poll is running (e.g. initial mount poll tracking
+      // multiple types), cancel it — otherwise the retrigger has no poll
+      // watching for the new computation to complete.
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      const poll = async () => {
+        if (!mountedRef.current) return;
+        try {
+          const response = await batchApi.getAnalytics(jobId);
           if (!mountedRef.current) return;
-          try {
-            const response = await batchApi.getAnalytics(jobId);
-            if (!mountedRef.current) return;
-            setData(response);
 
-            const result = processPollResponse(
-              response, triggerTypes, activeTypesRef, startTimeRef.current
-            );
+          setData(prev => mergeAnalyticsData(prev, response));
 
-            setProgress({
-              completedCount: result.completedCount,
-              totalCount: result.totalCount,
-              typeStatuses: result.typeStatuses,
-              elapsedSeconds: result.elapsedSeconds,
-            });
+          const st = response.status[type];
+          const elapsedSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
+          const isTerminal = st && TERMINAL_STATUSES.includes(st.status);
 
-            if (result.nextStatus) {
-              if (result.errorMessage) setError(result.errorMessage);
-              setStatus(result.nextStatus);
-              return;
-            }
+          setProgress({
+            completedCount: isTerminal ? 1 : 0,
+            totalCount: 1,
+            typeStatuses: { [type]: st || { status: 'pending', computed_at: null, error: null } },
+            elapsedSeconds,
+          });
 
-            timeoutRef.current = setTimeout(poll, backoffRef.current);
-          } catch {
-            consecutiveErrorsRef.current++;
-            if (consecutiveErrorsRef.current >= 5) {
-              setError('Failed to fetch analytics after multiple retries');
+          if (isTerminal) {
+            if (st.status === 'failed') {
+              setError(`Analytics failed for: ${type}`);
               setStatus('error');
             } else {
-              backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
-              timeoutRef.current = setTimeout(poll, backoffRef.current);
+              setStatus('complete');
             }
+            timeoutRef.current = null;
+            return;
           }
-        };
-        poll();
-      }
+
+          if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
+            setError(`Analytics timed out for: ${type}. Click retry to try again.`);
+            setStatus('error');
+            timeoutRef.current = null;
+            return;
+          }
+
+          timeoutRef.current = setTimeout(poll, backoffRef.current);
+        } catch {
+          consecutiveErrorsRef.current++;
+          if (consecutiveErrorsRef.current >= 5) {
+            setError('Failed to fetch analytics after multiple retries');
+            setStatus('error');
+            timeoutRef.current = null;
+          } else {
+            backoffRef.current = Math.min(backoffRef.current * 2, MAX_POLL_MS);
+            timeoutRef.current = setTimeout(poll, backoffRef.current);
+          }
+        }
+      };
+      poll();
     },
-    [jobId, triggerTypes]
+    [jobId]
   );
 
   return { data, status, error, progress, retrigger };

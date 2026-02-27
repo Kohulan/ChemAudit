@@ -598,7 +598,6 @@ export function BatchValidationPage() {
                 )}
 
                 <BatchAnalyticsPanel
-                  jobId={jobId}
                   statistics={resultsData.statistics}
                   results={resultsData.results}
                   selectedIndices={selectedIndices}
