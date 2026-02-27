@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { ConfigResponse, DeploymentLimits } from '../types/config';
 import { DEFAULT_CONFIG, DEFAULT_LIMITS } from '../types/config';
+import { logger } from '../lib/logger';
 
 interface ConfigContextValue {
   config: ConfigResponse;
@@ -35,7 +36,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
         setConfig(data);
         setError(null);
       } catch (err) {
-        console.error('Failed to load config, using defaults:', err);
+        logger.error('Failed to load config, using defaults:', err);
         setError(err instanceof Error ? err.message : 'Failed to load configuration');
         // Keep using default config on error
       } finally {

@@ -5,6 +5,7 @@ Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
 import json
+import re
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -22,8 +23,10 @@ from fastapi import (
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.ownership import store_job_owner, verify_job_access
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.core.session import get_session_id
 from app.schemas.analytics import (
     AnalysisStatus,
     AnalyticsTriggerResponse,
@@ -185,6 +188,9 @@ async def upload_batch(
     # Generate job ID and start processing
     job_id = str(uuid.uuid4())
 
+    # Store ownership for session-based access control
+    store_job_owner(job_id, get_session_id(request))
+
     # Convert MoleculeData objects to dicts for Celery serialization
     mol_dicts = [
         {
@@ -228,11 +234,20 @@ async def upload_batch(
             else profile.weights
         )
 
+    # Validate notification email before dispatching job
+    email_target = notification_email or settings.NOTIFICATION_EMAIL
+    if email_target:
+        email_re = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+        if len(email_target) > 254 or not email_re.match(email_target):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid notification email address",
+            )
+
     # Start batch processing
     process_batch_job(job_id, mol_dicts, safety_options=safety_options)
 
     # Store notification email for this job (if provided or globally configured)
-    email_target = notification_email or settings.NOTIFICATION_EMAIL
     if email_target:
         from app.services.batch.progress_tracker import progress_tracker as _pt
 
@@ -286,6 +301,8 @@ async def get_batch_results(
 
     Returns job status and paginated results with statistics.
     """
+    verify_job_access(request, job_id)
+
     # Get job status
     progress_info = progress_tracker.get_progress(job_id)
 
@@ -363,6 +380,8 @@ async def get_batch_status(
     Returns progress information without results data.
     Lighter endpoint for polling status.
     """
+    verify_job_access(request, job_id)
+
     progress_info = progress_tracker.get_progress(job_id)
 
     if not progress_info:
@@ -389,6 +408,8 @@ async def get_batch_stats(
 
     Returns aggregate statistics without individual results.
     """
+    verify_job_access(request, job_id)
+
     stats_data = result_storage.get_statistics(job_id)
 
     if not stats_data:
@@ -425,6 +446,8 @@ async def cancel_batch(
     Stops processing and marks job as cancelled.
     Already completed results are retained.
     """
+    verify_job_access(request, job_id)
+
     progress_info = progress_tracker.get_progress(job_id)
 
     if not progress_info:
@@ -462,6 +485,8 @@ async def get_batch_analytics(
 
     - **job_id**: Batch job identifier from the upload response.
     """
+    verify_job_access(request, job_id)
+
     status_data = analytics_storage.get_status(job_id)
     if status_data is None:
         raise HTTPException(
@@ -540,12 +565,54 @@ async def trigger_batch_analytics(
     - `top_k`: number of neighbors to return (similarity_search)
     - `core_smarts`: SMARTS pattern for R-group core
     """
+    verify_job_access(request, job_id)
+
     if analysis_type not in _ALLOWED_EXPENSIVE_ANALYSES:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown analysis type '{analysis_type}'. "
             f"Allowed: {sorted(_ALLOWED_EXPENSIVE_ANALYSES)}",
         )
+
+    # --- Idempotency check: avoid unnecessary re-computation ----------------
+    # Without this, every trigger call unconditionally sets "computing" and
+    # dispatches a Celery task — even when the result is already cached.
+    # This defeats the Celery task's own idempotency guard (which checks for
+    # "complete" status that the route already overwrote to "computing").
+    status_data = analytics_storage.get_status(job_id)
+    if status_data:
+        current_entry = status_data.get(analysis_type, {})
+        current_status_val = (
+            current_entry.get("status") if isinstance(current_entry, dict) else None
+        )
+
+        if current_status_val == "computing":
+            # Already computing — don't dispatch a duplicate task.
+            return AnalyticsTriggerResponse(
+                job_id=job_id,
+                analysis_type=analysis_type,
+                status="already_computing",
+            )
+
+        if current_status_val == "complete":
+            # For chemical_space: allow re-computation when a *different*
+            # method is requested (e.g. PCA stored, user wants t-SNE).
+            needs_recompute = False
+            if analysis_type == "chemical_space" and params and params.get("method"):
+                stored = analytics_storage.get_result(job_id, "chemical_space")
+                if stored and stored.get("method") != params["method"]:
+                    needs_recompute = True
+
+            if not needs_recompute:
+                return AnalyticsTriggerResponse(
+                    job_id=job_id,
+                    analysis_type=analysis_type,
+                    status="already_complete",
+                )
+
+    # Set status to "computing" immediately so frontend polling sees the
+    # transition before the Celery worker picks up the task.
+    analytics_storage.update_status(job_id, analysis_type, "computing")
 
     run_expensive_analytics.delay(job_id, analysis_type, params)
 
@@ -645,6 +712,8 @@ async def subset_revalidate(
     Creates a new batch job with the selected molecules.
     Returns the new job_id for tracking progress.
     """
+    verify_job_access(request, job_id)
+
     try:
         new_job_id = revalidate_subset(job_id, body.indices)
     except ValueError as e:
@@ -672,6 +741,8 @@ async def subset_rescore(
     Creates a new batch job for the selected molecules.
     Returns the new job_id for tracking progress.
     """
+    verify_job_access(request, job_id)
+
     # Build safety_options with full profile data if profile_id is given
     safety_options: Dict[str, Any] = {}
     if body.profile_id is not None:
@@ -722,6 +793,8 @@ async def subset_export(
 
     Returns a file download with the exported data.
     """
+    verify_job_access(request, job_id)
+
     from datetime import datetime
 
     from fastapi.responses import StreamingResponse
@@ -768,6 +841,8 @@ async def score_subset_inline(
     Reads existing batch results, applies profile desirability scoring,
     and returns scored molecules synchronously.
     """
+    verify_job_access(request, job_id)
+
     from app.db import async_session
     from app.services.profiles.service import ProfileService
     from app.services.scoring.profile_scoring import compute_profile_result

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '../lib/logger';
 
 /**
  * Custom hook for persisting state in localStorage.
@@ -17,7 +18,7 @@ export function useLocalStorage<T>(
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      logger.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -31,9 +32,9 @@ export function useLocalStorage<T>(
     } catch (error) {
       // Handle quota exceeded error
       if (error instanceof Error && error.name === 'QuotaExceededError') {
-        console.warn(`localStorage quota exceeded for key "${key}"`);
+        logger.warn(`localStorage quota exceeded for key "${key}"`);
       } else {
-        console.error(`Error setting localStorage key "${key}":`, error);
+        logger.error(`Error setting localStorage key "${key}":`, error);
       }
     }
   }, [key, storedValue]);
@@ -49,7 +50,7 @@ export function useLocalStorage<T>(
       window.localStorage.removeItem(key);
       setStoredValue(initialValue);
     } catch (error) {
-      console.error(`Error clearing localStorage key "${key}":`, error);
+      logger.error(`Error clearing localStorage key "${key}":`, error);
     }
   }, [key, initialValue]);
 

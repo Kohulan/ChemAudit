@@ -118,7 +118,10 @@ def test_rate_limit_key_function():
     mock_request_with_key.headers.get.return_value = "test_api_key"
 
     key = get_rate_limit_key(mock_request_with_key)
-    assert key == "apikey:test_api_key"
+    # Key is now hashed (SHA-256) to avoid exposing raw API keys in Redis
+    from app.core.security import hash_api_key_for_lookup
+
+    assert key == f"apikey:{hash_api_key_for_lookup('test_api_key')}"
 
     # Mock request without API key (anonymous)
     mock_request_anonymous = MagicMock(spec=Request)

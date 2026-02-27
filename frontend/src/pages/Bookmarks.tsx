@@ -11,6 +11,7 @@ import { BookmarkList } from '../components/bookmarks/BookmarkList';
 import { Badge } from '../components/ui/Badge';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { deleteSnapshot } from '../lib/bookmarkStore';
+import { logger } from '../lib/logger';
 import type { Bookmark } from '../types/workflow';
 
 export function BookmarksPage() {
@@ -59,7 +60,7 @@ export function BookmarksPage() {
         const result = await submitAsBatch(ids);
         navigate(`/batch?job=${result.job_id}`);
       } catch (err) {
-        console.error('Failed to submit as batch:', err);
+        logger.error('Failed to submit as batch:', err);
       }
     },
     [submitAsBatch, navigate]

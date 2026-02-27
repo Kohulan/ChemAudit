@@ -227,13 +227,19 @@ sudo ufw enable
 ### Step 2: Environment Configuration
 
 ```bash
-# Copy template
+# Option A: Automated (recommended) — deploy.sh generates all secrets
 cp .env.prod.example .env
+./deploy.sh medium  # Generates secure secrets, then deploys
 
-# Generate secure passwords
-openssl rand -base64 32  # Use for POSTGRES_PASSWORD
-openssl rand -base64 32  # Use for GRAFANA_PASSWORD
+# Option B: Manual
+cp .env.prod.example .env
+# Generate and set secrets manually:
+openssl rand -hex 64   # Use for SECRET_KEY
+openssl rand -hex 32   # Use for API_KEY_ADMIN_SECRET, CSRF_SECRET_KEY
+openssl rand -hex 24   # Use for POSTGRES_PASSWORD, REDIS_PASSWORD, GRAFANA_PASSWORD
 ```
+
+> **Important:** When `DEBUG=false`, the application will refuse to start if `SECRET_KEY`, `API_KEY_ADMIN_SECRET`, or `CSRF_SECRET_KEY` still contain placeholder values (`CHANGE_ME`). This prevents accidental deployment with insecure defaults.
 
 <details>
 <summary><b>📄 Example .env Configuration</b></summary>
@@ -243,18 +249,26 @@ openssl rand -base64 32  # Use for GRAFANA_PASSWORD
 POSTGRES_USER=chemaudit
 POSTGRES_PASSWORD=your_secure_password_here
 POSTGRES_DB=chemaudit
-DATABASE_URL=postgresql+asyncpg://chemaudit:your_secure_password_here@postgres:5432/chemaudit
+DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
-# Redis
-REDIS_URL=redis://redis:6379
+# Redis (authentication required)
+REDIS_PASSWORD=your_secure_redis_password_here
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+
+# Security secrets (generate with: openssl rand -hex 64)
+SECRET_KEY=your_secret_key_here
+API_KEY_ADMIN_SECRET=your_admin_secret_here
+CSRF_SECRET_KEY=your_csrf_secret_here
 
 # Application
 DEBUG=false
-CORS_ORIGINS=["https://your-domain.com"]
+CORS_ORIGINS_STR=https://your-domain.com
 
 # Monitoring
 GRAFANA_PASSWORD=your_grafana_password_here
 ```
+
+> **Tip:** The `deploy.sh` script auto-generates secure values for any secret that still contains `CHANGE_ME`.
 
 </details>
 
@@ -501,8 +515,10 @@ postgres:
 ```yaml
 # docker-compose.prod.yml
 redis:
-  command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
+  command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 1gb --maxmemory-policy allkeys-lru
 ```
+
+> **Note:** Redis authentication is always enforced. Set `REDIS_PASSWORD` in your `.env` file and ensure `REDIS_URL` includes the password: `redis://:${REDIS_PASSWORD}@redis:6379/0`
 
 </details>
 
@@ -546,6 +562,48 @@ docker-compose -f docker-compose.prod.yml logs postgres
 </details>
 
 <details>
+<summary><b>🔴 Redis Authentication Errors</b></summary>
+
+If you see `Authentication required` or `NOAUTH` in the backend logs:
+
+```bash
+# Verify Redis password is set in .env
+grep REDIS .env
+
+# Test Redis connection with password
+docker-compose exec redis redis-cli -a "$REDIS_PASSWORD" ping
+# Expected: PONG
+
+# If Redis is running without auth, restart it
+docker-compose restart redis
+```
+
+Common causes:
+- `REDIS_PASSWORD` not set in `.env`
+- `REDIS_URL` missing the password (should be `redis://:password@redis:6379/0`)
+- `.env` was created from an older `.env.example` before Redis auth was added
+
+</details>
+
+<details>
+<summary><b>🔴 Startup Fails with "insecure default value"</b></summary>
+
+If the backend exits with `SECRET_KEY still has an insecure default value`:
+
+```bash
+# The app enforces secure secrets when DEBUG=false
+# Option 1: Use deploy.sh to auto-generate
+./deploy.sh medium
+
+# Option 2: Generate manually
+openssl rand -hex 64  # Set as SECRET_KEY in .env
+openssl rand -hex 32  # Set as API_KEY_ADMIN_SECRET
+openssl rand -hex 32  # Set as CSRF_SECRET_KEY
+```
+
+</details>
+
+<details>
 <summary><b>🔴 SSL Certificate Issues</b></summary>
 
 ```bash
@@ -580,21 +638,32 @@ docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
 Before going to production, ensure:
 
-| Category | Item | Status |
-|----------|------|--------|
-| **Authentication** | Changed all default passwords | ⬜ |
-| **SSL/TLS** | Valid SSL certificate configured | ⬜ |
-| **SSL/TLS** | HSTS enabled in nginx | ⬜ |
-| **Network** | Firewall configured (80, 443 only) | ⬜ |
-| **Network** | Database not publicly accessible | ⬜ |
-| **Network** | Redis not publicly accessible | ⬜ |
-| **Monitoring** | Prometheus metrics access restricted | ⬜ |
-| **Monitoring** | Grafana access secured | ⬜ |
-| **Backup** | Regular database backups configured | ⬜ |
-| **Backup** | Backup restoration tested | ⬜ |
-| **Headers** | Security headers configured in nginx | ⬜ |
-| **Rate Limiting** | API rate limiting enabled | ⬜ |
-| **Containers** | Non-root users in Docker containers | ⬜ |
+| Category | Item | Default | Status |
+|----------|------|---------|--------|
+| **Secrets** | `SECRET_KEY` generated (not CHANGE_ME) | Enforced at startup | ⬜ |
+| **Secrets** | `API_KEY_ADMIN_SECRET` generated | Enforced at startup | ⬜ |
+| **Secrets** | `CSRF_SECRET_KEY` generated | Enforced at startup | ⬜ |
+| **Secrets** | `POSTGRES_PASSWORD` is strong | deploy.sh generates | ⬜ |
+| **Secrets** | `REDIS_PASSWORD` is strong | deploy.sh generates | ⬜ |
+| **Secrets** | `GRAFANA_PASSWORD` is strong | deploy.sh generates | ⬜ |
+| **Application** | `DEBUG=false` in production | Set in .env.prod.example | ⬜ |
+| **SSL/TLS** | Valid SSL certificate configured | Manual | ⬜ |
+| **SSL/TLS** | HSTS enabled (nginx-ssl.conf) | Template provided | ⬜ |
+| **Network** | Firewall configured (80, 443 only) | Manual | ⬜ |
+| **Network** | Database not publicly accessible | Enforced (127.0.0.1 in dev) | ⬜ |
+| **Network** | Redis authenticated and not public | Enforced (requirepass) | ⬜ |
+| **CSRF** | CSRF protection active for browser sessions | Auto-enabled | ⬜ |
+| **Rate Limiting** | API rate limiting enabled | Auto-enabled | ⬜ |
+| **Access Control** | Batch job ownership enforced | Auto-enabled (session-based) | ⬜ |
+| **Headers** | CSP + Permissions-Policy in nginx | Auto-enabled | ⬜ |
+| **Headers** | server_tokens off in nginx | Auto-enabled | ⬜ |
+| **Monitoring** | /metrics restricted to internal IPs | Auto-enabled (middleware) | ⬜ |
+| **Monitoring** | Grafana access secured | Password required | ⬜ |
+| **Monitoring** | OpenAPI docs disabled in production | Auto (DEBUG=false) | ⬜ |
+| **Containers** | Non-root users in Docker containers | Auto-enabled | ⬜ |
+| **Containers** | cap_drop ALL + no-new-privileges | Auto-enabled (prod compose) | ⬜ |
+| **Backup** | Regular database backups configured | Manual | ⬜ |
+| **Backup** | Backup restoration tested | Manual | ⬜ |
 
 ---
 

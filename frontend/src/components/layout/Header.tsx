@@ -260,7 +260,7 @@ export function Header() {
                 className="overflow-hidden lg:hidden"
               >
                 <div className="border-t border-[var(--color-border)] mx-4" />
-                <div className="px-3 py-3 flex flex-col gap-0.5">
+                <div className="px-3 py-3 flex flex-col gap-0.5 bg-[var(--color-surface-elevated)]/95 backdrop-blur-lg rounded-b-2xl">
                   {navItems.map((item, i) => {
                     const active = isActive(item.to);
                     return (
