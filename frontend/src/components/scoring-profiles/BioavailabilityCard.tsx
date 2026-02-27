@@ -204,24 +204,41 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                       <strong>B</strong>rain <strong>O</strong>r <strong>I</strong>ntestina<strong>L</strong>{' '}
                       <strong>E</strong>stimate<strong>D</strong> permeation method. Predicts passive
                       gastrointestinal (GI) absorption and blood-brain barrier (BBB) penetration
-                      using an elliptical model on TPSA vs WLOGP.
+                      using only two descriptors: <strong>TPSA</strong> and <strong>WLOGP</strong>.
                     </p>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                        <span><strong>White</strong> — GI absorbed (93% accuracy)</span>
+                    <p>
+                      The model uses elliptical boundaries optimized via Monte-Carlo
+                      simulation on curated datasets (660 HIA molecules, 260 BBB molecules).
+                      A molecule&apos;s position on the TPSA vs WLOGP plane determines its
+                      predicted permeation class.
+                    </p>
+                    <div className="space-y-1.5">
+                      <div className="flex items-start gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block mt-0.5 flex-shrink-0" />
+                        <span>
+                          <strong>White</strong> — GI absorbed (93% accuracy).
+                          TPSA {'<'} ~142 A^2, WLOGP ~-2.3 to +6.8
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                        <span><strong>Yolk</strong> — BBB permeant (90% accuracy)</span>
+                      <div className="flex items-start gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block mt-0.5 flex-shrink-0" />
+                        <span>
+                          <strong>Yolk</strong> — BBB permeant (90% accuracy).
+                          TPSA {'<'} ~79 A^2, WLOGP ~+0.4 to +6.0.
+                          Also predicted GI-absorbed.
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block" />
-                        <span><strong>Grey</strong> — Neither absorbed nor permeant</span>
+                      <div className="flex items-start gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block mt-0.5 flex-shrink-0" />
+                        <span>
+                          <strong>Grey</strong> — Neither passively absorbed nor
+                          BBB-permeant. May require active transport.
+                        </span>
                       </div>
                     </div>
                     <p className="text-zinc-400">
-                      Validated on 46 FDA NCEs with 83% accuracy.
+                      Validated on 46 FDA new chemical entities with 83% accuracy.
+                      10-fold CV: 92% (HIA), 88% (BBB).
                     </p>
                     <p className="text-zinc-400 italic">
                       Daina & Zoete. ChemMedChem 2016, 11, 1117–1121
