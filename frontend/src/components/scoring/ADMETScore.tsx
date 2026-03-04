@@ -11,7 +11,7 @@ import {
   XCircle
 } from 'lucide-react';
 import type { ADMETResult } from '../../types/scoring';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 import { useCountUp } from '../../hooks/useCountUp';
 
@@ -238,9 +238,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 <li>4-6: Moderate difficulty</li>
                 <li>6-10: Difficult synthesis</li>
               </ul>
-              <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                📖 Ertl & Schuffenhauer. J Cheminform (2009)
-              </p>
+              <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                <p>📖 Ertl & Schuffenhauer. J Cheminform (2009)</p>
+                <DoiLink doi="10.1186/1758-2946-1-8" />
+              </div>
             </div>
           }
         />
@@ -263,9 +264,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 <li>-3 to -4: Moderate</li>
                 <li>&lt;-4: Poorly soluble</li>
               </ul>
-              <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                📖 Delaney. J Chem Inf Comput Sci (2004)
-              </p>
+              <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                <p>📖 Delaney. J Chem Inf Comput Sci (2004)</p>
+                <DoiLink doi="10.1021/ci034243x" />
+              </div>
             </div>
           }
         />
@@ -286,9 +288,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 <li>0.25-0.42: Moderate</li>
                 <li>&lt;0.25: Flat molecule</li>
               </ul>
-              <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                📖 Lovering et al. J Med Chem (2009)
-              </p>
+              <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                <p>📖 Lovering et al. J Med Chem (2009)</p>
+                <DoiLink doi="10.1021/jm901241e" />
+              </div>
             </div>
           }
         />
@@ -311,9 +314,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                   <li>3-4: Moderate</li>
                   <li>&lt;3: Poor CNS penetration</li>
                 </ul>
-                <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                  📖 Wager et al. ACS Chem Neurosci (2010)
-                </p>
+                <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                  <p>📖 Wager et al. ACS Chem Neurosci (2010)</p>
+                  <DoiLink doi="10.1021/cn100008c" />
+                </div>
               </div>
             }
           />
@@ -387,9 +391,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                     <div className="text-xs">
                       <p>Compounds with LogP &gt; 3 AND TPSA &lt; 75 have higher toxicity risk.</p>
                       <p className="mt-1 text-white/70">Based on Pfizer's analysis of compound promiscuity.</p>
-                      <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                        📖 Hughes et al. Bioorg Med Chem Lett (2008)
-                      </p>
+                      <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                        <p>📖 Hughes et al. Bioorg Med Chem Lett (2008)</p>
+                        <DoiLink doi="10.1016/j.bmcl.2008.07.071" />
+                      </div>
                     </div>
                   }
                 />
@@ -405,9 +410,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                     <div className="text-xs">
                       <p>Compounds with MW &le; 400 AND LogP &le; 4 have better outcomes.</p>
                       <p className="mt-1 text-white/70">Based on GSK's analysis of ADMET properties.</p>
-                      <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                        📖 Gleeson. J Med Chem (2008)
-                      </p>
+                      <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                        <p>📖 Gleeson. J Med Chem (2008)</p>
+                        <DoiLink doi="10.1021/jm701122q" />
+                      </div>
                     </div>
                   }
                 />
@@ -423,9 +429,10 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                     <div className="text-xs">
                       <p>Abbott's Golden Triangle: MW 200-450, LogD -0.5 to 5.</p>
                       <p className="mt-1 text-white/70">Compounds in this range have favorable permeability and metabolic stability.</p>
-                      <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                        📖 Johnson et al. Bioorg Med Chem Lett (2009)
-                      </p>
+                      <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                        <p>📖 Johnson et al. Bioorg Med Chem Lett (2009)</p>
+                        <DoiLink doi="10.1016/j.bmcl.2009.08.045" />
+                      </div>
                     </div>
                   }
                 />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import type { ScaffoldResult } from '../../types/scoring';
 
 interface ScaffoldDisplayProps {
@@ -37,9 +37,10 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement 
                   <li><strong>Generic:</strong> Converts all atoms to carbon, all bonds to single (framework)</li>
                 </ul>
                 <p className="text-white/60">Useful for analyzing structural similarity and compound series.</p>
-                <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                  📖 Bemis & Murcko. J Med Chem (1996)
-                </p>
+                <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                  <p>📖 Bemis & Murcko. J Med Chem (1996)</p>
+                  <DoiLink doi="10.1021/jm9602928" />
+                </div>
               </div>
             }
           />
@@ -57,21 +58,19 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement 
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setActiveView('murcko')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                activeView === 'murcko'
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeView === 'murcko'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Standard
             </button>
             <button
               onClick={() => setActiveView('generic')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                activeView === 'generic'
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeView === 'generic'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Generic (Framework)
             </button>

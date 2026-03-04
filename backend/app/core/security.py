@@ -15,6 +15,7 @@ import logging
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Optional
 
 import redis.asyncio as redis
@@ -58,20 +59,31 @@ def hash_api_key(key: str) -> str:
     return ph.hash(key)
 
 
-def hash_api_key_for_lookup(key: str) -> str:
+@lru_cache(maxsize=512)
+def hash_api_key_for_lookup(api_key_plain: str) -> str:
     """
-    Create a fast hash for API key lookup (not for storage).
+    Create a deterministic key-derived hash for API key lookup (not for storage).
 
-    Uses SHA256 for fast lookups. The actual key verification
-    uses Argon2 for security.
+    Uses PBKDF2-HMAC-SHA256 with SECRET_KEY as a fixed salt so the output is
+    deterministic (same key always produces the same hash). Results are cached
+    in-process so the KDF cost is paid only once per key per worker.
+
+    The actual key verification for storage uses Argon2 (see hash_api_key).
 
     Args:
-        key: The plain API key
+        api_key_plain: The plain API key
 
     Returns:
-        SHA256 hex digest for use as Redis key
+        PBKDF2 hex digest (64 chars) for use as Redis/DB lookup key
     """
-    return hashlib.sha256(key.encode()).hexdigest()
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        api_key_plain.encode(),
+        settings.SECRET_KEY.encode(),
+        iterations=600_000,
+        dklen=32,
+    )
+    return dk.hex()
 
 
 def verify_api_key_hash(key: str, stored_hash: str) -> bool:
@@ -104,7 +116,6 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
     """
     client = await get_redis_client()
     try:
-        # Use fast hash for lookup
         key_hash = hash_api_key_for_lookup(api_key)
         key_data = await client.hgetall(f"apikey:{key_hash}")
 

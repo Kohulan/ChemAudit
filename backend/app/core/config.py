@@ -154,6 +154,7 @@ class Settings(BaseSettings):
     def _check_insecure_defaults(self) -> "Settings":
         """Reject insecure default secrets when DEBUG is False."""
         secret_fields = ("SECRET_KEY", "API_KEY_ADMIN_SECRET", "CSRF_SECRET_KEY")
+        insecure_count = 0
         for field_name in secret_fields:
             value = getattr(self, field_name)
             if value in _INSECURE_DEFAULTS:
@@ -163,11 +164,13 @@ class Settings(BaseSettings):
                         f"Set a strong secret via environment variable before "
                         f"running in production (DEBUG=False)."
                     )
-                _config_logger.warning(
-                    "%s has an insecure default value. "
-                    "This is acceptable for local development only.",
-                    field_name,
-                )
+                insecure_count += 1
+        if insecure_count:
+            _config_logger.warning(
+                "%d security setting(s) use insecure defaults. "
+                "Acceptable for local development only.",
+                insecure_count,
+            )
         return self
 
 
