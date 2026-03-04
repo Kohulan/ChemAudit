@@ -1,6 +1,5 @@
 """Tests for identifier type detection."""
 
-import pytest
 
 from app.services.integrations.identifier_detect import detect_identifier_type
 

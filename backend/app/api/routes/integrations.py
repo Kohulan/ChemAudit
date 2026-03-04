@@ -7,11 +7,10 @@ Endpoints for COCONUT, PubChem, and ChEMBL integrations.
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, model_validator
 
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
-from pydantic import BaseModel, model_validator
-
 from app.schemas.integrations import (
     ChEMBLRequest,
     ChEMBLResult,
