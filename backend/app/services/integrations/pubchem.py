@@ -56,6 +56,32 @@ class PubChemClient:
             # External API failure - return None gracefully
             return None
 
+    async def search_by_name(self, name: str) -> Optional[int]:
+        """
+        Search PubChem by compound name (common, trade, IUPAC, CAS, UNII, etc.).
+
+        Args:
+            name: Compound name or identifier string
+
+        Returns:
+            PubChem CID if found, None otherwise
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/compound/name/{name}/cids/JSON",
+                )
+                response.raise_for_status()
+
+                data = response.json()
+                cids = data.get("IdentifierList", {}).get("CID", [])
+                if cids and len(cids) > 0:
+                    return cids[0]
+                return None
+
+        except (httpx.HTTPError, KeyError, ValueError, IndexError):
+            return None
+
     async def search_by_inchikey(self, inchikey: str) -> Optional[int]:
         """
         Search PubChem by InChIKey.
