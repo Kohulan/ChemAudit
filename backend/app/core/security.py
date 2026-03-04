@@ -15,6 +15,7 @@ import logging
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Optional
 
 import redis.asyncio as redis
@@ -58,29 +59,31 @@ def hash_api_key(key: str) -> str:
     return ph.hash(key)
 
 
+@lru_cache(maxsize=512)
 def hash_api_key_for_lookup(api_key_plain: str) -> str:
     """
-    Create a keyed hash for API key lookup (not for storage).
+    Create a deterministic key-derived hash for API key lookup (not for storage).
 
-    Uses BLAKE2b with SECRET_KEY for fast, deterministic lookups that
-    resist rainbow-table attacks. The actual key verification uses Argon2.
+    Uses PBKDF2-HMAC-SHA256 with SECRET_KEY as a fixed salt so the output is
+    deterministic (same key always produces the same hash). Results are cached
+    in-process so the KDF cost is paid only once per key per worker.
+
+    The actual key verification for storage uses Argon2 (see hash_api_key).
 
     Args:
         api_key_plain: The plain API key
 
     Returns:
-        BLAKE2b hex digest (64 chars) for use as Redis/DB lookup key
+        PBKDF2 hex digest (64 chars) for use as Redis/DB lookup key
     """
-    return hashlib.blake2b(
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
         api_key_plain.encode(),
-        key=settings.SECRET_KEY.encode()[:64],
-        digest_size=32,
-    ).hexdigest()
-
-
-def _legacy_hash_for_lookup(api_key_plain: str) -> str:
-    """Legacy plain SHA256 hash used before BLAKE2b migration."""
-    return hashlib.sha256(api_key_plain.encode()).hexdigest()
+        settings.SECRET_KEY.encode(),
+        iterations=600_000,
+        dklen=32,
+    )
+    return dk.hex()
 
 
 def verify_api_key_hash(key: str, stored_hash: str) -> bool:
@@ -105,10 +108,6 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
     """
     Validate API key against Redis storage and check expiration.
 
-    Tries the current BLAKE2b hash first, then falls back to the legacy
-    SHA256 hash for backward compatibility. On legacy match, the key
-    is transparently migrated to the new hash scheme.
-
     Args:
         api_key: The API key to validate
 
@@ -117,20 +116,11 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
     """
     client = await get_redis_client()
     try:
-        # Use BLAKE2b hash for lookup
         key_hash = hash_api_key_for_lookup(api_key)
         key_data = await client.hgetall(f"apikey:{key_hash}")
 
         if not key_data:
-            # Backward compatibility: check legacy SHA256 hash
-            legacy_hash = _legacy_hash_for_lookup(api_key)
-            key_data = await client.hgetall(f"apikey:{legacy_hash}")
-            if key_data:
-                # Migrate to BLAKE2b atomically
-                await _migrate_api_key_hash(client, legacy_hash, key_hash)
-                logger.info("Migrated API key to BLAKE2b: %s...", key_hash[:12])
-            else:
-                return None
+            return None
 
         # Check if key has expired
         expires_at = key_data.get("expires_at")
@@ -253,21 +243,6 @@ async def _update_usage_stats(api_key: str):
         await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
     finally:
         await client.aclose()
-
-
-async def _migrate_api_key_hash(
-    client: redis.Redis, old_hash: str, new_hash: str
-) -> None:
-    """Migrate an API key entry from legacy SHA256 to BLAKE2b in Redis."""
-    data = await client.hgetall(f"apikey:{old_hash}")
-    if not data:
-        return
-    pipe = client.pipeline()
-    pipe.hset(f"apikey:{new_hash}", mapping=data)
-    pipe.delete(f"apikey:{old_hash}")
-    pipe.srem("apikey:index", old_hash)
-    pipe.sadd("apikey:index", new_hash)
-    await pipe.execute()
 
 
 # =============================================================================
