@@ -34,22 +34,30 @@ def create_session_id() -> str:
     return str(uuid.uuid4())
 
 
-def ensure_session_cookie(response: Response, session_id: str) -> None:
-    """Set session cookie on response if not already present."""
-    if not _UUID_RE.match(session_id):
-        raise ValueError("Invalid session ID format")
+def ensure_session_cookie(response: Response, request: Request) -> str:
+    """Create a new session and set cookie, or return existing session ID.
+
+    Only sets a cookie when a *new* server-generated ID is created,
+    never echoes a user-supplied cookie value back into Set-Cookie.
+    """
+    existing = request.cookies.get(SESSION_COOKIE)
+    if existing and _UUID_RE.match(existing):
+        return existing
+
+    new_id = create_session_id()
     is_dev = (
         "localhost" in settings.CORS_ORIGINS_STR
         or "127.0.0.1" in settings.CORS_ORIGINS_STR
     )
     response.set_cookie(
         key=SESSION_COOKIE,
-        value=session_id,
+        value=new_id,
         max_age=SESSION_MAX_AGE,
         httponly=True,
         secure=not is_dev,
         samesite="lax",
     )
+    return new_id
 
 
 async def get_data_scope(request: Request) -> tuple[Optional[str], Optional[str]]:
