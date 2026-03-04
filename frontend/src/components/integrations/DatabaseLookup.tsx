@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { integrationsApi } from '../../services/api';
 import { safeHref } from '../../lib/sanitize';
 import { logger } from '../../lib/logger';
-import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, ConsistencyResult } from '../../types/integrations';
+import { DatabaseComparisonPanel } from './DatabaseComparisonPanel';
 const pubchemLogo = '/assets/logos/pubchem.png';
 const chemblLogo = '/assets/logos/chembl.png';
 const coconutLogo = '/assets/logos/coconut.png';
@@ -20,6 +21,8 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
     coconut: COCONUTResult | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [comparisonResult, setComparisonResult] = useState<ConsistencyResult | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
 
   const handleLookup = async () => {
     if (!inchikey && !smiles) return;
@@ -88,6 +91,30 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
 
           {/* COCONUT Result */}
           <COCONUTCard result={results.coconut} />
+
+          {/* Compare Across Databases */}
+          {!comparisonResult && (
+            <div className="pt-2 border-t border-gray-200">
+              <button
+                onClick={async () => {
+                  setIsComparing(true);
+                  try {
+                    const result = await integrationsApi.compareAcrossDatabases({ smiles, inchikey });
+                    setComparisonResult(result);
+                  } catch (err) {
+                    logger.error('Comparison error:', err);
+                  } finally {
+                    setIsComparing(false);
+                  }
+                }}
+                disabled={isComparing}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {isComparing ? 'Comparing...' : 'Compare Across Databases'}
+              </button>
+            </div>
+          )}
+          {comparisonResult && <DatabaseComparisonPanel result={comparisonResult} />}
         </div>
       )}
     </div>

@@ -50,7 +50,8 @@ import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
-import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound } from '../types/integrations';
+import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -353,19 +354,44 @@ export function SingleValidationPage() {
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
+  // Identifier resolution state
+  const [resolverResult, setResolverResult] = useState<ResolvedCompound | null>(null);
+
   // Use canonical SMILES from validation result when available (handles IUPAC/common names)
   const resolvedSmiles = result?.molecule_info?.canonical_smiles || molecule.trim();
 
   const handleValidate = async () => {
     if (!molecule.trim()) return;
+    setResolverResult(null);
+
+    // Try identifier resolution for non-SMILES input
+    const input = molecule.trim();
+    const smilesChars = /[[\]()=#@/\\]/;
+    if (!smilesChars.test(input) && !input.startsWith('InChI=')) {
+      try {
+        const resolved = await integrationsApi.resolveIdentifier({ identifier: input });
+        if (resolved.resolved && resolved.canonical_smiles && resolved.identifier_type_detected !== 'smiles') {
+          setResolverResult(resolved);
+          // Use resolved SMILES for validation
+          await validate({
+            molecule: resolved.canonical_smiles,
+            format: 'auto',
+            preserve_aromatic: preferAromaticSmiles,
+            input_type: 'smiles',
+          });
+          return;
+        }
+      } catch {
+        // Fall through to normal validation
+      }
+    }
+
     await validate({
-      molecule: molecule.trim(),
+      molecule: input,
       format: 'auto',
       preserve_aromatic: preferAromaticSmiles,
       input_type: effectiveInputType ?? 'auto',
     });
-    // Add to recent molecules on successful validation (validate updates result/error)
-    // We'll check result in useEffect after validation completes
   };
 
   const handleScreenAlerts = async () => {
@@ -945,6 +971,9 @@ export function SingleValidationPage() {
                             <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider w-16">Formula</span>
                             <span className="text-[var(--color-text-primary)] font-medium">{result.molecule_info.molecular_formula}</span>
                           </div>
+                        )}
+                        {resolverResult && resolverResult.resolved && (
+                          <IdentifierResolverCard result={resolverResult} />
                         )}
                         {result.molecule_info.canonical_smiles && (
                           <div>
