@@ -9,7 +9,7 @@ import {
   Info
 } from 'lucide-react';
 import type { SafetyFilterResult, FilterAlertResult, ChEMBLAlertsResult } from '../../types/scoring';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
 const CATEGORY_BADGE: Record<string, string> = {
@@ -38,44 +38,51 @@ interface SafetyFiltersScoreProps {
  * Catalog metadata for display — sourced from AVAILABLE_CATALOGS (backend).
  * Keeps frontend descriptions consistent with the enriched alert data.
  */
-const FILTER_INFO: Record<string, { label: string; description: string; citation: string }> = {
+const FILTER_INFO: Record<string, { label: string; description: string; citation: string; doi?: string }> = {
   PAINS: {
     label: 'PAINS (Pan-Assay Interference Compounds)',
     description: 'Identifies compounds that appear active in multiple assay types due to non-specific mechanisms such as aggregation, redox cycling, or fluorescence interference.',
     citation: 'Baell JB, Holloway GA. J Med Chem 53 (2010) 2719-2740.',
+    doi: '10.1021/jm901137j',
   },
   Brenk: {
     label: 'Brenk Structural Alerts',
     description: 'Flags compounds with known problematic functional groups associated with toxicity or unfavourable pharmacokinetic properties.',
     citation: 'Brenk R et al. ChemMedChem 3 (2008) 435-444.',
+    doi: '10.1002/cmdc.200700139',
   },
   NIH: {
     label: 'NIH MLPCN Exclusion Filters',
     description: 'Reactive and interference compounds excluded from NIH Molecular Libraries screening collection.',
     citation: 'Jadhav A et al. J Med Chem 53 (2010) 37-51.',
+    doi: '10.1021/jm901070c',
   },
   ZINC: {
     label: 'ZINC Druglike Filters',
     description: 'Reactivity and drug-likeness filters used by the ZINC purchasable compound database.',
     citation: 'Irwin JJ, Shoichet BK. J Chem Inf Model 45 (2005) 177-182.',
+    doi: '10.1021/ci049714+',
   },
 };
 
-const CHEMBL_FILTER_INFO: Record<string, { label: string; description: string; citation: string }> = {
+const CHEMBL_FILTER_INFO: Record<string, { label: string; description: string; citation: string; doi?: string }> = {
   bms: {
     label: 'BMS HTS Desirability Filters',
     description: 'Functional group filters for HTS compound selection at Bristol-Myers Squibb.',
     citation: 'Pearce BC et al. J Chem Inf Model 46 (2006) 1060-1068.',
+    doi: '10.1021/ci050504m',
   },
   dundee: {
     label: 'Dundee NTD Screening Filters',
     description: 'Alerts developed for neglected tropical disease screening at the University of Dundee.',
     citation: 'Brenk R et al. ChemMedChem 3 (2008) 435-444.',
+    doi: '10.1002/cmdc.200700139',
   },
   glaxo: {
     label: 'Glaxo Hard Filters',
     description: 'Reactive and toxic group filters for lead optimisation at GlaxoSmithKline.',
     citation: 'Hann M et al. J Chem Inf Comput Sci 39 (1999) 897-902.',
+    doi: '10.1021/ci990423o',
   },
   inpharmatica: {
     label: 'Inpharmatica Unwanted Fragments',
@@ -86,6 +93,7 @@ const CHEMBL_FILTER_INFO: Record<string, { label: string; description: string; c
     label: 'Lilly MedChem Rules (LINT)',
     description: 'Medicinal chemistry structural alerts developed at Eli Lilly to flag undesirable compounds.',
     citation: 'Bruns RF, Watson IA. J Med Chem 55 (2012) 9763-9772.',
+    doi: '10.1021/jm301008n',
   },
   mlsmr: {
     label: 'NIH MLSMR Excluded Functionality',
@@ -96,6 +104,7 @@ const CHEMBL_FILTER_INFO: Record<string, { label: string; description: string; c
     label: 'SureChEMBL Non-chemical Patterns',
     description: 'Filters for non-chemical entities and patent noise in the SureChEMBL patent-mined database.',
     citation: 'Papadatos G et al. Nucleic Acids Res 44 (2016) D1220-D1228.',
+    doi: '10.1093/nar/gkv1253',
   },
 };
 
@@ -106,12 +115,14 @@ function FilterCard({
   name,
   description,
   citation,
+  doi,
   result,
   delay = 0
 }: {
   name: string;
   description: string;
   citation?: string;
+  doi?: string;
   result: FilterAlertResult;
   delay?: number;
 }) {
@@ -143,6 +154,7 @@ function FilterCard({
             <div className="text-xs space-y-1">
               <p>{description}</p>
               {citation && <p className="text-[var(--color-text-muted)] italic">{citation}</p>}
+              {doi && <DoiLink doi={doi} />}
             </div>
           } />
         </div>
@@ -288,6 +300,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                         <div className="text-xs space-y-1">
                           <p>{info.description}</p>
                           <p className="text-[var(--color-text-muted)] italic">{info.citation}</p>
+                          {info.doi && <DoiLink doi={info.doi} />}
                         </div>
                       }
                     />
@@ -395,6 +408,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
               name={info.label}
               description={info.description}
               citation={info.citation}
+              doi={info.doi}
               result={filterResult}
               delay={delay}
             />
