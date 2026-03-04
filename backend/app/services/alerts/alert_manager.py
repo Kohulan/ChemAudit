@@ -238,8 +238,9 @@ class AlertManager:
                         # prefer catalog-level reference
                         if reference:
                             parsed_ref = urlparse(reference)
-                            if parsed_ref.hostname and parsed_ref.hostname.endswith(
-                                "github.com"
+                            if parsed_ref.hostname in (
+                                "github.com",
+                                "www.github.com",
                             ):
                                 catalog_ref = cat_meta.get("reference")
                                 if catalog_ref:

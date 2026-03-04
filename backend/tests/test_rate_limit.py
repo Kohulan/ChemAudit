@@ -118,7 +118,7 @@ def test_rate_limit_key_function():
     mock_request_with_key.headers.get.return_value = "test_api_key"
 
     key = get_rate_limit_key(mock_request_with_key)
-    # Key is now hashed (SHA-256) to avoid exposing raw API keys in Redis
+    # Key is hashed (BLAKE2b) to avoid exposing raw API keys in Redis
     from app.core.security import hash_api_key_for_lookup
 
     assert key == f"apikey:{hash_api_key_for_lookup('test_api_key')}"
