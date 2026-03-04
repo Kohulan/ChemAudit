@@ -8,7 +8,7 @@ import {
   Beaker
 } from 'lucide-react';
 import type { DrugLikenessResult } from '../../types/scoring';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 import { useCountUp } from '../../hooks/useCountUp';
 
@@ -129,9 +129,10 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
                     <li>0.49-0.67: Moderate</li>
                     <li>&lt;0.49: Unfavorable</li>
                   </ul>
-                  <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                    📖 Bickerton et al. Nat Chem (2012)
-                  </p>
+                  <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                    <p>📖 Bickerton et al. Nat Chem (2012)</p>
+                    <DoiLink doi="10.1038/nchem.1243" />
+                  </div>
                 </div>
               }
             />
@@ -163,9 +164,10 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
                     <li>HBA &le; 10</li>
                   </ul>
                   <p className="mt-1">1 violation allowed</p>
-                  <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                    📖 Lipinski et al. Adv Drug Deliv Rev (2001)
-                  </p>
+                  <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                    <p>📖 Lipinski et al. Adv Drug Deliv Rev (2001)</p>
+                    <DoiLink doi="10.1016/S0169-409X(00)00129-0" />
+                  </div>
                 </div>
               }
             />

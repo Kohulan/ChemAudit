@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import type { BioavailabilityRadar, BoiledEgg } from '../../types/scoring';
 import { cn } from '../../lib/utils';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 
 interface BioavailabilityCardProps {
   radar: BioavailabilityRadar | null;
@@ -74,9 +74,10 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                         <tr><td>FLEX</td><td>RotBonds</td><td>{'\u2264'} 9</td></tr>
                       </tbody>
                     </table>
-                    <p className="text-zinc-400 italic">
-                      Daina, Michielin & Zoete. Sci. Rep. 2017, 7, 42717
-                    </p>
+                    <div className="text-zinc-400 italic space-y-1">
+                      <p>Daina, Michielin & Zoete. Sci. Rep. 2017, 7, 42717</p>
+                      <DoiLink doi="10.1038/srep42717" />
+                    </div>
                   </div>
                 }
               />
@@ -240,9 +241,10 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                       Validated on 46 FDA new chemical entities with 83% accuracy.
                       10-fold CV: 92% (HIA), 88% (BBB).
                     </p>
-                    <p className="text-zinc-400 italic">
-                      Daina & Zoete. ChemMedChem 2016, 11, 1117–1121
-                    </p>
+                    <div className="text-zinc-400 italic space-y-1">
+                      <p>Daina & Zoete. ChemMedChem 2016, 11, 1117–1121</p>
+                      <DoiLink doi="10.1002/cmdc.201600182" />
+                    </div>
                   </div>
                 }
               />

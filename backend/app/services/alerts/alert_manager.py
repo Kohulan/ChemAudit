@@ -13,6 +13,7 @@ IMPORTANT: Structural alerts are warnings, not automatic rejections.
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from rdkit import Chem
 
@@ -235,10 +236,15 @@ class AlertManager:
 
                         # If entry-level reference is just a GitHub URL,
                         # prefer catalog-level reference
-                        if reference and "github.com" in reference:
-                            catalog_ref = cat_meta.get("reference")
-                            if catalog_ref:
-                                reference = catalog_ref
+                        if reference:
+                            parsed_ref = urlparse(reference)
+                            if parsed_ref.hostname in (
+                                "github.com",
+                                "www.github.com",
+                            ):
+                                catalog_ref = cat_meta.get("reference")
+                                if catalog_ref:
+                                    reference = catalog_ref
 
                         # Classify pattern into concern category
                         category = classify_pattern(pattern_name, catalog_type)

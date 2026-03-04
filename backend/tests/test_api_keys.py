@@ -192,14 +192,14 @@ def test_hash_api_key():
 
 
 def test_hash_api_key_for_lookup():
-    """Test API key lookup hash function uses SHA256."""
+    """Test API key lookup hash uses PBKDF2 (deterministic KDF)."""
     from app.core.security import hash_api_key_for_lookup
 
     key1 = "test_key_123"
     key2 = "test_key_123"
     key3 = "different_key"
 
-    # Same input should produce same hash
+    # Same input should produce same hash (deterministic)
     hash1 = hash_api_key_for_lookup(key1)
     hash2 = hash_api_key_for_lookup(key2)
     assert hash1 == hash2
@@ -208,9 +208,15 @@ def test_hash_api_key_for_lookup():
     hash3 = hash_api_key_for_lookup(key3)
     assert hash1 != hash3
 
-    # Hash should be SHA256 (64 hex characters)
+    # Hash should be 64 hex characters (PBKDF2 dklen=32)
     assert len(hash1) == 64
     assert all(c in "0123456789abcdef" for c in hash1)
+
+    # Must differ from plain SHA256 (KDF output is not the same)
+    import hashlib
+
+    plain_sha256 = hashlib.sha256(key1.encode()).hexdigest()
+    assert hash1 != plain_sha256
 
 
 def test_anonymous_access_allowed(client):
