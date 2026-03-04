@@ -192,14 +192,14 @@ def test_hash_api_key():
 
 
 def test_hash_api_key_for_lookup():
-    """Test API key lookup hash function uses SHA256."""
+    """Test API key lookup hash function uses BLAKE2b keyed hash."""
     from app.core.security import hash_api_key_for_lookup
 
     key1 = "test_key_123"
     key2 = "test_key_123"
     key3 = "different_key"
 
-    # Same input should produce same hash
+    # Same input should produce same hash (deterministic)
     hash1 = hash_api_key_for_lookup(key1)
     hash2 = hash_api_key_for_lookup(key2)
     assert hash1 == hash2
@@ -208,9 +208,30 @@ def test_hash_api_key_for_lookup():
     hash3 = hash_api_key_for_lookup(key3)
     assert hash1 != hash3
 
-    # Hash should be SHA256 (64 hex characters)
+    # Hash should be 64 hex characters (BLAKE2b digest_size=32)
     assert len(hash1) == 64
     assert all(c in "0123456789abcdef" for c in hash1)
+
+    # Must differ from plain SHA256 (keyed hash is not the same as plain hash)
+    import hashlib
+
+    plain_sha256 = hashlib.sha256(key1.encode()).hexdigest()
+    assert hash1 != plain_sha256
+
+
+def test_legacy_hash_for_lookup():
+    """Test legacy SHA256 hash for backward compatibility."""
+    import hashlib
+
+    from app.core.security import _legacy_hash_for_lookup
+
+    key = "test_key_123"
+    legacy = _legacy_hash_for_lookup(key)
+
+    # Must match plain SHA256 (this is what the old code produced)
+    expected = hashlib.sha256(key.encode()).hexdigest()
+    assert legacy == expected
+    assert len(legacy) == 64
 
 
 def test_anonymous_access_allowed(client):
