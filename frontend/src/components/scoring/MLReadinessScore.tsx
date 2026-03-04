@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { MLReadinessResult, MLDimension, MLDimensionItem } from '../../types/scoring';
 import { ScoreChart } from './ScoreChart';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
 /** Format a score: integers display without decimals, fractional values get 1 decimal place. */
@@ -109,7 +109,10 @@ const DIMENSION_TOOLTIPS: Record<string, { title: string; content: React.ReactNo
         <p><strong>What:</strong> Whether the molecule is structurally clean for ML pipelines.</p>
         <p><strong>How:</strong> Binary checks: single component, organic elements, no radicals, reasonable charge, no dummy atoms.</p>
         <p><strong>Why:</strong> Multi-component mixtures, metals, and radicals cause descriptor calculation failures and model bias.</p>
-        <p className="text-white/50">Lipinski et al. (1997) Adv. Drug Deliv. Rev. 23:3-25</p>
+        <div className="text-white/50 space-y-1">
+          <p>Lipinski et al. (1997) Adv. Drug Deliv. Rev. 23:3-25</p>
+          <DoiLink doi="10.1016/S0169-409X(96)00423-1" />
+        </div>
       </div>
     ),
   },
@@ -120,7 +123,10 @@ const DIMENSION_TOOLTIPS: Record<string, { title: string; content: React.ReactNo
         <p><strong>What:</strong> Physicochemical properties scored against QED-derived ideal ranges.</p>
         <p><strong>How:</strong> Desirability function (0-1) for MW, LogP, TPSA, HBD, HBA, rotatable bonds, aromatic rings.</p>
         <p><strong>Why:</strong> ML models trained on drug-like chemical space perform best when test molecules fall within typical property ranges.</p>
-        <p className="text-white/50">Bickerton et al. (2012) Nature Chemistry 4:90-98</p>
+        <div className="text-white/50 space-y-1">
+          <p>Bickerton et al. (2012) Nature Chemistry 4:90-98</p>
+          <DoiLink doi="10.1038/nchem.1243" />
+        </div>
       </div>
     ),
   },
@@ -131,7 +137,11 @@ const DIMENSION_TOOLTIPS: Record<string, { title: string; content: React.ReactNo
         <p><strong>What:</strong> Drug-likeness quality, synthetic feasibility, 3D character, stereocenter count.</p>
         <p><strong>How:</strong> QED (0-1 scaled to 8pts), SA Score (inverse, 8pts), Fsp3 (desirability, 4pts), stereocenters (5pts with undefined penalty).</p>
         <p><strong>Why:</strong> Overly complex or synthetically intractable molecules are poor ML training data.</p>
-        <p className="text-white/50">Ertl &amp; Schuffenhauer (2009) J. Cheminf. 1:8; Lovering et al. (2009) J. Med. Chem. 52:6752</p>
+        <div className="text-white/50 space-y-1">
+          <p>Ertl &amp; Schuffenhauer (2009) J. Cheminf. 1:8; Lovering et al. (2009) J. Med. Chem. 52:6752</p>
+          <DoiLink doi="10.1186/1758-2946-1-8" />
+          <DoiLink doi="10.1021/jm901241e" />
+        </div>
       </div>
     ),
   },
@@ -142,7 +152,10 @@ const DIMENSION_TOOLTIPS: Record<string, { title: string; content: React.ReactNo
         <p><strong>What:</strong> How well the molecule can be represented computationally.</p>
         <p><strong>How:</strong> Descriptor completeness (451 RDKit), fingerprint generation (7 types), bit density (1-30% ideal), conformer generation (ETKDGv3).</p>
         <p><strong>Why:</strong> Molecules that fail descriptor/FP calculations produce NaN values that break ML models. Conformer generation tests 3D feasibility.</p>
-        <p className="text-white/50">Rogers &amp; Hahn (2010) J. Chem. Inf. Model. 50:742-754</p>
+        <div className="text-white/50 space-y-1">
+          <p>Rogers &amp; Hahn (2010) J. Chem. Inf. Model. 50:742-754</p>
+          <DoiLink doi="10.1021/ci100050t" />
+        </div>
       </div>
     ),
   },

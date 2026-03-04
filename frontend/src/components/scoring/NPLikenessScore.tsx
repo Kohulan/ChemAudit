@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Leaf, FlaskConical, Sparkles } from 'lucide-react';
 import type { NPLikenessResult } from '../../types/scoring';
 import { cn } from '../../lib/utils';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { useCountUp } from '../../hooks/useCountUp';
 
 interface NPLikenessScoreProps {
@@ -104,9 +104,10 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                         <li><strong>Score &lt; -0.3:</strong> Synthetic-like</li>
                       </ul>
                       <p className="text-white/60">Based on fragment analysis comparing to the COCONUT natural products database.</p>
-                      <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                        📖 Ertl et al. J Chem Inf Model (2008)
-                      </p>
+                      <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                        <p>📖 Ertl et al. J Chem Inf Model (2008)</p>
+                        <DoiLink doi="10.1021/ci700286x" />
+                      </div>
                     </div>
                   }
                 />
