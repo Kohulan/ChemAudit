@@ -25,7 +25,7 @@ from app.core.config import settings
 from app.core.error_sanitizer import safe_error_detail
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
-from app.core.session import create_session_id, ensure_session_cookie, get_data_scope
+from app.core.session import ensure_session_cookie, get_data_scope
 from app.db import get_db
 from app.schemas.validation import (
     CheckResultSchema,
@@ -211,9 +211,7 @@ async def validate_molecule(
     if api_key:
         api_key_hash = hash_api_key_for_lookup(api_key)
     if not session_id and not api_key_hash:
-        session_id = create_session_id()
-    if session_id:
-        ensure_session_cookie(response, session_id)
+        session_id = ensure_session_cookie(response, request)
 
     # Log to audit trail (non-blocking — failure must not block response)
     if db is not None:
