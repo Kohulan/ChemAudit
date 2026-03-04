@@ -25,6 +25,7 @@ from app.api.routes import (
     integrations,
     permalinks,
     profiles,
+    resolve,
     scoring,
     session,
     standardization,
@@ -275,6 +276,7 @@ app.include_router(batch.router, prefix="/api/v1", tags=["batch"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])
+app.include_router(resolve.router, prefix="/api/v1", tags=["resolve"])
 app.include_router(config.router, prefix="/api/v1", tags=["config"])
 app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
 app.include_router(session.router, prefix="/api/v1", tags=["session"])
