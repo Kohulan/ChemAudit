@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import (
-    create_session_id,
     ensure_session_cookie,
     get_data_scope,
     set_rls_context,
@@ -175,9 +174,7 @@ async def create_bookmark(
 
     # Ensure a session exists for anonymous users
     if not session_id and not api_key_hash:
-        session_id = create_session_id()
-    if session_id:
-        ensure_session_cookie(response, session_id)
+        session_id = ensure_session_cookie(response, request)
 
     inchikey = _compute_inchikey(body.smiles)
 
