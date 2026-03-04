@@ -7,7 +7,7 @@ import {
   Info
 } from 'lucide-react';
 import type { AggregatorLikelihoodResult } from '../../types/scoring';
-import { InfoTooltip } from '../ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
 interface AggregatorScoreProps {
@@ -103,9 +103,10 @@ export function AggregatorScore({ result }: AggregatorScoreProps) {
                       <li>Misleading SAR data</li>
                     </ul>
                     <p className="text-white/60 mt-2">High LogP and low TPSA increase aggregation risk.</p>
-                    <p className="mt-2 pt-2 border-t border-white/20 text-white/60">
-                      📖 McGovern et al. J Med Chem (2002)
-                    </p>
+                    <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
+                      <p>📖 McGovern et al. J Med Chem (2002)</p>
+                      <DoiLink doi="10.1021/jm010533y" />
+                    </div>
                   </div>
                 }
               />
