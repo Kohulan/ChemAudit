@@ -103,7 +103,11 @@ import type {
   PubChemResult,
   ChEMBLResult,
   COCONUTResult,
-  IntegrationError
+  IntegrationError,
+  ResolveRequest,
+  ResolvedCompound,
+  CompareRequest,
+  ConsistencyResult
 } from '../types/integrations';
 import type {
   BatchAnalyticsResponse,
@@ -809,6 +813,38 @@ export const integrationsApi = {
       chembl: chembl.status === 'fulfilled' ? chembl.value : null,
       coconut: coconut.status === 'fulfilled' ? coconut.value : null,
     };
+  },
+
+  /**
+   * Resolve any chemical identifier to a canonical structure.
+   */
+  resolveIdentifier: async (request: ResolveRequest): Promise<ResolvedCompound> => {
+    try {
+      const response = await api.post<ResolvedCompound>('/resolve', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<IntegrationError>;
+        throw axiosError.response?.data || { error: 'Resolution failed' };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Compare molecule representation across databases.
+   */
+  compareAcrossDatabases: async (request: CompareRequest): Promise<ConsistencyResult> => {
+    try {
+      const response = await api.post<ConsistencyResult>('/integrations/compare', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<IntegrationError>;
+        throw axiosError.response?.data || { error: 'Comparison failed' };
+      }
+      throw error;
+    }
   },
 };
 
