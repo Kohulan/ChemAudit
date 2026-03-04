@@ -5,6 +5,7 @@ Provides per-browser session scoping via HttpOnly cookie.
 API key users are scoped by api_key_hash instead.
 """
 
+import re
 import uuid
 from typing import Optional
 
@@ -17,6 +18,10 @@ from app.core.security import hash_api_key_for_lookup
 
 SESSION_COOKIE = "chemaudit_sid"
 SESSION_MAX_AGE = 30 * 24 * 3600  # 30 days
+
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
 
 
 def get_session_id(request: Request) -> Optional[str]:
@@ -31,6 +36,8 @@ def create_session_id() -> str:
 
 def ensure_session_cookie(response: Response, session_id: str) -> None:
     """Set session cookie on response if not already present."""
+    if not _UUID_RE.match(session_id):
+        raise ValueError("Invalid session ID format")
     is_dev = (
         "localhost" in settings.CORS_ORIGINS_STR
         or "127.0.0.1" in settings.CORS_ORIGINS_STR

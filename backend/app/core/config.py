@@ -163,10 +163,11 @@ class Settings(BaseSettings):
                         f"Set a strong secret via environment variable before "
                         f"running in production (DEBUG=False)."
                     )
+                setting_name = str(field_name)
                 _config_logger.warning(
-                    "%s has an insecure default value. "
-                    "This is acceptable for local development only.",
-                    field_name,
+                    "Security setting %r uses an insecure default. "
+                    "Acceptable for local development only.",
+                    setting_name,
                 )
         return self
 
