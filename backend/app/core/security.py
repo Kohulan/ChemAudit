@@ -60,18 +60,20 @@ def hash_api_key(key: str) -> str:
 
 def hash_api_key_for_lookup(key: str) -> str:
     """
-    Create a fast hash for API key lookup (not for storage).
+    Create a keyed hash for API key lookup (not for storage).
 
-    Uses SHA256 for fast lookups. The actual key verification
-    uses Argon2 for security.
+    Uses HMAC-SHA256 with SECRET_KEY for fast lookups that resist
+    rainbow-table attacks. The actual key verification uses Argon2.
 
     Args:
         key: The plain API key
 
     Returns:
-        SHA256 hex digest for use as Redis key
+        HMAC-SHA256 hex digest for use as Redis key
     """
-    return hashlib.sha256(key.encode()).hexdigest()
+    return hmac.new(
+        settings.SECRET_KEY.encode(), key.encode(), hashlib.sha256
+    ).hexdigest()
 
 
 def verify_api_key_hash(key: str, stored_hash: str) -> bool:
