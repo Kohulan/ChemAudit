@@ -22,7 +22,7 @@ export function StructureInput({
   onChange,
   onSubmit,
   disabled = false,
-  placeholder = 'Enter SMILES, InChI, IUPAC name (e.g. aspirin), or paste MDL Mol file...',
+  placeholder = 'Enter SMILES, InChI, compound name, ChEMBL ID, CAS number, or paste MDL Mol file...',
 }: StructureInputProps): ReactElement {
   useHotkeys(
     'ctrl+enter, meta+enter',

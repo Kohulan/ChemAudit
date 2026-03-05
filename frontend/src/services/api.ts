@@ -103,7 +103,11 @@ import type {
   PubChemResult,
   ChEMBLResult,
   COCONUTResult,
-  IntegrationError
+  IntegrationError,
+  ResolveRequest,
+  ResolvedCompound,
+  CompareRequest,
+  ConsistencyResult
 } from '../types/integrations';
 import type {
   BatchAnalyticsResponse,
@@ -741,58 +745,36 @@ export const batchApi = {
   },
 };
 
+/**
+ * Post to an integration endpoint, extracting server error details on failure.
+ */
+async function integrationPost<T>(url: string, data: unknown, fallbackError: string): Promise<T> {
+  try {
+    const response = await api.post<T>(url, data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<IntegrationError>;
+      throw axiosError.response?.data || { error: fallbackError };
+    }
+    throw error;
+  }
+}
+
 export const integrationsApi = {
-  /**
-   * Look up molecule in PubChem database.
-   */
-  lookupPubChem: async (request: IntegrationRequest): Promise<PubChemResult> => {
-    try {
-      const response = await api.post<PubChemResult>('/integrations/pubchem/lookup', request);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<IntegrationError>;
-        throw axiosError.response?.data || { error: 'Network error' };
-      }
-      throw error;
-    }
-  },
+  /** Look up molecule in PubChem database. */
+  lookupPubChem: (request: IntegrationRequest): Promise<PubChemResult> =>
+    integrationPost('/integrations/pubchem/lookup', request, 'Network error'),
 
-  /**
-   * Look up molecule in ChEMBL for bioactivity data.
-   */
-  lookupChEMBL: async (request: IntegrationRequest): Promise<ChEMBLResult> => {
-    try {
-      const response = await api.post<ChEMBLResult>('/integrations/chembl/bioactivity', request);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<IntegrationError>;
-        throw axiosError.response?.data || { error: 'Network error' };
-      }
-      throw error;
-    }
-  },
+  /** Look up molecule in ChEMBL for bioactivity data. */
+  lookupChEMBL: (request: IntegrationRequest): Promise<ChEMBLResult> =>
+    integrationPost('/integrations/chembl/bioactivity', request, 'Network error'),
 
-  /**
-   * Look up molecule in COCONUT natural products database.
-   */
-  lookupCOCONUT: async (request: IntegrationRequest): Promise<COCONUTResult> => {
-    try {
-      const response = await api.post<COCONUTResult>('/integrations/coconut/lookup', request);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<IntegrationError>;
-        throw axiosError.response?.data || { error: 'Network error' };
-      }
-      throw error;
-    }
-  },
+  /** Look up molecule in COCONUT natural products database. */
+  lookupCOCONUT: (request: IntegrationRequest): Promise<COCONUTResult> =>
+    integrationPost('/integrations/coconut/lookup', request, 'Network error'),
 
-  /**
-   * Look up molecule in all databases in parallel.
-   */
+  /** Look up molecule in all databases in parallel. */
   lookupAll: async (request: IntegrationRequest): Promise<{
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
@@ -810,6 +792,14 @@ export const integrationsApi = {
       coconut: coconut.status === 'fulfilled' ? coconut.value : null,
     };
   },
+
+  /** Resolve any chemical identifier to a canonical structure. */
+  resolveIdentifier: (request: ResolveRequest): Promise<ResolvedCompound> =>
+    integrationPost('/resolve', request, 'Resolution failed'),
+
+  /** Compare molecule representation across databases. */
+  compareAcrossDatabases: (request: CompareRequest): Promise<ConsistencyResult> =>
+    integrationPost('/integrations/compare', request, 'Comparison failed'),
 };
 
 // ============================================================================

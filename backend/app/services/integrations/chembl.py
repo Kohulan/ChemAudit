@@ -205,18 +205,20 @@ async def get_bioactivity(request: ChEMBLRequest) -> ChEMBLResult:
             )
         )
 
+    mol_structures = molecule_data.get("molecule_structures") or {}
+    mol_properties = molecule_data.get("molecule_properties") or {}
+
     return ChEMBLResult(
         found=True,
         chembl_id=chembl_id,
         pref_name=molecule_data.get("pref_name"),
         molecule_type=molecule_data.get("molecule_type"),
         max_phase=molecule_data.get("max_phase"),
-        molecular_formula=molecule_data.get("molecule_properties", {}).get(
-            "full_molecular_formula"
-        ),
-        molecular_weight=molecule_data.get("molecule_properties", {}).get(
-            "molecular_weight"
-        ),
+        molecular_formula=mol_properties.get("full_molecular_formula"),
+        molecular_weight=mol_properties.get("molecular_weight"),
+        canonical_smiles=mol_structures.get("canonical_smiles"),
+        inchi=mol_structures.get("standard_inchi"),
+        inchikey=mol_structures.get("standard_inchi_key"),
         bioactivities=bioactivities,
         bioactivity_count=len(bioactivities),
         url=(
