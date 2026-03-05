@@ -47,6 +47,62 @@ def _canonicalize(smiles: str) -> Optional[dict]:
         return None
 
 
+async def _get_xrefs(inchikey: Optional[str]) -> dict:
+    """Fetch cross-references from UniChem by InChIKey, returning empty dict on failure."""
+    if not inchikey:
+        return {}
+    unichem = UniChemClient()
+    return await unichem.get_cross_references(inchikey)
+
+
+def _build_xrefs(xrefs_data: dict, **overrides: object) -> CrossReferences:
+    """Build CrossReferences from UniChem data with optional field overrides."""
+    pubchem_cid_raw = overrides.pop("pubchem_cid", xrefs_data.get("pubchem_cid"))
+    pubchem_cid = int(pubchem_cid_raw) if pubchem_cid_raw else None
+    return CrossReferences(
+        pubchem_cid=pubchem_cid,
+        chembl_id=overrides.pop("chembl_id", xrefs_data.get("chembl_id")),
+        drugbank_id=overrides.pop("drugbank_id", xrefs_data.get("drugbank_id")),
+        chebi_id=overrides.pop("chebi_id", xrefs_data.get("chebi_id")),
+        kegg_id=overrides.pop("kegg_id", xrefs_data.get("kegg_id")),
+        **overrides,
+    )
+
+
+async def _resolve_from_pubchem_properties(
+    properties: dict,
+    *,
+    id_type: str,
+    cid: int,
+    chain_label: str,
+    confidence: str = "high",
+) -> ResolvedCompound:
+    """Build a ResolvedCompound from PubChem properties dict.
+
+    Shared by _resolve_inchikey, _resolve_pubchem_cid, and _resolve_via_pubchem_name.
+    """
+    smiles = properties.get("CanonicalSMILES")
+    props = _canonicalize(smiles) if smiles else None
+    inchikey = properties.get("InChIKey") or (props["inchikey"] if props else None)
+    xrefs_data = await _get_xrefs(inchikey)
+
+    return ResolvedCompound(
+        resolved=True,
+        identifier_type_detected=id_type,
+        canonical_smiles=props["canonical_smiles"] if props else smiles,
+        inchi=properties.get("InChI") or (props["inchi"] if props else None),
+        inchikey=inchikey,
+        molecular_formula=properties.get("MolecularFormula")
+        or (props["molecular_formula"] if props else None),
+        molecular_weight=properties.get("MolecularWeight"),
+        iupac_name=properties.get("IUPACName"),
+        resolution_source="pubchem",
+        resolution_chain=[chain_label],
+        cross_references=_build_xrefs(xrefs_data, pubchem_cid=cid),
+        confidence=confidence,
+    )
+
+
 async def _resolve_smiles(smiles: str) -> Optional[ResolvedCompound]:
     """Resolve a SMILES string locally with RDKit."""
     props = _canonicalize(smiles)
@@ -103,33 +159,11 @@ async def _resolve_inchikey(inchikey: str) -> Optional[ResolvedCompound]:
     if not properties:
         return None
 
-    smiles = properties.get("CanonicalSMILES")
-    props = _canonicalize(smiles) if smiles else None
-
-    # Get cross-references
-    unichem = UniChemClient()
-    xrefs = await unichem.get_cross_references(inchikey)
-
-    return ResolvedCompound(
-        resolved=True,
-        identifier_type_detected="inchikey",
-        canonical_smiles=props["canonical_smiles"] if props else smiles,
-        inchi=properties.get("InChI") or (props["inchi"] if props else None),
-        inchikey=inchikey,
-        molecular_formula=properties.get("MolecularFormula")
-        or (props["molecular_formula"] if props else None),
-        molecular_weight=properties.get("MolecularWeight"),
-        iupac_name=properties.get("IUPACName"),
-        resolution_source="pubchem",
-        resolution_chain=[f"InChIKey → PubChem CID:{cid} → SMILES"],
-        cross_references=CrossReferences(
-            pubchem_cid=cid,
-            chembl_id=xrefs.get("chembl_id"),
-            drugbank_id=xrefs.get("drugbank_id"),
-            chebi_id=xrefs.get("chebi_id"),
-            kegg_id=xrefs.get("kegg_id"),
-        ),
-        confidence="high",
+    return await _resolve_from_pubchem_properties(
+        properties,
+        id_type="inchikey",
+        cid=cid,
+        chain_label=f"InChIKey → PubChem CID:{cid} → SMILES",
     )
 
 
@@ -146,14 +180,11 @@ async def _resolve_chembl_id(chembl_id: str) -> Optional[ResolvedCompound]:
     inchikey = structures.get("standard_inchi_key")
 
     props = _canonicalize(smiles) if smiles else None
-
-    # Get cross-references if we have an InChIKey
-    xrefs_data: dict = {}
-    if inchikey:
-        unichem = UniChemClient()
-        xrefs_data = await unichem.get_cross_references(inchikey)
-
+    xrefs_data = await _get_xrefs(inchikey)
     mol_props = mol_data.get("molecule_properties") or {}
+
+    mw_raw = mol_props.get("molecular_weight")
+    molecular_weight = float(mw_raw) if mw_raw else (props["molecular_weight"] if props else None)
 
     return ResolvedCompound(
         resolved=True,
@@ -163,21 +194,11 @@ async def _resolve_chembl_id(chembl_id: str) -> Optional[ResolvedCompound]:
         inchikey=inchikey,
         molecular_formula=mol_props.get("full_molecular_formula")
         or (props["molecular_formula"] if props else None),
-        molecular_weight=float(mol_props["molecular_weight"])
-        if mol_props.get("molecular_weight")
-        else (props["molecular_weight"] if props else None),
+        molecular_weight=molecular_weight,
         iupac_name=mol_data.get("pref_name"),
         resolution_source="chembl",
         resolution_chain=[f"{chembl_id.upper()} → ChEMBL API → SMILES"],
-        cross_references=CrossReferences(
-            chembl_id=chembl_id.upper(),
-            pubchem_cid=int(xrefs_data["pubchem_cid"])
-            if xrefs_data.get("pubchem_cid")
-            else None,
-            drugbank_id=xrefs_data.get("drugbank_id"),
-            chebi_id=xrefs_data.get("chebi_id"),
-            kegg_id=xrefs_data.get("kegg_id"),
-        ),
+        cross_references=_build_xrefs(xrefs_data, chembl_id=chembl_id.upper()),
         confidence="high",
     )
 
@@ -195,34 +216,11 @@ async def _resolve_pubchem_cid(cid_str: str) -> Optional[ResolvedCompound]:
     if not properties:
         return None
 
-    smiles = properties.get("CanonicalSMILES")
-    props = _canonicalize(smiles) if smiles else None
-    inchikey = properties.get("InChIKey") or (props["inchikey"] if props else None)
-
-    xrefs_data: dict = {}
-    if inchikey:
-        unichem = UniChemClient()
-        xrefs_data = await unichem.get_cross_references(inchikey)
-
-    return ResolvedCompound(
-        resolved=True,
-        identifier_type_detected="pubchem_cid",
-        canonical_smiles=props["canonical_smiles"] if props else smiles,
-        inchi=properties.get("InChI") or (props["inchi"] if props else None),
-        inchikey=inchikey,
-        molecular_formula=properties.get("MolecularFormula"),
-        molecular_weight=properties.get("MolecularWeight"),
-        iupac_name=properties.get("IUPACName"),
-        resolution_source="pubchem",
-        resolution_chain=[f"CID:{cid} → PubChem API → SMILES"],
-        cross_references=CrossReferences(
-            pubchem_cid=cid,
-            chembl_id=xrefs_data.get("chembl_id"),
-            drugbank_id=xrefs_data.get("drugbank_id"),
-            chebi_id=xrefs_data.get("chebi_id"),
-            kegg_id=xrefs_data.get("kegg_id"),
-        ),
-        confidence="high",
+    return await _resolve_from_pubchem_properties(
+        properties,
+        id_type="pubchem_cid",
+        cid=cid,
+        chain_label=f"CID:{cid} → PubChem API → SMILES",
     )
 
 
@@ -237,33 +235,11 @@ async def _resolve_via_pubchem_name(identifier: str, id_type: str) -> Optional[R
     if not properties:
         return None
 
-    smiles = properties.get("CanonicalSMILES")
-    props = _canonicalize(smiles) if smiles else None
-    inchikey = properties.get("InChIKey") or (props["inchikey"] if props else None)
-
-    xrefs_data: dict = {}
-    if inchikey:
-        unichem = UniChemClient()
-        xrefs_data = await unichem.get_cross_references(inchikey)
-
-    return ResolvedCompound(
-        resolved=True,
-        identifier_type_detected=id_type,
-        canonical_smiles=props["canonical_smiles"] if props else smiles,
-        inchi=properties.get("InChI") or (props["inchi"] if props else None),
-        inchikey=inchikey,
-        molecular_formula=properties.get("MolecularFormula"),
-        molecular_weight=properties.get("MolecularWeight"),
-        iupac_name=properties.get("IUPACName"),
-        resolution_source="pubchem",
-        resolution_chain=[f"{identifier} → PubChem name search → CID:{cid} → SMILES"],
-        cross_references=CrossReferences(
-            pubchem_cid=cid,
-            chembl_id=xrefs_data.get("chembl_id"),
-            drugbank_id=xrefs_data.get("drugbank_id"),
-            chebi_id=xrefs_data.get("chebi_id"),
-            kegg_id=xrefs_data.get("kegg_id"),
-        ),
+    return await _resolve_from_pubchem_properties(
+        properties,
+        id_type=id_type,
+        cid=cid,
+        chain_label=f"{identifier} → PubChem name search → CID:{cid} → SMILES",
         confidence="medium",
     )
 
@@ -298,10 +274,7 @@ async def _resolve_chebi(chebi_id: str) -> Optional[ResolvedCompound]:
         return None
 
     inchikey = data.get("inchikey") or props["inchikey"]
-    xrefs_data: dict = {}
-    if inchikey:
-        unichem = UniChemClient()
-        xrefs_data = await unichem.get_cross_references(inchikey)
+    xrefs_data = await _get_xrefs(inchikey)
 
     return ResolvedCompound(
         resolved=True,
@@ -314,15 +287,7 @@ async def _resolve_chebi(chebi_id: str) -> Optional[ResolvedCompound]:
         iupac_name=data.get("name"),
         resolution_source="chebi",
         resolution_chain=[f"CHEBI:{clean_id} → ChEBI API → SMILES"],
-        cross_references=CrossReferences(
-            chebi_id=f"CHEBI:{clean_id}",
-            chembl_id=xrefs_data.get("chembl_id"),
-            pubchem_cid=int(xrefs_data["pubchem_cid"])
-            if xrefs_data.get("pubchem_cid")
-            else None,
-            drugbank_id=xrefs_data.get("drugbank_id"),
-            kegg_id=xrefs_data.get("kegg_id"),
-        ),
+        cross_references=_build_xrefs(xrefs_data, chebi_id=f"CHEBI:{clean_id}"),
         confidence="high",
     )
 
@@ -386,19 +351,21 @@ async def _resolve_name(name: str) -> Optional[ResolvedCompound]:
     return await _resolve_via_pubchem_name(name, "name")
 
 
-# Dispatcher mapping identifier types to resolver functions
+# Dispatcher mapping identifier types to resolver functions.
+# Functions that accept only one arg can be referenced directly; those needing
+# a fixed second arg use a lambda for the partial application.
 _RESOLVERS = {
-    "smiles": lambda ident: _resolve_smiles(ident),
-    "inchi": lambda ident: _resolve_inchi(ident),
-    "inchikey": lambda ident: _resolve_inchikey(ident),
-    "chembl_id": lambda ident: _resolve_chembl_id(ident),
-    "pubchem_cid": lambda ident: _resolve_pubchem_cid(ident),
+    "smiles": _resolve_smiles,
+    "inchi": _resolve_inchi,
+    "inchikey": _resolve_inchikey,
+    "chembl_id": _resolve_chembl_id,
+    "pubchem_cid": _resolve_pubchem_cid,
     "cas": lambda ident: _resolve_via_pubchem_name(ident, "cas"),
     "unii": lambda ident: _resolve_via_pubchem_name(ident, "unii"),
-    "drugbank_id": lambda ident: _resolve_drugbank(ident),
-    "chebi_id": lambda ident: _resolve_chebi(ident),
-    "wikipedia": lambda ident: _resolve_wikipedia(ident),
-    "name": lambda ident: _resolve_name(ident),
+    "drugbank_id": _resolve_drugbank,
+    "chebi_id": _resolve_chebi,
+    "wikipedia": _resolve_wikipedia,
+    "name": _resolve_name,
 }
 
 

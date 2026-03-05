@@ -176,6 +176,7 @@ def _parse_coconut_result(data: dict, found: bool) -> COCONUTResult:
         coconut_id=coconut_id,
         name=data.get("name") or data.get("iupac_name"),
         smiles=data.get("canonical_smiles"),
+        inchi=data.get("standard_inchi"),
         inchikey=data.get("standard_inchi_key"),
         molecular_formula=data.get("molecular_formula"),
         molecular_weight=data.get("molecular_weight"),

@@ -68,3 +68,54 @@ class TestWikidataClient:
             client._extract_title("https://en.wikipedia.org/wiki/Acetylsalicylic_acid")
             == "Acetylsalicylic acid"
         )
+
+    @pytest.mark.asyncio
+    async def test_resolve_from_inchikey_success(self):
+        """Test resolving InChIKey to chemical data."""
+        client = WikidataClient()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "smiles": {"value": "CC(=O)Oc1ccccc1C(=O)O"},
+                        "inchi": {"value": "InChI=1S/C9H8O4/..."},
+                        "inchikey": {"value": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"},
+                        "cas": {"value": "50-78-2"},
+                        "formula": {"value": "C9H8O4"},
+                        "mass": {"value": "180.157"},
+                        "label": {"value": "aspirin"},
+                    }
+                ]
+            }
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await client.resolve_from_inchikey("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")
+
+        assert result is not None
+        assert result["smiles"] == "CC(=O)Oc1ccccc1C(=O)O"
+        assert result["inchikey"] == "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+        assert result["formula"] == "C9H8O4"
+        assert result["mass"] == 180.157
+        assert result["label"] == "aspirin"
+
+    @pytest.mark.asyncio
+    async def test_resolve_from_inchikey_not_found(self):
+        """Test InChIKey resolution when compound not found."""
+        client = WikidataClient()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"results": {"bindings": []}}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await client.resolve_from_inchikey("XXXXXXXXXXXXXXXXXX-UHFFFAOYSA-N")
+
+        assert result is None

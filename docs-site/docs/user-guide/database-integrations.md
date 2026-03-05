@@ -1,12 +1,12 @@
 ---
 sidebar_position: 6
 title: Database Integrations
-description: Cross-reference molecules against PubChem, ChEMBL, and COCONUT databases
+description: Cross-reference molecules against PubChem, ChEMBL, COCONUT, and Wikidata databases
 ---
 
 # Database Integrations
 
-ChemAudit integrates with major chemical databases to enrich your molecular data with cross-references, bioactivity information, and natural product annotations.
+ChemAudit integrates with major chemical databases to enrich your molecular data with cross-references, bioactivity information, natural product annotations, and structural consistency checks.
 
 ## Supported Databases
 
@@ -49,18 +49,158 @@ COCONUT (COlleCtion of Open Natural ProdUcTs) contains natural product structure
 - Check natural vs. synthetic classification
 - Link to COCONUT database entries
 
+### Wikidata
+
+| Data Available | Rate Limit |
+|----------------|------------|
+| SMILES (isomeric), InChI, InChIKey, CAS, formula, mass | 30 req/min |
+
+Wikidata is a free, open knowledge base linked to Wikipedia. Use it to:
+
+- Get an independent structural representation from community-curated data
+- Cross-check identifiers against a non-cheminformatics source
+- Access CAS numbers and molecular mass
+- Link to Wikidata entity pages
+
+:::info Isomeric SMILES
+ChemAudit fetches **isomeric SMILES** (Wikidata property P2017) when available, which preserves stereochemistry (R/S, E/Z). If isomeric SMILES is not available, it falls back to canonical SMILES (P233).
+:::
+
 ## How to Search
 
 ### Web Interface
 
 1. Enter your molecule on the Single Validation page
 2. Navigate to the **Database Lookup** tab
-3. View cross-references from all three databases:
+3. View cross-references from all four databases:
    - PubChem properties and synonyms
    - ChEMBL bioactivity and targets
    - COCONUT natural product information
+   - Wikidata identifiers and mass
+4. The **Cross-Database Comparison** panel runs automatically (controlled by the **Auto-Compare** toggle), comparing structural identifiers across all databases that returned results.
 
 Results load automatically after validation completes.
+
+## Cross-Database Comparison
+
+After database lookup, ChemAudit compares how each database represents your molecule. This helps catch registration errors, stereochemistry inconsistencies, or identifier mismatches across public databases.
+
+### What Is Compared
+
+The comparison checks three structural identifiers:
+
+| Identifier | Comparison Method |
+|------------|-------------------|
+| **SMILES** | RDKit canonicalization, then tautomer-invariant comparison |
+| **InChIKey** | Layer-by-layer analysis (connectivity, stereo, version) |
+| **InChI** | Layer analysis (formula, connectivity, hydrogen, charge, stereo) |
+
+### Verdict System
+
+| Verdict | Meaning |
+|---------|---------|
+| **Consistent** | All compared identifiers match across databases |
+| **Minor Differences** | Tautomeric or stereochemical variants of the same base structure |
+| **Major Discrepancies** | Structural differences found -- different connectivity or genuinely different compounds |
+| **No Data** | Fewer than 2 databases returned data, comparison not possible |
+
+### The "Resolved" Entry
+
+The comparison panel includes a **Resolved** entry alongside the external databases. This is ChemAudit's own RDKit-computed canonical representation of your input SMILES, providing a local reference point. It shows the **kekulized SMILES** form (explicit single/double bonds, no aromaticity notation).
+
+### Stereochemistry Handling
+
+ChemAudit always prefers **isomeric SMILES** (preserving `@`/`@@` stereocenters and `E`/`Z` double bonds) from each database:
+
+- **PubChem**: Fetches `IsomericSMILES` over `CanonicalSMILES`/`ConnectivitySMILES`
+- **ChEMBL**: `canonical_smiles` field includes stereochemistry by default
+- **COCONUT**: `canonical_smiles` field includes stereochemistry by default
+- **Wikidata**: Fetches P2017 (isomeric SMILES) over P233 (canonical SMILES)
+
+This ensures that stereochemical information is preserved in all comparisons.
+
+### API - Cross-Database Comparison
+
+```bash
+curl -X POST http://localhost:8001/api/v1/integrations/compare \
+  -H "Content-Type: application/json" \
+  -d '{"smiles": "C[C@H](N)C(=O)O"}'
+```
+
+Response:
+```json
+{
+  "entries": [
+    {
+      "database": "PubChem",
+      "found": true,
+      "canonical_smiles": "C[C@@H](C(=O)O)N",
+      "inchikey": "QNAYBMKLOCPYGJ-REOHCLBHSA-N",
+      "inchi": "InChI=1S/C3H7NO2/..."
+    },
+    { "database": "ChEMBL", "found": true, "..." : "..." },
+    { "database": "COCONUT", "found": true, "..." : "..." },
+    { "database": "Wikidata", "found": true, "..." : "..." },
+    { "database": "Resolved", "found": true, "..." : "..." }
+  ],
+  "comparisons": [
+    {
+      "property_name": "canonical_smiles",
+      "status": "match",
+      "detail": "Raw SMILES differ but resolve to same canonical form after RDKit canonicalization."
+    }
+  ],
+  "overall_verdict": "consistent",
+  "summary": "All compared properties match across databases"
+}
+```
+
+## Identifier Resolution
+
+ChemAudit can resolve a wide range of chemical identifiers to a canonical SMILES structure.
+
+### Supported Identifier Types
+
+| Type | Example |
+|------|---------|
+| SMILES | `CCO`, `C[C@H](N)C(=O)O` |
+| InChI | `InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3` |
+| InChIKey | `LFQSCWFLJHTTHZ-UHFFFAOYSA-N` |
+| PubChem CID | `702` |
+| ChEMBL ID | `CHEMBL545` |
+| CAS Number | `64-17-5` |
+| DrugBank ID | `DB00898` |
+| ChEBI ID | `CHEBI:16236` |
+| UNII | `3K9958V90M` |
+| Wikipedia URL | `https://en.wikipedia.org/wiki/Ethanol` |
+| Compound name | `aspirin`, `caffeine` |
+
+### API - Resolve Identifier
+
+```bash
+curl -X POST http://localhost:8001/api/v1/integrations/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "CHEMBL25"}'
+```
+
+Response:
+```json
+{
+  "resolved": true,
+  "identifier_type_detected": "chembl_id",
+  "canonical_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "inchi": "InChI=1S/C9H8O4/...",
+  "inchikey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+  "iupac_name": "aspirin",
+  "resolution_source": "chembl",
+  "resolution_chain": ["chembl_id → ChEMBL API → SMILES"],
+  "cross_references": {
+    "pubchem_cid": 2244,
+    "chembl_id": "CHEMBL25"
+  },
+  "confidence": "high"
+}
+```
 
 ### API - PubChem Lookup
 
@@ -192,6 +332,7 @@ All database integrations are rate-limited to prevent abuse of external services
 | PubChem | 30 req/min | 30 req/min |
 | ChEMBL | 30 req/min | 30 req/min |
 | COCONUT | 30 req/min | 30 req/min |
+| Wikidata | 30 req/min | 30 req/min |
 
 :::warning Rate Limiting
 If you exceed rate limits, you'll receive a 429 error. Wait before retrying, or use batch processing which handles rate limiting automatically.

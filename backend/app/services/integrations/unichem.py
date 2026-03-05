@@ -28,6 +28,12 @@ _SRC_TO_KEY = {
     SRC_KEGG: "kegg_id",
 }
 
+# Prefixes that UniChem compound IDs should carry for certain databases
+_ID_PREFIXES: dict[str, str] = {
+    "chembl_id": "CHEMBL",
+    "chebi_id": "CHEBI:",
+}
+
 UNICHEM_BASE_URL = "https://www.ebi.ac.uk/unichem/rest"
 
 
@@ -41,20 +47,14 @@ class UniChemClient:
     async def get_cross_references(self, inchikey: str) -> dict[str, Optional[str]]:
         """Get cross-database IDs for a compound by InChIKey.
 
-        Args:
-            inchikey: Standard InChIKey (27 chars, e.g. BSYNRYMUTXBXSQ-UHFFFAOYSA-N)
-
-        Returns:
-            Dict with keys: chembl_id, drugbank_id, pubchem_cid, chebi_id, kegg_id.
-            Values are None if not found in that database.
+        Returns dict with keys: chembl_id, drugbank_id, pubchem_cid, chebi_id, kegg_id.
+        Values are None if not found in that database.
         """
         result: dict[str, Optional[str]] = {v: None for v in _SRC_TO_KEY.values()}
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{self.base_url}/inchikey/{inchikey}",
-                )
+                response = await client.get(f"{self.base_url}/inchikey/{inchikey}")
                 response.raise_for_status()
                 data = response.json()
 
@@ -65,17 +65,15 @@ class UniChemClient:
                 src_id_raw = entry.get("src_id")
                 if src_id_raw is None:
                     continue
-                src_id = int(src_id_raw)
-                key = _SRC_TO_KEY.get(src_id)
-                if key:
-                    compound_id = entry.get("src_compound_id")
-                    if key == "chembl_id" and compound_id:
-                        if not compound_id.startswith("CHEMBL"):
-                            compound_id = f"CHEMBL{compound_id}"
-                    if key == "chebi_id" and compound_id:
-                        if not compound_id.startswith("CHEBI:"):
-                            compound_id = f"CHEBI:{compound_id}"
-                    result[key] = compound_id
+                key = _SRC_TO_KEY.get(int(src_id_raw))
+                if not key:
+                    continue
+                compound_id = entry.get("src_compound_id")
+                # Ensure canonical prefix for databases that require it
+                prefix = _ID_PREFIXES.get(key)
+                if prefix and compound_id and not compound_id.startswith(prefix):
+                    compound_id = f"{prefix}{compound_id}"
+                result[key] = compound_id
 
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
             pass
