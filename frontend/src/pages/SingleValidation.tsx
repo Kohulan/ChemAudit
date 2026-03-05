@@ -22,6 +22,7 @@ import {
   Microscope,
   BarChart3,
   ArrowLeft,
+  GitCompareArrows,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -50,8 +51,9 @@ import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
-import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound } from '../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
+import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -357,12 +359,19 @@ export function SingleValidationPage() {
   // Identifier resolution state
   const [resolverResult, setResolverResult] = useState<ResolvedCompound | null>(null);
 
+  // Cross-database comparison state
+  const [comparisonResult, setComparisonResult] = useState<ConsistencyResult | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
+  const [autoCompare, setAutoCompare] = useState(true);
+  const [dbResultsExpanded, setDbResultsExpanded] = useState(true);
+
   // Use canonical SMILES from validation result when available (handles IUPAC/common names)
   const resolvedSmiles = result?.molecule_info?.canonical_smiles || molecule.trim();
 
   const handleValidate = async () => {
     if (!molecule.trim()) return;
     setResolverResult(null);
+    setComparisonResult(null);
 
     // Try identifier resolution for non-SMILES input
     const input = molecule.trim();
@@ -450,9 +459,25 @@ export function SingleValidationPage() {
   const handleDatabaseLookup = async () => {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
+    setComparisonResult(null);
     try {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
+      // Auto-compare if toggle is on
+      if (autoCompare) {
+        setIsComparing(true);
+        try {
+          const compareResult = await integrationsApi.compareAcrossDatabases({
+            smiles: resolvedSmiles || undefined,
+            inchikey: result?.molecule_info?.inchikey || undefined,
+          });
+          setComparisonResult(compareResult);
+        } catch (err) {
+          logger.error('Comparison error:', err);
+        } finally {
+          setIsComparing(false);
+        }
+      }
     } catch (err) {
       logger.error('Database lookup error:', err);
       setDatabaseResults(null);
@@ -1292,15 +1317,55 @@ export function SingleValidationPage() {
                         </ul>
                       </div>
                     </div>
-                    <ClayButton
-                      variant="primary"
-                      onClick={handleDatabaseLookup}
-                      disabled={!molecule.trim() || isAnyLoading}
-                      loading={databaseLoading}
-                      leftIcon={<Search className="w-4 h-4" />}
-                    >
-                      Look Up
-                    </ClayButton>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleDatabaseLookup}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={databaseLoading || isComparing}
+                        leftIcon={<Search className="w-4 h-4" />}
+                      >
+                        {isComparing ? 'Comparing...' : databaseLoading ? 'Looking up...' : 'Look Up'}
+                      </ClayButton>
+                      {/* Auto-compare toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <div
+                          className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+                          onClick={() => setAutoCompare(!autoCompare)}
+                          role="switch"
+                          aria-checked={autoCompare}
+                        >
+                          <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+                        </div>
+                        <span className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
+                      </label>
+                      {/* Manual compare button — shown when toggle is off, lookup is done, no comparison yet */}
+                      {!autoCompare && databaseResults && !comparisonResult && (
+                        <ClayButton
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            setIsComparing(true);
+                            try {
+                              const compareResult = await integrationsApi.compareAcrossDatabases({
+                                smiles: resolvedSmiles || undefined,
+                                inchikey: result?.molecule_info?.inchikey || undefined,
+                              });
+                              setComparisonResult(compareResult);
+                            } catch (err) {
+                              logger.error('Comparison error:', err);
+                            } finally {
+                              setIsComparing(false);
+                            }
+                          }}
+                          disabled={isComparing}
+                          loading={isComparing}
+                          leftIcon={<GitCompareArrows className="w-3.5 h-3.5" />}
+                        >
+                          Compare
+                        </ClayButton>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1452,27 +1517,47 @@ export function SingleValidationPage() {
             </AnimatePresence>
           </div>
 
-          {/* Database Results - Separate Box */}
+          {/* Database Results - Collapsible Box (default collapsed) */}
           <AnimatePresence>
             {databaseResults && activeTab === 'database' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="card p-5 sm:p-6"
+                className="card overflow-hidden"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
-                    <Database className="w-5 h-5" />
+                <button
+                  onClick={() => setDbResultsExpanded(!dbResultsExpanded)}
+                  className="w-full flex items-center gap-3 p-4 sm:p-5 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <Database className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="flex-1 text-left">
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Database Results
                     </h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Cross-reference results</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT details</p>
                   </div>
-                </div>
-                <DatabaseLookupResults results={databaseResults} />
+                  <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {dbResultsExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-[var(--color-border)]">
+                        <div className="pt-4">
+                          <DatabaseLookupResults results={databaseResults} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1929,6 +2014,19 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Cross-Database Comparison - Full Width Below Grid */}
+      <AnimatePresence>
+        {comparisonResult && activeTab === 'database' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <DatabaseComparisonPanel result={comparisonResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scoring Results - Full Width Below Grid */}
       <AnimatePresence>

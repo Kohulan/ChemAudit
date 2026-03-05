@@ -869,6 +869,70 @@ Search COCONUT natural products database.
 
 ---
 
+#### `POST /integrations/resolve`
+
+Resolve any chemical identifier to canonical SMILES and cross-references. Supports SMILES, InChI, InChIKey, CID, ChEMBL ID, CAS, DrugBank ID, ChEBI ID, UNII, Wikipedia URL, and compound names.
+
+**Request:**
+```json
+{
+  "identifier": "CHEMBL25",
+  "identifier_type": "auto"
+}
+```
+
+**Response:**
+```json
+{
+  "resolved": true,
+  "identifier_type_detected": "chembl_id",
+  "canonical_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "inchikey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+  "resolution_source": "chembl",
+  "resolution_chain": ["chembl_id → ChEMBL API → SMILES"],
+  "cross_references": { "pubchem_cid": 2244, "chembl_id": "CHEMBL25" },
+  "confidence": "high"
+}
+```
+
+---
+
+#### `POST /integrations/compare`
+
+Compare compound representation across PubChem, ChEMBL, COCONUT, and Wikidata. Compares SMILES (via RDKit canonicalization), InChIKey (layer analysis), and InChI (layer analysis).
+
+**Request:**
+```json
+{
+  "smiles": "C[C@H](N)C(=O)O",
+  "inchikey": null
+}
+```
+
+**Response:**
+```json
+{
+  "entries": [
+    { "database": "PubChem", "found": true, "canonical_smiles": "C[C@@H](C(=O)O)N", "inchikey": "QNAYBMKLOCPYGJ-REOHCLBHSA-N" },
+    { "database": "ChEMBL", "found": true, "canonical_smiles": "C[C@H](N)C(=O)O" },
+    { "database": "COCONUT", "found": true },
+    { "database": "Wikidata", "found": true },
+    { "database": "Resolved", "found": true }
+  ],
+  "comparisons": [
+    { "property_name": "canonical_smiles", "status": "match", "detail": "..." },
+    { "property_name": "inchikey", "status": "match", "detail": "..." },
+    { "property_name": "inchi", "status": "match", "detail": "..." }
+  ],
+  "overall_verdict": "consistent",
+  "summary": "All compared properties match across databases"
+}
+```
+
+Verdict values: `consistent`, `minor_differences`, `major_discrepancies`, `no_data`.
+
+---
+
 ### API Key Management
 
 All endpoints require admin authentication via `X-Admin-Secret` header.

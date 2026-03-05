@@ -42,6 +42,9 @@ export interface ChEMBLResult {
   max_phase?: number;
   molecular_formula?: string;
   molecular_weight?: number;
+  canonical_smiles?: string;
+  inchi?: string;
+  inchikey?: string;
   bioactivities: BioactivityData[];
   bioactivity_count: number;
   url?: string;
@@ -53,6 +56,7 @@ export interface COCONUTResult {
   coconut_id?: string;
   name?: string;
   smiles?: string;
+  inchi?: string;
   inchikey?: string;
   molecular_formula?: string;
   molecular_weight?: number;
@@ -117,6 +121,7 @@ export interface DatabaseEntry {
   database: string;
   found: boolean;
   canonical_smiles?: string;
+  kekulized_smiles?: string;
   inchi?: string;
   inchikey?: string;
   molecular_formula?: string;
