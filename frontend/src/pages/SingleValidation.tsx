@@ -22,6 +22,7 @@ import {
   Microscope,
   BarChart3,
   ArrowLeft,
+  GitCompareArrows,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -50,7 +51,9 @@ import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
-import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
+import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
+import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -62,18 +65,42 @@ const EXAMPLE_MOLECULES = [
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
+const IDENTIFIER_EXAMPLES = [
+  { name: 'ibuprofen', label: 'ibuprofen' },
+  { name: 'CHEMBL25', label: 'CHEMBL25' },
+  { name: '50-78-2', label: 'CAS 50-78-2' },
+  { name: 'DB00945', label: 'DrugBank' },
+];
+
+type InputType = 'smiles' | 'iupac' | 'identifier' | 'ambiguous';
+
+/** Characters that appear in SMILES but never in IUPAC names or identifiers. */
+const SMILES_CHARS = /[[\]()=#@/\\]/;
+
+/** Identifier patterns for database IDs resolved via the backend. */
+const IDENTIFIER_PATTERNS: RegExp[] = [
+  /^CHEMBL\d+$/i,           // ChEMBL ID
+  /^DB\d{5}$/i,             // DrugBank ID
+  /^CHEBI:\d+$/i,           // ChEBI ID
+  /^\d{2,7}-\d{2}-\d$/,     // CAS number
+  /^[A-Z0-9]{14}-[A-Z0-9]{10}-[A-Z0-9]$/, // InChIKey
+  /^CID:\d+$/i,             // PubChem CID
+];
+
 /**
- * Detect whether input looks like IUPAC or SMILES.
- * Heuristic: SMILES typically contain special characters like (, ), =, #, @, /, \, [, ], digits adjacent to atoms.
- * IUPAC names tend to be longer, contain common suffixes, and lack SMILES-specific characters.
+ * Detect whether input looks like SMILES, IUPAC, or a database identifier.
+ * Database identifiers (ChEMBL ID, CAS, DrugBank, etc.) are resolved via the backend.
  */
-function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
+function detectInputType(value: string): InputType {
   const trimmed = value.trim();
   if (!trimmed) return 'ambiguous';
 
+  // Database identifiers — detected before SMILES/IUPAC
+  if (IDENTIFIER_PATTERNS.some((p) => p.test(trimmed))) return 'identifier';
+  if (trimmed.includes('wikipedia.org/wiki/')) return 'identifier';
+
   // Strong SMILES indicators: brackets, ring closures, branch notation
-  const smilesChars = /[[\]()=#@/\\]/;
-  if (smilesChars.test(trimmed)) return 'smiles';
+  if (SMILES_CHARS.test(trimmed)) return 'smiles';
 
   // If starts with InChI marker
   if (trimmed.startsWith('InChI=')) return 'smiles'; // treat InChI as SMILES-like (non-IUPAC)
@@ -340,10 +367,13 @@ export function SingleValidationPage() {
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // IUPAC auto-detection
+  // Input type auto-detection
   const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
   const [forceInputType, setForceInputType] = useState<'smiles' | 'iupac' | null>(null);
-  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' ? null : detectedType);
+  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' || detectedType === 'identifier' ? null : detectedType);
+
+  const isIdentifierInput = detectedType === 'identifier';
+  const isIupacInput = effectiveInputType === 'iupac';
 
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
@@ -353,19 +383,50 @@ export function SingleValidationPage() {
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
+  // Identifier resolution state
+  const [resolverResult, setResolverResult] = useState<ResolvedCompound | null>(null);
+
+  // Cross-database comparison state
+  const [comparisonResult, setComparisonResult] = useState<ConsistencyResult | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
+  const [autoCompare, setAutoCompare] = useState(true);
+  const [dbResultsExpanded, setDbResultsExpanded] = useState(true);
+
   // Use canonical SMILES from validation result when available (handles IUPAC/common names)
   const resolvedSmiles = result?.molecule_info?.canonical_smiles || molecule.trim();
 
   const handleValidate = async () => {
     if (!molecule.trim()) return;
+    setResolverResult(null);
+    setComparisonResult(null);
+
+    // Try identifier resolution for non-SMILES input
+    const input = molecule.trim();
+    if (!SMILES_CHARS.test(input) && !input.startsWith('InChI=')) {
+      try {
+        const resolved = await integrationsApi.resolveIdentifier({ identifier: input });
+        if (resolved.resolved && resolved.canonical_smiles && resolved.identifier_type_detected !== 'smiles') {
+          setResolverResult(resolved);
+          // Use resolved SMILES for validation
+          await validate({
+            molecule: resolved.canonical_smiles,
+            format: 'auto',
+            preserve_aromatic: preferAromaticSmiles,
+            input_type: 'smiles',
+          });
+          return;
+        }
+      } catch {
+        // Fall through to normal validation
+      }
+    }
+
     await validate({
-      molecule: molecule.trim(),
+      molecule: input,
       format: 'auto',
       preserve_aromatic: preferAromaticSmiles,
       input_type: effectiveInputType ?? 'auto',
     });
-    // Add to recent molecules on successful validation (validate updates result/error)
-    // We'll check result in useEffect after validation completes
   };
 
   const handleScreenAlerts = async () => {
@@ -421,12 +482,32 @@ export function SingleValidationPage() {
     }
   };
 
+  /** Run cross-database comparison for the current molecule. */
+  const runComparison = async (): Promise<void> => {
+    setIsComparing(true);
+    try {
+      const compareResult = await integrationsApi.compareAcrossDatabases({
+        smiles: resolvedSmiles || undefined,
+        inchikey: result?.molecule_info?.inchikey || undefined,
+      });
+      setComparisonResult(compareResult);
+    } catch (err) {
+      logger.error('Comparison error:', err);
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
   const handleDatabaseLookup = async () => {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
+    setComparisonResult(null);
     try {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
+      if (autoCompare) {
+        await runComparison();
+      }
     } catch (err) {
       logger.error('Database lookup error:', err);
       setDatabaseResults(null);
@@ -454,6 +535,8 @@ export function SingleValidationPage() {
     setStandardizationResult(null);
     setStandardizationError(null);
     setDatabaseResults(null);
+    setResolverResult(null);
+    setComparisonResult(null);
     setHighlightedAtoms([]);
     setHighlightLocked(false);
     setShowCIP(false);
@@ -721,6 +804,29 @@ export function SingleValidationPage() {
           </motion.button>
         ))}
 
+        {/* Identifier examples separator */}
+        <div className="hidden sm:block w-px h-6 bg-[var(--color-border)] mx-1" />
+        {IDENTIFIER_EXAMPLES.map((example, i) => (
+          <motion.button
+            key={example.name}
+            onClick={() => handleExampleClick(example.name)}
+            className={cn(
+              'px-3 py-1.5 text-sm rounded-full transition-all',
+              'bg-emerald-500/5 border border-emerald-500/20',
+              'text-emerald-600 dark:text-emerald-400',
+              'hover:border-emerald-500/40 hover:bg-emerald-500/10',
+              'hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+            )}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 + (EXAMPLE_MOLECULES.length + i) * 0.05 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {example.label}
+          </motion.button>
+        ))}
+
         {/* Separator */}
         {recent.length > 0 && (
           <div className="hidden sm:block w-px h-6 bg-[var(--color-border)] mx-2" />
@@ -755,7 +861,7 @@ export function SingleValidationPage() {
                   Input Structure
                 </h4>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                  SMILES, InChI, or{' '}
+                  SMILES, InChI, compound name, ChEMBL ID, CAS, or{' '}
                   <a
                     href="https://app.naturalproducts.net/depict/structuredraw"
                     target="_blank"
@@ -764,13 +870,12 @@ export function SingleValidationPage() {
                   >
                     draw a structure
                   </a>
-                  {' '}and paste the SMILES back
                 </p>
               </div>
             </div>
             <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
 
-            {/* IUPAC / SMILES detection badge */}
+            {/* Input type detection badge */}
             <AnimatePresence>
               {molecule.trim() && detectedType !== 'ambiguous' && (
                 <motion.div
@@ -782,29 +887,33 @@ export function SingleValidationPage() {
                 >
                   <div className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
-                    (effectiveInputType === 'iupac')
-                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                    isIdentifierInput && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+                    !isIdentifierInput && isIupacInput && 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20',
+                    !isIdentifierInput && !isIupacInput && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
                   )}>
-                    {effectiveInputType === 'iupac' ? (
-                      <>Detected as IUPAC name</>
-                    ) : (
-                      <>Parsed as SMILES</>
-                    )}
+                    {isIdentifierInput
+                      ? 'Detected as database identifier \u2014 will resolve on validate'
+                      : isIupacInput
+                        ? 'Detected as IUPAC name'
+                        : 'Parsed as SMILES'}
                   </div>
-                  <button
-                    onClick={() => setForceInputType(effectiveInputType === 'iupac' ? 'smiles' : 'iupac')}
-                    className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
-                  >
-                    Force {effectiveInputType === 'iupac' ? 'SMILES' : 'IUPAC'}
-                  </button>
-                  {forceInputType && (
-                    <button
-                      onClick={() => setForceInputType(null)}
-                      className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-                    >
-                      (auto)
-                    </button>
+                  {!isIdentifierInput && (
+                    <>
+                      <button
+                        onClick={() => setForceInputType(isIupacInput ? 'smiles' : 'iupac')}
+                        className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
+                      >
+                        Force {isIupacInput ? 'SMILES' : 'IUPAC'}
+                      </button>
+                      {forceInputType && (
+                        <button
+                          onClick={() => setForceInputType(null)}
+                          className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                        >
+                          (auto)
+                        </button>
+                      )}
+                    </>
                   )}
                 </motion.div>
               )}
@@ -945,6 +1054,9 @@ export function SingleValidationPage() {
                             <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider w-16">Formula</span>
                             <span className="text-[var(--color-text-primary)] font-medium">{result.molecule_info.molecular_formula}</span>
                           </div>
+                        )}
+                        {resolverResult && resolverResult.resolved && (
+                          <IdentifierResolverCard result={resolverResult} />
                         )}
                         {result.molecule_info.canonical_smiles && (
                           <div>
@@ -1263,15 +1375,42 @@ export function SingleValidationPage() {
                         </ul>
                       </div>
                     </div>
-                    <ClayButton
-                      variant="primary"
-                      onClick={handleDatabaseLookup}
-                      disabled={!molecule.trim() || isAnyLoading}
-                      loading={databaseLoading}
-                      leftIcon={<Search className="w-4 h-4" />}
-                    >
-                      Look Up
-                    </ClayButton>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleDatabaseLookup}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={databaseLoading || isComparing}
+                        leftIcon={<Search className="w-4 h-4" />}
+                      >
+                        {isComparing ? 'Comparing...' : databaseLoading ? 'Looking up...' : 'Look Up'}
+                      </ClayButton>
+                      {/* Auto-compare toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <div
+                          className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+                          onClick={() => setAutoCompare(!autoCompare)}
+                          role="switch"
+                          aria-checked={autoCompare}
+                        >
+                          <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+                        </div>
+                        <span className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
+                      </label>
+                      {/* Manual compare button — shown when toggle is off, lookup is done, no comparison yet */}
+                      {!autoCompare && databaseResults && !comparisonResult && (
+                        <ClayButton
+                          variant="outline"
+                          size="sm"
+                          onClick={runComparison}
+                          disabled={isComparing}
+                          loading={isComparing}
+                          leftIcon={<GitCompareArrows className="w-3.5 h-3.5" />}
+                        >
+                          Compare
+                        </ClayButton>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1423,27 +1562,47 @@ export function SingleValidationPage() {
             </AnimatePresence>
           </div>
 
-          {/* Database Results - Separate Box */}
+          {/* Database Results - Collapsible Box (default collapsed) */}
           <AnimatePresence>
             {databaseResults && activeTab === 'database' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="card p-5 sm:p-6"
+                className="card overflow-hidden"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
-                    <Database className="w-5 h-5" />
+                <button
+                  onClick={() => setDbResultsExpanded(!dbResultsExpanded)}
+                  className="w-full flex items-center gap-3 p-4 sm:p-5 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                    <Database className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="flex-1 text-left">
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Database Results
                     </h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Cross-reference results</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT details</p>
                   </div>
-                </div>
-                <DatabaseLookupResults results={databaseResults} />
+                  <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {dbResultsExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-[var(--color-border)]">
+                        <div className="pt-4">
+                          <DatabaseLookupResults results={databaseResults} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1900,6 +2059,19 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Cross-Database Comparison - Full Width Below Grid */}
+      <AnimatePresence>
+        {comparisonResult && activeTab === 'database' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <DatabaseComparisonPanel result={comparisonResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scoring Results - Full Width Below Grid */}
       <AnimatePresence>

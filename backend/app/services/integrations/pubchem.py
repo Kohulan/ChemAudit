@@ -8,7 +8,7 @@ https://pubchem.ncbi.nlm.nih.gov/
 This client provides compound lookup and cross-reference functionality.
 """
 
-from typing import List, Optional
+from typing import Optional
 
 import httpx
 from rdkit import Chem
@@ -18,111 +18,93 @@ from app.schemas.integrations import PubChemRequest, PubChemResult
 
 
 class PubChemClient:
-    """
-    Client for PubChem PUG REST API.
-
-    Provides search and compound information retrieval.
-    """
+    """Client for PubChem PUG REST API."""
 
     def __init__(self):
         self.base_url = settings.PUBCHEM_API_URL
         self.timeout = settings.EXTERNAL_API_TIMEOUT
 
+    def _extract_first_cid(self, data: dict) -> Optional[int]:
+        """Extract the first CID from a PubChem identifier response."""
+        cids = data.get("IdentifierList", {}).get("CID", [])
+        # PubChem returns CID 0 to indicate "not found" — treat as None
+        return cids[0] if cids and cids[0] != 0 else None
+
     async def search_by_smiles(self, smiles: str) -> Optional[int]:
-        """
-        Search PubChem by SMILES string.
+        """Search PubChem by SMILES string, returning the first CID or None.
 
-        Args:
-            smiles: SMILES string to search
-
-        Returns:
-            PubChem CID (Compound ID) if found, None otherwise
+        Tries POST first, then falls back to canonical SMILES via GET.
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # POST with raw SMILES
                 response = await client.post(
                     f"{self.base_url}/compound/smiles/cids/JSON",
                     data={"smiles": smiles},
                 )
                 response.raise_for_status()
+                cid = self._extract_first_cid(response.json())
+                if cid is not None:
+                    return cid
 
-                data = response.json()
-                cids = data.get("IdentifierList", {}).get("CID", [])
-                if cids and len(cids) > 0:
-                    return cids[0]  # Return first match
-                return None
-
+                # Fallback: canonicalize with RDKit then GET
+                mol = Chem.MolFromSmiles(smiles)
+                if mol:
+                    canon = Chem.MolToSmiles(mol)
+                    resp2 = await client.get(
+                        f"{self.base_url}/compound/smiles/{canon}/cids/JSON",
+                    )
+                    resp2.raise_for_status()
+                    return self._extract_first_cid(resp2.json())
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
-            # External API failure - return None gracefully
+            pass
+        return None
+
+    async def search_by_name(self, name: str) -> Optional[int]:
+        """Search PubChem by compound name (common, trade, IUPAC, CAS, UNII, etc.)."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/compound/name/{name}/cids/JSON",
+                )
+                response.raise_for_status()
+                return self._extract_first_cid(response.json())
+        except (httpx.HTTPError, KeyError, ValueError, IndexError):
             return None
 
     async def search_by_inchikey(self, inchikey: str) -> Optional[int]:
-        """
-        Search PubChem by InChIKey.
-
-        Args:
-            inchikey: InChIKey to search
-
-        Returns:
-            PubChem CID if found, None otherwise
-        """
+        """Search PubChem by InChIKey, returning the first CID or None."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"{self.base_url}/compound/inchikey/{inchikey}/cids/JSON",
                 )
                 response.raise_for_status()
-
-                data = response.json()
-                cids = data.get("IdentifierList", {}).get("CID", [])
-                if cids and len(cids) > 0:
-                    return cids[0]  # Return first match
-                return None
-
+                return self._extract_first_cid(response.json())
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
-            # External API failure - return None gracefully
             return None
 
     async def get_compound_properties(self, cid: int) -> Optional[dict]:
-        """
-        Get compound properties by CID.
-
-        Args:
-            cid: PubChem Compound ID
-
-        Returns:
-            Compound properties dict if found, None otherwise
-        """
+        """Get compound properties by CID."""
         try:
-            properties = "MolecularFormula,MolecularWeight,CanonicalSMILES,InChI,InChIKey,IUPACName"
-
+            prop_names = (
+                "MolecularFormula,MolecularWeight,"
+                "IsomericSMILES,CanonicalSMILES,"
+                "InChI,InChIKey,IUPACName"
+            )
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/compound/cid/{cid}/property/{properties}/JSON",
+                    f"{self.base_url}/compound/cid/{cid}/property/{prop_names}/JSON",
                 )
                 response.raise_for_status()
 
-                data = response.json()
-                properties_list = data.get("PropertyTable", {}).get("Properties", [])
-                if properties_list and len(properties_list) > 0:
-                    return properties_list[0]
-                return None
-
+                props_list = response.json().get("PropertyTable", {}).get("Properties", [])
+                return props_list[0] if props_list else None
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
-            # External API failure - return None gracefully
             return None
 
-    async def get_synonyms(self, cid: int, max_synonyms: int = 10) -> List[str]:
-        """
-        Get compound synonyms by CID.
-
-        Args:
-            cid: PubChem Compound ID
-            max_synonyms: Maximum number of synonyms to return
-
-        Returns:
-            List of synonyms (up to max_synonyms)
-        """
+    async def get_synonyms(self, cid: int, max_synonyms: int = 10) -> list[str]:
+        """Get compound synonyms by CID (up to max_synonyms)."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
@@ -130,39 +112,28 @@ class PubChemClient:
                 )
                 response.raise_for_status()
 
-                data = response.json()
                 synonyms = (
-                    data.get("InformationList", {})
+                    response.json()
+                    .get("InformationList", {})
                     .get("Information", [{}])[0]
                     .get("Synonym", [])
                 )
                 return synonyms[:max_synonyms]
-
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
-            # External API failure - return empty list gracefully
             return []
 
 
 async def get_compound_info(request: PubChemRequest) -> PubChemResult:
-    """
-    Get compound information from PubChem.
+    """Get compound information from PubChem.
 
-    Searches by InChIKey first (more specific), falls back to SMILES.
-
-    Args:
-        request: PubChem lookup request with SMILES or InChIKey
-
-    Returns:
-        Compound information if found
+    Searches by InChIKey first (most specific), falls back to SMILES.
     """
     client = PubChemClient()
     cid = None
 
-    # Try InChIKey first (most specific)
     if request.inchikey:
         cid = await client.search_by_inchikey(request.inchikey)
 
-    # Try SMILES if InChIKey failed
     if cid is None and request.smiles:
         # Generate InChIKey from SMILES for more reliable search
         try:
@@ -170,25 +141,29 @@ async def get_compound_info(request: PubChemRequest) -> PubChemResult:
             if mol:
                 inchikey = Chem.MolToInchiKey(mol)
                 cid = await client.search_by_inchikey(inchikey)
-
-                # Fallback to SMILES search
                 if cid is None:
                     cid = await client.search_by_smiles(request.smiles)
         except Exception:
-            # RDKit error - try direct SMILES search anyway
             cid = await client.search_by_smiles(request.smiles)
 
-    # Not found
     if cid is None:
         return PubChemResult(found=False)
 
-    # Get compound properties
     properties = await client.get_compound_properties(cid)
     if properties is None:
         return PubChemResult(found=False)
 
-    # Get synonyms
     synonyms = await client.get_synonyms(cid, max_synonyms=10)
+
+    # Prefer isomeric SMILES (preserves stereochemistry) over canonical/connectivity.
+    # PubChem API key renames: IsomericSMILES → SMILES, CanonicalSMILES → ConnectivitySMILES.
+    # Accept both old and new key names for resilience.
+    smiles_value = (
+        properties.get("IsomericSMILES")
+        or properties.get("SMILES")
+        or properties.get("CanonicalSMILES")
+        or properties.get("ConnectivitySMILES")
+    )
 
     return PubChemResult(
         found=True,
@@ -196,9 +171,9 @@ async def get_compound_info(request: PubChemRequest) -> PubChemResult:
         iupac_name=properties.get("IUPACName"),
         molecular_formula=properties.get("MolecularFormula"),
         molecular_weight=properties.get("MolecularWeight"),
-        canonical_smiles=properties.get("CanonicalSMILES"),
+        canonical_smiles=smiles_value,
         inchi=properties.get("InChI"),
         inchikey=properties.get("InChIKey"),
-        synonyms=synonyms if synonyms else None,
+        synonyms=synonyms or None,
         url=f"https://pubchem.ncbi.nlm.nih.gov/compound/{cid}",
     )
