@@ -1,10 +1,11 @@
 """
 Schemas for external integration requests and responses.
 
-Covers COCONUT, PubChem, and ChEMBL integrations.
+Covers COCONUT, PubChem, ChEMBL integrations, Universal Identifier Resolution,
+and Cross-Database Comparison.
 """
 
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +25,7 @@ class COCONUTResult(BaseModel):
     coconut_id: Optional[str] = None
     name: Optional[str] = None
     smiles: Optional[str] = None
+    inchi: Optional[str] = None
     inchikey: Optional[str] = None
     molecular_formula: Optional[str] = None
     molecular_weight: Optional[float] = None
@@ -52,7 +54,7 @@ class PubChemResult(BaseModel):
     canonical_smiles: Optional[str] = None
     inchi: Optional[str] = None
     inchikey: Optional[str] = None
-    synonyms: Optional[List[str]] = None
+    synonyms: Optional[list[str]] = None
     url: Optional[str] = None
 
 
@@ -87,6 +89,83 @@ class ChEMBLResult(BaseModel):
     max_phase: Optional[int] = None
     molecular_formula: Optional[str] = None
     molecular_weight: Optional[float] = None
-    bioactivities: List[BioactivityData] = Field(default_factory=list)
+    canonical_smiles: Optional[str] = None
+    inchi: Optional[str] = None
+    inchikey: Optional[str] = None
+    bioactivities: list[BioactivityData] = Field(default_factory=list)
     bioactivity_count: int = 0
     url: Optional[str] = None
+
+
+# =============================================================================
+# Universal Identifier Resolution
+# =============================================================================
+
+
+class CrossReferences(BaseModel):
+    """Cross-database references for a resolved compound."""
+
+    pubchem_cid: Optional[int] = None
+    chembl_id: Optional[str] = None
+    coconut_id: Optional[str] = None
+    drugbank_id: Optional[str] = None
+    chebi_id: Optional[str] = None
+    unii: Optional[str] = None
+    cas: Optional[str] = None
+    wikipedia_url: Optional[str] = None
+    kegg_id: Optional[str] = None
+
+
+class ResolvedCompound(BaseModel):
+    """Result of universal identifier resolution."""
+
+    resolved: bool
+    identifier_type_detected: str = "unknown"
+    canonical_smiles: Optional[str] = None
+    inchi: Optional[str] = None
+    inchikey: Optional[str] = None
+    molecular_formula: Optional[str] = None
+    molecular_weight: Optional[float] = None
+    iupac_name: Optional[str] = None
+    resolution_source: str = "none"
+    resolution_chain: list[str] = Field(default_factory=list)
+    cross_references: CrossReferences = Field(default_factory=CrossReferences)
+    confidence: str = "none"
+
+
+# =============================================================================
+# Cross-Database Comparison
+# =============================================================================
+
+
+class DatabaseEntry(BaseModel):
+    """A single database's representation of a compound."""
+
+    database: str
+    found: bool
+    canonical_smiles: Optional[str] = None
+    kekulized_smiles: Optional[str] = None
+    inchi: Optional[str] = None
+    inchikey: Optional[str] = None
+    molecular_formula: Optional[str] = None
+    molecular_weight: Optional[float] = None
+    name: Optional[str] = None
+    url: Optional[str] = None
+
+
+class PropertyComparison(BaseModel):
+    """Comparison of a single property across databases."""
+
+    property_name: str
+    values: dict[str, Optional[str]] = Field(default_factory=dict)
+    status: str = "missing"
+    detail: Optional[str] = None
+
+
+class ConsistencyResult(BaseModel):
+    """Result of cross-database comparison."""
+
+    entries: list[DatabaseEntry] = Field(default_factory=list)
+    comparisons: list[PropertyComparison] = Field(default_factory=list)
+    overall_verdict: str = "no_data"
+    summary: str = ""
