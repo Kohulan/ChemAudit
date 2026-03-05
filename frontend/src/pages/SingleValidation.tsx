@@ -65,18 +65,42 @@ const EXAMPLE_MOLECULES = [
   { name: 'Amine HCl (salt)', smiles: 'CCN.Cl' },
 ];
 
+const IDENTIFIER_EXAMPLES = [
+  { name: 'ibuprofen', label: 'ibuprofen' },
+  { name: 'CHEMBL25', label: 'CHEMBL25' },
+  { name: '50-78-2', label: 'CAS 50-78-2' },
+  { name: 'DB00945', label: 'DrugBank' },
+];
+
+type InputType = 'smiles' | 'iupac' | 'identifier' | 'ambiguous';
+
+/** Characters that appear in SMILES but never in IUPAC names or identifiers. */
+const SMILES_CHARS = /[[\]()=#@/\\]/;
+
+/** Identifier patterns for database IDs resolved via the backend. */
+const IDENTIFIER_PATTERNS: RegExp[] = [
+  /^CHEMBL\d+$/i,           // ChEMBL ID
+  /^DB\d{5}$/i,             // DrugBank ID
+  /^CHEBI:\d+$/i,           // ChEBI ID
+  /^\d{2,7}-\d{2}-\d$/,     // CAS number
+  /^[A-Z0-9]{14}-[A-Z0-9]{10}-[A-Z0-9]$/, // InChIKey
+  /^CID:\d+$/i,             // PubChem CID
+];
+
 /**
- * Detect whether input looks like IUPAC or SMILES.
- * Heuristic: SMILES typically contain special characters like (, ), =, #, @, /, \, [, ], digits adjacent to atoms.
- * IUPAC names tend to be longer, contain common suffixes, and lack SMILES-specific characters.
+ * Detect whether input looks like SMILES, IUPAC, or a database identifier.
+ * Database identifiers (ChEMBL ID, CAS, DrugBank, etc.) are resolved via the backend.
  */
-function detectInputType(value: string): 'smiles' | 'iupac' | 'ambiguous' {
+function detectInputType(value: string): InputType {
   const trimmed = value.trim();
   if (!trimmed) return 'ambiguous';
 
+  // Database identifiers — detected before SMILES/IUPAC
+  if (IDENTIFIER_PATTERNS.some((p) => p.test(trimmed))) return 'identifier';
+  if (trimmed.includes('wikipedia.org/wiki/')) return 'identifier';
+
   // Strong SMILES indicators: brackets, ring closures, branch notation
-  const smilesChars = /[[\]()=#@/\\]/;
-  if (smilesChars.test(trimmed)) return 'smiles';
+  if (SMILES_CHARS.test(trimmed)) return 'smiles';
 
   // If starts with InChI marker
   if (trimmed.startsWith('InChI=')) return 'smiles'; // treat InChI as SMILES-like (non-IUPAC)
@@ -343,10 +367,13 @@ export function SingleValidationPage() {
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // IUPAC auto-detection
+  // Input type auto-detection
   const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
   const [forceInputType, setForceInputType] = useState<'smiles' | 'iupac' | null>(null);
-  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' ? null : detectedType);
+  const effectiveInputType = forceInputType ?? (detectedType === 'ambiguous' || detectedType === 'identifier' ? null : detectedType);
+
+  const isIdentifierInput = detectedType === 'identifier';
+  const isIupacInput = effectiveInputType === 'iupac';
 
   // Database lookup state
   const [databaseResults, setDatabaseResults] = useState<{
@@ -375,8 +402,7 @@ export function SingleValidationPage() {
 
     // Try identifier resolution for non-SMILES input
     const input = molecule.trim();
-    const smilesChars = /[[\]()=#@/\\]/;
-    if (!smilesChars.test(input) && !input.startsWith('InChI=')) {
+    if (!SMILES_CHARS.test(input) && !input.startsWith('InChI=')) {
       try {
         const resolved = await integrationsApi.resolveIdentifier({ identifier: input });
         if (resolved.resolved && resolved.canonical_smiles && resolved.identifier_type_detected !== 'smiles') {
@@ -456,6 +482,22 @@ export function SingleValidationPage() {
     }
   };
 
+  /** Run cross-database comparison for the current molecule. */
+  const runComparison = async (): Promise<void> => {
+    setIsComparing(true);
+    try {
+      const compareResult = await integrationsApi.compareAcrossDatabases({
+        smiles: resolvedSmiles || undefined,
+        inchikey: result?.molecule_info?.inchikey || undefined,
+      });
+      setComparisonResult(compareResult);
+    } catch (err) {
+      logger.error('Comparison error:', err);
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
   const handleDatabaseLookup = async () => {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
@@ -463,20 +505,8 @@ export function SingleValidationPage() {
     try {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
       setDatabaseResults(results);
-      // Auto-compare if toggle is on
       if (autoCompare) {
-        setIsComparing(true);
-        try {
-          const compareResult = await integrationsApi.compareAcrossDatabases({
-            smiles: resolvedSmiles || undefined,
-            inchikey: result?.molecule_info?.inchikey || undefined,
-          });
-          setComparisonResult(compareResult);
-        } catch (err) {
-          logger.error('Comparison error:', err);
-        } finally {
-          setIsComparing(false);
-        }
+        await runComparison();
       }
     } catch (err) {
       logger.error('Database lookup error:', err);
@@ -505,6 +535,8 @@ export function SingleValidationPage() {
     setStandardizationResult(null);
     setStandardizationError(null);
     setDatabaseResults(null);
+    setResolverResult(null);
+    setComparisonResult(null);
     setHighlightedAtoms([]);
     setHighlightLocked(false);
     setShowCIP(false);
@@ -772,6 +804,29 @@ export function SingleValidationPage() {
           </motion.button>
         ))}
 
+        {/* Identifier examples separator */}
+        <div className="hidden sm:block w-px h-6 bg-[var(--color-border)] mx-1" />
+        {IDENTIFIER_EXAMPLES.map((example, i) => (
+          <motion.button
+            key={example.name}
+            onClick={() => handleExampleClick(example.name)}
+            className={cn(
+              'px-3 py-1.5 text-sm rounded-full transition-all',
+              'bg-emerald-500/5 border border-emerald-500/20',
+              'text-emerald-600 dark:text-emerald-400',
+              'hover:border-emerald-500/40 hover:bg-emerald-500/10',
+              'hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+            )}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 + (EXAMPLE_MOLECULES.length + i) * 0.05 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {example.label}
+          </motion.button>
+        ))}
+
         {/* Separator */}
         {recent.length > 0 && (
           <div className="hidden sm:block w-px h-6 bg-[var(--color-border)] mx-2" />
@@ -806,7 +861,7 @@ export function SingleValidationPage() {
                   Input Structure
                 </h4>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                  SMILES, InChI, or{' '}
+                  SMILES, InChI, compound name, ChEMBL ID, CAS, or{' '}
                   <a
                     href="https://app.naturalproducts.net/depict/structuredraw"
                     target="_blank"
@@ -815,13 +870,12 @@ export function SingleValidationPage() {
                   >
                     draw a structure
                   </a>
-                  {' '}and paste the SMILES back
                 </p>
               </div>
             </div>
             <StructureInput value={molecule} onChange={setMolecule} onSubmit={handleValidate} />
 
-            {/* IUPAC / SMILES detection badge */}
+            {/* Input type detection badge */}
             <AnimatePresence>
               {molecule.trim() && detectedType !== 'ambiguous' && (
                 <motion.div
@@ -833,29 +887,33 @@ export function SingleValidationPage() {
                 >
                   <div className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
-                    (effectiveInputType === 'iupac')
-                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                    isIdentifierInput && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+                    !isIdentifierInput && isIupacInput && 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20',
+                    !isIdentifierInput && !isIupacInput && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
                   )}>
-                    {effectiveInputType === 'iupac' ? (
-                      <>Detected as IUPAC name</>
-                    ) : (
-                      <>Parsed as SMILES</>
-                    )}
+                    {isIdentifierInput
+                      ? 'Detected as database identifier \u2014 will resolve on validate'
+                      : isIupacInput
+                        ? 'Detected as IUPAC name'
+                        : 'Parsed as SMILES'}
                   </div>
-                  <button
-                    onClick={() => setForceInputType(effectiveInputType === 'iupac' ? 'smiles' : 'iupac')}
-                    className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
-                  >
-                    Force {effectiveInputType === 'iupac' ? 'SMILES' : 'IUPAC'}
-                  </button>
-                  {forceInputType && (
-                    <button
-                      onClick={() => setForceInputType(null)}
-                      className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-                    >
-                      (auto)
-                    </button>
+                  {!isIdentifierInput && (
+                    <>
+                      <button
+                        onClick={() => setForceInputType(isIupacInput ? 'smiles' : 'iupac')}
+                        className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] underline"
+                      >
+                        Force {isIupacInput ? 'SMILES' : 'IUPAC'}
+                      </button>
+                      {forceInputType && (
+                        <button
+                          onClick={() => setForceInputType(null)}
+                          className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                        >
+                          (auto)
+                        </button>
+                      )}
+                    </>
                   )}
                 </motion.div>
               )}
@@ -1344,20 +1402,7 @@ export function SingleValidationPage() {
                         <ClayButton
                           variant="outline"
                           size="sm"
-                          onClick={async () => {
-                            setIsComparing(true);
-                            try {
-                              const compareResult = await integrationsApi.compareAcrossDatabases({
-                                smiles: resolvedSmiles || undefined,
-                                inchikey: result?.molecule_info?.inchikey || undefined,
-                              });
-                              setComparisonResult(compareResult);
-                            } catch (err) {
-                              logger.error('Comparison error:', err);
-                            } finally {
-                              setIsComparing(false);
-                            }
-                          }}
+                          onClick={runComparison}
                           disabled={isComparing}
                           loading={isComparing}
                           leftIcon={<GitCompareArrows className="w-3.5 h-3.5" />}
