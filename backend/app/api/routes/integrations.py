@@ -7,6 +7,7 @@ Endpoints for COCONUT, PubChem, and ChEMBL integrations.
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, model_validator
 
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
@@ -15,6 +16,7 @@ from app.schemas.integrations import (
     ChEMBLResult,
     COCONUTRequest,
     COCONUTResult,
+    ConsistencyResult,
     PubChemRequest,
     PubChemResult,
 )
@@ -23,6 +25,7 @@ from app.services.integrations import (
     get_compound_info,
     lookup_natural_product,
 )
+from app.services.integrations.comparator import compare_across_databases
 
 router = APIRouter()
 
@@ -157,3 +160,27 @@ async def lookup_chembl_bioactivity(
         ```
     """
     return await get_bioactivity(body)
+
+
+class CompareRequest(BaseModel):
+    """Request body for cross-database comparison."""
+
+    smiles: Optional[str] = None
+    inchikey: Optional[str] = None
+
+    @model_validator(mode="after")
+    def require_at_least_one(self):
+        if not self.smiles and not self.inchikey:
+            raise ValueError("At least one of 'smiles' or 'inchikey' is required")
+        return self
+
+
+@router.post("/integrations/compare", response_model=ConsistencyResult)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def compare_databases(
+    request: Request,
+    body: CompareRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """Compare molecule representation across PubChem, ChEMBL, and COCONUT."""
+    return await compare_across_databases(smiles=body.smiles, inchikey=body.inchikey)
