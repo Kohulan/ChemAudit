@@ -47,6 +47,8 @@ class ProgressTracker:
 
     UPDATE_INTERVAL = 0.5  # Minimum seconds between updates (max 2/second)
     ETA_WINDOW_SIZE = 10  # Number of chunks to average for ETA
+    IN_PROGRESS_TTL = 3600  # 1 hour for in-progress jobs
+    COMPLETED_TTL = settings.BATCH_RESULT_TTL  # Match result TTL for completed jobs
 
     def __init__(self, redis_url: str = None):
         self._redis_url = redis_url or settings.REDIS_URL
@@ -77,9 +79,9 @@ class ProgressTracker:
             total=total,
             started_at=time.time(),
         )
-        r.set(f"batch:job:{job_id}", json.dumps(asdict(progress)), ex=3600)
+        r.set(f"batch:job:{job_id}", json.dumps(asdict(progress)), ex=self.IN_PROGRESS_TTL)
         # Initialize atomic counter for parallel chunk processing
-        r.set(f"batch:counter:{job_id}", 0, ex=3600)
+        r.set(f"batch:counter:{job_id}", 0, ex=self.IN_PROGRESS_TTL)
         self._chunk_times[job_id] = deque(maxlen=self.ETA_WINDOW_SIZE)
         self._last_update_times[job_id] = 0
 
@@ -146,7 +148,7 @@ class ProgressTracker:
         )
 
         # Store in Redis
-        r.set(f"batch:job:{job_id}", json.dumps(asdict(progress)), ex=3600)
+        r.set(f"batch:job:{job_id}", json.dumps(asdict(progress)), ex=self.IN_PROGRESS_TTL)
 
         # Publish for WebSocket forwarding
         r.publish(f"batch:progress:{job_id}", json.dumps(asdict(progress)))
@@ -189,66 +191,48 @@ class ProgressTracker:
 
         return None
 
-    def mark_complete(self, job_id: str) -> None:
-        """Mark a job as complete."""
-        r = self._get_redis()
+    def _mark_terminal(self, job_id: str, updates: dict) -> None:
+        """Mark a job as terminal (complete/failed/cancelled) and publish the update.
 
-        # Get current progress
+        Args:
+            job_id: Job identifier
+            updates: Fields to merge into the progress dict (must include 'status')
+        """
+        r = self._get_redis()
         data = r.get(f"batch:job:{job_id}")
+
         if data:
             progress = json.loads(data)
-            progress["status"] = "complete"
-            progress["progress"] = 100
             progress["completed_at"] = time.time()
-            progress["eta_seconds"] = 0
+            progress.update(updates)
 
-            r.set(f"batch:job:{job_id}", json.dumps(progress), ex=3600)
-
-            # Publish completion message
+            r.set(f"batch:job:{job_id}", json.dumps(progress), ex=self.COMPLETED_TTL)
             publish_count = r.publish(f"batch:progress:{job_id}", json.dumps(progress))
-            logger.info(
-                f"Job {job_id} marked complete. "
-                f"Published to {publish_count} subscriber(s). "
-                f"Processed: {progress.get('processed')}/{progress.get('total')}"
-            )
-        else:
+
+            if updates["status"] == "complete":
+                logger.info(
+                    f"Job {job_id} marked complete. "
+                    f"Published to {publish_count} subscriber(s). "
+                    f"Processed: {progress.get('processed')}/{progress.get('total')}"
+                )
+        elif updates["status"] == "complete":
             logger.warning(
                 f"Cannot mark job {job_id} as complete: no progress data found"
             )
 
-        # Cleanup
         self._cleanup_job(job_id)
+
+    def mark_complete(self, job_id: str) -> None:
+        """Mark a job as complete."""
+        self._mark_terminal(job_id, {"status": "complete", "progress": 100, "eta_seconds": 0})
 
     def mark_failed(self, job_id: str, error_message: str) -> None:
         """Mark a job as failed."""
-        r = self._get_redis()
-
-        data = r.get(f"batch:job:{job_id}")
-        if data:
-            progress = json.loads(data)
-            progress["status"] = "failed"
-            progress["error_message"] = error_message
-            progress["completed_at"] = time.time()
-
-            r.set(f"batch:job:{job_id}", json.dumps(progress), ex=3600)
-            r.publish(f"batch:progress:{job_id}", json.dumps(progress))
-
-        self._cleanup_job(job_id)
+        self._mark_terminal(job_id, {"status": "failed", "error_message": error_message})
 
     def mark_cancelled(self, job_id: str) -> None:
         """Mark a job as cancelled."""
-        r = self._get_redis()
-
-        data = r.get(f"batch:job:{job_id}")
-        if data:
-            progress = json.loads(data)
-            progress["status"] = "cancelled"
-            progress["completed_at"] = time.time()
-
-            r.set(f"batch:job:{job_id}", json.dumps(progress), ex=3600)
-            r.publish(f"batch:progress:{job_id}", json.dumps(progress))
-
-        self._cleanup_job(job_id)
+        self._mark_terminal(job_id, {"status": "cancelled"})
 
     def get_progress(self, job_id: str) -> Optional[ProgressInfo]:
         """Get current progress for a job."""
@@ -268,7 +252,7 @@ class ProgressTracker:
             r = self._get_redis()
             r.delete(f"batch:counter:{job_id}")
         except Exception:
-            pass  # Ignore cleanup errors
+            logger.warning("Failed to clean up counter for job %s", job_id)
 
 
 # Singleton instance
