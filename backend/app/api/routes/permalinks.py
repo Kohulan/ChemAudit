@@ -7,12 +7,13 @@ Single molecule permalinks are stateless (URL-encoded).
 """
 
 import json
+import logging
 import secrets
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +27,8 @@ from app.schemas.permalinks import (
     PermalinkResolveResponse,
     PermalinkResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -47,10 +50,32 @@ async def create_permalink(
 
     short_id = secrets.token_urlsafe(8)
 
+    # Auto-snapshot results from Redis so shared links survive past Redis TTL.
+    # If caller already provided snapshot_data, use that instead.
+    snapshot_data = body.snapshot_data
+    if not snapshot_data:
+        try:
+            from dataclasses import asdict
+
+            from app.services.batch.result_aggregator import result_storage
+
+            all_results = result_storage.get_all_results(body.job_id)
+            stats = result_storage.get_statistics(body.job_id)
+            if all_results:
+                snapshot_data = {
+                    "results": all_results,
+                    "statistics": asdict(stats) if stats else None,
+                    "total_results": len(all_results),
+                }
+        except Exception:
+            logger.warning(
+                "Failed to auto-snapshot results for job %s", body.job_id, exc_info=True
+            )
+
     permalink = BatchPermalink(
         short_id=short_id,
         job_id=body.job_id,
-        snapshot_data=json.dumps(body.snapshot_data) if body.snapshot_data else None,
+        snapshot_data=json.dumps(snapshot_data) if snapshot_data else None,
         settings=json.dumps(body.settings) if body.settings else None,
     )
     db.add(permalink)
@@ -68,7 +93,7 @@ async def create_permalink(
 
 @router.get("/report/{short_id}", response_model=PermalinkResolveResponse)
 async def resolve_permalink(
-    short_id: str,
+    short_id: str = Path(..., max_length=16, pattern=r"^[A-Za-z0-9_-]+$"),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -91,18 +116,30 @@ async def resolve_permalink(
         expires = permalink.expires_at
         # Handle timezone-naive datetimes from SQLite
         if expires.tzinfo is None:
-            from datetime import timezone as tz
-
-            expires = expires.replace(tzinfo=tz.utc)
+            expires = expires.replace(tzinfo=timezone.utc)
         if expires < now:
             raise HTTPException(
                 status_code=410, detail="This report link has expired"
             )
 
+    snapshot = None
+    if permalink.snapshot_data:
+        try:
+            snapshot = json.loads(permalink.snapshot_data)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Corrupt snapshot_data for permalink %s", short_id)
+
+    link_settings = None
+    if permalink.settings:
+        try:
+            link_settings = json.loads(permalink.settings)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Corrupt settings for permalink %s", short_id)
+
     return PermalinkResolveResponse(
         job_id=permalink.job_id,
-        snapshot_data=json.loads(permalink.snapshot_data) if permalink.snapshot_data else None,
-        settings=json.loads(permalink.settings) if permalink.settings else None,
+        snapshot_data=snapshot,
+        settings=link_settings,
     )
 
 
