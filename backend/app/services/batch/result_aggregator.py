@@ -283,9 +283,11 @@ class ResultStorage:
         max_score: Optional[int],
         sort_by: Optional[str],
         sort_dir: Optional[str],
+        issue_filter: Optional[str] = None,
+        alert_filter: Optional[str] = None,
     ) -> str:
         """Build a deterministic Redis key for a filtered+sorted view."""
-        params = f"{status_filter}|{min_score}|{max_score}|{sort_by}|{sort_dir}"
+        params = f"{status_filter}|{min_score}|{max_score}|{sort_by}|{sort_dir}|{issue_filter}|{alert_filter}"
         param_hash = hashlib.md5(params.encode()).hexdigest()[:12]
         return f"batch:view:{job_id}:{param_hash}"
 
@@ -299,6 +301,8 @@ class ResultStorage:
         max_score: Optional[int] = None,
         sort_by: Optional[str] = None,
         sort_dir: Optional[str] = None,
+        issue_filter: Optional[str] = None,
+        alert_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Get paginated results for a job with optional filtering and sorting.
@@ -331,7 +335,8 @@ class ResultStorage:
 
         # Check view cache first
         view_key = self._view_cache_key(
-            job_id, status_filter, min_score, max_score, sort_by, sort_dir
+            job_id, status_filter, min_score, max_score, sort_by, sort_dir,
+            issue_filter, alert_filter,
         )
         cached_view = r.get(view_key)
 
@@ -344,7 +349,9 @@ class ResultStorage:
                 return empty
 
             results = json.loads(results_data)
-            filtered = self._apply_filters(results, status_filter, min_score, max_score)
+            filtered = self._apply_filters(
+                results, status_filter, min_score, max_score, issue_filter, alert_filter
+            )
 
             if sort_by and sort_by in self.SORT_EXTRACTORS:
                 reverse = sort_dir == "desc"
@@ -397,6 +404,8 @@ class ResultStorage:
         status_filter: Optional[str],
         min_score: Optional[int],
         max_score: Optional[int],
+        issue_filter: Optional[str] = None,
+        alert_filter: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Apply filters to results list."""
         filtered = results
@@ -413,14 +422,34 @@ class ResultStorage:
             filtered = [
                 r
                 for r in filtered
-                if r.get("validation", {}).get("overall_score", 0) >= min_score
+                if (r.get("validation") or {}).get("overall_score", 0) >= min_score
             ]
 
         if max_score is not None:
             filtered = [
                 r
                 for r in filtered
-                if r.get("validation", {}).get("overall_score", 100) <= max_score
+                if (r.get("validation") or {}).get("overall_score", 100) <= max_score
+            ]
+
+        if issue_filter:
+            filtered = [
+                r
+                for r in filtered
+                if any(
+                    issue.get("check_name") == issue_filter and not issue.get("passed", True)
+                    for issue in (r.get("validation") or {}).get("issues", [])
+                )
+            ]
+
+        if alert_filter:
+            filtered = [
+                r
+                for r in filtered
+                if any(
+                    alert.get("catalog") == alert_filter
+                    for alert in (r.get("alerts") or {}).get("alerts", [])
+                )
             ]
 
         return filtered

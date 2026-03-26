@@ -5,6 +5,7 @@ Endpoints for batch file upload, job status, results retrieval, and analytics.
 """
 
 import json
+import logging
 import re
 import uuid
 from typing import Any, Dict, List, Optional
@@ -23,6 +24,7 @@ from fastapi import (
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.error_sanitizer import safe_error_detail
 from app.core.ownership import store_job_owner, verify_job_access
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
@@ -56,6 +58,8 @@ from app.services.batch.subset_actions import (
     revalidate_subset,
 )
 from app.services.batch.tasks import cancel_batch_job, process_batch_job
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -212,8 +216,6 @@ async def upload_batch(
 
     # If profile selected, fetch thresholds and attach to safety_options
     if profile_id is not None:
-        import json
-
         from app.db import async_session
         from app.services.profiles.service import ProfileService
 
@@ -223,16 +225,8 @@ async def upload_batch(
             raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
         safety_options["profile_id"] = profile.id
         safety_options["profile_name"] = profile.name
-        safety_options["profile_thresholds"] = (
-            json.loads(profile.thresholds)
-            if isinstance(profile.thresholds, str)
-            else profile.thresholds
-        )
-        safety_options["profile_weights"] = (
-            json.loads(profile.weights)
-            if isinstance(profile.weights, str)
-            else profile.weights
-        )
+        safety_options["profile_thresholds"] = _parse_json_field(profile.thresholds)
+        safety_options["profile_weights"] = _parse_json_field(profile.weights)
 
     # Validate notification email before dispatching job
     email_target = notification_email or settings.NOTIFICATION_EMAIL
@@ -287,6 +281,16 @@ async def get_batch_results(
         default=None,
         description="Sort direction (asc, desc)",
     ),
+    issue_filter: Optional[str] = Query(
+        default=None,
+        max_length=200,
+        description="Filter to molecules with a specific failed validation check name",
+    ),
+    alert_filter: Optional[str] = Query(
+        default=None,
+        max_length=200,
+        description="Filter to molecules with alerts from a specific catalog",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -298,6 +302,7 @@ async def get_batch_results(
     - **status_filter**: Filter results by 'success' or 'error'
     - **min_score**: Filter by minimum validation score
     - **max_score**: Filter by maximum validation score
+    - **issue_filter**: Filter to molecules with a specific failed validation check
 
     Returns job status and paginated results with statistics.
     """
@@ -339,6 +344,8 @@ async def get_batch_results(
         max_score=max_score,
         sort_by=sort_by,
         sort_dir=sort_dir,
+        issue_filter=issue_filter,
+        alert_filter=alert_filter,
     )
 
     # Convert to response model
@@ -669,7 +676,7 @@ async def detect_columns(
     except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to analyze CSV: {str(e)}",
+            detail=safe_error_detail(e, "Failed to analyze CSV file"),
         )
 
 
@@ -761,8 +768,12 @@ async def subset_rescore(
                     safety_options["profile_weights"] = _parse_json_field(
                         profile.weights
                     )
-        except Exception:
-            pass  # Proceed without profile if fetch fails
+        except Exception as exc:
+            logger.exception("Failed to fetch scoring profile %s", body.profile_id)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to fetch the requested scoring profile",
+            ) from exc
 
     try:
         new_job_id = rescore_subset(
@@ -804,7 +815,10 @@ async def subset_export(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=safe_error_detail(e, "Export failed"),
+        )
 
     # Determine media type and extension
     from app.services.export.base import ExporterFactory, ExportFormat
@@ -854,8 +868,12 @@ async def score_subset_inline(
     try:
         async with async_session() as session:
             profile = await ProfileService().get(session, body.profile_id)
-    except Exception:
-        profile = None
+    except Exception as exc:
+        logger.exception("Failed to fetch scoring profile %s", body.profile_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch the requested scoring profile",
+        ) from exc
 
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -902,6 +920,11 @@ async def score_subset_inline(
                 weights=weights,
             )
         except Exception:
+            logger.exception(
+                "Profile scoring failed for molecule index=%s in job %s",
+                mol.get("index"),
+                job_id,
+            )
             profile_result = {
                 "profile_id": profile.id,
                 "profile_name": profile.name,

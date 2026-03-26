@@ -9,12 +9,18 @@ interface BatchSummaryProps {
   statistics: BatchStatistics;
   selectedIndices?: Set<number>;
   onClearSelection?: () => void;
+  onFilterByStatus?: (status: 'success' | 'error' | null) => void;
+  activeStatusFilter?: 'success' | 'error' | null;
+  onAlertClick?: (catalog: string) => void;
+  activeAlertFilter?: string | null;
+  onIssueClick?: (checkName: string) => void;
+  activeIssueFilter?: string | null;
 }
 
 /**
  * Summary statistics display with cards and charts.
  */
-export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelection }: BatchSummaryProps) {
+export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelection, onFilterByStatus, activeStatusFilter, onAlertClick, activeAlertFilter, onIssueClick, activeIssueFilter }: BatchSummaryProps) {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [exportSelectedIndices, setExportSelectedIndices] = useState<Set<number> | undefined>(undefined);
   const formatTime = (seconds: number | null): string => {
@@ -32,6 +38,13 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
     return 'text-red-600 dark:text-red-400';
   };
 
+  const getPassRateColor = (rate: number | null): string => {
+    if (rate === null) return 'text-[var(--color-text-muted)]';
+    if (rate >= 80) return 'text-emerald-600 dark:text-emerald-400';
+    if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
   // Calculate percentages for distribution chart
   const total = statistics.successful;
   const distributionPct = {
@@ -45,25 +58,43 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
     <div className="space-y-6">
       {/* Main stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total */}
-        <div className="bg-blue-500/10 dark:bg-blue-500/20 rounded-lg p-4">
+        {/* Total (clears filter) */}
+        <button
+          type="button"
+          onClick={() => onFilterByStatus?.(null)}
+          className={`text-left bg-blue-500/10 dark:bg-blue-500/20 rounded-lg p-4 transition-all ${
+            onFilterByStatus ? 'cursor-pointer hover:ring-2 hover:ring-blue-400/50' : ''
+          } ${activeStatusFilter === null || activeStatusFilter === undefined ? '' : 'opacity-60'}`}
+        >
           <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">{statistics.total}</p>
           <p className="text-sm text-blue-600 dark:text-blue-500">Total Molecules</p>
-        </div>
+        </button>
 
         {/* Successful */}
-        <div className="bg-yellow-500/10 dark:bg-yellow-500/20 rounded-lg p-4">
+        <button
+          type="button"
+          onClick={() => onFilterByStatus?.(activeStatusFilter === 'success' ? null : 'success')}
+          className={`text-left bg-yellow-500/10 dark:bg-yellow-500/20 rounded-lg p-4 transition-all ${
+            onFilterByStatus ? 'cursor-pointer hover:ring-2 hover:ring-yellow-400/50' : ''
+          } ${activeStatusFilter === 'success' ? 'ring-2 ring-yellow-500/70' : ''}`}
+        >
           <p className="text-3xl font-bold text-amber-700 dark:text-yellow-400">
             {statistics.successful}
           </p>
           <p className="text-sm text-amber-600 dark:text-yellow-500">Successful</p>
-        </div>
+        </button>
 
         {/* Errors */}
-        <div className="bg-red-500/10 dark:bg-red-500/20 rounded-lg p-4">
+        <button
+          type="button"
+          onClick={() => onFilterByStatus?.(activeStatusFilter === 'error' ? null : 'error')}
+          className={`text-left bg-red-500/10 dark:bg-red-500/20 rounded-lg p-4 transition-all ${
+            onFilterByStatus ? 'cursor-pointer hover:ring-2 hover:ring-red-400/50' : ''
+          } ${activeStatusFilter === 'error' ? 'ring-2 ring-red-500/70' : ''}`}
+        >
           <p className="text-3xl font-bold text-red-700 dark:text-red-400">{statistics.errors}</p>
           <p className="text-sm text-red-600 dark:text-red-500">Errors</p>
-        </div>
+        </button>
 
         {/* Processing time */}
         <div className="bg-purple-500/10 dark:bg-purple-500/20 rounded-lg p-4">
@@ -116,13 +147,7 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
           {statistics.lipinski_pass_rate !== null && (
             <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
               <p className="text-sm text-[var(--color-text-muted)] mb-1">Lipinski Pass Rate</p>
-              <p className={`text-3xl font-bold ${
-                (statistics.lipinski_pass_rate ?? 0) >= 80
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : (statistics.lipinski_pass_rate ?? 0) >= 50
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-red-600 dark:text-red-400'
-              }`}>
+              <p className={`text-3xl font-bold ${getPassRateColor(statistics.lipinski_pass_rate)}`}>
                 {statistics.lipinski_pass_rate?.toFixed(0) ?? '-'}%
               </p>
             </div>
@@ -130,13 +155,7 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
           {statistics.safety_pass_rate !== null && (
             <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
               <p className="text-sm text-[var(--color-text-muted)] mb-1">Safety Pass Rate</p>
-              <p className={`text-3xl font-bold ${
-                (statistics.safety_pass_rate ?? 0) >= 80
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : (statistics.safety_pass_rate ?? 0) >= 50
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-red-600 dark:text-red-400'
-              }`}>
+              <p className={`text-3xl font-bold ${getPassRateColor(statistics.safety_pass_rate)}`}>
                 {statistics.safety_pass_rate?.toFixed(0) ?? '-'}%
               </p>
             </div>
@@ -215,34 +234,70 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
 
       {/* Alert summary */}
       {Object.keys(statistics.alert_summary).length > 0 && (
-        <div className="bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-lg p-4">
-          <h4 className="font-medium text-amber-800 dark:text-amber-400 mb-3">Alert Summary</h4>
+        <div className="bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-xl p-5">
+          <h4 className="font-medium text-amber-800 dark:text-amber-400 mb-4">Alert Summary</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(statistics.alert_summary).map(([catalog, count]) => (
-              <div key={catalog} className="text-center">
-                <p className="text-2xl font-semibold text-amber-700 dark:text-amber-400">{count}</p>
-                <p className="text-xs text-amber-600 dark:text-amber-500">{catalog}</p>
-              </div>
-            ))}
+            {Object.entries(statistics.alert_summary).map(([catalog, count]) => {
+              const isActive = activeAlertFilter === catalog;
+              return (
+                <button
+                  key={catalog}
+                  type="button"
+                  onClick={() => onAlertClick?.(isActive ? '' : catalog)}
+                  className={`group relative text-left rounded-xl p-4 border transition-all duration-200 ${
+                    onAlertClick ? 'cursor-pointer' : ''
+                  } ${isActive
+                    ? 'bg-amber-500/25 border-amber-500/60 shadow-md shadow-amber-500/10 scale-[1.02]'
+                    : 'bg-[var(--color-surface-elevated)] border-amber-500/20 hover:border-amber-500/40 hover:shadow-sm hover:scale-[1.01]'
+                  }`}
+                >
+                  <p className="text-3xl font-bold text-amber-700 dark:text-amber-400">{count}</p>
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-500 mt-1">{catalog}</p>
+                  {onAlertClick && (
+                    <div className={`absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full transition-colors ${
+                      isActive ? 'bg-amber-500' : 'bg-amber-400/0 group-hover:bg-amber-400/50'
+                    }`} />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Issue summary */}
       {Object.keys(statistics.issue_summary).length > 0 && (
-        <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 rounded-lg p-4">
-          <h4 className="font-medium text-red-800 dark:text-red-400 mb-3">Structural Issues</h4>
+        <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 rounded-xl p-5">
+          <h4 className="font-medium text-red-800 dark:text-red-400 mb-4">Structural Issues</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(statistics.issue_summary)
               .sort(([, a], [, b]) => b - a)
-              .map(([checkName, count]) => (
-              <div key={checkName} className="text-center">
-                <p className="text-2xl font-semibold text-red-700 dark:text-red-400">{count}</p>
-                <p className="text-xs text-red-600 dark:text-red-500">
-                  {checkName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </p>
-              </div>
-            ))}
+              .map(([checkName, count]) => {
+              const isActive = activeIssueFilter === checkName;
+              return (
+                <button
+                  key={checkName}
+                  type="button"
+                  onClick={() => onIssueClick?.(isActive ? '' : checkName)}
+                  className={`group relative text-left rounded-xl p-4 border transition-all duration-200 ${
+                    onIssueClick ? 'cursor-pointer' : ''
+                  } ${isActive
+                    ? 'bg-red-500/25 border-red-500/60 shadow-md shadow-red-500/10 scale-[1.02]'
+                    : 'bg-[var(--color-surface-elevated)] border-red-500/20 hover:border-red-500/40 hover:shadow-sm hover:scale-[1.01]'
+                  }`}
+                >
+                  <p className="text-3xl font-bold text-red-700 dark:text-red-400">{count}</p>
+                  <p className="text-xs font-medium text-red-600 dark:text-red-500 mt-1">
+                    {checkName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </p>
+                  {onIssueClick && (
+                    <div className={`absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full transition-colors ${
+                      isActive ? 'bg-red-500' : 'bg-red-400/0 group-hover:bg-red-400/50'
+                    }`} />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -281,7 +336,7 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
             setIsExportDialogOpen(true);
           }}
           leftIcon={<Download className="w-4 h-4" />}
-          className={selectedIndices && selectedIndices.size > 0 ? 'ml-auto' : 'ml-auto'}
+          className="ml-auto"
         >
           Export All
         </ClayButton>

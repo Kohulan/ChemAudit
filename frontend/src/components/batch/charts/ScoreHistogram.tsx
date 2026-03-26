@@ -2,7 +2,7 @@
  * ScoreHistogram (VIZ-01)
  *
  * Score distribution histogram showing excellent/good/moderate/poor categories.
- * Click on a bar selects all molecule indices in that score range.
+ * Click on a bar to filter the results table to that score range.
  */
 
 import React, { useCallback, useMemo } from 'react';
@@ -23,13 +23,15 @@ interface ScoreHistogramProps {
   results: BatchResult[];
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
+  onScoreRangeClick?: (min: number, max: number) => void;
+  activeScoreRange?: { min: number; max: number } | null;
 }
 
 const CATEGORIES = [
-  { key: 'excellent', label: 'Excellent (80-100)', color: '#fbbf24', min: 80, max: 101 },
-  { key: 'good', label: 'Good (60-80)', color: '#d97706', min: 60, max: 80 },
-  { key: 'moderate', label: 'Moderate (40-60)', color: '#ea580c', min: 40, max: 60 },
-  { key: 'poor', label: 'Poor (0-40)', color: '#dc2626', min: 0, max: 40 },
+  { key: 'excellent', label: 'Excellent (80-100)', color: '#fbbf24', min: 80, max: 100 },
+  { key: 'good', label: 'Good (60-80)', color: '#d97706', min: 60, max: 79 },
+  { key: 'moderate', label: 'Moderate (40-60)', color: '#ea580c', min: 40, max: 59 },
+  { key: 'poor', label: 'Poor (0-40)', color: '#dc2626', min: 0, max: 39 },
 ] as const;
 
 export const ScoreHistogram = React.memo(function ScoreHistogram({
@@ -37,6 +39,8 @@ export const ScoreHistogram = React.memo(function ScoreHistogram({
   results,
   selectedIndices,
   onSelectionChange,
+  onScoreRangeClick,
+  activeScoreRange,
 }: ScoreHistogramProps) {
   const total = data.excellent + data.good + data.moderate + data.poor;
 
@@ -62,7 +66,7 @@ export const ScoreHistogram = React.memo(function ScoreHistogram({
       if (r.status !== 'success' || !r.validation) continue;
       const score = r.validation.overall_score;
       for (const cat of CATEGORIES) {
-        if (score >= cat.min && score < cat.max) {
+        if (score >= cat.min && score <= cat.max) {
           map[cat.label].push(r.index);
           break;
         }
@@ -72,13 +76,25 @@ export const ScoreHistogram = React.memo(function ScoreHistogram({
   }, [results]);
 
   const handleClick = useCallback(
-    (entry: { name: string }) => {
-      const indices = rangeIndices[entry.name];
-      if (indices) {
-        onSelectionChange(new Set(indices));
+    (entry: { name: string; min: number; max: number }) => {
+      if (onScoreRangeClick) {
+        // Toggle: clicking the active range clears the filter
+        const isActive = activeScoreRange &&
+          activeScoreRange.min === entry.min && activeScoreRange.max === entry.max;
+        if (isActive) {
+          onScoreRangeClick(-1, -1); // signal to clear
+        } else {
+          onScoreRangeClick(entry.min, entry.max);
+        }
+      } else {
+        // Fallback to index selection
+        const indices = rangeIndices[entry.name];
+        if (indices) {
+          onSelectionChange(new Set(indices));
+        }
       }
     },
-    [rangeIndices, onSelectionChange]
+    [rangeIndices, onSelectionChange, onScoreRangeClick, activeScoreRange]
   );
 
   if (total === 0) {
@@ -121,6 +137,11 @@ export const ScoreHistogram = React.memo(function ScoreHistogram({
                 <p className="text-[var(--color-text-secondary)]">
                   {entry.count} molecule{entry.count !== 1 ? 's' : ''} ({pct}%)
                 </p>
+                {onScoreRangeClick && (
+                  <p className="text-[var(--color-primary)] mt-1 font-medium">
+                    Click to filter results
+                  </p>
+                )}
               </div>
             );
           }}
@@ -132,7 +153,24 @@ export const ScoreHistogram = React.memo(function ScoreHistogram({
           radius={[4, 4, 0, 0]}
         >
           {chartData.map((entry, index) => {
-            // Determine if any selected molecules are in this bar's range
+            const isActiveRange = activeScoreRange &&
+              activeScoreRange.min === entry.min && activeScoreRange.max === entry.max;
+            const hasActiveFilter = !!activeScoreRange;
+
+            // When a score range filter is active, dim non-active bars
+            if (hasActiveFilter) {
+              return (
+                <Cell
+                  key={index}
+                  fill={entry.color}
+                  fillOpacity={isActiveRange ? 1 : 0.35}
+                  stroke={isActiveRange ? '#fff' : 'none'}
+                  strokeWidth={isActiveRange ? 2 : 0}
+                />
+              );
+            }
+
+            // Fallback: selection-based opacity
             const barIndices = rangeIndices[entry.name] || [];
             const hasSelectedInBar =
               hasSelection && barIndices.some((i) => selectedIndices.has(i));
