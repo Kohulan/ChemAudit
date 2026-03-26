@@ -18,6 +18,8 @@ import { ClayButton } from '../ui/ClayButton';
 import { subsetApi, profilesApi, batchApi } from '../../services/api';
 import type { InlineScoreResponse, InlineScoredMolecule } from '../../services/api';
 import { cn } from '../../lib/utils';
+import { getRDKit } from '../../hooks/useRDKit';
+import { sanitizeSvg } from '../../lib/sanitize';
 import type { ScoringProfile } from '../../types/workflow';
 import type { BatchResult } from '../../types/batch';
 
@@ -32,6 +34,7 @@ interface SubsetActionPanelProps {
   selectedIndices: Set<number>;
   isOpen: boolean;
   onClose: () => void;
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
 }
 
 const PROPERTY_LABELS: Record<string, string> = {
@@ -203,7 +206,21 @@ function MiniDistribution({ molecules }: { molecules: InlineScoredMolecule[] }) 
 /*  Validation Result Card                                             */
 /* ------------------------------------------------------------------ */
 
-function ValidationCard({ result }: { result: BatchResult }) {
+/**
+ * ValidationCard — shows a single molecule's validation summary.
+ * Hover reveals a 2D structure depiction (DOMPurify-sanitized SVG from RDKit.js).
+ * Click navigates to the molecule in the detailed results table.
+ */
+function ValidationCard({
+  result,
+  svgHtml,
+  onClick,
+}: {
+  result: BatchResult;
+  /** DOMPurify-sanitized SVG string for structure preview. */
+  svgHtml?: string;
+  onClick?: () => void;
+}) {
   const score = result.validation?.overall_score ?? 0;
   const issues = result.validation?.issues?.filter(i => !i.passed) ?? [];
   const warnings = result.validation?.issues?.filter(i => i.passed && i.severity === 'warning') ?? [];
@@ -212,15 +229,29 @@ function ValidationCard({ result }: { result: BatchResult }) {
   return (
     <motion.div
       variants={stagger.item}
+      onClick={onClick}
       className={cn(
-        'rounded-xl border p-3 transition-colors',
+        'group rounded-xl border p-3 transition-all duration-200',
+        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.01]',
         isError
-          ? 'bg-red-500/5 border-red-500/15'
+          ? 'bg-red-500/5 border-red-500/15 hover:border-red-500/30'
           : issues.length > 0
-            ? 'bg-amber-500/5 border-amber-500/15'
-            : 'bg-emerald-500/5 border-emerald-500/15',
+            ? 'bg-amber-500/5 border-amber-500/15 hover:border-amber-500/30'
+            : 'bg-emerald-500/5 border-emerald-500/15 hover:border-emerald-500/30',
       )}
     >
+      {/* Structure depiction — hidden by default, fully visible on hover (sanitized via DOMPurify) */}
+      {svgHtml && (
+        <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-out">
+          <div className="overflow-hidden">
+            <div
+              className="mb-2 rounded-lg bg-white dark:bg-gray-100 p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              dangerouslySetInnerHTML={{ __html: svgHtml }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           {isError ? (
@@ -277,6 +308,13 @@ function ValidationCard({ result }: { result: BatchResult }) {
       )}
       {isError && result.error && (
         <p className="text-[9px] text-red-500 mt-1 line-clamp-2">{result.error}</p>
+      )}
+
+      {/* Navigate hint */}
+      {onClick && (
+        <p className="text-[9px] text-[var(--color-text-muted)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          Click to view in results table
+        </p>
       )}
     </motion.div>
   );
@@ -383,6 +421,7 @@ export function SubsetActionPanel({
   selectedIndices,
   isOpen,
   onClose,
+  onNavigateToMolecule,
 }: SubsetActionPanelProps) {
   const [tab, setTab] = useState<TabId>('validation');
   const [profiles, setProfiles] = useState<ScoringProfile[]>([]);
@@ -392,6 +431,7 @@ export function SubsetActionPanel({
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [selectedResults, setSelectedResults] = useState<BatchResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  const [svgCache, setSvgCache] = useState<Map<string, string>>(new Map());
 
   // Fetch results for selected indices across all pages when panel opens
   useEffect(() => {
@@ -399,7 +439,6 @@ export function SubsetActionPanel({
     let cancelled = false;
     setLoadingResults(true);
     setSelectedResults([]);
-    const idxSet = selectedIndices;
     const found: BatchResult[] = [];
 
     (async () => {
@@ -412,10 +451,10 @@ export function SubsetActionPanel({
           const res = await batchApi.getBatchResults(jobId, page, pageSize);
           if (cancelled) return;
           for (const r of res.results) {
-            if (idxSet.has(r.index)) found.push(r);
+            if (selectedIndices.has(r.index)) found.push(r);
           }
           // Stop if we found all or reached the last page
-          if (found.length >= idxSet.size || page >= res.total_pages) break;
+          if (found.length >= selectedIndices.size || page >= res.total_pages) break;
           page++;
         }
         if (!cancelled) setSelectedResults(found);
@@ -428,6 +467,37 @@ export function SubsetActionPanel({
 
     return () => { cancelled = true; };
   }, [isOpen, jobId, selectedIndices]);
+
+  // Pre-generate sanitized structure SVGs for hover previews
+  useEffect(() => {
+    if (selectedResults.length === 0) return;
+    let cancelled = false;
+
+    const smilesSet = new Set(
+      selectedResults.map(r => r.smiles).filter(Boolean)
+    );
+
+    getRDKit().then(rdkit => {
+      if (cancelled) return;
+      const cache = new Map<string, string>();
+      for (const smiles of smilesSet) {
+        const mol = rdkit.get_mol(smiles);
+        if (mol) {
+          const rawSvg = mol.get_svg(260, 160);
+          // Remove fixed dimensions for responsive layout, sanitize with DOMPurify
+          const responsive = rawSvg
+            .replace(/(<svg[^>]*)\s+width=["']\d+(?:px)?["']/, '$1')
+            .replace(/(<svg[^>]*)\s+height=["']\d+(?:px)?["']/, '$1')
+            .replace(/<rect[^>]*style=['"]opacity:\s*1\.0;fill:#FFFFFF[^"']*['"][^>]*\/>/, '');
+          cache.set(smiles, sanitizeSvg(responsive));
+          mol.delete();
+        }
+      }
+      if (!cancelled) setSvgCache(cache);
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [selectedResults]);
 
   // Load profiles when panel opens
   useEffect(() => {
@@ -615,7 +685,12 @@ export function SubsetActionPanel({
                   className="space-y-2"
                 >
                   {selectedResults.map(r => (
-                    <ValidationCard key={r.index} result={r} />
+                    <ValidationCard
+                      key={r.index}
+                      result={r}
+                      svgHtml={svgCache.get(r.smiles)}
+                      onClick={onNavigateToMolecule ? () => onNavigateToMolecule(r.index) : undefined}
+                    />
                   ))}
                 </motion.div>
 

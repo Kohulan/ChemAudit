@@ -22,6 +22,10 @@ interface BatchResultsTableProps {
   isLoading?: boolean;
   selectedIndices: Set<number>;
   onSelectionChange: (indices: Set<number>) => void;
+  /** When set, auto-expand this molecule row and scroll to it. */
+  focusedMoleculeIndex?: number | null;
+  /** Called after the focused molecule has been scrolled to (so parent can clear it). */
+  onFocusHandled?: () => void;
 }
 
 /**
@@ -43,11 +47,28 @@ export function BatchResultsTable({
   isLoading = false,
   selectedIndices,
   onSelectionChange,
+  focusedMoleculeIndex,
+  onFocusHandled,
 }: BatchResultsTableProps) {
   const navigate = useNavigate();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  const focusedRowRef = useRef<HTMLTableRowElement>(null);
+
+  // When focusedMoleculeIndex is set, expand that row and scroll to it
+  useEffect(() => {
+    if (focusedMoleculeIndex == null) return;
+    if (results.some(r => r.index === focusedMoleculeIndex)) {
+      setExpandedRow(focusedMoleculeIndex);
+      setHighlightedAtoms([]);
+      // Wait for render, then scroll
+      requestAnimationFrame(() => {
+        focusedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      onFocusHandled?.();
+    }
+  }, [focusedMoleculeIndex, results, onFocusHandled]);
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -62,11 +83,6 @@ export function BatchResultsTable({
     if (score >= 80) return 'text-amber-600 dark:text-yellow-400 bg-yellow-500/10';
     if (score >= 50) return 'text-orange-600 dark:text-orange-400 bg-orange-500/10';
     return 'text-red-600 dark:text-red-400 bg-red-500/10';
-  };
-
-  const truncateSmiles = (smiles: string, maxLen: number = 30): string => {
-    if (smiles.length <= maxLen) return smiles;
-    return smiles.substring(0, maxLen) + '...';
   };
 
   // Calculate checkbox states
@@ -167,6 +183,44 @@ export function BatchResultsTable({
           />
         </div>
 
+        {/* Active filter badges */}
+        {filters.issue_filter && (
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, issue_filter: undefined })}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+          >
+            Issue: {filters.issue_filter.replace(/_/g, ' ')}
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        {filters.alert_filter && (
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, alert_filter: undefined })}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+          >
+            Alert: {filters.alert_filter}
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        {filters.min_score !== undefined && filters.max_score !== undefined && (
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, min_score: undefined, max_score: undefined })}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+          >
+            Score: {filters.min_score}-{filters.max_score}
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+
         {/* Results info */}
         <div className="ml-auto text-sm text-[var(--color-text-muted)]">
           Showing {results.length} of {totalResults} results
@@ -264,10 +318,12 @@ export function BatchResultsTable({
               results.map((result) => (
                 <Fragment key={result.index}>
                   <tr
+                    ref={result.index === focusedMoleculeIndex ? focusedRowRef : undefined}
                     className={`
                       hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
                       ${result.status === 'error' ? 'bg-red-500/5' : ''}
                       ${expandedRow === result.index ? 'bg-[var(--color-primary)]/5' : ''}
+                      ${result.index === focusedMoleculeIndex ? 'ring-2 ring-inset ring-[var(--color-primary)]/40' : ''}
                     `}
                     onClick={() => {
                       setExpandedRow(expandedRow === result.index ? null : result.index);
@@ -290,7 +346,16 @@ export function BatchResultsTable({
                       {result.name || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] font-mono">
-                      {truncateSmiles(result.smiles)}
+                      <span className="group/smiles inline-flex items-center gap-1 max-w-[280px]">
+                        <span className="truncate" title={result.smiles}>
+                          {result.smiles}
+                        </span>
+                        <CopyButton
+                          text={result.smiles}
+                          size={13}
+                          className="shrink-0 opacity-0 group-hover/smiles:opacity-100 transition-opacity"
+                        />
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span

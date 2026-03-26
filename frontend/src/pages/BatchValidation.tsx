@@ -22,8 +22,10 @@ import { cn } from '../lib/utils';
 import { logger } from '../lib/logger';
 import type {
   BatchPageState,
+  BatchResult,
   BatchResultsResponse,
   BatchResultsFilters,
+  BatchStatistics,
   SortField,
 } from '../types/batch';
 
@@ -57,6 +59,7 @@ export function BatchValidationPage() {
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [focusedMoleculeIndex, setFocusedMoleculeIndex] = useState<number | null>(null);
 
   // Analytics data for timeline and comparison radar
   const { data: analyticsData, status: analyticsStatus, error: analyticsError, progress: analyticsProgress, retrigger: analyticsRetrigger } = useBatchAnalytics(
@@ -206,6 +209,79 @@ export function BatchValidationPage() {
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
+  // Scroll to the results table after applying a chart filter
+  const scrollToResults = useCallback(() => {
+    setTimeout(() => {
+      document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
+
+  // Chart filter: issue type from ValidationTreemap
+  const handleChartIssueFilter = useCallback((checkName: string) => {
+    const newFilters: BatchResultsFilters = { ...filters };
+    if (checkName) {
+      newFilters.issue_filter = checkName;
+    } else {
+      delete newFilters.issue_filter;
+    }
+    handleFiltersChange(newFilters);
+    scrollToResults();
+  }, [filters, handleFiltersChange, scrollToResults]);
+
+  // Chart filter: score range from ScoreHistogram
+  const handleChartScoreRangeFilter = useCallback((min: number, max: number) => {
+    const newFilters: BatchResultsFilters = { ...filters };
+    if (min < 0) {
+      delete newFilters.min_score;
+      delete newFilters.max_score;
+    } else {
+      newFilters.min_score = min;
+      newFilters.max_score = max;
+    }
+    handleFiltersChange(newFilters);
+    scrollToResults();
+  }, [filters, handleFiltersChange, scrollToResults]);
+
+  // Chart filter: alert catalog from AlertFrequencyChart
+  const handleChartAlertFilter = useCallback((catalogName: string) => {
+    const newFilters: BatchResultsFilters = { ...filters };
+    if (catalogName) {
+      newFilters.alert_filter = catalogName;
+    } else {
+      delete newFilters.alert_filter;
+    }
+    handleFiltersChange(newFilters);
+    scrollToResults();
+  }, [filters, handleFiltersChange, scrollToResults]);
+
+  // Navigate from subset panel to a specific molecule in the results table
+  const handleNavigateToMolecule = useCallback(async (moleculeIndex: number) => {
+    if (!jobId) return;
+    // Close the panel
+    setSubsetPanelOpen(false);
+    // Clear filters so the molecule is visible, sort by index
+    const cleanFilters: BatchResultsFilters = { sort_by: 'index', sort_dir: 'asc' };
+    // Compute which page this molecule is on (0-based index, 1-based pages)
+    const targetPage = Math.floor(moleculeIndex / pageSize) + 1;
+    setResultsLoading(true);
+    try {
+      const data = await batchApi.getBatchResults(jobId, targetPage, pageSize, cleanFilters);
+      setResultsData(data);
+      setPage(targetPage);
+      setFilters(cleanFilters);
+      setSortBy('index');
+      setSortDir('asc');
+      setFocusedMoleculeIndex(moleculeIndex);
+      // Scroll to results section
+      scrollToResults();
+    } catch {
+      // Fall back to just scrolling
+      scrollToResults();
+    } finally {
+      setResultsLoading(false);
+    }
+  }, [jobId, pageSize, scrollToResults]);
+
   // Handle compare button click — fetch molecules from API (not paginated local data)
   const handleCompare = useCallback(async () => {
     if (!jobId || selectedIndices.size === 0) return;
@@ -315,18 +391,43 @@ export function BatchValidationPage() {
     window.history.replaceState({}, '', '/batch');
 
     const permalinkJobId = state.permalinkJobId;
+    const snapshot = state.permalinkSnapshot as {
+      results?: BatchResult[];
+      statistics?: BatchStatistics | null;
+      total_results?: number;
+    } | undefined;
+
     setJobId(permalinkJobId);
     setPageState('results');
 
-    // Fetch results for the permalink job
+    // Fetch live results first; fall back to snapshot if Redis data expired
     setResultsLoading(true);
     batchApi.getBatchResults(permalinkJobId, 1, pageSize, {}).then((data) => {
       setResultsData(data);
       setPage(1);
       setFilters({});
-    }).catch((e: any) => {
-      setError(e.message || 'Failed to load permalink results');
-      setPageState('upload');
+    }).catch(() => {
+      if (snapshot?.results) {
+        // Redis expired — reconstruct response from snapshot
+        const allResults = snapshot.results;
+        const totalResults = allResults.length;
+        const totalPages = Math.ceil(totalResults / pageSize) || 0;
+        setResultsData({
+          job_id: permalinkJobId,
+          status: 'complete',
+          statistics: snapshot.statistics ?? null,
+          results: allResults.slice(0, pageSize),
+          page: 1,
+          page_size: pageSize,
+          total_results: totalResults,
+          total_pages: totalPages,
+        });
+        setPage(1);
+        setFilters({});
+      } else {
+        setError('This shared report has expired and no snapshot is available.');
+        setPageState('upload');
+      }
     }).finally(() => {
       setResultsLoading(false);
     });
@@ -566,6 +667,17 @@ export function BatchValidationPage() {
                   statistics={resultsData.statistics}
                   selectedIndices={selectedIndices}
                   onClearSelection={handleClearSelection}
+                  activeStatusFilter={filters.status_filter ?? null}
+                  onFilterByStatus={(status) => {
+                    const newFilters: BatchResultsFilters = { ...filters, status_filter: status ?? undefined };
+                    if (!status) delete newFilters.status_filter;
+                    handleFiltersChange(newFilters);
+                    scrollToResults();
+                  }}
+                  activeAlertFilter={filters.alert_filter ?? null}
+                  onAlertClick={handleChartAlertFilter}
+                  activeIssueFilter={filters.issue_filter ?? null}
+                  onIssueClick={handleChartIssueFilter}
                 />
               </div>
             )}
@@ -609,6 +721,16 @@ export function BatchValidationPage() {
                   onRetrigger={analyticsRetrigger}
                   onCompare={handleCompare}
                   onOpenActions={() => setSubsetPanelOpen(true)}
+                  activeIssueFilter={filters.issue_filter ?? null}
+                  onIssueFilter={handleChartIssueFilter}
+                  activeScoreRange={
+                    filters.min_score !== undefined && filters.max_score !== undefined
+                      ? { min: filters.min_score, max: filters.max_score }
+                      : null
+                  }
+                  onScoreRangeClick={handleChartScoreRangeFilter}
+                  activeAlertFilter={filters.alert_filter ?? null}
+                  onAlertClick={handleChartAlertFilter}
                 />
               </div>
             )}
@@ -644,6 +766,8 @@ export function BatchValidationPage() {
                 isLoading={resultsLoading}
                 selectedIndices={selectedIndices}
                 onSelectionChange={handleSelectionChange}
+                focusedMoleculeIndex={focusedMoleculeIndex}
+                onFocusHandled={() => setFocusedMoleculeIndex(null)}
               />
             </div>
 
@@ -670,6 +794,7 @@ export function BatchValidationPage() {
                 selectedIndices={selectedIndices}
                 isOpen={subsetPanelOpen}
                 onClose={() => setSubsetPanelOpen(false)}
+                onNavigateToMolecule={handleNavigateToMolecule}
               />
             )}
           </motion.div>
