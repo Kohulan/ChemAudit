@@ -490,6 +490,12 @@ export const batchApi = {
     if (filters?.sort_dir) {
       params.append('sort_dir', filters.sort_dir);
     }
+    if (filters?.issue_filter) {
+      params.append('issue_filter', filters.issue_filter);
+    }
+    if (filters?.alert_filter) {
+      params.append('alert_filter', filters.alert_filter);
+    }
 
     const response = await api.get<BatchResultsResponse>(
       `/batch/${jobId}?${params.toString()}`

@@ -1,14 +1,16 @@
 /**
- * Debug-gated logger. Only outputs in development mode.
+ * Logger utility.
+ * error/warn always log (including production).
+ * info/debug are gated to development mode only.
  */
 const DEBUG_MODE = import.meta.env.DEV;
 
 export const logger = {
   error(...args: unknown[]): void {
-    if (DEBUG_MODE) console.error(...args);
+    console.error(...args);
   },
   warn(...args: unknown[]): void {
-    if (DEBUG_MODE) console.warn(...args);
+    console.warn(...args);
   },
   info(...args: unknown[]): void {
     if (DEBUG_MODE) console.info(...args);
