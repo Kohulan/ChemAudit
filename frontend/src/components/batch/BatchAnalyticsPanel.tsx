@@ -42,6 +42,12 @@ interface BatchAnalyticsPanelProps {
   onRetrigger: (type: string, params?: Record<string, string>) => void;
   onCompare?: () => void;
   onOpenActions?: () => void;
+  onIssueFilter?: (checkName: string) => void;
+  activeIssueFilter?: string | null;
+  onScoreRangeClick?: (min: number, max: number) => void;
+  activeScoreRange?: { min: number; max: number } | null;
+  onAlertClick?: (catalogName: string) => void;
+  activeAlertFilter?: string | null;
 }
 
 const TABS = ['Distributions', 'Chemical Space'] as const;
@@ -308,6 +314,12 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   onRetrigger,
   onCompare,
   onOpenActions,
+  onIssueFilter,
+  activeIssueFilter,
+  onScoreRangeClick,
+  activeScoreRange,
+  onAlertClick,
+  activeAlertFilter,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
@@ -512,6 +524,8 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                     results={results}
                     selectedIndices={selectedIndices}
                     onSelectionChange={onSelectionChange}
+                    onScoreRangeClick={onScoreRangeClick}
+                    activeScoreRange={activeScoreRange}
                   />
                 ) : (
                   <ChartSkeleton />
@@ -531,8 +545,8 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 {statistics ? (
                   <AlertFrequencyChart
                     data={statistics.alert_summary}
-                    selectedIndices={selectedIndices}
-                    onSelectionChange={onSelectionChange}
+                    onAlertClick={onAlertClick}
+                    activeAlertFilter={activeAlertFilter}
                   />
                 ) : (
                   <ChartSkeleton />
@@ -567,8 +581,8 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 {statistics ? (
                   <ValidationTreemap
                     data={statistics.issue_summary}
-                    selectedIndices={selectedIndices}
-                    onSelectionChange={onSelectionChange}
+                    onIssueClick={onIssueFilter}
+                    activeIssueFilter={activeIssueFilter}
                   />
                 ) : (
                   <ChartSkeleton />

@@ -2,16 +2,18 @@
  * ValidationTreemap (VIZ-04)
  *
  * Treemap of validation issue counts with categorical colors.
- * Groups issues by category prefix when possible.
+ * Cells are clickable to filter the results table by issue type.
+ * Tooltip shows check description on hover.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
+import { CHECK_DESCRIPTIONS, formatCheckName } from '../../../constants/checkDescriptions';
 
 interface ValidationTreemapProps {
   data: Record<string, number>;
-  selectedIndices: Set<number>;
-  onSelectionChange: (indices: Set<number>) => void;
+  onIssueClick?: (checkName: string) => void;
+  activeIssueFilter?: string | null;
 }
 
 const CATEGORY_COLORS = [
@@ -36,7 +38,7 @@ interface TreemapNode {
  * Custom content renderer for treemap cells.
  */
 function CustomContent(props: Record<string, unknown>) {
-  const { x, y, width, height, name, value, color } = props as {
+  const { x, y, width, height, name, value, color, activeIssueFilter, onIssueClick } = props as {
     x: number;
     y: number;
     width: number;
@@ -44,21 +46,32 @@ function CustomContent(props: Record<string, unknown>) {
     name: string;
     value: number;
     color: string;
+    activeIssueFilter?: string | null;
+    onIssueClick?: (name: string) => void;
   };
 
   if (width < 4 || height < 4) return null;
 
+  const isActive = activeIssueFilter === name;
+  const isDimmed = activeIssueFilter && !isActive;
+
   return (
-    <g>
+    <g
+      onClick={(e) => {
+        e.stopPropagation();
+        onIssueClick?.(name);
+      }}
+      style={{ cursor: onIssueClick ? 'pointer' : 'default' }}
+    >
       <rect
         x={x}
         y={y}
         width={width}
         height={height}
         fill={color || '#6b7280'}
-        fillOpacity={0.85}
-        stroke="var(--color-surface)"
-        strokeWidth={2}
+        fillOpacity={isDimmed ? 0.4 : 0.85}
+        stroke={isActive ? '#fff' : 'var(--color-surface)'}
+        strokeWidth={isActive ? 3 : 2}
         rx={4}
       />
       {width > 60 && height > 30 && (
@@ -70,6 +83,7 @@ function CustomContent(props: Record<string, unknown>) {
           fill="#fff"
           fontSize={11}
           fontWeight={600}
+          style={{ pointerEvents: 'none' }}
         >
           {name && name.length > Math.floor(width / 7)
             ? name.slice(0, Math.floor(width / 7)) + '...'
@@ -84,6 +98,7 @@ function CustomContent(props: Record<string, unknown>) {
           dominantBaseline="middle"
           fill="rgba(255,255,255,0.8)"
           fontSize={10}
+          style={{ pointerEvents: 'none' }}
         >
           {value}
         </text>
@@ -94,6 +109,8 @@ function CustomContent(props: Record<string, unknown>) {
 
 export const ValidationTreemap = React.memo(function ValidationTreemap({
   data,
+  onIssueClick,
+  activeIssueFilter,
 }: ValidationTreemapProps) {
   const treemapData = useMemo(() => {
     const entries = Object.entries(data);
@@ -143,6 +160,15 @@ export const ValidationTreemap = React.memo(function ValidationTreemap({
     return result;
   }, [data]);
 
+  const handleCellClick = useCallback(
+    (name: string) => {
+      if (!onIssueClick) return;
+      // Toggle: clicking active filter clears it
+      onIssueClick(activeIssueFilter === name ? '' : name);
+    },
+    [onIssueClick, activeIssueFilter]
+  );
+
   if (treemapData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[280px] text-sm text-[var(--color-text-muted)]">
@@ -157,18 +183,36 @@ export const ValidationTreemap = React.memo(function ValidationTreemap({
         data={treemapData}
         dataKey="value"
         aspectRatio={4 / 3}
-        content={<CustomContent />}
+        content={
+          <CustomContent
+            activeIssueFilter={activeIssueFilter}
+            onIssueClick={handleCellClick}
+          />
+        }
       >
         <Tooltip
           content={({ active, payload }) => {
             if (!active || !payload?.[0]) return null;
             const entry = payload[0].payload;
+            const description = CHECK_DESCRIPTIONS[entry.name];
             return (
-              <div className="rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] shadow-lg p-2 text-xs">
-                <p className="font-semibold text-[var(--color-text-primary)]">{entry.name}</p>
-                <p className="text-[var(--color-text-secondary)]">
-                  Count: {entry.value}
+              <div className="rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] shadow-lg p-3 text-xs max-w-[280px]">
+                <p className="font-semibold text-[var(--color-text-primary)] mb-1">
+                  {formatCheckName(entry.name)}
                 </p>
+                {description && (
+                  <p className="text-[var(--color-text-secondary)] mb-2 leading-relaxed">
+                    {description}
+                  </p>
+                )}
+                <p className="text-[var(--color-text-muted)]">
+                  {entry.value} molecule{entry.value !== 1 ? 's' : ''} affected
+                </p>
+                {onIssueClick && (
+                  <p className="text-[var(--color-primary)] mt-1.5 font-medium">
+                    Click to filter results
+                  </p>
+                )}
               </div>
             );
           }}

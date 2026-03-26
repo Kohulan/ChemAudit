@@ -183,6 +183,8 @@ export interface BatchResultsFilters {
   max_score?: number;
   sort_by?: SortField;
   sort_dir?: 'asc' | 'desc';
+  issue_filter?: string;
+  alert_filter?: string;
 }
 
 /**
