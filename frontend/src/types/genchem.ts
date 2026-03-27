@@ -153,6 +153,7 @@ export const STAGE_COLORS: Record<string, string> = {
   valence: '#4ade80',
   alerts: '#f59e0b',
   property: '#f97316',
+  sa: '#ef4444',
   sa_score: '#ef4444',
   dedup: '#dc2626',
   novelty: '#7c3aed',
