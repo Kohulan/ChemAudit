@@ -54,6 +54,7 @@ import type { StandardizeResponse, StandardizeError } from '../types/standardiza
 import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
+import { SafetyBadge } from '../components/safety/SafetyBadge';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -2071,6 +2072,13 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Safety cross-link badge (D-02) — links to /safety?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-4">
+          <SafetyBadge smiles={canonicalSmiles} />
+        </div>
+      )}
 
       {/* Cross-Database Comparison - Full Width Below Grid */}
       <AnimatePresence>

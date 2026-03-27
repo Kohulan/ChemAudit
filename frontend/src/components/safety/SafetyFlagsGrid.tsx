@@ -7,7 +7,7 @@ interface SafetyFlagsGridProps {
   herg: HergResult;
   bro5: Bro5Result;
   reos: ReosResult;
-  onHighlightAtoms: (atoms: number[]) => void;
+  onHighlightAtoms: (atoms: number[], alertName?: string) => void;
   highlightedAlert: string | null;
 }
 

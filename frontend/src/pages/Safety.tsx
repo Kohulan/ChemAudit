@@ -5,6 +5,8 @@ import { useSafety } from '../hooks/useSafety';
 import { SafetyInput } from '../components/safety/SafetyInput';
 import { SafetySummaryStrip } from '../components/safety/SafetySummaryStrip';
 import { AlertDashboard } from '../components/safety/AlertDashboard';
+import { SafetyFlagsGrid } from '../components/safety/SafetyFlagsGrid';
+import { ComplexityRadar } from '../components/safety/ComplexityRadar';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ClayCard } from '../components/ui/ClayCard';
 import { Badge } from '../components/ui/Badge';
@@ -277,9 +279,18 @@ export function Safety() {
         </div>
       )}
 
-      {/* Safety Flags Grid slot — populated in Plan 06 */}
+      {/* Safety Flags Grid — D-13: 2x2 MetricCard grid for CYP/hERG/bRo5/REOS */}
       {safetyResult && (
-        <div id="safety-flags-slot" className="mb-6" />
+        <div className="mb-12">
+          <SafetyFlagsGrid
+            cyp={safetyResult.cyp_softspots}
+            herg={safetyResult.herg}
+            bro5={safetyResult.bro5}
+            reos={safetyResult.reos}
+            onHighlightAtoms={handleHighlightAtoms}
+            highlightedAlert={highlightedAlert}
+          />
+        </div>
       )}
 
       {/* Safety error card */}
@@ -295,9 +306,11 @@ export function Safety() {
         </div>
       )}
 
-      {/* Complexity Radar slot — populated in Plan 06 */}
+      {/* Complexity Radar — D-17: dual-polygon with green reference / blue molecule */}
       {safetyResult && (
-        <div id="complexity-radar-slot" className="mb-6" />
+        <div className="mb-12">
+          <ComplexityRadar complexity={safetyResult.complexity} />
+        </div>
       )}
 
       {/* Lilly Demerits coming-soon placeholder (D-16) */}

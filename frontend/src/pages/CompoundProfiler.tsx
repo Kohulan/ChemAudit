@@ -16,6 +16,7 @@ import { SAComparisonPanel } from '../components/profiler/SAComparisonPanel';
 import { ComparisonBar, type PinnedMolecule } from '../components/profiler/ComparisonBar';
 import { ComparisonView } from '../components/profiler/ComparisonView';
 import { DrugLikenessGrid } from '../components/profiler/DrugLikenessGrid';
+import { SafetyBadge } from '../components/safety/SafetyBadge';
 
 /**
  * Compound Profiler page — /profiler
@@ -210,6 +211,13 @@ export function CompoundProfilerPage() {
               <section className="mt-12">
                 <SAComparisonPanel data={profile.sa_comparison} />
               </section>
+
+              {/* Safety cross-link badge (D-03) — links to /safety?smiles=... */}
+              {currentSmiles && (
+                <section className="mt-8">
+                  <SafetyBadge smiles={currentSmiles} />
+                </section>
+              )}
             </>
           )}
         </div>

@@ -3,7 +3,7 @@ import type { CypSite } from '../../types/safety';
 
 interface CypSoftSpotsPanelProps {
   sites: CypSite[];
-  onHighlightAtoms: (atoms: number[]) => void;
+  onHighlightAtoms: (atoms: number[], alertName?: string) => void;
   highlightedAlert: string | null;
 }
 
@@ -40,7 +40,7 @@ export function CypSoftSpotsPanel({
               if (isActive) {
                 onHighlightAtoms([]);
               } else {
-                onHighlightAtoms(site.matched_atoms);
+                onHighlightAtoms(site.matched_atoms, site.site_name);
               }
             }}
             aria-label={`${site.site_name} (${site.reaction_type}) -- click to highlight matched atoms`}
