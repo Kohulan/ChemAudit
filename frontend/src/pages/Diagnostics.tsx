@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Stethoscope,
   ChevronDown,
-  AlertTriangle,
 } from 'lucide-react';
 import { useDiagnostics } from '../hooks/useDiagnostics';
 import { DiagnosticsInput } from '../components/diagnostics/DiagnosticsInput';
 import { SMILESDiagnosticsPanel } from '../components/diagnostics/SMILESDiagnosticsPanel';
 import { InChILayerDiffTable } from '../components/diagnostics/InChILayerDiffTable';
+import { RoundTripPanel } from '../components/diagnostics/RoundTripPanel';
+import { CrossPipelinePanel } from '../components/diagnostics/CrossPipelinePanel';
+import { FilePreValidatorPanel } from '../components/diagnostics/FilePreValidatorPanel';
 import { ClayCard } from '../components/ui/ClayCard';
-import { ClayButton } from '../components/ui/ClayButton';
 
 /**
  * Collapsible section container for each diagnostic panel.
@@ -94,51 +95,6 @@ function DiagnosticSection({
 }
 
 /**
- * Placeholder content for panels that will be implemented in Plan 04 / Plan 05.
- */
-function PanelPlaceholder({ message }: { message: string }) {
-  return (
-    <p className="text-xs text-[var(--color-text-muted)] py-2">{message}</p>
-  );
-}
-
-/**
- * Generic error card for per-tool failures.
- */
-function DiagnosticErrorCard({
-  title,
-  error,
-  onRetry,
-}: {
-  title: string;
-  error: string;
-  onRetry: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-    >
-      <ClayCard variant="default" size="sm" className="border border-status-error/20">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-status-error mt-0.5 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)] font-display">
-              {title}
-            </p>
-            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{error}</p>
-          </div>
-          <ClayButton variant="ghost" size="sm" onClick={onRetry} className="shrink-0">
-            Retry
-          </ClayButton>
-        </div>
-      </ClayCard>
-    </motion.div>
-  );
-}
-
-/**
  * Empty state shown before any molecule is analyzed.
  */
 function EmptyState() {
@@ -204,12 +160,14 @@ export function Diagnostics() {
     inchiDiffError,
     roundtripError,
     crossPipelineError,
+    fileError,
     currentSmiles,
     analyzeMolecule,
     compareInchi,
     checkRoundtrip,
     comparePipelines,
     prevalidateFile,
+    clearFileResult,
   } = useDiagnostics();
 
   // Track whether any SMILES analysis has been submitted
@@ -298,31 +256,24 @@ export function Diagnostics() {
             />
           </DiagnosticSection>
 
-          {/* Section 3: Round-Trip Check (D-03) — Plan 04 */}
+          {/* Section 3: Round-Trip Check (D-03) — Plan 05 */}
           <DiagnosticSection
             title="Round-Trip Lossiness"
             subtitle="Check SMILES → InChI → SMILES and SMILES → MOL → SMILES fidelity"
             defaultOpen={!!roundtripResult}
           >
-            {roundtripError && (
-              <div className="mb-4">
-                <DiagnosticErrorCard
-                  title="Round-trip check failed"
-                  error={roundtripError}
-                  onRetry={() => currentSmiles && checkRoundtrip(currentSmiles)}
-                />
-              </div>
-            )}
-            {roundtripLoading && (
-              <p className="text-xs text-[var(--color-text-muted)] py-2">
-                Running round-trip check...
-              </p>
-            )}
-            {!roundtripLoading && roundtripResult && (
-              <PanelPlaceholder message="RoundTripPanel — implemented in Plan 04" />
-            )}
-            {!roundtripLoading && !roundtripResult && !roundtripError && (
+            {!currentSmiles && !roundtripResult && !roundtripLoading && !roundtripError && (
               <p className="text-xs text-[var(--color-text-muted)]">{requiresMoleculeHint}</p>
+            )}
+            {(currentSmiles || roundtripResult || roundtripLoading || roundtripError) && (
+              <RoundTripPanel
+                result={roundtripResult}
+                isLoading={roundtripLoading}
+                error={roundtripError}
+                currentSmiles={currentSmiles}
+                onCheckRoundtrip={checkRoundtrip}
+                onRetry={() => currentSmiles ? checkRoundtrip(currentSmiles) : undefined}
+              />
             )}
           </DiagnosticSection>
 
@@ -332,25 +283,18 @@ export function Diagnostics() {
             subtitle="Compare RDKit, ChEMBL, and minimal pipeline outputs"
             defaultOpen={!!crossPipelineResult}
           >
-            {crossPipelineError && (
-              <div className="mb-4">
-                <DiagnosticErrorCard
-                  title="Pipeline comparison failed"
-                  error={crossPipelineError}
-                  onRetry={() => currentSmiles && comparePipelines(currentSmiles)}
-                />
-              </div>
-            )}
-            {crossPipelineLoading && (
-              <p className="text-xs text-[var(--color-text-muted)] py-2">
-                Comparing pipelines...
-              </p>
-            )}
-            {!crossPipelineLoading && crossPipelineResult && (
-              <PanelPlaceholder message="CrossPipelinePanel — implemented in Plan 05" />
-            )}
-            {!crossPipelineLoading && !crossPipelineResult && !crossPipelineError && (
+            {!currentSmiles && !crossPipelineResult && !crossPipelineLoading && !crossPipelineError && (
               <p className="text-xs text-[var(--color-text-muted)]">{requiresMoleculeHint}</p>
+            )}
+            {(currentSmiles || crossPipelineResult || crossPipelineLoading || crossPipelineError) && (
+              <CrossPipelinePanel
+                result={crossPipelineResult}
+                isLoading={crossPipelineLoading}
+                error={crossPipelineError}
+                currentSmiles={currentSmiles}
+                onComparePipelines={comparePipelines}
+                onRetry={() => currentSmiles ? comparePipelines(currentSmiles) : undefined}
+              />
             )}
           </DiagnosticSection>
 
@@ -358,21 +302,15 @@ export function Diagnostics() {
           <DiagnosticSection
             title="File Pre-Validator"
             subtitle="SDF block integrity and CSV structure checks"
-            defaultOpen={!!fileResult}
+            defaultOpen={!!fileResult || fileLoading || !!fileError}
           >
-            {fileLoading && (
-              <p className="text-xs text-[var(--color-text-muted)] py-2">
-                Validating file...
-              </p>
-            )}
-            {!fileLoading && fileResult && (
-              <PanelPlaceholder message="FilePreValidatorPanel — implemented in Plan 05" />
-            )}
-            {!fileLoading && !fileResult && (
-              <p className="text-xs text-[var(--color-text-muted)]">
-                Drop an SDF or CSV file above to pre-validate
-              </p>
-            )}
+            <FilePreValidatorPanel
+              result={fileResult}
+              isLoading={fileLoading}
+              error={fileError}
+              onFileUpload={prevalidateFile}
+              onClear={clearFileResult}
+            />
           </DiagnosticSection>
         </div>
       )}

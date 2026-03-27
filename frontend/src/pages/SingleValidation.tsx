@@ -55,6 +55,7 @@ import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, Cons
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { SafetyBadge } from '../components/safety/SafetyBadge';
+import { DiagnosticsBadge } from '../components/diagnostics/DiagnosticsBadge';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -2077,6 +2078,13 @@ export function SingleValidationPage() {
       {canonicalSmiles && (
         <div className="mt-4">
           <SafetyBadge smiles={canonicalSmiles} />
+        </div>
+      )}
+
+      {/* Diagnostics cross-link badge — links to /diagnostics?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-3">
+          <DiagnosticsBadge smiles={canonicalSmiles} />
         </div>
       )}
 
