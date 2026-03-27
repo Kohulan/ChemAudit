@@ -108,9 +108,6 @@ def run_qsar_batch(
             status="processing",
         )
 
-    # Mark job complete (publishes final status to qsar:{job_id} channel)
-    progress_tracker.mark_complete(job_id)
-
     summary = _compute_summary(results)
 
     # Serialize results: convert dataclasses to dicts for JSON/Celery serialization
@@ -118,6 +115,25 @@ def run_qsar_batch(
     for r in results:
         r_dict = asdict(r)
         serialized_results.append(r_dict)
+
+    # Store serialized results in Redis so the results endpoint can read them
+    # Key: qsar:results:{job_id} — matches what the API route reads
+    try:
+        import json
+
+        from app.core.config import settings
+
+        r_client = progress_tracker._get_redis()
+        r_client.set(
+            f"qsar:results:{job_id}",
+            json.dumps(serialized_results),
+            ex=settings.BATCH_RESULT_TTL,
+        )
+    except Exception:
+        logger.warning("Failed to store QSAR results in Redis for job %s", job_id)
+
+    # Mark job complete (publishes final status to qsar:{job_id} channel)
+    progress_tracker.mark_complete(job_id)
 
     return {
         "results": serialized_results,

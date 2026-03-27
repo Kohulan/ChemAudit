@@ -40,7 +40,7 @@ class QSARStepResult:
     step_name: str  # "parse", "metals", "desalt", etc.
     step_index: int  # 1-10 (canonical position)
     enabled: bool  # was this step enabled in config?
-    status: str  # "applied" | "no_change" | "skipped" | "error"
+    status: str = "error"  # "applied" | "no_change" | "skipped" | "error"
     before_smiles: Optional[str] = None
     after_smiles: Optional[str] = None
     detail: Optional[str] = None  # rejection reason, error message, or change description
