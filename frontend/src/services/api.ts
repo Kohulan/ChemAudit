@@ -1066,6 +1066,80 @@ export interface InlineScoreResponse {
   molecules: InlineScoredMolecule[];
 }
 
+// ============================================================================
+// Safety API (Phase 08: Enhanced Structural Alerts & Safety)
+// ============================================================================
+
+import type {
+  AlertScreenResponse as SafetyAlertScreenResponse,
+  SafetyAssessResponse,
+  SafetySummaryResponse,
+} from '../types/safety';
+
+/**
+ * Safety screening API client.
+ *
+ * Covers the new Phase 08 endpoints:
+ * - POST /alerts/screen  — comprehensive alert screening with concern groups
+ * - POST /safety/assess  — CYP/hERG/bRo5/REOS/complexity assessment
+ * - POST /safety/summary — aggregated traffic-light summary strip
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const safetyApi = {
+  /**
+   * Screen a molecule against expanded alert libraries.
+   * Returns alerts grouped by functional-group concern, with deduplication.
+   */
+  screen: async (molecule: string): Promise<SafetyAlertScreenResponse> => {
+    try {
+      const response = await api.post<SafetyAlertScreenResponse>('/alerts/screen', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Alert screening failed' };
+      }
+      throw { error: 'Alert screening failed' };
+    }
+  },
+
+  /**
+   * Run rule-based safety assessments (CYP soft-spots, hERG, bRo5, REOS,
+   * complexity percentile filter).
+   */
+  assess: async (molecule: string): Promise<SafetyAssessResponse> => {
+    try {
+      const response = await api.post<SafetyAssessResponse>('/safety/assess', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety assessment failed' };
+      }
+      throw { error: 'Safety assessment failed' };
+    }
+  },
+
+  /**
+   * Retrieve aggregated summary flags for the summary strip (total alerts,
+   * has_critical, and traffic-light status for each safety check).
+   */
+  summary: async (molecule: string): Promise<SafetySummaryResponse> => {
+    try {
+      const response = await api.post<SafetySummaryResponse>('/safety/summary', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety summary failed' };
+      }
+      throw { error: 'Safety summary failed' };
+    }
+  },
+};
+
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };

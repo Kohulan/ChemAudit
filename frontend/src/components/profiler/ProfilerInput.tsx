@@ -30,7 +30,7 @@ function looksLikeSMILES(input: string): boolean {
   if (identifierPrefixes.some(p => p.test(trimmed))) return false;
 
   // SMILES characters: atoms, bonds, ring closures, charges, stereo
-  const smilesChars = /[CNOSPFIBcnosp()\[\]=@#%+\-1-9]/;
+  const smilesChars = /[CNOSPFIBcnosp()[\]=@#%+\-1-9]/;
   return smilesChars.test(trimmed) && !trimmed.includes(' ');
 }
 
