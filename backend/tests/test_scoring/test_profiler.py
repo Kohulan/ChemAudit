@@ -36,8 +36,8 @@ def high_pfi_mol():
 
 @pytest.fixture
 def moderate_pfi_mol():
-    """Molecule with PFI 5-7 (moderate risk)."""
-    mol = Chem.MolFromSmiles("c1ccc2ccccc2c1")  # naphthalene, logP ~ 3.3, 2 rings → PFI ~5.3
+    """Molecule with PFI 5-7 (moderate risk): biphenyl, logP ~3.35 + 2 rings = PFI ~5.35."""
+    mol = Chem.MolFromSmiles("c1ccc(-c2ccccc2)cc1")  # biphenyl: logP ~3.35, 2 rings → PFI ~5.35
     assert mol is not None
     return mol
 
