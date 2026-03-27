@@ -4,6 +4,9 @@ import { Filter } from 'lucide-react';
 import { useGenChemConfig } from '../hooks/useGenChemConfig';
 import { useGenChemFilter } from '../hooks/useGenChemFilter';
 import { ClayCard } from '../components/ui/ClayCard';
+import { GenChemInput } from '../components/genchem/GenChemInput';
+import { FunnelChart } from '../components/genchem/FunnelChart';
+import { GenChemConfigPanel } from '../components/genchem/GenChemConfigPanel';
 import { GenChemResultsTable } from '../components/genchem/GenChemResultsTable';
 import { GenChemDownloadPanel } from '../components/genchem/GenChemDownloadPanel';
 import { GenChemProgressBar } from '../components/genchem/GenChemProgressBar';
@@ -27,18 +30,42 @@ export default function GenChemFilter() {
   const configHook = useGenChemConfig();
   const filterHook = useGenChemFilter();
   const [smilesInput, setSmilesInput] = useState('');
-  const [_uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  // Derived: count of SMILES lines for async threshold display
+  // Derived: count of SMILES lines for async threshold display (used by GenChemProgressBar)
   const smilesList = smilesInput
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean);
 
+  /**
+   * Run filter:
+   * - If uploadedFile is set, read it via FileReader and extract SMILES list.
+   * - Otherwise, split textarea content by newline.
+   */
   const handleRunFilter = useCallback(() => {
-    if (smilesList.length === 0) return;
-    filterHook.runFilter(smilesList, configHook.config, configHook.activePreset || undefined);
-  }, [smilesList, configHook.config, configHook.activePreset, filterHook.runFilter]);
+    if (uploadedFile) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const fileSmilesList = text
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (fileSmilesList.length > 0) {
+          filterHook.runFilter(
+            fileSmilesList,
+            configHook.config,
+            configHook.activePreset || undefined,
+          );
+        }
+      };
+      reader.readAsText(uploadedFile);
+    } else {
+      if (smilesList.length === 0) return;
+      filterHook.runFilter(smilesList, configHook.config, configHook.activePreset || undefined);
+    }
+  }, [smilesList, uploadedFile, configHook.config, configHook.activePreset, filterHook.runFilter]);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 pt-16 pb-16">
@@ -56,54 +83,20 @@ export default function GenChemFilter() {
         </p>
       </motion.div>
 
-      {/* GenChemInput placeholder — Plan 04 fills this */}
+      {/* ── Input area: textarea + file drop zone + Run Filter CTA ── */}
       <div className="mb-8">
-        {/* Textarea + file drop zone + Run Filter CTA
-            Placeholder: exposes smilesInput / setUploadedFile state for Plan 04 wiring */}
-        <div className="card p-4">
-          <textarea
-            value={smilesInput}
-            onChange={(e) => setSmilesInput(e.target.value)}
-            placeholder="Paste SMILES (one per line) or drop a file below..."
-            className="w-full h-32 bg-transparent text-sm font-mono resize-none focus:outline-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]"
-          />
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--color-border)]">
-            <label className="text-xs text-[var(--color-text-secondary)] cursor-pointer hover:text-[var(--color-text-primary)] transition-colors">
-              <input
-                type="file"
-                accept=".txt,.smi,.csv"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setUploadedFile(file);
-                  if (file) {
-                    // Read file content and populate textarea
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const text = ev.target?.result as string;
-                      setSmilesInput(text || '');
-                    };
-                    reader.readAsText(file);
-                  }
-                }}
-              />
-              Upload file (.txt, .smi, .csv)
-            </label>
-            <button
-              onClick={handleRunFilter}
-              disabled={
-                filterHook.state === 'loading-sync' ||
-                filterHook.state === 'loading-async' ||
-                !smilesInput.trim()
-              }
-              className="px-4 py-1.5 text-sm font-medium rounded-lg bg-[var(--color-primary)] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-            >
-              {filterHook.state === 'loading-sync' || filterHook.state === 'loading-async'
-                ? 'Filtering...'
-                : 'Run Filter'}
-            </button>
-          </div>
-        </div>
+        <GenChemInput
+          smilesInput={smilesInput}
+          onSmilesChange={setSmilesInput}
+          uploadedFile={uploadedFile}
+          onFileChange={setUploadedFile}
+          onRunFilter={handleRunFilter}
+          isLoading={
+            filterHook.state === 'loading-sync' ||
+            filterHook.state === 'loading-async' ||
+            filterHook.state === 'processing'
+          }
+        />
       </div>
 
       {/* Funnel + Config side-by-side — Plan 04 fills this (D-04 layout: 60/40) */}
@@ -172,29 +165,46 @@ export default function GenChemFilter() {
             </div>
           )}
 
-          {/* ── Success: funnel chart placeholder ── */}
+          {/* ── Success: funnel chart + results summary ── */}
           {filterHook.state === 'success' && filterHook.result && (
-            <div className="card p-4">
-              {/* FunnelChart will be wired in Plan 04 */}
+            <div className="space-y-4">
+              {/* Results summary — UI-SPEC copywriting */}
               <p className="text-sm text-[var(--color-text-secondary)]">
-                Filter complete: {filterHook.result.output_count} /{' '}
-                {filterHook.result.input_count} molecules passed. Funnel chart wired in Plan 04.
+                <span className="font-semibold text-[var(--color-text-primary)]">
+                  {filterHook.result.output_count.toLocaleString()} molecules
+                </span>{' '}
+                passed all stages (
+                {filterHook.result.input_count > 0
+                  ? Math.round(
+                      (filterHook.result.output_count / filterHook.result.input_count) * 100,
+                    )
+                  : 0}
+                % of input)
               </p>
+
+              {/* FunnelChart */}
+              <FunnelChart
+                stages={filterHook.result.stages}
+                inputCount={filterHook.result.input_count}
+                selectedStage={filterHook.selectedStage}
+                onStageClick={filterHook.setSelectedStage}
+              />
             </div>
           )}
         </div>
 
         <div className="lg:col-span-2">
-          {/* GenChemConfigPanel placeholder — Plan 04 fills this */}
-          <div className="card p-4">
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              Config panel — active preset:{' '}
-              <span className="font-medium text-[var(--color-text-primary)]">
-                {configHook.activePreset ?? 'custom'}
-              </span>
-              . Full panel wired in Plan 04.
-            </p>
-          </div>
+          {/* GenChemConfigPanel — wired in Plan 04 */}
+          <GenChemConfigPanel
+            config={configHook.config}
+            activePreset={configHook.activePreset}
+            modifiedFrom={configHook.modifiedFrom}
+            profiles={configHook.profiles}
+            onUpdateConfig={configHook.updateConfig}
+            onSelectPreset={configHook.selectPreset}
+            onSaveProfile={configHook.saveProfile}
+            onDeleteProfile={configHook.deleteProfile}
+          />
         </div>
       </div>
 
