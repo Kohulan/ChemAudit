@@ -45,6 +45,9 @@ const DiagnosticsPage = lazy(() =>
 const QSARReadyPage = lazy(() =>
   import('./pages/QSARReady').then(module => ({ default: module.QSARReady }))
 );
+const GenChemFilterPage = lazy(() =>
+  import('./pages/GenChemFilter')
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -219,6 +222,21 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <QSARReadyPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/genchem"
+            element={
+              <motion.div
+                key="genchem"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <GenChemFilterPage />
               </motion.div>
             }
           />
