@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom, Grid3X3, Info, BookOpen, FileText,
-  ExternalLink, Star, Clock, Menu, X, FlaskConical,
+  ExternalLink, Star, Clock, Menu, X, FlaskConical, Shield,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/', label: 'Single Validation', icon: Atom },
   { to: '/batch', label: 'Batch Validation', icon: Grid3X3 },
   { to: '/profiler', label: 'Profiler', icon: FlaskConical },
+  { to: '/safety', label: 'Safety', icon: Shield },
   { to: '/bookmarks', label: 'Bookmarks', icon: Star },
   { to: '/history', label: 'History', icon: Clock },
   { to: '/about', label: 'About', icon: Info },
