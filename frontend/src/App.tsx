@@ -39,6 +39,9 @@ const CompoundProfilerPage = lazy(() =>
 const SafetyPage = lazy(() =>
   import('./pages/Safety').then(module => ({ default: module.Safety }))
 );
+const DiagnosticsPage = lazy(() =>
+  import('./pages/Diagnostics').then(module => ({ default: module.Diagnostics }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -183,6 +186,21 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <SafetyPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/diagnostics"
+            element={
+              <motion.div
+                key="diagnostics"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DiagnosticsPage />
               </motion.div>
             }
           />
