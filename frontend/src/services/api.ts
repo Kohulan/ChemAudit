@@ -129,6 +129,16 @@ import type {
   PermalinkResolveResponse,
   ExportFormat,
 } from '../types/workflow';
+import type {
+  FilterConfig,
+  FilterResult,
+  ScoreResponse,
+  REINVENTInput,
+  REINVENTResponse,
+  GenChemBatchUploadResponse,
+  GenChemBatchStatusResponse,
+  GenChemBatchResultsResponse,
+} from '../types/genchem';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -1391,6 +1401,98 @@ export const diagnosticsApi = {
       throw { error: 'File pre-validation failed' };
     }
   },
+};
+
+// =============================================================================
+// GenChem Filter API (Phase 11: Generative Chemistry Filter)
+// Covers all endpoints under /api/v1/genchem/
+// =============================================================================
+
+/**
+ * GenChem Filter API client.
+ *
+ * Endpoints:
+ * - POST /genchem/filter              — sync filter for <=1000 SMILES
+ * - POST /genchem/score               — score SMILES list as [0,1] floats
+ * - POST /genchem/reinvent-score      — REINVENT-compatible scoring API
+ * - POST /genchem/batch/upload        — async batch file upload
+ * - GET  /genchem/batch/{id}/status   — poll job status
+ * - GET  /genchem/batch/{id}/results  — fetch completed results
+ * - GET  /genchem/batch/{id}/download/{format} — download passed/full CSV
+ */
+export const genchemApi = {
+  /**
+   * Run the generative chemistry filter funnel on a list of SMILES.
+   * Use for <=1000 SMILES (sync path). Larger batches should use batchUpload.
+   */
+  filter: async (smilesList: string[], preset?: string, config?: FilterConfig): Promise<FilterResult> => {
+    const response = await api.post<FilterResult>('/genchem/filter', {
+      smiles_list: smilesList,
+      preset: preset || undefined,
+      config: config || undefined,
+    });
+    return response.data;
+  },
+
+  /**
+   * Score a list of SMILES as composite [0,1] values using the filter config.
+   */
+  score: async (smilesList: string[], preset?: string): Promise<ScoreResponse> => {
+    const response = await api.post<ScoreResponse>('/genchem/score', {
+      smiles_list: smilesList,
+      preset,
+    });
+    return response.data;
+  },
+
+  /**
+   * REINVENT-compatible scoring endpoint.
+   * Accepts items with input_string + query_id, returns output.successes_list.
+   */
+  reinventScore: async (items: REINVENTInput[], preset?: string): Promise<REINVENTResponse> => {
+    const response = await api.post<REINVENTResponse>(
+      `/genchem/reinvent-score${preset ? `?preset=${preset}` : ''}`,
+      items,
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload a file for async batch filtering.
+   * Returns job_id for WebSocket / polling progress tracking.
+   */
+  batchUpload: async (file: File, preset?: string, config?: FilterConfig): Promise<GenChemBatchUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (preset) formData.append('preset', preset);
+    if (config) formData.append('config', JSON.stringify(config));
+    const response = await api.post<GenChemBatchUploadResponse>('/genchem/batch/upload', formData);
+    return response.data;
+  },
+
+  /**
+   * Poll the status of a running batch filter job.
+   */
+  batchStatus: async (jobId: string): Promise<GenChemBatchStatusResponse> => {
+    const response = await api.get<GenChemBatchStatusResponse>(`/genchem/batch/${jobId}/status`);
+    return response.data;
+  },
+
+  /**
+   * Fetch the results of a completed batch filter job.
+   */
+  batchResults: async (jobId: string): Promise<GenChemBatchResultsResponse> => {
+    const response = await api.get<GenChemBatchResultsResponse>(`/genchem/batch/${jobId}/results`);
+    return response.data;
+  },
+
+  /** URL for downloading passed SMILES as a .txt file. */
+  downloadPassedTxt: (jobId: string): string =>
+    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/passed_txt`,
+
+  /** URL for downloading full results as a CSV file. */
+  downloadFullCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/full_csv`,
 };
 
 export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };
