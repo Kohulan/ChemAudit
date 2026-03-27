@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useDiagnostics } from '../hooks/useDiagnostics';
 import { DiagnosticsInput } from '../components/diagnostics/DiagnosticsInput';
+import { SMILESDiagnosticsPanel } from '../components/diagnostics/SMILESDiagnosticsPanel';
+import { InChILayerDiffTable } from '../components/diagnostics/InChILayerDiffTable';
 import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
 
@@ -270,26 +272,14 @@ export function Diagnostics() {
             subtitle="Position-specific parse errors with fix suggestions"
             defaultOpen={hasSubmitted}
           >
-            {smilesError && (
-              <div className="mb-4">
-                <DiagnosticErrorCard
-                  title="SMILES diagnostics failed"
-                  error={smilesError}
-                  onRetry={() => currentSmiles && analyzeMolecule(currentSmiles)}
-                />
-              </div>
-            )}
-            {smilesLoading && (
-              <p className="text-xs text-[var(--color-text-muted)] py-2">
-                Running SMILES diagnostics...
-              </p>
-            )}
-            {!smilesLoading && smilesResult && (
-              <PanelPlaceholder message="SMILESDiagnosticsPanel — implemented in Plan 04" />
-            )}
-            {!smilesLoading && !smilesResult && !smilesError && hasSubmitted && (
-              <PanelPlaceholder message="Submit a molecule to see SMILES diagnostics" />
-            )}
+            <SMILESDiagnosticsPanel
+              result={smilesResult}
+              isLoading={smilesLoading}
+              error={smilesError}
+              originalSmiles={currentSmiles || ''}
+              onFixApplied={(corrected) => analyzeMolecule(corrected)}
+              onRetry={() => currentSmiles && analyzeMolecule(currentSmiles)}
+            />
           </DiagnosticSection>
 
           {/* Section 2: InChI Layer Diff (D-02) — Plan 04 */}
@@ -298,26 +288,14 @@ export function Diagnostics() {
             subtitle="Compare two InChI strings layer-by-layer"
             defaultOpen={!!inchiDiffResult}
           >
-            {inchiDiffError && (
-              <div className="mb-4">
-                <DiagnosticErrorCard
-                  title="InChI comparison failed"
-                  error={inchiDiffError}
-                  onRetry={() => compareInchi('', '')}
-                />
-              </div>
-            )}
-            {inchiDiffLoading && (
-              <p className="text-xs text-[var(--color-text-muted)] py-2">
-                Comparing InChI layers...
-              </p>
-            )}
-            {!inchiDiffLoading && inchiDiffResult && (
-              <PanelPlaceholder message="InChILayerDiffPanel — implemented in Plan 04" />
-            )}
-            {!inchiDiffLoading && !inchiDiffResult && !inchiDiffError && (
-              <p className="text-xs text-[var(--color-text-muted)]">{requiresMoleculeHint}</p>
-            )}
+            <InChILayerDiffTable
+              result={inchiDiffResult}
+              isLoading={inchiDiffLoading}
+              error={inchiDiffError}
+              onCompare={compareInchi}
+              onRetry={() => compareInchi('', '')}
+              initialInchiA={undefined}
+            />
           </DiagnosticSection>
 
           {/* Section 3: Round-Trip Check (D-03) — Plan 04 */}
