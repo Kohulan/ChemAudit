@@ -943,6 +943,18 @@ export function SingleValidationPage() {
                   onAfterBookmark={handleAfterBookmark}
                 />
               )}
+              {/* View Full Profile cross-link — per D-24 */}
+              {result && resolvedSmiles && (
+                <ClayButton
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Microscope className="w-4 h-4" />}
+                  onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
+                  className="text-[var(--color-primary)]"
+                >
+                  View Full Profile
+                </ClayButton>
+              )}
             </div>
 
             {/* Parsing Failed Message - Suggest trying validation */}
