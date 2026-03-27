@@ -2,6 +2,12 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useProfiler } from '../hooks/useProfiler';
 import { ProfilerInput } from '../components/profiler/ProfilerInput';
+import { HeroSection } from '../components/profiler/HeroSection';
+import { PFIPanel } from '../components/profiler/PFIPanel';
+import { StarsPanel } from '../components/profiler/StarsPanel';
+import { BioavailabilityPanel } from '../components/profiler/BioavailabilityPanel';
+import { ConsensusLogPPanel } from '../components/profiler/ConsensusLogPPanel';
+import { SkinPermeationPanel } from '../components/profiler/SkinPermeationPanel';
 
 /**
  * Compound Profiler page — /profiler
@@ -59,17 +65,28 @@ export function CompoundProfilerPage() {
       {/* Profile result sections */}
       {profile && (
         <div className="mt-8 space-y-8">
-          {/* HeroSection — Plan 05 will implement */}
-          {/* Core Metrics section (PFI, Stars, Bioavailability, Consensus LogP, Skin Permeation) — Plan 05 will implement */}
+          {/* Hero section: 2D structure + 6-axis property radar */}
+          <HeroSection smiles={currentSmiles} profile={profile} />
+
+          {/* Core Metrics section */}
+          <section className="mt-12 space-y-2">
+            <h2 className="text-2xl font-semibold font-display mb-6">Core Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <PFIPanel data={profile.pfi} />
+              <StarsPanel data={profile.stars} />
+              <BioavailabilityPanel data={profile.abbott} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <ConsensusLogPPanel data={profile.consensus_logp} />
+              <SkinPermeationPanel data={profile.skin_permeation} />
+            </div>
+          </section>
+
+          {/* Plan 06 panels go below */}
           {/* Shape 3D section — Plan 06 will implement */}
           {/* Custom MPO section — Plan 06 will implement */}
           {/* Ligand Efficiency section — Plan 06 will implement */}
           {/* SA Comparison section — Plan 06 will implement */}
-
-          {/* Temporary debug display — will be replaced by section panels */}
-          <div className="text-xs font-mono text-text-muted p-4 bg-surface-sunken rounded-xl">
-            Profile loaded for: <span className="text-text-primary">{currentSmiles.slice(0, 60)}{currentSmiles.length > 60 ? '...' : ''}</span>
-          </div>
         </div>
       )}
 
