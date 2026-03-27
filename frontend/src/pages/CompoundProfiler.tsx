@@ -8,6 +8,10 @@ import { StarsPanel } from '../components/profiler/StarsPanel';
 import { BioavailabilityPanel } from '../components/profiler/BioavailabilityPanel';
 import { ConsensusLogPPanel } from '../components/profiler/ConsensusLogPPanel';
 import { SkinPermeationPanel } from '../components/profiler/SkinPermeationPanel';
+import { Shape3DPanel } from '../components/profiler/Shape3DPanel';
+import { MPOPanel } from '../components/profiler/MPOPanel';
+import { LigandEfficiencyPanel } from '../components/profiler/LigandEfficiencyPanel';
+import { SAComparisonPanel } from '../components/profiler/SAComparisonPanel';
 
 /**
  * Compound Profiler page — /profiler
@@ -17,7 +21,15 @@ import { SkinPermeationPanel } from '../components/profiler/SkinPermeationPanel'
  * Shape 3D, Custom MPO, Ligand Efficiency, SA Comparison).
  */
 export function CompoundProfilerPage() {
-  const { profile, isLoading, error, profileCompound } = useProfiler();
+  const {
+    profile,
+    isLoading,
+    error,
+    profileCompound,
+    compute3DShape,
+    computeEfficiency,
+    computeCustomMPO,
+  } = useProfiler();
   const [currentSmiles, setCurrentSmiles] = useState<string>('');
 
   const handleProfile = useCallback(
@@ -82,11 +94,29 @@ export function CompoundProfilerPage() {
             </div>
           </section>
 
-          {/* Plan 06 panels go below */}
-          {/* Shape 3D section — Plan 06 will implement */}
-          {/* Custom MPO section — Plan 06 will implement */}
-          {/* Ligand Efficiency section — Plan 06 will implement */}
-          {/* SA Comparison section — Plan 06 will implement */}
+          {/* Shape & 3D — per D-26 collapsed, lazy compute */}
+          <section className="mt-12">
+            <Shape3DPanel smiles={currentSmiles} compute3DShape={compute3DShape} />
+          </section>
+
+          {/* Custom MPO */}
+          <section className="mt-12">
+            <MPOPanel
+              smiles={currentSmiles}
+              cnsMPO={profile.cns_mpo}
+              computeCustomMPO={computeCustomMPO}
+            />
+          </section>
+
+          {/* Ligand Efficiency — per D-09 collapsed */}
+          <section className="mt-12">
+            <LigandEfficiencyPanel smiles={currentSmiles} computeEfficiency={computeEfficiency} />
+          </section>
+
+          {/* SA Comparison */}
+          <section className="mt-12">
+            <SAComparisonPanel data={profile.sa_comparison} />
+          </section>
         </div>
       )}
 
