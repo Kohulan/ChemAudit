@@ -24,6 +24,7 @@ from app.api.routes import (
     history,
     integrations,
     permalinks,
+    profiler,
     profiles,
     resolve,
     scoring,
@@ -283,6 +284,7 @@ app.include_router(session.router, prefix="/api/v1", tags=["session"])
 app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
 app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])
+app.include_router(profiler.router, prefix="/api/v1", tags=["profiler"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
