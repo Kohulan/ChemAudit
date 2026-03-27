@@ -4,6 +4,16 @@ import { Beaker } from 'lucide-react';
 import { useQSARPipelineConfig } from '../hooks/useQSARPipelineConfig';
 import { useQSARReady } from '../hooks/useQSARReady';
 import { ClayCard } from '../components/ui/ClayCard';
+import { ClayButton } from '../components/ui/ClayButton';
+import { Skeleton } from '../components/ui/Skeleton';
+import { StructureInput } from '../components/molecules/StructureInput';
+import { PipelineConfigPanel } from '../components/qsar-ready/PipelineConfigPanel';
+import { QSARSingleResult } from '../components/qsar-ready/QSARSingleResult';
+import { QSARBatchInput } from '../components/qsar-ready/QSARBatchInput';
+import { QSARBatchSummary } from '../components/qsar-ready/QSARBatchSummary';
+import { QSARBatchTable } from '../components/qsar-ready/QSARBatchTable';
+import { QSARDownloadPanel } from '../components/qsar-ready/QSARDownloadPanel';
+import { QSARProgressBar } from '../components/qsar-ready/QSARProgressBar';
 import { cn } from '../lib/utils';
 
 // =============================================================================
@@ -19,23 +29,32 @@ type QSARTab = 'single' | 'batch';
 /**
  * QSAR-Ready Pipeline page — /qsar-ready
  *
- * Phase 10 QSAR-Ready Pipeline (Phase 10):
+ * Phase 10 Plan 04:
  * 1. Page heading + subtitle
- * 2. Pipeline configuration panel placeholder (Plan 04 will replace)
+ * 2. PipelineConfigPanel (shared above tabs — preset selector + step toggles)
  * 3. Tab switcher: Single Molecule | Batch Upload
- * 4. Tab content areas (Plan 04 fills Single, Plan 05 fills Batch)
+ * 4. Single tab: StructureInput + Run Pipeline CTA + result states
+ * 5. Batch tab: placeholder (Plan 05)
  *
- * Both hooks are wired here so Plan 04/05 can consume state as props
- * without restructuring the component tree.
+ * Both hooks are wired here so Plans 04/05 can consume state without
+ * prop drilling restructuring.
  */
 export function QSARReady() {
   const [activeTab, setActiveTab] = useState<QSARTab>('single');
+  const [singleInput, setSingleInput] = useState('');
 
   // Pipeline config hook — manages preset selection and custom profile persistence
   const pipelineConfig = useQSARPipelineConfig();
 
   // QSAR processing hook — manages single result, batch WebSocket, pagination
   const qsarState = useQSARReady();
+
+  // Handle single molecule pipeline run
+  const handleRunPipeline = () => {
+    const trimmed = singleInput.trim();
+    if (!trimmed) return;
+    void qsarState.runSingle(trimmed, pipelineConfig.config);
+  };
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 pt-16 pb-16">
@@ -50,34 +69,9 @@ export function QSARReady() {
         </p>
       </div>
 
-      {/* ── Pipeline configuration panel (placeholder for Plan 04) ── */}
-      <div id="config-panel-placeholder" className="mb-8">
-        <ClayCard variant="default" size="md">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-sunken)] flex items-center justify-center shrink-0">
-              <Beaker className="w-5 h-5 text-[var(--color-text-muted)]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold font-display text-[var(--color-text-primary)]">
-                Pipeline Configuration
-              </h2>
-              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                Active preset:{' '}
-                <span className="font-medium text-[var(--color-text-primary)]">
-                  {pipelineConfig.activePreset ?? 'Custom'}
-                </span>
-                {pipelineConfig.modifiedFrom && (
-                  <span className="text-[var(--color-text-muted)]">
-                    {' '}(modified from {pipelineConfig.modifiedFrom})
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-[var(--color-text-muted)] mt-2">
-                Pipeline step toggles and preset selector will be added in Plan 04.
-              </p>
-            </div>
-          </div>
-        </ClayCard>
+      {/* ── Pipeline configuration panel ── */}
+      <div className="mb-8">
+        <PipelineConfigPanel {...pipelineConfig} />
       </div>
 
       {/* ── Tab switcher ── */}
@@ -122,6 +116,7 @@ export function QSARReady() {
 
       {/* ── Tab content area ── */}
       <AnimatePresence mode="wait">
+        {/* ── Single Molecule tab ── */}
         {activeTab === 'single' && (
           <motion.div
             key="single"
@@ -132,30 +127,89 @@ export function QSARReady() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="space-y-6"
           >
-            <ClayCard variant="flat" size="md" className="text-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-sunken)] flex items-center justify-center">
-                  <Beaker className="w-6 h-6 text-[var(--color-text-muted)]" />
-                </div>
-                <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-                  Single molecule content
-                </h2>
-                <p className="text-sm text-[var(--color-text-secondary)] max-w-sm">
-                  QSARSingleInput + QSARSingleResult components will be added in Plan 04.
-                </p>
-                {/* Surface the hook state for Plan 04 to verify wiring */}
-                {qsarState.singleLoading && (
-                  <p className="text-xs text-[var(--color-text-muted)]">Processing…</p>
-                )}
-                {qsarState.singleError && (
-                  <p className="text-xs text-status-error">{qsarState.singleError}</p>
-                )}
+            {/* Input area */}
+            <div className="space-y-3">
+              <StructureInput
+                value={singleInput}
+                onChange={setSingleInput}
+                onSubmit={handleRunPipeline}
+                disabled={qsarState.singleLoading}
+                placeholder="Enter a SMILES, InChI, CAS number, or other identifier above, then click Run Pipeline."
+              />
+              <div className="flex justify-end">
+                <ClayButton
+                  variant="primary"
+                  size="md"
+                  onClick={handleRunPipeline}
+                  disabled={!singleInput.trim() || qsarState.singleLoading}
+                  loading={qsarState.singleLoading}
+                >
+                  Run Pipeline
+                </ClayButton>
               </div>
-            </ClayCard>
+            </div>
+
+            {/* ── Loading skeleton ── */}
+            {qsarState.singleLoading && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-6">
+                  <ClayCard variant="flat" size="sm" className="p-4 space-y-3">
+                    <Skeleton variant="text" height={12} width="40%" />
+                    <Skeleton variant="rectangular" height={200} className="rounded-lg" />
+                    <Skeleton variant="text" height={12} width="90%" />
+                    <Skeleton variant="text" height={12} width="70%" />
+                  </ClayCard>
+                  <ClayCard variant="flat" size="sm" className="p-4 space-y-3">
+                    <Skeleton variant="text" height={12} width="40%" />
+                    <Skeleton variant="rectangular" height={200} className="rounded-lg" />
+                    <Skeleton variant="text" height={12} width="90%" />
+                    <Skeleton variant="text" height={12} width="70%" />
+                  </ClayCard>
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <Skeleton key={i} variant="text" height={40} className="rounded-xl" />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Error state ── */}
+            {!qsarState.singleLoading && qsarState.singleError && (
+              <ClayCard variant="flat" size="sm" className="border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30">
+                <p className="text-sm text-red-700 dark:text-red-400">
+                  Pipeline failed. {qsarState.singleError}. Check your input structure and try again.
+                </p>
+              </ClayCard>
+            )}
+
+            {/* ── Result ── */}
+            {!qsarState.singleLoading && !qsarState.singleError && qsarState.singleResult && (
+              <QSARSingleResult result={qsarState.singleResult} />
+            )}
+
+            {/* ── Empty state ── */}
+            {!qsarState.singleLoading && !qsarState.singleError && !qsarState.singleResult && (
+              <ClayCard variant="flat" size="md" className="text-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-sunken)] flex items-center justify-center">
+                    <Beaker className="w-6 h-6 text-[var(--color-text-muted)]" />
+                  </div>
+                  <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+                    No molecule processed yet
+                  </h2>
+                  <p className="text-sm text-[var(--color-text-secondary)] max-w-sm">
+                    Enter a SMILES, InChI, CAS number, or other identifier above, then click Run Pipeline.
+                  </p>
+                </div>
+              </ClayCard>
+            )}
           </motion.div>
         )}
 
+        {/* ── Batch Upload tab ── */}
         {activeTab === 'batch' && (
           <motion.div
             key="batch"
@@ -167,28 +221,73 @@ export function QSARReady() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-            <ClayCard variant="flat" size="md" className="text-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-sunken)] flex items-center justify-center">
-                  <Beaker className="w-6 h-6 text-[var(--color-text-muted)]" />
-                </div>
-                <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-                  Batch upload content
-                </h2>
-                <p className="text-sm text-[var(--color-text-secondary)] max-w-sm">
-                  QSARBatchInput + results table components will be added in Plan 05.
-                </p>
-                {/* Surface the hook state for Plan 05 to verify wiring */}
-                {qsarState.batchLoading && qsarState.batchStatus && (
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    Processing… {qsarState.batchStatus.progress}%
+            <div className="space-y-6">
+              {/* ── State: no job yet — empty state + input ── */}
+              {!qsarState.batchJobId && !qsarState.batchError && (
+                <>
+                  <div className="text-center py-4">
+                    <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)] mb-1">
+                      No batch results yet
+                    </h2>
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      Paste SMILES below or drop a CSV or SDF file to begin batch curation.
+                    </p>
+                  </div>
+                  <QSARBatchInput
+                    onSubmit={qsarState.runBatch}
+                    config={pipelineConfig.config}
+                    loading={qsarState.batchLoading}
+                  />
+                </>
+              )}
+
+              {/* ── State: processing — progress bar ── */}
+              {qsarState.batchJobId &&
+                qsarState.batchStatus !== null &&
+                (qsarState.batchStatus.status === 'pending' ||
+                  qsarState.batchStatus.status === 'processing') && (
+                <QSARProgressBar status={qsarState.batchStatus} />
+              )}
+
+              {/* ── State: results loaded ── */}
+              {qsarState.batchResults !== null && (
+                <>
+                  <QSARBatchSummary summary={qsarState.batchResults.summary} />
+
+                  <QSARBatchTable
+                    results={qsarState.batchResults.results}
+                    page={qsarState.batchPage}
+                    totalPages={qsarState.batchResults.total_pages}
+                    onPageChange={qsarState.fetchBatchPage}
+                  />
+
+                  <QSARDownloadPanel
+                    onDownload={qsarState.downloadBatch}
+                    disabled={
+                      qsarState.batchStatus !== null &&
+                      (qsarState.batchStatus.status === 'pending' ||
+                        qsarState.batchStatus.status === 'processing')
+                    }
+                  />
+                </>
+              )}
+
+              {/* ── Error state ── */}
+              {qsarState.batchError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30 px-4 py-4">
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    Batch processing failed. {qsarState.batchError}. Re-upload the file to retry.
                   </p>
-                )}
-                {qsarState.batchError && (
-                  <p className="text-xs text-status-error">{qsarState.batchError}</p>
-                )}
-              </div>
-            </ClayCard>
+                  <button
+                    type="button"
+                    className="mt-3 text-xs text-red-600 underline"
+                    onClick={() => qsarState.clearBatch()}
+                  >
+                    Clear and try again
+                  </button>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
