@@ -27,6 +27,7 @@ from app.api.routes import (
     profiler,
     profiles,
     resolve,
+    safety,
     scoring,
     session,
     standardization,
@@ -143,6 +144,18 @@ async def lifespan(app: FastAPI):
             await ProfileService().seed_presets(db)
     except Exception as e:
         logger.warning("Database initialization failed: %s — DB features unavailable", e)
+
+    # Pre-warm NIBR catalog (avoid 5-10s first-request spike)
+    try:
+        from app.services.alerts.nibr_filters import get_nibr_catalog
+
+        get_nibr_catalog()
+        logger.info("NIBR catalog pre-warmed at startup")
+    except Exception as e:
+        logger.warning(
+            "NIBR catalog pre-warming failed: %s -- NIBR screening may be slow on first request",
+            e,
+        )
 
     # Initialize OPSIN for IUPAC name conversion (graceful fallback)
     try:
@@ -285,6 +298,7 @@ app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
 app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])
 app.include_router(profiler.router, prefix="/api/v1", tags=["profiler"])
+app.include_router(safety.router, prefix="/api/v1", tags=["safety"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
