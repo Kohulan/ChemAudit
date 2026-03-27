@@ -42,6 +42,9 @@ const SafetyPage = lazy(() =>
 const DiagnosticsPage = lazy(() =>
   import('./pages/Diagnostics').then(module => ({ default: module.Diagnostics }))
 );
+const QSARReadyPage = lazy(() =>
+  import('./pages/QSARReady').then(module => ({ default: module.QSARReady }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -201,6 +204,21 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <DiagnosticsPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/qsar-ready"
+            element={
+              <motion.div
+                key="qsar-ready"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <QSARReadyPage />
               </motion.div>
             }
           />
