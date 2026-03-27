@@ -1,8 +1,11 @@
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ShieldX } from 'lucide-react';
 import { useSafety } from '../hooks/useSafety';
 import { SafetyInput } from '../components/safety/SafetyInput';
 import { SafetySummaryStrip } from '../components/safety/SafetySummaryStrip';
+import { AlertDashboard } from '../components/safety/AlertDashboard';
+import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ClayCard } from '../components/ui/ClayCard';
 import { Badge } from '../components/ui/Badge';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -153,6 +156,24 @@ export function Safety() {
     screenMolecule,
   } = useSafety();
 
+  // Atom highlight state — shared between AlertDashboard, CypSoftSpotsPanel (Plan 06), etc.
+  const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
+  const [highlightedAlert, setHighlightedAlert] = useState<string | null>(null);
+
+  const handleHighlightAtoms = useCallback(
+    (atoms: number[], alertName?: string) => {
+      if (alertName !== undefined && alertName === highlightedAlert) {
+        // Re-click same alert -> clear
+        setHighlightedAtoms([]);
+        setHighlightedAlert(null);
+      } else {
+        setHighlightedAtoms(atoms);
+        setHighlightedAlert(alertName ?? null);
+      }
+    },
+    [highlightedAlert]
+  );
+
   const hasResults = !!(alertResult || safetyResult);
 
   // Derive SafetySummaryStrip props from both results
@@ -199,6 +220,19 @@ export function Safety() {
         <SafetyInput onScreen={screenMolecule} isLoading={isLoading} />
       </div>
 
+      {/* MoleculeViewer — D-12: renders structure with highlighted atoms from alert clicks */}
+      {(alertResult || safetyResult) && (
+        <div className="flex justify-center my-6">
+          <MoleculeViewer
+            smiles={alertResult?.molecule_info?.smiles ?? safetyResult?.molecule_info?.smiles ?? null}
+            highlightAtoms={highlightedAtoms}
+            width={400}
+            height={300}
+            className="rounded-lg border border-[var(--color-border)]"
+          />
+        </div>
+      )}
+
       {/* Loading skeleton for summary strip */}
       {isLoading && <SummaryStripSkeleton />}
 
@@ -219,9 +253,15 @@ export function Safety() {
       {/* Empty state */}
       {!isLoading && !hasResults && !alertError && !safetyError && <EmptyState />}
 
-      {/* Alert Dashboard slot — populated in Plan 05 */}
+      {/* Alert Dashboard — D-08 through D-11 */}
       {alertResult && (
-        <div id="alert-dashboard-slot" className="mb-6" />
+        <div className="mb-6">
+          <AlertDashboard
+            alertResult={alertResult}
+            onHighlightAtoms={(atoms) => handleHighlightAtoms(atoms)}
+            highlightedAlert={highlightedAlert}
+          />
+        </div>
       )}
 
       {/* Alert error card */}
