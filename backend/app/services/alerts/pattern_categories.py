@@ -19,7 +19,7 @@ from typing import List, Tuple
 # Ordered list of (keywords, category) — first match wins.
 # Keywords are matched case-insensitively against the pattern name.
 _CATEGORY_RULES: List[Tuple[List[str], str]] = [
-    # --- Reactive Groups ---
+    # --- Reactive Groups (Warheads) ---
     (
         [
             "michael acceptor",
@@ -64,8 +64,13 @@ _CATEGORY_RULES: List[Tuple[List[str], str]] = [
             "silicon halogen",
             "reactive",
             "Reactive",
+            "reactive_warhead",
+            "acyl_hydrazide",
+            "vinyl_sulfone",
+            "propargyl_halide",
+            "alpha_haloketone",
         ],
-        "Reactive Group",
+        "Reactive Warheads",
     ),
     # --- Toxicophores ---
     (
@@ -92,8 +97,77 @@ _CATEGORY_RULES: List[Tuple[List[str], str]] = [
             "cyanohydrin",
             "hydroxamic acid",
             "hydroxamic_acid",
+            "aromatic_amine",
+            "aromatic_nitro",
+            "polycyclic_aromatic_hydrocarbon",
+            "alkyl_nitrite",
+            "n_hydroxy",
+            "amino_phenol",
         ],
         "Toxicophore",
+    ),
+    # --- Metal Chelators ---
+    (
+        [
+            "metal_chelator",
+            "hydroxamic",
+            "dithiocarbamate",
+            "catechol_chelator",
+            "phosphonic_acid",
+        ],
+        "Metal Chelators",
+    ),
+    # --- Redox-Active Groups ---
+    (
+        [
+            "redox",
+            "quinone_redox",
+            "nitroquinoline",
+        ],
+        "Redox-Active Groups",
+    ),
+    # --- Fluorescent Interferents ---
+    (
+        [
+            "fluorescent",
+            "coumarin",
+            "fluorescein",
+            "rhodamine_interferent",
+            "rhodamine_scaffold",
+        ],
+        "Fluorescent Interferents",
+    ),
+    # --- Phospholipidosis Risk ---
+    (
+        [
+            "phospholipidosis",
+            "cad_motif",
+        ],
+        "Phospholipidosis Risk",
+    ),
+    # --- Mutagenicity Toxicophore (Kazius) ---
+    (
+        [
+            "kazius",
+            "mutagenicity",
+            "toxicophore_kazius",
+        ],
+        "Mutagenicity Toxicophore",
+    ),
+    # --- NIBR Screening Flags ---
+    (
+        [
+            "nibr_flag",
+            "nibr_annotation",
+        ],
+        "NIBR Screening Flags",
+    ),
+    # --- NIBR Excluded Patterns ---
+    (
+        [
+            "nibr_exclude",
+        ],
+        "NIBR Excluded Patterns",
     ),
     # --- Metabolic Liability ---
     (
@@ -198,6 +272,9 @@ _CATALOG_DEFAULTS: dict[str, str] = {
     "PAINS_A": "Assay Interference",
     "PAINS_B": "Assay Interference",
     "PAINS_C": "Assay Interference",
+    "KAZIUS": "Mutagenicity Toxicophore",
+    "NIBR": "NIBR Screening Flag",
+    "CUSTOM": "Unwanted Functionality",
 }
 
 
