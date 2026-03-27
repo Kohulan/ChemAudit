@@ -19,6 +19,7 @@ from app.api.routes import (
     batch,
     bookmarks,
     config,
+    diagnostics,
     export,
     health,
     history,
@@ -299,6 +300,7 @@ app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])
 app.include_router(profiler.router, prefix="/api/v1", tags=["profiler"])
 app.include_router(safety.router, prefix="/api/v1", tags=["safety"])
+app.include_router(diagnostics.router, prefix="/api/v1", tags=["diagnostics"])
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
