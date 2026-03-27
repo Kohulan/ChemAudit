@@ -1141,6 +1141,135 @@ export const safetyApi = {
 };
 
 // ============================================================================
+// QSAR-Ready Pipeline API (Phase 10: QSAR-Ready Pipeline)
+// ============================================================================
+
+import type {
+  QSARReadyConfig,
+  QSARReadyResult,
+  QSARBatchUploadResponse,
+  QSARBatchStatusResponse,
+  QSARBatchResultsResponse,
+} from '../types/qsar_ready';
+
+/**
+ * QSAR-Ready Pipeline API client.
+ *
+ * Covers the Phase 10 endpoints:
+ * - POST /qsar-ready/single              — single molecule curation
+ * - POST /qsar-ready/batch/upload        — batch file/SMILES upload
+ * - GET  /qsar-ready/batch/{id}/status   — poll job status
+ * - GET  /qsar-ready/batch/{id}/results  — paginated results
+ * - GET  /qsar-ready/batch/{id}/download/{format} — download results
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const qsarReadyApi = {
+  /**
+   * Run the QSAR-ready curation pipeline on a single SMILES.
+   */
+  single: async (smiles: string, config: QSARReadyConfig): Promise<QSARReadyResult> => {
+    try {
+      const response = await api.post<QSARReadyResult>('/qsar-ready/single', { smiles, config });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'QSAR-ready curation failed' };
+      }
+      throw { error: 'QSAR-ready curation failed' };
+    }
+  },
+
+  /**
+   * Upload a file or SMILES text for batch QSAR-ready processing.
+   * Returns a job_id for WebSocket / polling status tracking.
+   */
+  batchUpload: async (
+    file: File | null,
+    smilesText: string | null,
+    config: QSARReadyConfig,
+  ): Promise<QSARBatchUploadResponse> => {
+    try {
+      const formData = new FormData();
+      if (file) formData.append('file', file);
+      if (smilesText) formData.append('smiles_text', smilesText);
+      formData.append('config', JSON.stringify(config));
+      const response = await api.post<QSARBatchUploadResponse>(
+        '/qsar-ready/batch/upload',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Batch upload failed' };
+      }
+      throw { error: 'Batch upload failed' };
+    }
+  },
+
+  /**
+   * Poll the processing status of a batch QSAR-ready job.
+   */
+  batchStatus: async (jobId: string): Promise<QSARBatchStatusResponse> => {
+    try {
+      const response = await api.get<QSARBatchStatusResponse>(`/qsar-ready/batch/${jobId}/status`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Status check failed' };
+      }
+      throw { error: 'Status check failed' };
+    }
+  },
+
+  /**
+   * Fetch paginated results for a completed batch job.
+   */
+  batchResults: async (
+    jobId: string,
+    page: number = 1,
+    perPage: number = 50,
+  ): Promise<QSARBatchResultsResponse> => {
+    try {
+      const response = await api.get<QSARBatchResultsResponse>(
+        `/qsar-ready/batch/${jobId}/results`,
+        { params: { page, per_page: perPage } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Results fetch failed' };
+      }
+      throw { error: 'Results fetch failed' };
+    }
+  },
+
+  /**
+   * Download batch results in the requested format (csv, sdf, or json).
+   * Returns a Blob for the caller to create a download URL.
+   */
+  batchDownload: async (jobId: string, format: 'csv' | 'sdf' | 'json'): Promise<Blob> => {
+    try {
+      const response = await api.get(`/qsar-ready/batch/${jobId}/download/${format}`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw { error: `Download failed (${format})` };
+      }
+      throw { error: `Download failed (${format})` };
+    }
+  },
+};
+
+// ============================================================================
 // Diagnostics API (Phase 09: Structure Quality Diagnostics)
 // ============================================================================
 
@@ -1264,6 +1393,7 @@ export const diagnosticsApi = {
   },
 };
 
+export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
