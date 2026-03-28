@@ -169,3 +169,29 @@ class ConsistencyResult(BaseModel):
     comparisons: list[PropertyComparison] = Field(default_factory=list)
     overall_verdict: str = "no_data"
     summary: str = ""
+
+
+# =============================================================================
+# SureChEMBL Patent Lookup
+# =============================================================================
+
+
+class SureChEMBLRequest(BaseModel):
+    """Request for SureChEMBL patent lookup."""
+
+    smiles: Optional[str] = None
+    inchikey: Optional[str] = None
+
+
+class SureChEMBLResult(BaseModel):
+    """SureChEMBL patent presence result."""
+
+    found: bool
+    schembl_id: Optional[str] = None
+    url: Optional[str] = None
+    patent_count: Optional[int] = None
+    source: Optional[str] = None
+    smiles: Optional[str] = None
+    inchi: Optional[str] = None
+    inchikey: Optional[str] = None
+    molecular_weight: Optional[float] = None

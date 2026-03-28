@@ -19,12 +19,15 @@ from app.schemas.integrations import (
     ConsistencyResult,
     PubChemRequest,
     PubChemResult,
+    SureChEMBLRequest,
+    SureChEMBLResult,
 )
 from app.services.integrations import (
     get_bioactivity,
     get_compound_info,
     lookup_natural_product,
 )
+from app.services.integrations.surechembl import lookup_surechembl
 from app.services.integrations.comparator import compare_across_databases
 
 router = APIRouter()
@@ -184,3 +187,22 @@ async def compare_databases(
 ):
     """Compare molecule representation across PubChem, ChEMBL, and COCONUT."""
     return await compare_across_databases(smiles=body.smiles, inchikey=body.inchikey)
+
+
+@router.post("/integrations/surechembl/lookup", response_model=SureChEMBLResult)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def lookup_surechembl_patents(
+    request: Request,
+    body: SureChEMBLRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Look up molecule in SureChEMBL patent database.
+
+    Checks patent literature presence via UniChem cross-reference to SureChEMBL,
+    with optional enrichment from SureChEMBL direct API for patent count data.
+
+    Returns binary present/absent result with a direct link to the SureChEMBL
+    entry when found.
+    """
+    return await lookup_surechembl(body)
