@@ -90,6 +90,7 @@ export interface QSARBatchStatusResponse {
   progress: number;
   processed: number;
   total: number;
+  eta_seconds: number | null;
 }
 
 /**
@@ -104,6 +105,7 @@ export interface QSARBatchResultsResponse {
   page: number;
   per_page: number;
   total_pages: number;
+  total_results: number;
 }
 
 // ====================== Pipeline Step Metadata ======================

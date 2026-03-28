@@ -107,6 +107,7 @@ export function useQSARReady(): UseQSARReadyReturn {
             progress: msg.progress ?? prev?.progress ?? 0,
             processed: msg.processed ?? prev?.processed ?? 0,
             total: msg.total ?? prev?.total ?? 0,
+            eta_seconds: msg.eta_seconds ?? prev?.eta_seconds ?? null,
           }));
 
           // On completion, fetch the full results
@@ -231,6 +232,7 @@ export function useQSARReady(): UseQSARReadyReturn {
           progress: 0,
           processed: 0,
           total: uploadResp.total_molecules,
+          eta_seconds: null,
         });
 
         // Connect WebSocket for progress tracking

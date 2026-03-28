@@ -209,6 +209,9 @@ class QSARBatchStatusResponse(BaseModel):
     progress: int = Field(default=0, description="Progress percentage (0-100)")
     processed: int = Field(default=0, description="Number of molecules processed so far")
     total: int = Field(default=0, description="Total number of molecules in the job")
+    eta_seconds: Optional[int] = Field(
+        default=None, description="Estimated seconds remaining until job completion"
+    )
 
 
 class QSARBatchSummary(BaseModel):
@@ -251,3 +254,6 @@ class QSARBatchResultsResponse(BaseModel):
     page: int = Field(default=1, description="Current page number (1-indexed)")
     per_page: int = Field(default=50, description="Number of results per page")
     total_pages: int = Field(default=1, description="Total number of result pages")
+    total_results: int = Field(
+        default=0, description="Total number of result records across all pages"
+    )

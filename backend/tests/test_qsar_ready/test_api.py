@@ -209,6 +209,55 @@ class TestQSARSingleEndpoint:
 
 
 # =============================================================================
+# Schema validation tests
+# =============================================================================
+
+
+class TestQSARBatchSchemas:
+    """Tests for QSAR batch Pydantic schemas."""
+
+    def test_batch_status_schema_has_eta_seconds(self):
+        """QSARBatchStatusResponse must accept eta_seconds field."""
+        from app.schemas.qsar_ready import QSARBatchStatusResponse
+        response = QSARBatchStatusResponse(
+            job_id="test-uuid",
+            status="processing",
+            progress=50,
+            processed=25,
+            total=50,
+            eta_seconds=120,
+        )
+        assert response.eta_seconds == 120
+
+    def test_batch_status_schema_eta_seconds_optional(self):
+        """eta_seconds should default to None when not provided."""
+        from app.schemas.qsar_ready import QSARBatchStatusResponse
+        response = QSARBatchStatusResponse(
+            job_id="test-uuid",
+            status="pending",
+        )
+        assert response.eta_seconds is None
+
+    def test_batch_results_schema_has_total_results(self):
+        """QSARBatchResultsResponse must accept total_results field."""
+        from app.schemas.qsar_ready import (
+            QSARBatchResultsResponse,
+            QSARBatchSummary,
+            QSARReadyConfigSchema,
+        )
+        config = QSARReadyConfigSchema()
+        summary = QSARBatchSummary(total=10, ok=8, rejected=1, duplicate=1, error=0)
+        response = QSARBatchResultsResponse(
+            job_id="test-uuid",
+            status="complete",
+            config=config,
+            summary=summary,
+            total_results=10,
+        )
+        assert response.total_results == 10
+
+
+# =============================================================================
 # Batch endpoint tests (skipped if Redis not available)
 # =============================================================================
 
