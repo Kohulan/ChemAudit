@@ -125,8 +125,8 @@ function PropertyHistogram({ config, data }: { config: PropertyConfig; data: His
               borderRadius: '8px',
               fontSize: '12px',
             }}
-            formatter={(value: number) => [value, 'Count']}
-            labelFormatter={(label: string) => `Range: ${label}`}
+            formatter={(value: number | undefined) => [value ?? 0, 'Count'] as [number, string]}
+            labelFormatter={(label) => `Range: ${label}`}
           />
           {/* Dataset distribution bars */}
           <Bar
