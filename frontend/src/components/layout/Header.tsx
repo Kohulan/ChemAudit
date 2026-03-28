@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom, Grid3X3, Info, BookOpen, FileText,
-  ExternalLink, Star, Clock, Menu, X, FlaskConical, Shield, Stethoscope, Beaker, Filter,
+  ExternalLink, Star, Clock, Menu, X, FlaskConical, Shield, Stethoscope, Beaker, Filter, Database,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/diagnostics', label: 'Diagnostics', icon: Stethoscope },
   { to: '/qsar-ready', label: 'QSAR-Ready', icon: Beaker },
   { to: '/genchem', label: 'GenChem', icon: Filter },
+  { to: '/dataset-audit', label: 'Dataset Audit', icon: Database },
   { to: '/bookmarks', label: 'Bookmarks', icon: Star },
   { to: '/history', label: 'History', icon: Clock },
   { to: '/about', label: 'About', icon: Info },

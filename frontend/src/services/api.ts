@@ -1,5 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { logger } from '../lib/logger';
+import type {
+  DatasetUploadResponse,
+  DatasetAuditStatusResponse,
+  DatasetAuditResults,
+  DatasetDiffResults,
+} from '../types/dataset_intelligence';
 
 // Extend axios config type to support retry flag
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -1076,6 +1082,7 @@ export interface InlineScoreResponse {
   molecules: InlineScoredMolecule[];
 }
 
+<<<<<<< HEAD
 // ============================================================================
 // Safety API (Phase 08: Enhanced Structural Alerts & Safety)
 // ============================================================================
@@ -1496,6 +1503,69 @@ export const genchemApi = {
 };
 
 export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };
+
+// =============================================================================
+// Dataset Intelligence API (Phase 12)
+// =============================================================================
+
+/**
+ * Dataset intelligence API methods.
+ * Endpoints under /api/v1/dataset/ for dataset health audit, contradictory
+ * label detection, dataset diff, and curation reports.
+ */
+export const datasetApi = {
+  /**
+   * Upload a CSV or SDF file for dataset audit.
+   * Returns a job_id for WebSocket / polling progress tracking.
+   */
+  upload: async (
+    file: File,
+    smilesColumn?: string,
+    activityColumn?: string,
+  ): Promise<DatasetUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (smilesColumn) formData.append('smiles_column', smilesColumn);
+    if (activityColumn) formData.append('activity_column', activityColumn);
+    const { data } = await api.post<DatasetUploadResponse>('/dataset/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** Poll the status of a running dataset audit job. */
+  getStatus: async (jobId: string): Promise<DatasetAuditStatusResponse> => {
+    const { data } = await api.get<DatasetAuditStatusResponse>(`/dataset/${jobId}/status`);
+    return data;
+  },
+
+  /** Fetch the full results of a completed dataset audit job. */
+  getResults: async (jobId: string): Promise<DatasetAuditResults> => {
+    const { data } = await api.get<DatasetAuditResults>(`/dataset/${jobId}/results`);
+    return data;
+  },
+
+  /**
+   * Upload a comparison file for dataset diff against an existing audit job.
+   * Returns the diff results inline (synchronous).
+   */
+  uploadDiff: async (jobId: string, file: File): Promise<DatasetDiffResults> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<DatasetDiffResults>(`/dataset/${jobId}/diff`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** URL for downloading the JSON curation report. */
+  downloadReport: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/report`,
+
+  /** URL for downloading the curated CSV. */
+  downloadCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/csv`,
+};
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
@@ -1510,3 +1580,4 @@ export type {
   PermalinkResponse, PermalinkResolveResponse,
   ExportFormat as WorkflowExportFormat,
 };
+export type { DatasetUploadResponse, DatasetAuditStatusResponse, DatasetAuditResults, DatasetDiffResults };

@@ -48,6 +48,9 @@ const QSARReadyPage = lazy(() =>
 const GenChemFilterPage = lazy(() =>
   import('./pages/GenChemFilter')
 );
+const DatasetAuditPage = lazy(() =>
+  import('./pages/DatasetAudit')
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -237,6 +240,21 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <GenChemFilterPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/dataset-audit"
+            element={
+              <motion.div
+                key="dataset-audit"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DatasetAuditPage />
               </motion.div>
             }
           />
