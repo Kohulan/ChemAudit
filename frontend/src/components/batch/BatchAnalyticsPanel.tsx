@@ -27,6 +27,8 @@ import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
 import { ClusteringTab } from './ClusteringTab';
 import { ClayButton } from '../ui/ClayButton';
+import { TaxonomyTab } from './TaxonomyTab';
+import { RegistrationTab } from './RegistrationTab';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
@@ -706,6 +708,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
           </motion.div>
         )}
 
+
         {activeTab === 'Taxonomy' && (
           <motion.div
             key="taxonomy"
@@ -714,11 +717,11 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Plan 05 will replace this with TaxonomyTab */}
-            <div className="text-center py-12">
-              <p className="text-base font-semibold font-display text-[var(--color-text)]">No taxonomy results</p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">Click &apos;Classify&apos; to categorize molecules into drug-relevant chemotype classes.</p>
-            </div>
+            <TaxonomyTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
           </motion.div>
         )}
 
@@ -730,11 +733,10 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Plan 05 will replace this with RegistrationTab */}
-            <div className="text-center py-12">
-              <p className="text-base font-semibold font-display text-[var(--color-text)]">Computing registration hashes...</p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">Registration hashes are computed automatically after batch processing.</p>
-            </div>
+            <RegistrationTab
+              analyticsData={analyticsData}
+              results={results}
+            />
           </motion.div>
         )}
       </AnimatePresence>

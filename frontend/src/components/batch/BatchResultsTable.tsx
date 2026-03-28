@@ -1,10 +1,11 @@
-import { Fragment, useState, useRef, useEffect } from 'react';
+import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ShieldAlert, FlaskConical, Atom, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, FlaskConical, Atom, ExternalLink, Clipboard, Check } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
 import { cn } from '../../lib/utils';
 import type { BatchResult, BatchResultsFilters, SortField } from '../../types/batch';
+import type { RegistrationHashResult } from '../../types/analytics';
 
 interface BatchResultsTableProps {
   results: BatchResult[];
@@ -26,6 +27,8 @@ interface BatchResultsTableProps {
   focusedMoleculeIndex?: number | null;
   /** Called after the focused molecule has been scrolled to (so parent can clear it). */
   onFocusHandled?: () => void;
+  /** Registration hash data for the optional RegHash column */
+  registrationData?: RegistrationHashResult;
 }
 
 /**
@@ -49,6 +52,7 @@ export function BatchResultsTable({
   onSelectionChange,
   focusedMoleculeIndex,
   onFocusHandled,
+  registrationData,
 }: BatchResultsTableProps) {
   const navigate = useNavigate();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
@@ -92,7 +96,41 @@ export function BatchResultsTable({
 
   // Determine if profile column is shown (conditional 10th column)
   const hasProfileColumn = results.some(r => r.scoring?.profile);
-  const colCount = hasProfileColumn ? 10 : 9;
+  // Determine if RegHash column is shown (conditional, only when registration data exists)
+  const hasRegHashColumn = !!registrationData;
+  const colCount = 9 + (hasProfileColumn ? 1 : 0) + (hasRegHashColumn ? 1 : 0);
+
+  // Build collision hash set for highlighting rows
+  const collisionHashes = useMemo(() => {
+    if (!registrationData) return new Set<string>();
+    const s = new Set<string>();
+    for (const g of registrationData.collision_groups) {
+      s.add(g.hash);
+    }
+    return s;
+  }, [registrationData]);
+
+  // Build index-to-hash lookup
+  const indexToHash = useMemo(() => {
+    if (!registrationData) return new Map<number, string>();
+    const m = new Map<number, string>();
+    for (const mol of registrationData.per_molecule) {
+      m.set(mol.index, mol.hash);
+    }
+    return m;
+  }, [registrationData]);
+
+  // Track which hash was recently copied (index -> timeout)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyHash = useCallback((hash: string, molIndex: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(hash);
+    setCopiedIndex(molIndex);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopiedIndex(null), 1500);
+  }, []);
 
   // Update header checkbox indeterminate state
   useEffect(() => {
@@ -298,6 +336,15 @@ export function BatchResultsTable({
               >
                 Issues {sortBy === 'issues' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
               </th>
+              {hasRegHashColumn && (
+                <th
+                  className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase hidden md:table-cell"
+                  style={{ width: '120px' }}
+                  title="RDKit RegistrationHash (tautomer hash v2)"
+                >
+                  RegHash
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
@@ -438,6 +485,41 @@ export function BatchResultsTable({
                         );
                       })()}
                     </td>
+                    {hasRegHashColumn && (() => {
+                      const hash = indexToHash.get(result.index);
+                      const isCollision = hash ? collisionHashes.has(hash) : false;
+                      return (
+                        <td
+                          className={cn(
+                            'px-4 py-3 text-center hidden md:table-cell',
+                            isCollision && 'bg-amber-100/50 dark:bg-amber-900/20',
+                          )}
+                          style={{ width: '120px' }}
+                        >
+                          {hash ? (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-xs font-mono text-[var(--color-text-secondary)]" title={hash}>
+                                {hash.slice(0, 12)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyHash(hash, result.index, e)}
+                                className="p-0.5 rounded hover:bg-[var(--color-surface-sunken)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                                aria-label="Copy registration hash to clipboard"
+                              >
+                                {copiedIndex === result.index ? (
+                                  <Check className="w-3 h-3 text-green-500" />
+                                ) : (
+                                  <Clipboard className="w-3 h-3" />
+                                )}
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="text-[var(--color-text-muted)]">-</span>
+                          )}
+                        </td>
+                      );
+                    })()}
                   </tr>
 
                   {/* Expanded details — bento grid layout */}

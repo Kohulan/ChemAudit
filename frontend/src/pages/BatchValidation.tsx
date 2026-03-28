@@ -790,6 +790,7 @@ export function BatchValidationPage() {
                 onSelectionChange={handleSelectionChange}
                 focusedMoleculeIndex={focusedMoleculeIndex}
                 onFocusHandled={() => setFocusedMoleculeIndex(null)}
+                registrationData={analyticsData?.registration}
               />
             </div>
 
