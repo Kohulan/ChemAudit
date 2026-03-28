@@ -10,7 +10,7 @@ from typing import Optional
 
 from rdkit import Chem
 
-# 8 CYP soft-spot SMARTS patterns with reaction type annotations
+# 11 CYP soft-spot SMARTS patterns with reaction type annotations
 CYP_SOFTSPOT_SMARTS: list[tuple[str, str, str]] = [
     ("benzylic_CH", "[CX4H2,CX4H1]c", "C-hydroxylation"),
     ("allylic_CH", "[CX4H2,CX4H1][CX3]=[CX3]", "C-hydroxylation"),
@@ -20,6 +20,9 @@ CYP_SOFTSPOT_SMARTS: list[tuple[str, str, str]] = [
     ("S_oxidation", "[SX2][#6]", "S-oxidation"),
     ("ester_hydrolysis", "[CX3](=[OX1])[OX2][#6]", "ester-hydrolysis"),
     ("amide_hydrolysis", "[CX3](=[OX1])[NX3][#6]", "amide-hydrolysis"),
+    ("N_oxidation", "[nX2]", "N-oxidation"),
+    ("aromatic_para_H", "[cH]1[cH][c]([*])[cH][cH][c]1", "aromatic-hydroxylation"),
+    ("omega1_CH2", "[CH2]([CH2][CH3])", "omega-1-hydroxylation"),
 ]
 
 # Module-level compiled singleton

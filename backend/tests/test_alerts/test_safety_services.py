@@ -34,9 +34,9 @@ class TestCypSoftspots:
     """Tests for CYP metabolism soft-spot prediction."""
 
     def test_cyp_pattern_count(self):
-        """All 8 CYP SMARTS patterns should compile successfully."""
+        """All 11 CYP SMARTS patterns should compile successfully."""
         patterns = get_cyp_patterns()
-        assert len(patterns) == 8
+        assert len(patterns) == 11
 
     def test_cyp_pattern_tuple_structure(self):
         """Each compiled pattern tuple should have 3 elements: name, mol, reaction_type."""
@@ -63,6 +63,32 @@ class TestCypSoftspots:
             assert isinstance(hit["matched_atoms"], list)
             assert len(hit["matched_atoms"]) > 0
             assert all(isinstance(idx, int) for idx in hit["matched_atoms"])
+
+    def test_cyp_pattern_count_full(self):
+        """All 11 CYP SMARTS patterns should compile successfully."""
+        patterns = get_cyp_patterns()
+        assert len(patterns) == 11
+
+    def test_cyp_n_oxidation_pyridine(self):
+        """Pyridine nitrogen should be flagged as N-oxidation soft-spot."""
+        mol = Chem.MolFromSmiles("c1ccncc1")  # pyridine
+        results = screen_cyp_softspots(mol)
+        site_names = [r["site_name"] for r in results]
+        assert "N_oxidation" in site_names
+
+    def test_cyp_aromatic_para_h(self):
+        """Para-substituted phenyl should flag aromatic hydroxylation soft-spot."""
+        mol = Chem.MolFromSmiles("c1ccc(O)cc1")  # phenol — has para-H positions
+        results = screen_cyp_softspots(mol)
+        site_names = [r["site_name"] for r in results]
+        assert "aromatic_para_H" in site_names
+
+    def test_cyp_omega1_ch2(self):
+        """Pentane should flag omega-1 CH2 hydroxylation."""
+        mol = Chem.MolFromSmiles("CCCCC")  # pentane
+        results = screen_cyp_softspots(mol)
+        site_names = [r["site_name"] for r in results]
+        assert "omega1_CH2" in site_names
 
     def test_cyp_ethanol_no_matches(self):
         """Ethanol has no aromatic system or relevant functional groups — zero CYP hits."""
