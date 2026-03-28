@@ -43,7 +43,7 @@ import { InfoTooltip } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
-import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
+import { alertsApi, scoringApi, standardizationApi, integrationsApi, safetyApi, diagnosticsApi } from '../services/api';
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
 import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
@@ -57,6 +57,12 @@ import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComp
 import { SafetyBadge } from '../components/safety/SafetyBadge';
 import { DiagnosticsBadge } from '../components/diagnostics/DiagnosticsBadge';
 import { ProfilerBadge } from '../components/profiler/ProfilerBadge';
+import { AlertDashboard } from '../components/safety/AlertDashboard';
+import { DrugLikenessGrid } from '../components/profiler/DrugLikenessGrid';
+import type { AlertScreenResponse as SafetyAlertScreenResponse } from '../types/safety';
+import type { CrossPipelineResponse, RoundTripResponse } from '../types/diagnostics';
+import type { ProfileResponse } from '../types/profiler';
+import axios from 'axios';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -366,6 +372,22 @@ export function SingleValidationPage() {
 
   // All checks collapsible section
   const [showAllChecks, setShowAllChecks] = useState(false);
+
+  // --- Collapsible sections state (UI-UX Guide: 4 new sections) ---
+  const [profileSectionOpen, setProfileSectionOpen] = useState(false);
+  const [profileSectionData, setProfileSectionData] = useState<ProfileResponse | null>(null);
+  const [profileSectionLoading, setProfileSectionLoading] = useState(false);
+
+  const [rulesSectionOpen, setRulesSectionOpen] = useState(false);
+
+  const [alertDashboardOpen, setAlertDashboardOpen] = useState(false);
+  const [alertScreenResult, setAlertScreenResult] = useState<SafetyAlertScreenResponse | null>(null);
+  const [alertScreenLoading, setAlertScreenLoading] = useState(false);
+
+  const [diagSectionOpen, setDiagSectionOpen] = useState(false);
+  const [diagCrossPipeline, setDiagCrossPipeline] = useState<CrossPipelineResponse | null>(null);
+  const [diagRoundTrip, setDiagRoundTrip] = useState<RoundTripResponse | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
 
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
@@ -695,6 +717,42 @@ export function SingleValidationPage() {
   // Current issues to display based on active tab/operation
   const validationIssues = result?.issues || [];
   const alertIssues = alertResult?.alerts || [];
+
+  // Lazy-load: Compound Profile on first expand
+  useEffect(() => {
+    if (profileSectionOpen && !profileSectionData && !profileSectionLoading && canonicalSmiles) {
+      setProfileSectionLoading(true);
+      axios.post<ProfileResponse>('/api/v1/profiler/full', { smiles: canonicalSmiles })
+        .then(({ data }) => setProfileSectionData(data))
+        .catch(() => setProfileSectionData(null))
+        .finally(() => setProfileSectionLoading(false));
+    }
+  }, [profileSectionOpen, profileSectionData, profileSectionLoading, canonicalSmiles]);
+
+  // Lazy-load: Alert Dashboard on first expand
+  useEffect(() => {
+    if (alertDashboardOpen && !alertScreenResult && !alertScreenLoading && canonicalSmiles) {
+      setAlertScreenLoading(true);
+      safetyApi.screen(canonicalSmiles)
+        .then(data => setAlertScreenResult(data))
+        .catch(() => setAlertScreenResult(null))
+        .finally(() => setAlertScreenLoading(false));
+    }
+  }, [alertDashboardOpen, alertScreenResult, alertScreenLoading, canonicalSmiles]);
+
+  // Lazy-load: Diagnostics on first expand
+  useEffect(() => {
+    if (diagSectionOpen && !diagCrossPipeline && !diagLoading && canonicalSmiles) {
+      setDiagLoading(true);
+      Promise.all([
+        diagnosticsApi.crossPipeline(canonicalSmiles),
+        diagnosticsApi.roundtrip(canonicalSmiles),
+      ])
+        .then(([cp, rt]) => { setDiagCrossPipeline(cp); setDiagRoundTrip(rt); })
+        .catch(() => { setDiagCrossPipeline(null); setDiagRoundTrip(null); })
+        .finally(() => setDiagLoading(false));
+    }
+  }, [diagSectionOpen, diagCrossPipeline, diagLoading, canonicalSmiles]);
 
   const handleDownloadImage = useCallback(() => {
     const svgEl = previewRef.current?.querySelector('svg');
@@ -2122,6 +2180,219 @@ export function SingleValidationPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ===== 4 COLLAPSIBLE SECTIONS (UI-UX Guide) ===== */}
+      {canonicalSmiles && result && (
+        <div className="space-y-3 mt-4">
+
+          {/* Section 1: Compound Profile */}
+          <div className="card overflow-hidden">
+            <button
+              onClick={() => setProfileSectionOpen(prev => !prev)}
+              className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-chem-primary-600" />
+                <span className="font-medium text-sm">Compound Profile</span>
+              </div>
+              <ChevronDown className={cn("w-4 h-4 transition-transform", profileSectionOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {profileSectionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    {profileSectionLoading ? (
+                      <div className="flex justify-center py-6"><MoleculeLoader size="sm" /></div>
+                    ) : profileSectionData ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">PFI</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.pfi.pfi.toFixed(1)}</p>
+                          <p className={cn("text-[10px] mt-0.5", profileSectionData.pfi.risk === 'low' ? 'text-emerald-600' : profileSectionData.pfi.risk === 'moderate' ? 'text-amber-600' : 'text-rose-600')}>{profileSectionData.pfi.risk}</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">#Stars</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.stars.stars}</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">{profileSectionData.stars.details.length} properties checked</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">Abbott</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.abbott.probability_pct}%</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">oral bioavailability</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">CNS MPO</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.cns_mpo.score.toFixed(1)}/{profileSectionData.cns_mpo.max_score}</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">CNS penetration</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">Consensus LogP</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.consensus_logp.consensus_logp.toFixed(2)}</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">WC + XLOGP3</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">SA Score</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.sa_comparison.sa_score.score.toFixed(1)}</p>
+                          <p className={cn("text-[10px] mt-0.5", profileSectionData.sa_comparison.sa_score.classification === 'easy' ? 'text-emerald-600' : profileSectionData.sa_comparison.sa_score.classification === 'moderate' ? 'text-amber-600' : 'text-rose-600')}>{profileSectionData.sa_comparison.sa_score.classification}</p>
+                        </div>
+                        <div className="clay-card-sm p-3 text-center">
+                          <p className="text-xs font-semibold text-text-secondary">Skin Perm.</p>
+                          <p className="text-xl font-bold tabular-nums mt-1">{profileSectionData.skin_permeation.log_kp.toFixed(2)}</p>
+                          <p className={cn("text-[10px] mt-0.5", profileSectionData.skin_permeation.classification === 'low' ? 'text-emerald-600' : profileSectionData.skin_permeation.classification === 'moderate' ? 'text-amber-600' : 'text-rose-600')}>{profileSectionData.skin_permeation.classification}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-text-muted py-2">Could not load profile data</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 2: Drug-Likeness Rules */}
+          <div className="card overflow-hidden">
+            <button
+              onClick={() => setRulesSectionOpen(prev => !prev)}
+              className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-chem-primary-600" />
+                <span className="font-medium text-sm">Drug-Likeness Rules</span>
+              </div>
+              <ChevronDown className={cn("w-4 h-4 transition-transform", rulesSectionOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {rulesSectionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    {scoringResult?.druglikeness ? (
+                      <DrugLikenessGrid druglikeness={scoringResult.druglikeness as unknown as Record<string, unknown>} />
+                    ) : (
+                      <p className="text-sm text-text-muted py-2">Run validation first to see drug-likeness rules</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 3: Structural Alerts Dashboard */}
+          <div className="card overflow-hidden">
+            <button
+              onClick={() => setAlertDashboardOpen(prev => !prev)}
+              className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-chem-primary-600" />
+                <span className="font-medium text-sm">Structural Alerts</span>
+              </div>
+              <ChevronDown className={cn("w-4 h-4 transition-transform", alertDashboardOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {alertDashboardOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    {alertScreenLoading ? (
+                      <div className="flex justify-center py-6"><MoleculeLoader size="sm" /></div>
+                    ) : alertScreenResult ? (
+                      <AlertDashboard
+                        alertResult={alertScreenResult}
+                        onHighlightAtoms={() => {}}
+                        highlightedAlert={null}
+                      />
+                    ) : (
+                      <p className="text-sm text-text-muted py-2">Could not load alert data</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 4: Standardization & Diagnostics */}
+          <div className="card overflow-hidden">
+            <button
+              onClick={() => setDiagSectionOpen(prev => !prev)}
+              className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <GitCompareArrows className="w-4 h-4 text-chem-primary-600" />
+                <span className="font-medium text-sm">Standardization & Diagnostics</span>
+              </div>
+              <ChevronDown className={cn("w-4 h-4 transition-transform", diagSectionOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {diagSectionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    {diagLoading ? (
+                      <div className="flex justify-center py-6"><MoleculeLoader size="sm" /></div>
+                    ) : diagCrossPipeline ? (
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Pipeline Comparison</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {diagCrossPipeline.pipelines.map((p) => (
+                              <div key={p.name} className="p-2 rounded bg-[var(--color-surface-sunken)] text-xs">
+                                <div className="font-medium">{p.name}</div>
+                                <div className="font-mono text-text-muted truncate">{p.smiles}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {!diagCrossPipeline.all_agree && (
+                            <p className="text-xs text-amber-600 mt-1">{diagCrossPipeline.disagreements} disagreement(s) found</p>
+                          )}
+                          {diagCrossPipeline.all_agree && (
+                            <p className="text-xs text-emerald-600 mt-1">All pipelines agree</p>
+                          )}
+                        </div>
+                        {diagRoundTrip && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Format Round-Trip</h4>
+                            <div className="text-xs">
+                              {diagRoundTrip.error ? (
+                                <span className="text-rose-600">Error: {diagRoundTrip.error}</span>
+                              ) : diagRoundTrip.lossy ? (
+                                <span className="text-amber-600">Lossy: {diagRoundTrip.losses.map(l => l.type).join(', ')}</span>
+                              ) : (
+                                <span className="text-emerald-600">Lossless round-trip</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-text-muted py-2">Could not load diagnostics data</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+        </div>
+      )}
 
       {/* Share URL Toast */}
       <AnimatePresence>
