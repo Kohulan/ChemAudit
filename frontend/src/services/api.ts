@@ -731,6 +731,21 @@ export const batchApi = {
   },
 
   /**
+   * Compute Maximum Common Substructure between two molecules in a batch job.
+   */
+  computeMCS: async (
+    jobId: string,
+    indexA: number,
+    indexB: number
+  ): Promise<import('../types/analytics').MCSComparisonResult> => {
+    const response = await api.post<import('../types/analytics').MCSComparisonResult>(
+      `/batch/${jobId}/analytics/mcs`,
+      { index_a: indexA, index_b: indexB }
+    );
+    return response.data;
+  },
+
+  /**
    * Detect columns in a CSV file for SMILES selection (server-side fallback).
    */
   detectColumns: async (file: File): Promise<CSVColumnsResponse> => {

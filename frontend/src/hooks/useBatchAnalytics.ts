@@ -120,6 +120,7 @@ function mergeAnalyticsData(
     similarity_matrix: next.similarity_matrix ?? prev.similarity_matrix,
     mmp: next.mmp ?? prev.mmp,
     statistics: next.statistics ?? prev.statistics,
+    clustering: next.clustering ?? prev.clustering,
   };
 }
 

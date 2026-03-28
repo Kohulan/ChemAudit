@@ -25,6 +25,7 @@ import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
 import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
+import { ClusteringTab } from './ClusteringTab';
 import { ClayButton } from '../ui/ClayButton';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
@@ -50,7 +51,7 @@ interface BatchAnalyticsPanelProps {
   activeAlertFilter?: string | null;
 }
 
-const TABS = ['Distributions', 'Chemical Space'] as const;
+const TABS = ['Distributions', 'Chemical Space', 'Clustering'] as const;
 type TabName = (typeof TABS)[number];
 
 function ChartSkeleton() {
@@ -676,6 +677,22 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 />
               )}
             </ChartCard>
+          </motion.div>
+        )}
+
+        {activeTab === 'Clustering' && (
+          <motion.div
+            key="clustering"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ClusteringTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
           </motion.div>
         )}
       </AnimatePresence>

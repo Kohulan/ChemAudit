@@ -146,6 +146,47 @@ export interface StatisticsResult {
 }
 
 // ---------------------------------------------------------------------------
+// Clustering
+// ---------------------------------------------------------------------------
+
+export interface ClusterInfo {
+  cluster_id: number;
+  size: number;
+  representative_index: number;
+  member_indices: number[];
+}
+
+export interface ClusteringResult {
+  clusters: ClusterInfo[];
+  cluster_count: number;
+  singleton_count: number;
+  largest_cluster_size: number;
+  distance_cutoff: number;
+}
+
+// ---------------------------------------------------------------------------
+// MCS Comparison
+// ---------------------------------------------------------------------------
+
+export interface MCSPropertyDelta {
+  property: string;
+  mol_a: number;
+  mol_b: number;
+  delta: number;
+}
+
+export interface MCSComparisonResult {
+  mcs_smarts: string;
+  num_atoms: number;
+  num_bonds: number;
+  timed_out: boolean;
+  tanimoto: number;
+  property_deltas: MCSPropertyDelta[];
+  smiles_a: string;
+  smiles_b: string;
+}
+
+// ---------------------------------------------------------------------------
 // Top-level response schemas
 // ---------------------------------------------------------------------------
 
@@ -158,6 +199,7 @@ export interface BatchAnalyticsResponse {
   similarity_matrix?: SimilarityMatrixResult;
   mmp?: MMPResult;
   statistics?: StatisticsResult;
+  clustering?: ClusteringResult;
 }
 
 export interface AnalyticsTriggerResponse {
