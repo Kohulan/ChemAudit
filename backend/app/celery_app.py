@@ -18,6 +18,8 @@ celery_app = Celery(
     include=[
         "app.services.batch.tasks",
         "app.services.batch.analytics_tasks",
+        "app.services.batch.qsar_tasks",
+        "app.services.genchem.batch_processor",
         "app.services.notifications.webhook",
         "app.services.notifications.email",
         "app.services.session.cleanup",
