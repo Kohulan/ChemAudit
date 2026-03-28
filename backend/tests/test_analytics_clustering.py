@@ -53,7 +53,12 @@ class TestButinaClustering:
             assert cluster["size"] == len(cluster["member_indices"])
 
     def test_butina_cutoff_variation(self):
-        """Loose cutoff (0.2) produces fewer clusters than strict cutoff (0.6)."""
+        """Strict cutoff (0.2) produces more clusters than loose cutoff (0.6).
+
+        In Butina, distThresh is a distance threshold: higher threshold means
+        more molecule pairs are within-threshold, forming larger clusters.
+        So strict (small cutoff) -> more clusters, loose (large cutoff) -> fewer.
+        """
         from app.services.analytics.clustering import compute_butina_clustering
 
         results = [
@@ -63,12 +68,12 @@ class TestButinaClustering:
             _make_result("c1ccc(F)cc1C(=O)O", 3),
             _make_result("c1ccc(Cl)cc1C(=O)O", 4),
         ]
-        # Loose distance cutoff -> more molecules per cluster -> fewer clusters
-        loose = compute_butina_clustering(results, distance_cutoff=0.2)
-        # Strict distance cutoff -> fewer molecules per cluster -> more clusters
-        strict = compute_butina_clustering(results, distance_cutoff=0.6)
+        # Strict distance cutoff -> molecules must be very similar -> more clusters
+        strict = compute_butina_clustering(results, distance_cutoff=0.2)
+        # Loose distance cutoff -> tolerates greater dissimilarity -> fewer clusters
+        loose = compute_butina_clustering(results, distance_cutoff=0.6)
 
-        assert loose["cluster_count"] <= strict["cluster_count"]
+        assert strict["cluster_count"] >= loose["cluster_count"]
 
     def test_butina_invalid_smiles_skipped(self):
         """Invalid SMILES are excluded from clustering; valid_indices maps back to originals."""
