@@ -125,7 +125,7 @@ export function ClusterTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
-            {paged.map((cluster, rowIndex) => {
+            {paged.map((cluster) => {
               const isExpanded = expandedClusterId === cluster.cluster_id;
               const repMol = resultMap.get(cluster.representative_index);
               const repSmiles =

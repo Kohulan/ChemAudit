@@ -107,7 +107,6 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
   mcsError,
   onClose,
   onRemoveMolecule,
-  datasetStats,
 }: MCSComparisonPanelProps) {
   return (
     <AnimatePresence>
