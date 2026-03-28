@@ -19,6 +19,7 @@ from app.api.routes import (
     batch,
     bookmarks,
     config,
+    dataset_intelligence,
     diagnostics,
     export,
     genchem,
@@ -305,6 +306,9 @@ app.include_router(safety.router, prefix="/api/v1", tags=["safety"])
 app.include_router(diagnostics.router, prefix="/api/v1", tags=["diagnostics"])
 app.include_router(qsar_ready.router, prefix="/api/v1", tags=["qsar-ready"])
 app.include_router(genchem.router, prefix="/api/v1", tags=["genchem"])
+app.include_router(
+    dataset_intelligence.router, prefix="/api/v1", tags=["dataset-intelligence"]
+)
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
@@ -547,6 +551,65 @@ async def genchem_progress_websocket(websocket: WebSocket, job_id: str):
     finally:
         manager.disconnect(job_id, websocket)
         _ws_genchem_connections[job_id] = max(0, _ws_genchem_connections.get(job_id, 1) - 1)
+
+
+_ws_dataset_connections: dict[str, int] = {}
+
+
+@app.websocket("/ws/dataset/{job_id}")
+async def dataset_progress_websocket(websocket: WebSocket, job_id: str):
+    """
+    WebSocket endpoint for real-time dataset audit progress updates.
+
+    Connect to /ws/dataset/{job_id} after uploading a file to receive
+    progress updates in real-time from the ``dataset:{job_id}`` Redis channel.
+
+    Uses the ``dataset:{job_id}`` channel prefix to avoid collision with
+    ``batch:{job_id}``, ``qsar:{job_id}``, and ``genchem:{job_id}`` channels.
+
+    Message format:
+    {
+        "job_id": "...",
+        "status": "processing|complete|error",
+        "progress": 0-100,
+        "current_stage": "stage_name|null"
+    }
+    """
+    # Validate job_id format before accepting
+    if not _UUID_RE.match(job_id):
+        await websocket.close(code=1008, reason="Invalid job ID format")
+        return
+
+    # Connect (calls websocket.accept()) and subscribe to Redis channel
+    connected = await manager.connect(job_id, websocket)
+    if not connected:
+        return
+
+    # Post-accept validation: enforce per-job connection limit
+    current = _ws_dataset_connections.get(job_id, 0)
+    if current >= _WS_MAX_PER_JOB:
+        await websocket.close(code=4029, reason="Too many connections for this job")
+        return
+
+    _ws_dataset_connections[job_id] = current + 1
+
+    # Send initial status after subscription is ready
+    await manager.send_initial_status(job_id, websocket)
+
+    try:
+        # Keep connection alive, waiting for close
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                break
+    finally:
+        manager.disconnect(job_id, websocket)
+        _ws_dataset_connections[job_id] = max(
+            0, _ws_dataset_connections.get(job_id, 1) - 1
+        )
 
 
 @app.get("/")
