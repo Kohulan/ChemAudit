@@ -146,6 +146,57 @@ export interface StatisticsResult {
 }
 
 // ---------------------------------------------------------------------------
+// Taxonomy (ClassyFire-style chemotype classification)
+// ---------------------------------------------------------------------------
+
+export interface TaxonomyCategory {
+  name: string;
+  category: string;
+  description: string;
+}
+
+export interface TaxonomyMoleculeResult {
+  index: number;
+  smiles: string;
+  categories: TaxonomyCategory[];
+}
+
+export interface TaxonomyResult {
+  per_molecule: TaxonomyMoleculeResult[];
+  category_counts: Record<string, number>;
+  total_molecules: number;
+  classified_molecules: number;
+  unclassified_molecules: number;
+}
+
+// ---------------------------------------------------------------------------
+// Registration Hash
+// ---------------------------------------------------------------------------
+
+export interface RegistrationHashMolecule {
+  index: number;
+  smiles: string;
+  hash: string;
+  canonical_smiles: string;
+  formula: string;
+}
+
+export interface RegistrationHashCollisionGroup {
+  hash: string;
+  molecule_indices: number[];
+  count: number;
+}
+
+export interface RegistrationHashResult {
+  per_molecule: RegistrationHashMolecule[];
+  unique_count: number;
+  total_count: number;
+  collision_groups: RegistrationHashCollisionGroup[];
+  rdkit_version: string;
+  tautomer_hash_v2: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Top-level response schemas
 // ---------------------------------------------------------------------------
 
@@ -158,6 +209,8 @@ export interface BatchAnalyticsResponse {
   similarity_matrix?: SimilarityMatrixResult;
   mmp?: MMPResult;
   statistics?: StatisticsResult;
+  taxonomy?: TaxonomyResult;
+  registration?: RegistrationHashResult;
 }
 
 export interface AnalyticsTriggerResponse {
