@@ -1082,7 +1082,6 @@ export interface InlineScoreResponse {
   molecules: InlineScoredMolecule[];
 }
 
-<<<<<<< HEAD
 // ============================================================================
 // Safety API (Phase 08: Enhanced Structural Alerts & Safety)
 // ============================================================================
