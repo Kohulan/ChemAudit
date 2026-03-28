@@ -117,7 +117,8 @@ import type {
 } from '../types/integrations';
 import type {
   BatchAnalyticsResponse,
-  AnalyticsTriggerResponse
+  AnalyticsTriggerResponse,
+  MCSComparisonResult
 } from '../types/analytics';
 import type {
   ScoringProfile,
@@ -742,6 +743,22 @@ export const batchApi = {
     const response = await api.post<AnalyticsTriggerResponse>(
       `/batch/${jobId}/analytics/${analysisType}`,
       params || {}
+    );
+    return response.data;
+  },
+
+  /**
+   * Compute MCS comparison between two molecules from a batch.
+   * Runs synchronously (timeout=10s max).
+   */
+  computeMCS: async (
+    jobId: string,
+    indexA: number,
+    indexB: number
+  ): Promise<MCSComparisonResult> => {
+    const response = await api.post<MCSComparisonResult>(
+      `/batch/${jobId}/mcs`,
+      { index_a: indexA, index_b: indexB }
     );
     return response.data;
   },
