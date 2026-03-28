@@ -13,6 +13,9 @@ import { IssueTreemap } from '../components/dataset-audit/IssueTreemap';
 import { TreemapDrillDown } from '../components/dataset-audit/TreemapDrillDown';
 import { PropertyDistOverlay } from '../components/dataset-audit/PropertyDistOverlay';
 import { StdConsistencyPanel } from '../components/dataset-audit/StdConsistencyPanel';
+import { ContradictoryLabelsTab } from '../components/dataset-audit/ContradictoryLabelsTab';
+import { DatasetDiffTab } from '../components/dataset-audit/DatasetDiffTab';
+import { CurationReportTab } from '../components/dataset-audit/CurationReportTab';
 import { cn } from '../lib/utils';
 
 // =============================================================================
@@ -33,16 +36,20 @@ const TABS: Array<{ id: DatasetAuditTab; label: string; icon: typeof Database }>
 /**
  * Dataset Audit page -- /dataset-audit
  *
- * Phase 12 Plan 03 (skeleton) + Plan 04 (Health Audit tab):
+ * Phase 12 Plans 03-05 (complete):
  * 1. Page heading + subtitle
  * 2. DatasetUploadZone (sticky above tabs)
  * 3. DatasetProgressBar (shown during processing)
  * 4. 4-tab layout: Health Audit, Contradictory Labels, Dataset Diff, Curation Report
- * 5. Health Audit tab: 7 components (gauge, sub-scores, weights, treemap, drill-down,
- *    property distributions, std consistency panel)
+ * 5. Health Audit tab (Plan 04): 7 components (gauge, sub-scores, weights, treemap,
+ *    drill-down, property distributions, std consistency panel)
+ * 6. Contradictory Labels tab (Plan 05): activity column selector, fold-threshold filter,
+ *    paginated contradiction cards with 2D structures
+ * 7. Dataset Diff tab (Plan 05): comparison file upload, summary badges, filterable
+ *    molecule table with expandable modified rows
+ * 8. Curation Report tab (Plan 05): collapsible preview sections, JSON + CSV downloads
  *
- * Both hooks wired at top level so Plan 05 can add tab content
- * components without prop drilling restructuring.
+ * Both hooks wired at top level for all tab content components.
  */
 export default function DatasetAudit() {
   const [activeTab, setActiveTab] = useState<DatasetAuditTab>('health');
@@ -268,21 +275,38 @@ export default function DatasetAudit() {
             </div>
           )}
 
-          {/* Other tabs (Plan 05 will replace placeholders) */}
+          {/* ================================================================
+              Contradictory Labels Tab (Plan 05)
+              ================================================================ */}
           {isComplete && activeTab === 'contradictions' && (
-            <div className="min-h-[200px]">
-              <PlaceholderTab label="Contradictory Labels results will appear here" />
-            </div>
+            <ContradictoryLabelsTab
+              contradictions={auditState.results?.contradictions ?? []}
+              numericColumns={auditState.results?.numeric_columns ?? []}
+            />
           )}
+
+          {/* ================================================================
+              Dataset Diff Tab (Plan 05)
+              ================================================================ */}
           {isComplete && activeTab === 'diff' && (
-            <div className="min-h-[200px]">
-              <PlaceholderTab label="Dataset Diff tool will appear here" />
-            </div>
+            <DatasetDiffTab
+              diffResults={auditState.diffResults}
+              diffLoading={auditState.diffLoading}
+              diffError={auditState.diffError}
+              onUploadDiffFile={auditState.uploadDiffFile}
+              primaryJobId={auditState.jobId}
+            />
           )}
+
+          {/* ================================================================
+              Curation Report Tab (Plan 05)
+              ================================================================ */}
           {isComplete && activeTab === 'report' && (
-            <div className="min-h-[200px]">
-              <PlaceholderTab label="Curation Report will appear here" />
-            </div>
+            <CurationReportTab
+              report={auditState.results?.curation_report ?? null}
+              jobId={auditState.jobId}
+              curatedCsvAvailable={auditState.results?.curated_csv_available ?? false}
+            />
           )}
         </motion.div>
       </AnimatePresence>
@@ -313,7 +337,7 @@ function EmptyState() {
 }
 
 // =============================================================================
-// Placeholder tab content (Plan 05 will replace these)
+// Placeholder (used for health tab no-data fallback only)
 // =============================================================================
 
 function PlaceholderTab({ label }: { label: string }) {
