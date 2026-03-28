@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Database, AlertTriangle, GitCompare, FileText } from 'lucide-react';
 import type { DatasetAuditTab } from '../types/dataset_intelligence';
@@ -6,6 +6,13 @@ import { useDatasetAudit } from '../hooks/useDatasetAudit';
 import { useDatasetWeights } from '../hooks/useDatasetWeights';
 import { DatasetUploadZone } from '../components/dataset-audit/DatasetUploadZone';
 import { DatasetProgressBar } from '../components/dataset-audit/DatasetProgressBar';
+import { HealthScoreGauge } from '../components/dataset-audit/HealthScoreGauge';
+import { SubScoreCards } from '../components/dataset-audit/SubScoreCards';
+import { WeightSliders } from '../components/dataset-audit/WeightSliders';
+import { IssueTreemap } from '../components/dataset-audit/IssueTreemap';
+import { TreemapDrillDown } from '../components/dataset-audit/TreemapDrillDown';
+import { PropertyDistOverlay } from '../components/dataset-audit/PropertyDistOverlay';
+import { StdConsistencyPanel } from '../components/dataset-audit/StdConsistencyPanel';
 import { cn } from '../lib/utils';
 
 // =============================================================================
@@ -26,25 +33,27 @@ const TABS: Array<{ id: DatasetAuditTab; label: string; icon: typeof Database }>
 /**
  * Dataset Audit page -- /dataset-audit
  *
- * Phase 12 Plan 03:
+ * Phase 12 Plan 03 (skeleton) + Plan 04 (Health Audit tab):
  * 1. Page heading + subtitle
  * 2. DatasetUploadZone (sticky above tabs)
  * 3. DatasetProgressBar (shown during processing)
  * 4. 4-tab layout: Health Audit, Contradictory Labels, Dataset Diff, Curation Report
- * 5. Empty states before upload; placeholder divs after upload for Plan 04/05
+ * 5. Health Audit tab: 7 components (gauge, sub-scores, weights, treemap, drill-down,
+ *    property distributions, std consistency panel)
  *
- * Both hooks wired at top level so Plan 04/05 can add tab content
+ * Both hooks wired at top level so Plan 05 can add tab content
  * components without prop drilling restructuring.
  */
 export default function DatasetAudit() {
   const [activeTab, setActiveTab] = useState<DatasetAuditTab>('health');
+  const [selectedIssueType, setSelectedIssueType] = useState<string | null>(null);
 
   // Wire both hooks at page top level
   const auditState = useDatasetAudit();
   const weightState = useDatasetWeights();
 
-  // Suppress unused variable warnings for Plan 04/05
-  void weightState;
+  // Ref for scrolling to treemap on sub-score card click
+  const treemapRef = useRef<HTMLDivElement>(null);
 
   // Handle file selection: reset + upload
   const handleFileSelect = useCallback(
@@ -57,7 +66,38 @@ export default function DatasetAudit() {
     [auditState],
   );
 
+  // Handle sub-score card click: scroll to treemap and highlight matching category
+  const handleSubScoreCardClick = useCallback((name: string) => {
+    // Map sub-score name to closest issue type category for highlighting
+    const nameToCategory: Record<string, string> = {
+      parsability: 'Parse failures',
+      stereo: 'Undefined stereo',
+      uniqueness: 'Duplicates',
+      alerts: 'Alert hits',
+      std_consistency: 'Std. inconsistency',
+    };
+    const category = nameToCategory[name] ?? null;
+    setSelectedIssueType(category);
+    // Scroll treemap into view
+    treemapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  // Handle treemap cell click: toggle drill-down
+  const handleTreemapCellClick = useCallback((issueType: string) => {
+    setSelectedIssueType((prev) => {
+      // Empty string from toggle = clear selection
+      if (!issueType) return null;
+      return prev === issueType ? null : issueType;
+    });
+  }, []);
+
   const isComplete = auditState.status === 'complete';
+  const healthAudit = auditState.results?.health_audit ?? null;
+
+  // Compute overall score using current weights
+  const overallScore = healthAudit
+    ? weightState.computeOverallScore(healthAudit.sub_scores)
+    : 0;
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 pt-16 pb-16">
@@ -164,28 +204,83 @@ export default function DatasetAudit() {
             <EmptyState />
           )}
 
-          {/* After upload complete: tab-specific content */}
-          {isComplete && activeTab === 'health' && (
-            <div className="min-h-[200px]">
-              {/* Plan 04: HealthAuditTab content */}
-              <PlaceholderTab label="Health Audit results will appear here" />
+          {/* ================================================================
+              Health Audit Tab (Plan 04)
+              ================================================================ */}
+          {isComplete && activeTab === 'health' && healthAudit && (
+            <div className="min-h-[200px] space-y-8">
+              {/* Row 1: Health Score Gauge (centered) */}
+              <div className="flex justify-center">
+                <HealthScoreGauge score={overallScore} />
+              </div>
+
+              {/* Row 2: Sub-Score Cards (5 cards) */}
+              <SubScoreCards
+                subScores={healthAudit.sub_scores}
+                onCardClick={handleSubScoreCardClick}
+              />
+
+              {/* Row 3: Weight Sliders (30%) + Issue Treemap (70%) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                  <WeightSliders
+                    weights={weightState.weights}
+                    activeProfileId={weightState.activeProfileId}
+                    savedProfiles={weightState.savedProfiles}
+                    onUpdateWeight={weightState.updateWeight}
+                    onSaveProfile={weightState.saveProfile}
+                    onDeleteProfile={weightState.deleteProfile}
+                    onLoadProfile={weightState.loadProfile}
+                    onResetToDefaults={weightState.resetToDefaults}
+                  />
+                </div>
+                <div className="lg:col-span-2" ref={treemapRef}>
+                  <IssueTreemap
+                    issues={healthAudit.issues}
+                    onCellClick={handleTreemapCellClick}
+                    selectedIssueType={selectedIssueType}
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Treemap Drill-Down (full width, expandable) */}
+              <TreemapDrillDown
+                issueType={selectedIssueType}
+                issues={healthAudit.issues}
+                isOpen={!!selectedIssueType}
+              />
+
+              {/* Row 5: Property Distribution Overlay (3 histograms) */}
+              <PropertyDistOverlay distributions={healthAudit.property_distributions} />
+
+              {/* Row 6: Standardization Consistency Panel (full width) */}
+              <StdConsistencyPanel
+                comparison={healthAudit.std_pipeline_comparison}
+                sampleSize={healthAudit.std_sample_size}
+              />
             </div>
           )}
+
+          {/* Health tab with no health_audit data */}
+          {isComplete && activeTab === 'health' && !healthAudit && (
+            <div className="min-h-[200px]">
+              <PlaceholderTab label="Health audit data is not available for this dataset." />
+            </div>
+          )}
+
+          {/* Other tabs (Plan 05 will replace placeholders) */}
           {isComplete && activeTab === 'contradictions' && (
             <div className="min-h-[200px]">
-              {/* Plan 05: ContradictoryLabelsTab */}
               <PlaceholderTab label="Contradictory Labels results will appear here" />
             </div>
           )}
           {isComplete && activeTab === 'diff' && (
             <div className="min-h-[200px]">
-              {/* Plan 05: DatasetDiffTab */}
               <PlaceholderTab label="Dataset Diff tool will appear here" />
             </div>
           )}
           {isComplete && activeTab === 'report' && (
             <div className="min-h-[200px]">
-              {/* Plan 05: CurationReportTab */}
               <PlaceholderTab label="Curation Report will appear here" />
             </div>
           )}
@@ -218,7 +313,7 @@ function EmptyState() {
 }
 
 // =============================================================================
-// Placeholder tab content (Plan 04/05 will replace these)
+// Placeholder tab content (Plan 05 will replace these)
 // =============================================================================
 
 function PlaceholderTab({ label }: { label: string }) {
