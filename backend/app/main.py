@@ -51,6 +51,7 @@ from app.core.rate_limit import (
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
 from app.websockets import manager
+from fastapi_mcp import FastApiMCP
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,33 @@ EXPECTED_DEEP_VALIDATION_CHECKS = {
     "charged_species",  # DVAL-16
     "explicit_hydrogen_audit",  # DVAL-17
 }
+
+# =============================================================================
+# MCP Server Configuration (D-01/D-02 from Phase 14)
+# =============================================================================
+# Tags exposed via MCP -- allowlist approach (D-01).
+# Excluded tags (D-02): api-keys, config, session, bookmarks, permalinks, history
+MCP_INCLUDE_TAGS = [
+    "health",
+    "validation",
+    "alerts",
+    "standardization",
+    "scoring",
+    "batch",
+    "export",
+    "integrations",
+    "resolve",
+    "profiles",
+    "profiler",
+    "safety",
+    "diagnostics",
+    "qsar-ready",
+    "genchem",
+    "dataset-intelligence",
+]
+
+# Tags that must NEVER appear in MCP_INCLUDE_TAGS (D-03 safety check)
+_MCP_EXCLUDED_TAGS = {"api-keys", "config", "session", "bookmarks", "permalinks", "history"}
 
 # Conditional Prometheus imports
 if settings.ENABLE_METRICS:
@@ -113,6 +141,17 @@ async def lifespan(app: FastAPI):
             "Startup check passed: all %d deep validation checks registered.",
             len(EXPECTED_DEEP_VALIDATION_CHECKS),
         )
+
+    # MCP safety assertion (D-03): verify no admin tags leaked into MCP include list
+    leaked_tags = set(MCP_INCLUDE_TAGS) & _MCP_EXCLUDED_TAGS
+    if leaked_tags:
+        raise RuntimeError(
+            f"MCP SECURITY: admin tags leaked into include list: {leaked_tags}"
+        )
+    logger.info(
+        "MCP startup assertion passed: %d tags exposed, admin excluded",
+        len(MCP_INCLUDE_TAGS),
+    )
 
     # Initialize database tables and stamp Alembic for fresh databases
     try:
@@ -309,6 +348,19 @@ app.include_router(genchem.router, prefix="/api/v1", tags=["genchem"])
 app.include_router(
     dataset_intelligence.router, prefix="/api/v1", tags=["dataset-intelligence"]
 )
+
+# =============================================================================
+# MCP Server Mount (Phase 14 -- ECO-01)
+# =============================================================================
+mcp = FastApiMCP(
+    app,
+    name="ChemAudit MCP",
+    description="Chemical structure validation, scoring, standardization, and curation tools",
+    include_tags=MCP_INCLUDE_TAGS,
+    describe_all_responses=True,
+    describe_full_response_schema=True,
+)
+mcp.mount()  # Exposes at /mcp
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
