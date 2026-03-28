@@ -21,6 +21,7 @@ celery_app = Celery(
         "app.services.notifications.webhook",
         "app.services.notifications.email",
         "app.services.session.cleanup",
+        "app.services.dataset_intelligence.batch_processor",
     ],
 )
 
@@ -70,6 +71,10 @@ celery_app.conf.update(
             "queue": "default",
         },
         "app.services.batch.analytics_tasks.run_expensive_analytics": {
+            "queue": "default",
+        },
+        # Dataset intelligence audit
+        "app.services.dataset_intelligence.batch_processor.process_dataset_audit": {
             "queue": "default",
         },
     },
