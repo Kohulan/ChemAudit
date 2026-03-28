@@ -56,6 +56,7 @@ import { IdentifierResolverCard } from '../components/integrations/IdentifierRes
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { SafetyBadge } from '../components/safety/SafetyBadge';
 import { DiagnosticsBadge } from '../components/diagnostics/DiagnosticsBadge';
+import { ProfilerBadge } from '../components/profiler/ProfilerBadge';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -2085,6 +2086,13 @@ export function SingleValidationPage() {
       {canonicalSmiles && (
         <div className="mt-3">
           <DiagnosticsBadge smiles={canonicalSmiles} />
+        </div>
+      )}
+
+      {/* Profiler cross-link badge (D-24) — links to /profiler?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-3">
+          <ProfilerBadge smiles={canonicalSmiles} />
         </div>
       )}
 
