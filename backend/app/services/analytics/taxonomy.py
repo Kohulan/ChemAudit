@@ -117,7 +117,10 @@ def classify_batch(results: list[dict[str, Any]]) -> dict:
             {
                 "index": index,
                 "smiles": smiles,
-                "categories": [m["category"] for m in matches],
+                "categories": [
+                    {"name": m["name"], "category": m["category"], "description": m["description"]}
+                    for m in matches
+                ],
             }
         )
 
