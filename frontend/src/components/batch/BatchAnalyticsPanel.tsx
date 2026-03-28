@@ -25,6 +25,7 @@ import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
 import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
+import { ClusteringTab } from './ClusteringTab';
 import { ClayButton } from '../ui/ClayButton';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
@@ -697,11 +698,11 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Plan 04 will replace this with ClusteringTab */}
-            <div className="text-center py-12">
-              <p className="text-base font-semibold font-display text-[var(--color-text)]">No clustering results</p>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">Click &apos;Cluster&apos; to group molecules by structural similarity using the Butina algorithm.</p>
-            </div>
+            <ClusteringTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
           </motion.div>
         )}
 
