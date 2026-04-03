@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.3.0](https://github.com/Kohulan/ChemAudit/compare/v1.2.1...v1.3.0) (2026-03-05)
+
+
+### Features
+
+* add /integrations/compare endpoint ([01649c6](https://github.com/Kohulan/ChemAudit/commit/01649c6d0abb26ae140dbd9d299420b37ce80ad5))
+* add /resolve endpoint for universal identifier resolution ([d9aae97](https://github.com/Kohulan/ChemAudit/commit/d9aae97ff689e8d408eb73d4cc156560d895757c))
+* add cross-database comparator service ([0a2150e](https://github.com/Kohulan/ChemAudit/commit/0a2150e62741e8aabfce78e1a35f6921a7ede205))
+* add frontend types and API client methods for resolver and comparator ([d3769c2](https://github.com/Kohulan/ChemAudit/commit/d3769c2ee109936fc2ddbc29511a1ac91e37ad32))
+* add identifier type detection for universal resolver ([3eea6df](https://github.com/Kohulan/ChemAudit/commit/3eea6df216d7948fd68ec3687f38dd9ed78f5f43))
+* add IdentifierResolverCard and DatabaseComparisonPanel components ([0a0b4c6](https://github.com/Kohulan/ChemAudit/commit/0a0b4c65f52a6b2e95ffd03121d55caf21a2668d))
+* add UniChem client for cross-database ID mapping ([30e1541](https://github.com/Kohulan/ChemAudit/commit/30e154185f24fcb217b8976e07cb4837a09fbd8f))
+* add universal identifier resolver orchestrator ([b134055](https://github.com/Kohulan/ChemAudit/commit/b1340553d642bc5e94170fca6d7c96c07cc62f68))
+* add Wikidata and ChEBI clients for identifier resolution ([fa3e6fc](https://github.com/Kohulan/ChemAudit/commit/fa3e6fc46b161c7842bf001bd3c532d7db645b6c))
+* fix stereochemistry in cross-db comparison, add Wikidata support, update docs ([1bceb62](https://github.com/Kohulan/ChemAudit/commit/1bceb621c23b604f8c2a3296fc6065c212bac8ab))
+* include dois ([f71347f](https://github.com/Kohulan/ChemAudit/commit/f71347f485c1e16331c706a00c35edc17c77edf2))
+* include dois ([f1f3a23](https://github.com/Kohulan/ChemAudit/commit/f1f3a238ae48063fe3cf31042521109bc195d2c2))
+* integrate comparison panel into DatabaseLookup and resolver into SingleValidation ([69d7939](https://github.com/Kohulan/ChemAudit/commit/69d7939d68c272831aac0803687f92190cd79bae))
+* support multi-identifier input in single validation UI ([0f95466](https://github.com/Kohulan/ChemAudit/commit/0f95466071515ee16622eaae85bdf3d44b648bb3))
+
+
+### Bug Fixes
+
+* prevent cookie injection by never echoing user-supplied session IDs ([a0eed30](https://github.com/Kohulan/ChemAudit/commit/a0eed306bb53e6cf608d314bee7afa3423392e89))
+* prevent cookie injection by never echoing user-supplied session IDs ([1b0d07d](https://github.com/Kohulan/ChemAudit/commit/1b0d07d4c4ded874e7568f23447d5cad70625933))
+* resolve CodeQL security alerts for PR [#43](https://github.com/Kohulan/ChemAudit/issues/43) ([b55abbd](https://github.com/Kohulan/ChemAudit/commit/b55abbd991699f75d67d287b55887d18425f67f3))
+* security fixes ([f687aac](https://github.com/Kohulan/ChemAudit/commit/f687aac7fc1796b6a9016135af8b004b7ea5c428))
+* security fixes ([2e90988](https://github.com/Kohulan/ChemAudit/commit/2e90988f6c16b053a13403ab3213aee62e9e0c02))
+* use PBKDF2 for API key lookup hash (CodeQL-approved KDF) ([57fc32e](https://github.com/Kohulan/ChemAudit/commit/57fc32edabbd28b8333c2a149107f4720d7a2779))
+
 ## [1.2.1](https://github.com/Kohulan/ChemAudit/compare/v1.2.0...v1.2.1) (2026-02-27)
 
 
