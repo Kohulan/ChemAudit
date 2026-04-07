@@ -54,6 +54,15 @@ import type { StandardizeResponse, StandardizeError } from '../types/standardiza
 import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
+import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
+import { SafetyAccordion } from '../components/safety/SafetyAccordion';
+import { DiagnosticsAccordion } from '../components/diagnostics/DiagnosticsAccordion';
+import { DrillDownSection } from '../components/ui/DrillDownSection';
+import { FlaskConical, Shield, Stethoscope } from 'lucide-react';
+import { useProfiler } from '../hooks/useProfiler';
+import { useSafety } from '../hooks/useSafety';
+import { diagnosticsApi } from '../services/api';
+import type { CrossPipelineResponse, RoundTripResponse } from '../types/diagnostics';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -280,6 +289,32 @@ export function SingleValidationPage() {
   const { validate, result, error, isLoading, reset, restore } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
+
+  // Enrichment: Profiler hook
+  const {
+    profile: profileResult,
+    isLoading: profileLoading,
+    error: profileError,
+    profileCompound,
+  } = useProfiler();
+
+  // Enrichment: Safety hook
+  const {
+    alertResult: safetyAlertResult,
+    safetyResult: safetyAssessResult,
+    isLoading: safetyLoading,
+    alertError: safetyAlertError,
+    safetyError: safetyAssessError,
+    screenMolecule: screenSafety,
+  } = useSafety();
+
+  // Enrichment: Diagnostics state (lazy-loaded on accordion expand)
+  const [diagCrossPipeline, setDiagCrossPipeline] = useState<CrossPipelineResponse | null>(null);
+  const [diagRoundTrip, setDiagRoundTrip] = useState<RoundTripResponse | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+
+  // URL deep-link: ?section= param auto-expands a specific accordion
+  const sectionParam = searchParams.get('section');
 
   // Load molecule from URL on mount
   useEffect(() => {
@@ -540,6 +575,9 @@ export function SingleValidationPage() {
     setHighlightedAtoms([]);
     setHighlightLocked(false);
     setShowCIP(false);
+    // Reset enrichment state
+    setDiagCrossPipeline(null);
+    setDiagRoundTrip(null);
   };
 
   // Restore cached results on mount (from navigation cache or bookmark snapshot)
@@ -709,6 +747,38 @@ export function SingleValidationPage() {
     a.click();
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
+
+  // ── Enrichment accordion toggle handlers (lazy-load on expand) ──────────
+
+  const handleProfileToggle = useCallback((isOpen: boolean) => {
+    if (isOpen && !profileResult && !profileLoading && canonicalSmiles) {
+      profileCompound(canonicalSmiles);
+    }
+  }, [canonicalSmiles, profileResult, profileLoading, profileCompound]);
+
+  const handleSafetyToggle = useCallback((isOpen: boolean) => {
+    if (isOpen && !safetyAlertResult && !safetyAssessResult && !safetyLoading && canonicalSmiles) {
+      screenSafety(canonicalSmiles);
+    }
+  }, [canonicalSmiles, safetyAlertResult, safetyAssessResult, safetyLoading, screenSafety]);
+
+  const handleDiagnosticsToggle = useCallback((isOpen: boolean) => {
+    if (isOpen && !diagCrossPipeline && !diagLoading && canonicalSmiles) {
+      setDiagLoading(true);
+      Promise.all([
+        diagnosticsApi.crossPipeline(canonicalSmiles),
+        diagnosticsApi.roundtrip(canonicalSmiles),
+      ])
+        .then(([crossPipeline, roundTrip]) => {
+          setDiagCrossPipeline(crossPipeline);
+          setDiagRoundTrip(roundTrip);
+        })
+        .catch((e) => {
+          logger.error('Diagnostics fetch error:', e);
+        })
+        .finally(() => setDiagLoading(false));
+    }
+  }, [canonicalSmiles, diagCrossPipeline, diagLoading]);
 
   function getLoadingText(): string {
     if (isLoading) return 'Running validation checks...';
@@ -2086,6 +2156,60 @@ export function SingleValidationPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Enrichment Accordion Sections */}
+      {canonicalSmiles && (
+        <div className="space-y-3 mt-6">
+          <DrillDownSection
+            title="Compound Profile"
+            icon={<FlaskConical className="w-4 h-4" />}
+            summary={profileResult ? `PFI ${profileResult.pfi?.pfi ?? '\u2014'} | ${profileResult.stars?.stars ?? '\u2014'}\u2605 | SA ${profileResult.sa_comparison?.sa_score?.score ?? '\u2014'}` : undefined}
+            summaryLoading={profileLoading}
+            defaultOpen={sectionParam === 'profile'}
+            onToggle={handleProfileToggle}
+          >
+            <ProfilerAccordion
+              smiles={canonicalSmiles}
+              profile={profileResult}
+              isLoading={profileLoading}
+              error={profileError}
+            />
+          </DrillDownSection>
+
+          <DrillDownSection
+            title="Safety Assessment"
+            icon={<Shield className="w-4 h-4" />}
+            summary={safetyAlertResult ? `${safetyAlertResult.total_raw ?? 0} alerts` : undefined}
+            summaryLoading={safetyLoading}
+            defaultOpen={sectionParam === 'safety'}
+            onToggle={handleSafetyToggle}
+          >
+            <SafetyAccordion
+              smiles={canonicalSmiles}
+              alertResult={safetyAlertResult}
+              safetyResult={safetyAssessResult}
+              isLoading={safetyLoading}
+              error={safetyAlertError || safetyAssessError}
+            />
+          </DrillDownSection>
+
+          <DrillDownSection
+            title="Diagnostics"
+            icon={<Stethoscope className="w-4 h-4" />}
+            summary={diagCrossPipeline ? (diagCrossPipeline.disagreements > 0 ? `${diagCrossPipeline.disagreements} disagreement(s)` : 'All pipelines agree') : undefined}
+            summaryLoading={diagLoading}
+            defaultOpen={sectionParam === 'diagnostics'}
+            onToggle={handleDiagnosticsToggle}
+          >
+            <DiagnosticsAccordion
+              smiles={canonicalSmiles}
+              crossPipelineResult={diagCrossPipeline}
+              roundTripResult={diagRoundTrip}
+              isLoading={diagLoading}
+            />
+          </DrillDownSection>
+        </div>
+      )}
 
       {/* Share URL Toast */}
       <AnimatePresence>

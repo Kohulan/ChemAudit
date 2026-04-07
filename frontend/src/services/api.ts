@@ -1082,6 +1082,52 @@ export type {
 };
 
 // =============================================================================
+// Safety API (Phase 08: Enhanced Structural Alerts & Safety)
+// =============================================================================
+
+import type {
+  AlertScreenResponse as SafetyAlertScreenResponse,
+  SafetyAssessResponse,
+} from '../types/safety';
+
+/**
+ * Safety API client.
+ *
+ * Covers the Phase 08 endpoints:
+ * - POST /alerts/screen   — enhanced structural alert screening (with concern groups)
+ * - POST /safety/assess   — CYP soft-spots, hERG risk, bRo5, REOS, complexity
+ */
+export const safetyApi = {
+  /** Screen molecule for structural alerts with concern group categorisation. */
+  screen: async (smiles: string): Promise<SafetyAlertScreenResponse> => {
+    try {
+      const response = await api.post<SafetyAlertScreenResponse>('/alerts/screen', { smiles });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Alert screening failed' };
+      }
+      throw { error: 'Alert screening failed' };
+    }
+  },
+
+  /** Assess molecule safety: CYP soft-spots, hERG risk, bRo5, REOS, complexity. */
+  assess: async (smiles: string): Promise<SafetyAssessResponse> => {
+    try {
+      const response = await api.post<SafetyAssessResponse>('/safety/assess', { smiles });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety assessment failed' };
+      }
+      throw { error: 'Safety assessment failed' };
+    }
+  },
+};
+
+// =============================================================================
 // Diagnostics API (Phase 09: Structure Quality Diagnostics)
 // =============================================================================
 
