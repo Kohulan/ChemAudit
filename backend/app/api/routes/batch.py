@@ -102,6 +102,14 @@ async def upload_batch(
         default=None,
         description="Scoring profile ID for profile-based desirability scoring",
     ),
+    include_profiling: bool = Form(
+        default=False,
+        description="Compute compound profiling (PFI, stars, bioavailability, etc.) for each molecule",
+    ),
+    include_safety_assessment: bool = Form(
+        default=False,
+        description="Run safety assessment (CYP, hERG, bRo5, REOS, complexity) for each molecule",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -212,6 +220,8 @@ async def upload_batch(
         "include_extended": include_extended_safety,
         "include_chembl": include_chembl_alerts,
         "include_standardization": include_standardization,
+        "include_profiling": include_profiling,
+        "include_safety_assessment": include_safety_assessment,
     }
 
     # If profile selected, fetch thresholds and attach to safety_options
@@ -360,6 +370,8 @@ async def get_batch_results(
             alerts=r.get("alerts"),
             scoring=r.get("scoring"),
             standardization=r.get("standardization"),
+            profiling=r.get("profiling"),
+            safety_assessment=r.get("safety_assessment"),
         )
         for r in result_data.get("results", [])
     ]
