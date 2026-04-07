@@ -108,6 +108,27 @@ export interface BatchResult {
     excluded_fragments: string[];
     changed: boolean;
   } | null;
+
+  /** Compound profiling enrichment (PFI, stars, bioavailability, etc.) */
+  profiling?: {
+    pfi?: { pfi: number; clogp: number; aromatic_rings: number; risk: string };
+    stars?: { stars: number; details: Array<{ property: string; value: number; range_low: number; range_high: number; violated: boolean }> };
+    abbott?: { abbott_score: number; probability_pct: number; tpsa: number; lipinski_violations: number };
+    consensus_logp?: { consensus_logp: number };
+    skin_permeation?: { log_kp: number };
+    druglikeness?: { lipinski: { passed: boolean; violations: number }; qed: number; veber: { passed: boolean } };
+    error?: string;
+  } | null;
+
+  /** Safety assessment enrichment (CYP, hERG, bRo5, REOS, complexity) */
+  safety_assessment?: {
+    cyp_softspots?: Array<{ site_name: string; reaction_type: string; matched_atoms: number[] }>;
+    herg?: { herg_risk: string; risk_score: number; max_score: number; flags: string[]; descriptors: Record<string, number | boolean> };
+    bro5?: { applicable: boolean; passed: boolean; message?: string; violations: Array<{ property: string; value: number; threshold: number; direction: string }>; values: Record<string, number> };
+    reos?: { passed: boolean; violations: Array<{ property: string; value: number; range: string; exceeded: string }>; n_violations: number; descriptors: Record<string, number> };
+    complexity?: { properties: Record<string, { value: number; p5: number; p95: number; outlier: boolean; direction: string | null }>; n_outliers: number; outlier_properties: string[]; within_range: boolean };
+    error?: string;
+  } | null;
 }
 
 /**

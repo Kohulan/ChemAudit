@@ -92,7 +92,15 @@ export function BatchResultsTable({
 
   // Determine if profile column is shown (conditional 10th column)
   const hasProfileColumn = results.some(r => r.scoring?.profile);
-  const colCount = hasProfileColumn ? 10 : 9;
+
+  // Detect enrichment data
+  const hasProfiling = results.some(r => r.profiling && !r.profiling.error);
+  const hasSafetyAssessment = results.some(r => r.safety_assessment && !r.safety_assessment.error);
+
+  const colCount = 9
+    + (hasProfileColumn ? 1 : 0)
+    + (hasProfiling ? 3 : 0)
+    + (hasSafetyAssessment ? 3 : 0);
 
   // Update header checkbox indeterminate state
   useEffect(() => {
@@ -286,6 +294,32 @@ export function BatchResultsTable({
                   Profile {sortBy === 'profile_score' && (sortDir === 'asc' ? '\u2191' : '\u2193')}
                 </th>
               )}
+              {hasProfiling && (
+                <>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    PFI
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    Stars
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    Abbott
+                  </th>
+                </>
+              )}
+              {hasSafetyAssessment && (
+                <>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    CYP
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    hERG
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
+                    bRo5
+                  </th>
+                </>
+              )}
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase cursor-pointer hover:bg-[var(--color-surface-elevated)]"
                 onClick={() => handleSort('status')}
@@ -407,6 +441,94 @@ export function BatchResultsTable({
                           <span className="text-[var(--color-text-muted)]">--</span>
                         )}
                       </td>
+                    )}
+                    {hasProfiling && (
+                      <>
+                        <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
+                          {result.profiling?.pfi?.pfi != null ? (
+                            <span className={cn(
+                              'px-1.5 py-0.5 rounded',
+                              result.profiling.pfi.risk === 'low'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : result.profiling.pfi.risk === 'moderate'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                            )}>
+                              {result.profiling.pfi.pfi.toFixed(1)}
+                            </span>
+                          ) : (
+                            <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
+                          {result.profiling?.stars?.stars != null
+                            ? `${result.profiling.stars.stars}\u2605`
+                            : <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          }
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
+                          {result.profiling?.abbott?.probability_pct != null
+                            ? `${result.profiling.abbott.probability_pct}%`
+                            : <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          }
+                        </td>
+                      </>
+                    )}
+                    {hasSafetyAssessment && (
+                      <>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {result.safety_assessment?.cyp_softspots != null ? (
+                            <span className={cn(
+                              'px-1.5 py-0.5 rounded',
+                              result.safety_assessment.cyp_softspots.length === 0
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                            )}>
+                              {result.safety_assessment.cyp_softspots.length === 0
+                                ? 'clean'
+                                : `${result.safety_assessment.cyp_softspots.length} sites`}
+                            </span>
+                          ) : (
+                            <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {result.safety_assessment?.herg?.herg_risk != null ? (
+                            <span className={cn(
+                              'px-1.5 py-0.5 rounded',
+                              result.safety_assessment.herg.herg_risk === 'low'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : result.safety_assessment.herg.herg_risk === 'moderate'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                            )}>
+                              {result.safety_assessment.herg.herg_risk}
+                            </span>
+                          ) : (
+                            <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {result.safety_assessment?.bro5 != null ? (
+                            !result.safety_assessment.bro5.applicable ? (
+                              <span className="text-[var(--color-text-muted)]">N/A</span>
+                            ) : (
+                              <span className={cn(
+                                'px-1.5 py-0.5 rounded',
+                                result.safety_assessment.bro5.passed
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              )}>
+                                {result.safety_assessment.bro5.passed
+                                  ? 'pass'
+                                  : `${result.safety_assessment.bro5.violations.length} viol`}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-[var(--color-text-muted)]">&mdash;</span>
+                          )}
+                        </td>
+                      </>
                     )}
                     <td className="px-4 py-3 text-center">
                       <span
