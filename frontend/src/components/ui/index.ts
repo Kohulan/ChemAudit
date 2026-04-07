@@ -20,5 +20,8 @@ export { ThemeToggle, ThemeSelector } from './ThemeToggle';
 // Loading
 export { MoleculeLoader, Spinner, PageLoader } from './MoleculeLoader';
 
+// Accordion
+export { DrillDownSection } from './DrillDownSection';
+
 // Re-export existing components
 export { InfoTooltip } from './Tooltip';
