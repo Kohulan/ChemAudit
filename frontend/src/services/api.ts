@@ -1080,3 +1080,127 @@ export type {
   PermalinkResponse, PermalinkResolveResponse,
   ExportFormat as WorkflowExportFormat,
 };
+
+// =============================================================================
+// Diagnostics API (Phase 09: Structure Quality Diagnostics)
+// =============================================================================
+
+import type {
+  SMILESDiagnosticsResponse,
+  InChIDiffResponse,
+  RoundTripResponse,
+  CrossPipelineResponse,
+  FilePreValidationResponse,
+} from '../types/diagnostics';
+
+/**
+ * Structure Quality Diagnostics API client.
+ *
+ * Covers the Phase 09 endpoints:
+ * - POST /diagnostics/smiles          — SMILES error diagnostics with position feedback
+ * - POST /diagnostics/inchi-diff      — InChI layer-by-layer comparison
+ * - POST /diagnostics/roundtrip       — Format round-trip lossiness check
+ * - POST /diagnostics/cross-pipeline  — Cross-pipeline standardization comparison
+ * - POST /diagnostics/file-prevalidate — SDF/CSV file pre-validation
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const diagnosticsApi = {
+  /**
+   * Diagnose SMILES errors with position-specific feedback and fix suggestions.
+   */
+  smiles: async (smiles: string): Promise<SMILESDiagnosticsResponse> => {
+    try {
+      const response = await api.post<SMILESDiagnosticsResponse>('/diagnostics/smiles', { smiles });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'SMILES diagnostics failed' };
+      }
+      throw { error: 'SMILES diagnostics failed' };
+    }
+  },
+
+  /**
+   * Compare two InChI strings layer-by-layer.
+   */
+  inchiDiff: async (inchiA: string, inchiB: string): Promise<InChIDiffResponse> => {
+    try {
+      const response = await api.post<InChIDiffResponse>('/diagnostics/inchi-diff', {
+        inchi_a: inchiA,
+        inchi_b: inchiB,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'InChI comparison failed' };
+      }
+      throw { error: 'InChI comparison failed' };
+    }
+  },
+
+  /**
+   * Check format round-trip lossiness.
+   */
+  roundtrip: async (
+    smiles: string,
+    route: string = 'smiles_inchi_smiles',
+  ): Promise<RoundTripResponse> => {
+    try {
+      const response = await api.post<RoundTripResponse>('/diagnostics/roundtrip', {
+        smiles,
+        route,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Round-trip check failed' };
+      }
+      throw { error: 'Round-trip check failed' };
+    }
+  },
+
+  /**
+   * Compare standardization output across 3 pipelines.
+   */
+  crossPipeline: async (molecule: string): Promise<CrossPipelineResponse> => {
+    try {
+      const response = await api.post<CrossPipelineResponse>('/diagnostics/cross-pipeline', {
+        molecule,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Pipeline comparison failed' };
+      }
+      throw { error: 'Pipeline comparison failed' };
+    }
+  },
+
+  /**
+   * Pre-validate an SDF or CSV file for structural issues.
+   */
+  filePrevalidate: async (file: File): Promise<FilePreValidationResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post<FilePreValidationResponse>(
+        '/diagnostics/file-prevalidate',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'File pre-validation failed' };
+      }
+      throw { error: 'File pre-validation failed' };
+    }
+  },
+};
