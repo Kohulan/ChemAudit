@@ -47,10 +47,16 @@ def run_cheap_analytics(self, job_id: str) -> None:
             "failed",
             error="Batch results expired — resubmit batch",
         )
+        analytics_storage.update_status(
+            job_id,
+            "registration",
+            "failed",
+            error="Batch results expired — resubmit batch",
+        )
         return
 
     analytics_storage.init_status(
-        job_id, auto_analyses=["deduplication", "statistics"]
+        job_id, auto_analyses=["deduplication", "statistics", "registration"]
     )
 
     # --- Deduplication ---
@@ -113,6 +119,38 @@ def run_cheap_analytics(self, job_id: str) -> None:
                 job_id, "statistics", "failed", error=str(exc)
             )
 
+    # --- Registration Hash ---
+    reg_available = False
+    try:
+        from app.services.analytics.registration_hash import (
+            compute_registration_hashes,  # noqa: F401
+        )
+
+        reg_available = True
+    except ImportError:
+        logger.warning(
+            "run_cheap_analytics: registration_hash module not yet available for job %s",
+            job_id,
+        )
+        analytics_storage.update_status(job_id, "registration", "skipped")
+
+    if reg_available:
+        try:
+            from app.services.analytics.registration_hash import (
+                compute_registration_hashes,
+            )
+
+            reg_result = compute_registration_hashes(results)
+            analytics_storage.store_result(job_id, "registration", reg_result)
+            analytics_storage.update_status(job_id, "registration", "complete")
+        except Exception as exc:
+            logger.exception(
+                "run_cheap_analytics: registration failed for job %s", job_id
+            )
+            analytics_storage.update_status(
+                job_id, "registration", "failed", error=str(exc)
+            )
+
 
 @celery_app.task(bind=True, queue="default", ignore_result=True)
 def run_expensive_analytics(
@@ -132,11 +170,13 @@ def run_expensive_analytics(
     - mmp: Matched molecular pair analysis.
     - similarity_search: Nearest-neighbor similarity search.
     - rgroup: R-group decomposition.
+    - clustering: Butina sphere-exclusion clustering (optional cutoff param).
+    - taxonomy: SMARTS-based chemotype classification.
 
     Args:
         job_id: Batch job identifier.
         analysis_type: The type of analytics to compute.
-        params: Optional parameters for the analysis (e.g. method, activity_column).
+        params: Optional parameters for the analysis (e.g. method, activity_column, cutoff).
     """
     if params is None:
         params = {}
@@ -235,6 +275,21 @@ def run_expensive_analytics(
             core_smarts = params.get("core_smarts")
             result = compute_rgroup_decomposition(results, core_smarts=core_smarts)
             analytics_storage.store_result(job_id, "rgroup", result)
+
+        elif analysis_type == "clustering":
+            from app.services.analytics.clustering import compute_butina_clustering
+
+            cutoff = (params or {}).get("cutoff", 0.35)
+            if isinstance(cutoff, str):
+                cutoff = float(cutoff)
+            result = compute_butina_clustering(results, distance_cutoff=cutoff)
+            analytics_storage.store_result(job_id, "clustering", result)
+
+        elif analysis_type == "taxonomy":
+            from app.services.analytics.taxonomy import classify_batch
+
+            result = classify_batch(results)
+            analytics_storage.store_result(job_id, "taxonomy", result)
 
         else:
             analytics_storage.update_status(

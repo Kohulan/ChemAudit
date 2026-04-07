@@ -12,6 +12,7 @@ from app.services.integrations.comparator import compare_across_databases
 from app.services.integrations.identifier_detect import detect_identifier_type
 from app.services.integrations.pubchem import PubChemClient, get_compound_info
 from app.services.integrations.resolver import resolve_identifier
+from app.services.integrations.surechembl import SureChEMBLClient, lookup_surechembl
 from app.services.integrations.unichem import UniChemClient
 from app.services.integrations.wikidata import WikidataClient
 
@@ -28,4 +29,6 @@ __all__ = [
     "detect_identifier_type",
     "resolve_identifier",
     "compare_across_databases",
+    "SureChEMBLClient",
+    "lookup_surechembl",
 ]

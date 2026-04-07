@@ -9,6 +9,7 @@ import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
 import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
 import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
+import { MCSComparisonPanel } from '../components/batch/MCSComparisonPanel';
 import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
 import { BatchTimeline } from '../components/batch/BatchTimeline';
 import { ProfileSidebar } from '../components/batch/ProfileSidebar';
@@ -28,6 +29,7 @@ import type {
   BatchStatistics,
   SortField,
 } from '../types/batch';
+import type { MCSComparisonResult } from '../types/analytics';
 
 /**
  * Premium batch validation page with state machine:
@@ -55,6 +57,9 @@ export function BatchValidationPage() {
   const [compareMode, setCompareMode] = useState(false);
   const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
+  const [mcsResult, setMcsResult] = useState<MCSComparisonResult | null>(null);
+  const [mcsLoading, setMcsLoading] = useState(false);
+  const [mcsError, setMcsError] = useState<string | null>(null);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
@@ -302,6 +307,20 @@ export function BatchValidationPage() {
       }
       setComparisonResults(results);
       setCompareMode(true);
+
+      // Trigger MCS computation for 2-molecule comparison
+      if (results.length === 2 && jobId) {
+        setMcsLoading(true);
+        setMcsError(null);
+        try {
+          const mcs = await batchApi.computeMCS(jobId, results[0].index, results[1].index);
+          setMcsResult(mcs);
+        } catch (e: any) {
+          setMcsError(e?.response?.data?.detail || e.message || 'MCS computation failed');
+        } finally {
+          setMcsLoading(false);
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to fetch molecules for comparison');
     } finally {
@@ -313,6 +332,9 @@ export function BatchValidationPage() {
   const handleCloseCompare = useCallback(() => {
     setCompareMode(false);
     setComparisonResults([]);
+    setMcsResult(null);
+    setMcsLoading(false);
+    setMcsError(null);
   }, []);
 
   // Handle removing a molecule from comparison
@@ -768,6 +790,7 @@ export function BatchValidationPage() {
                 onSelectionChange={handleSelectionChange}
                 focusedMoleculeIndex={focusedMoleculeIndex}
                 onFocusHandled={() => setFocusedMoleculeIndex(null)}
+                registrationData={analyticsData?.registration}
               />
             </div>
 
@@ -779,12 +802,24 @@ export function BatchValidationPage() {
               </div>
             )}
             {compareMode && comparisonResults.length > 0 && (
-              <MoleculeComparisonPanel
-                molecules={comparisonResults}
-                datasetStats={analyticsData?.statistics?.property_stats ?? null}
-                onClose={handleCloseCompare}
-                onRemoveMolecule={handleRemoveFromCompare}
-              />
+              comparisonResults.length === 2 ? (
+                <MCSComparisonPanel
+                  molecules={comparisonResults}
+                  mcsResult={mcsResult}
+                  mcsLoading={mcsLoading}
+                  mcsError={mcsError}
+                  onClose={handleCloseCompare}
+                  onRemoveMolecule={handleRemoveFromCompare}
+                  datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                />
+              ) : (
+                <MoleculeComparisonPanel
+                  molecules={comparisonResults}
+                  datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                  onClose={handleCloseCompare}
+                  onRemoveMolecule={handleRemoveFromCompare}
+                />
+              )
             )}
 
             {/* Subset Action Panel */}

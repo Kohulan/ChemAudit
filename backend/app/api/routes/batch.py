@@ -33,6 +33,8 @@ from app.schemas.analytics import (
     AnalysisStatus,
     AnalyticsTriggerResponse,
     BatchAnalyticsResponse,
+    MCSCompareRequest,
+    MCSComparisonResult,
 )
 from app.schemas.batch import (
     BatchJobStatus,
@@ -528,6 +530,9 @@ async def get_batch_analytics(
         "similarity_search": "similarity_matrix",
         "mmp": "mmp",
         "statistics": "statistics",
+        "clustering": "clustering",
+        "taxonomy": "taxonomy",
+        "registration": "registration",
     }
 
     result_kwargs: dict[str, Any] = {}
@@ -551,6 +556,8 @@ _ALLOWED_EXPENSIVE_ANALYSES = {
     "mmp",
     "similarity_search",
     "rgroup",
+    "clustering",
+    "taxonomy",
 }
 
 
@@ -575,6 +582,8 @@ async def trigger_batch_analytics(
     - **mmp**: Matched molecular pair analysis (requires activity_column param).
     - **similarity_search**: Nearest-neighbor similarity search.
     - **rgroup**: R-group decomposition (requires core_smarts param).
+    - **clustering**: Butina sphere-exclusion clustering (optional cutoff param).
+    - **taxonomy**: SMARTS-based chemotype classification.
 
     Optional params body (JSON object):
     - `method`: "pca" or "tsne" (for chemical_space)
@@ -583,6 +592,7 @@ async def trigger_batch_analytics(
     - `query_index`: query molecule index for similarity_search
     - `top_k`: number of neighbors to return (similarity_search)
     - `core_smarts`: SMARTS pattern for R-group core
+    - `cutoff`: Tanimoto distance threshold for clustering (default 0.35)
     """
     verify_job_access(request, job_id)
 
@@ -629,6 +639,17 @@ async def trigger_batch_analytics(
                     status="already_complete",
                 )
 
+    # --- Clustering cap check (D-06: hard cap at 1,000 molecules) ---
+    if analysis_type == "clustering":
+        results = result_storage.get_all_results(job_id)
+        if results and len(results) > 1000:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Clustering is limited to 1,000 molecules. "
+                f"This batch has {len(results)} molecules. "
+                "Filter or subsample before clustering.",
+            )
+
     # Set status to "computing" immediately so frontend polling sees the
     # transition before the Celery worker picks up the task.
     analytics_storage.update_status(job_id, analysis_type, "computing")
@@ -640,6 +661,71 @@ async def trigger_batch_analytics(
         analysis_type=analysis_type,
         status="queued",
     )
+
+
+@router.post("/batch/{job_id}/mcs", response_model=MCSComparisonResult)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def compute_batch_mcs(
+    request: Request,
+    job_id: str,
+    body: MCSCompareRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Compute Maximum Common Substructure between two molecules from a batch.
+
+    Runs synchronously (timeout=10s max). Returns MCS SMARTS, matched
+    atom/bond counts, Tanimoto similarity, and property deltas.
+
+    - **job_id**: Batch job identifier.
+    - **body.index_a**: Index of the first molecule.
+    - **body.index_b**: Index of the second molecule.
+    """
+    verify_job_access(request, job_id)
+
+    results = result_storage.get_all_results(job_id)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Batch results not found for job {job_id}. Results may have expired.",
+        )
+
+    # Find molecules by index
+    mol_a = next((r for r in results if r.get("index") == body.index_a), None)
+    mol_b = next((r for r in results if r.get("index") == body.index_b), None)
+
+    if mol_a is None or mol_b is None:
+        missing = []
+        if mol_a is None:
+            missing.append(str(body.index_a))
+        if mol_b is None:
+            missing.append(str(body.index_b))
+        raise HTTPException(
+            status_code=404,
+            detail=f"Molecule(s) at index {', '.join(missing)} not found in batch.",
+        )
+
+    smiles_a = mol_a.get("smiles", "")
+    smiles_b = mol_b.get("smiles", "")
+
+    if not smiles_a or not smiles_b:
+        raise HTTPException(
+            status_code=400,
+            detail="Both molecules must have valid SMILES.",
+        )
+
+    try:
+        from app.services.analytics.mcs_comparison import compute_mcs_comparison
+
+        result = compute_mcs_comparison(smiles_a, smiles_b)
+        return MCSComparisonResult(**result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"MCS computation failed: {str(exc)}",
+        )
 
 
 @router.post("/batch/detect-columns", response_model=CSVColumnsResponse)

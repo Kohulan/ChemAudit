@@ -52,6 +52,9 @@ class AlertResultSchema(BaseModel):
         description="Concern category: Reactive Group, Metabolic Liability, Toxicophore, "
         "Assay Interference, Physicochemical, or Unwanted Functionality",
     )
+    concern_group: Optional[str] = Field(
+        None, description="Functional concern group for dedup view"
+    )
 
 
 class AlertScreenRequest(BaseModel):
@@ -165,3 +168,47 @@ class CatalogListResponse(BaseModel):
     default_catalogs: List[str] = Field(
         default=["PAINS"], description="Default catalogs if none specified"
     )
+
+
+class ConcernGroupSchema(BaseModel):
+    """A deduplicated concern group with its alerts."""
+
+    name: str = Field(..., description="Concern group name")
+    count: int = Field(..., description="Number of unique alerts in group")
+    severity: str = Field(..., description="Worst severity in group")
+    alerts: List[AlertResultSchema] = Field(default_factory=list)
+
+
+class UnifiedScreenRequest(BaseModel):
+    """Request for unified screening across all catalogs."""
+
+    molecule: str = Field(..., min_length=1, max_length=10000)
+    format: str = Field(default="auto", pattern="^(auto|smiles|inchi|mol)$")
+
+    @field_validator("molecule")
+    @classmethod
+    def sanitize_molecule_input(cls, v: str) -> str:
+        """Sanitize molecule input to prevent injection attacks."""
+        dangerous = ["<", ">", "&", ";", "|", "$", "`"]
+        if any(c in v for c in dangerous):
+            raise ValueError("Invalid characters in molecule string")
+        return v.strip()
+
+
+class UnifiedScreenResponse(BaseModel):
+    """Response from unified screening."""
+
+    status: str = Field(default="completed")
+    molecule_info: MoleculeInfo
+    alerts: List[AlertResultSchema] = Field(
+        default_factory=list, description="Raw alerts (all matches)"
+    )
+    concern_groups: Dict[str, ConcernGroupSchema] = Field(
+        default_factory=dict, description="Deduplicated concern groups"
+    )
+    total_raw: int = Field(default=0)
+    total_deduped: int = Field(default=0)
+    screened_catalogs: List[str] = Field(default_factory=list)
+    has_critical: bool = Field(default=False)
+    has_warning: bool = Field(default=False)
+    execution_time_ms: int = Field(default=0)

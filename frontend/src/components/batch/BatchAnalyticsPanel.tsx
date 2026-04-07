@@ -25,7 +25,10 @@ import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
 import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
+import { ClusteringTab } from './ClusteringTab';
 import { ClayButton } from '../ui/ClayButton';
+import { TaxonomyTab } from './TaxonomyTab';
+import { RegistrationTab } from './RegistrationTab';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
@@ -50,7 +53,7 @@ interface BatchAnalyticsPanelProps {
   activeAlertFilter?: string | null;
 }
 
-const TABS = ['Distributions', 'Chemical Space'] as const;
+const TABS = ['Distributions', 'Chemical Space', 'Clustering', 'Taxonomy', 'Registration'] as const;
 type TabName = (typeof TABS)[number];
 
 function ChartSkeleton() {
@@ -372,7 +375,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   return (
     <div className="space-y-4">
       {/* Tab bar */}
-      <div className="flex gap-1 p-1 rounded-xl bg-[var(--color-surface-sunken)] w-fit">
+      <div className="flex gap-1 p-1 rounded-xl bg-[var(--color-surface-sunken)] w-fit overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -428,6 +431,16 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             {tab === 'Chemical Space' && scaffoldCount > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                 {scaffoldCount} scaffold{scaffoldCount !== 1 ? 's' : ''}
+              </span>
+            )}
+            {tab === 'Clustering' && analyticsData?.clustering && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                {analyticsData.clustering.cluster_count} clusters
+              </span>
+            )}
+            {tab === 'Registration' && analyticsData?.registration && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                {analyticsData.registration.unique_count} unique
               </span>
             )}
           </button>
@@ -676,6 +689,54 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 />
               )}
             </ChartCard>
+          </motion.div>
+        )}
+
+        {activeTab === 'Clustering' && (
+          <motion.div
+            key="clustering"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ClusteringTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
+          </motion.div>
+        )}
+
+
+        {activeTab === 'Taxonomy' && (
+          <motion.div
+            key="taxonomy"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TaxonomyTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'Registration' && (
+          <motion.div
+            key="registration"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <RegistrationTab
+              analyticsData={analyticsData}
+              results={results}
+            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,5 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { logger } from '../lib/logger';
+import type {
+  DatasetUploadResponse,
+  DatasetAuditStatusResponse,
+  DatasetAuditResults,
+  DatasetDiffResults,
+} from '../types/dataset_intelligence';
 
 // Extend axios config type to support retry flag
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -111,7 +117,8 @@ import type {
 } from '../types/integrations';
 import type {
   BatchAnalyticsResponse,
-  AnalyticsTriggerResponse
+  AnalyticsTriggerResponse,
+  MCSComparisonResult
 } from '../types/analytics';
 import type {
   ScoringProfile,
@@ -129,6 +136,16 @@ import type {
   PermalinkResolveResponse,
   ExportFormat,
 } from '../types/workflow';
+import type {
+  FilterConfig,
+  FilterResult,
+  ScoreResponse,
+  REINVENTInput,
+  REINVENTResponse,
+  GenChemBatchUploadResponse,
+  GenChemBatchStatusResponse,
+  GenChemBatchResultsResponse,
+} from '../types/genchem';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -737,6 +754,22 @@ export const batchApi = {
   },
 
   /**
+   * Compute MCS comparison between two molecules from a batch.
+   * Runs synchronously (timeout=10s max).
+   */
+  computeMCS: async (
+    jobId: string,
+    indexA: number,
+    indexB: number
+  ): Promise<MCSComparisonResult> => {
+    const response = await api.post<MCSComparisonResult>(
+      `/batch/${jobId}/mcs`,
+      { index_a: indexA, index_b: indexB }
+    );
+    return response.data;
+  },
+
+  /**
    * Detect columns in a CSV file for SMILES selection (server-side fallback).
    */
   detectColumns: async (file: File): Promise<CSVColumnsResponse> => {
@@ -1072,42 +1105,35 @@ export interface InlineScoreResponse {
   molecules: InlineScoredMolecule[];
 }
 
-export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
-export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
-export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
-export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
-export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
-export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };
-export type { BatchAnalyticsResponse, AnalyticsTriggerResponse };
-export type {
-  ScoringProfile, ScoringProfileCreate, ScoringProfileUpdate, ScoringProfileExport,
-  Bookmark, BookmarkCreate, BookmarkUpdate,
-  AuditEntry, AuditHistoryResponse, AuditHistoryParams, AuditHistoryStats,
-  PermalinkResponse, PermalinkResolveResponse,
-  ExportFormat as WorkflowExportFormat,
-};
-
-// =============================================================================
+// ============================================================================
 // Safety API (Phase 08: Enhanced Structural Alerts & Safety)
-// =============================================================================
+// ============================================================================
 
 import type {
   AlertScreenResponse as SafetyAlertScreenResponse,
   SafetyAssessResponse,
+  SafetySummaryResponse,
 } from '../types/safety';
 
 /**
- * Safety API client.
+ * Safety screening API client.
  *
- * Covers the Phase 08 endpoints:
- * - POST /alerts/screen   — enhanced structural alert screening (with concern groups)
- * - POST /safety/assess   — CYP soft-spots, hERG risk, bRo5, REOS, complexity
+ * Covers the new Phase 08 endpoints:
+ * - POST /alerts/screen  — comprehensive alert screening with concern groups
+ * - POST /safety/assess  — CYP/hERG/bRo5/REOS/complexity assessment
+ * - POST /safety/summary — aggregated traffic-light summary strip
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
  */
 export const safetyApi = {
-  /** Screen molecule for structural alerts with concern group categorisation. */
-  screen: async (smiles: string): Promise<SafetyAlertScreenResponse> => {
+  /**
+   * Screen a molecule against expanded alert libraries.
+   * Returns alerts grouped by functional-group concern, with deduplication.
+   */
+  screen: async (molecule: string): Promise<SafetyAlertScreenResponse> => {
     try {
-      const response = await api.post<SafetyAlertScreenResponse>('/alerts/screen', { smiles });
+      const response = await api.post<SafetyAlertScreenResponse>('/alerts/screen', { molecule });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1118,10 +1144,13 @@ export const safetyApi = {
     }
   },
 
-  /** Assess molecule safety: CYP soft-spots, hERG risk, bRo5, REOS, complexity. */
-  assess: async (smiles: string): Promise<SafetyAssessResponse> => {
+  /**
+   * Run rule-based safety assessments (CYP soft-spots, hERG, bRo5, REOS,
+   * complexity percentile filter).
+   */
+  assess: async (molecule: string): Promise<SafetyAssessResponse> => {
     try {
-      const response = await api.post<SafetyAssessResponse>('/safety/assess', { smiles });
+      const response = await api.post<SafetyAssessResponse>('/safety/assess', { molecule });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1131,11 +1160,157 @@ export const safetyApi = {
       throw { error: 'Safety assessment failed' };
     }
   },
+
+  /**
+   * Retrieve aggregated summary flags for the summary strip (total alerts,
+   * has_critical, and traffic-light status for each safety check).
+   */
+  summary: async (molecule: string): Promise<SafetySummaryResponse> => {
+    try {
+      const response = await api.post<SafetySummaryResponse>('/safety/summary', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety summary failed' };
+      }
+      throw { error: 'Safety summary failed' };
+    }
+  },
 };
 
-// =============================================================================
+// ============================================================================
+// QSAR-Ready Pipeline API (Phase 10: QSAR-Ready Pipeline)
+// ============================================================================
+
+import type {
+  QSARReadyConfig,
+  QSARReadyResult,
+  QSARBatchUploadResponse,
+  QSARBatchStatusResponse,
+  QSARBatchResultsResponse,
+} from '../types/qsar_ready';
+
+/**
+ * QSAR-Ready Pipeline API client.
+ *
+ * Covers the Phase 10 endpoints:
+ * - POST /qsar-ready/single              — single molecule curation
+ * - POST /qsar-ready/batch/upload        — batch file/SMILES upload
+ * - GET  /qsar-ready/batch/{id}/status   — poll job status
+ * - GET  /qsar-ready/batch/{id}/results  — paginated results
+ * - GET  /qsar-ready/batch/{id}/download/{format} — download results
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const qsarReadyApi = {
+  /**
+   * Run the QSAR-ready curation pipeline on a single SMILES.
+   */
+  single: async (smiles: string, config: QSARReadyConfig): Promise<QSARReadyResult> => {
+    try {
+      const response = await api.post<QSARReadyResult>('/qsar-ready/single', { smiles, config });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'QSAR-ready curation failed' };
+      }
+      throw { error: 'QSAR-ready curation failed' };
+    }
+  },
+
+  /**
+   * Upload a file or SMILES text for batch QSAR-ready processing.
+   * Returns a job_id for WebSocket / polling status tracking.
+   */
+  batchUpload: async (
+    file: File | null,
+    smilesText: string | null,
+    config: QSARReadyConfig,
+  ): Promise<QSARBatchUploadResponse> => {
+    try {
+      const formData = new FormData();
+      if (file) formData.append('file', file);
+      if (smilesText) formData.append('smiles_text', smilesText);
+      formData.append('config', JSON.stringify(config));
+      const response = await api.post<QSARBatchUploadResponse>(
+        '/qsar-ready/batch/upload',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Batch upload failed' };
+      }
+      throw { error: 'Batch upload failed' };
+    }
+  },
+
+  /**
+   * Poll the processing status of a batch QSAR-ready job.
+   */
+  batchStatus: async (jobId: string): Promise<QSARBatchStatusResponse> => {
+    try {
+      const response = await api.get<QSARBatchStatusResponse>(`/qsar-ready/batch/${jobId}/status`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Status check failed' };
+      }
+      throw { error: 'Status check failed' };
+    }
+  },
+
+  /**
+   * Fetch paginated results for a completed batch job.
+   */
+  batchResults: async (
+    jobId: string,
+    page: number = 1,
+    perPage: number = 50,
+  ): Promise<QSARBatchResultsResponse> => {
+    try {
+      const response = await api.get<QSARBatchResultsResponse>(
+        `/qsar-ready/batch/${jobId}/results`,
+        { params: { page, per_page: perPage } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Results fetch failed' };
+      }
+      throw { error: 'Results fetch failed' };
+    }
+  },
+
+  /**
+   * Download batch results in the requested format (csv, sdf, or json).
+   * Returns a Blob for the caller to create a download URL.
+   */
+  batchDownload: async (jobId: string, format: 'csv' | 'sdf' | 'json'): Promise<Blob> => {
+    try {
+      const response = await api.get(`/qsar-ready/batch/${jobId}/download/${format}`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw { error: `Download failed (${format})` };
+      }
+      throw { error: `Download failed (${format})` };
+    }
+  },
+};
+
+// ============================================================================
 // Diagnostics API (Phase 09: Structure Quality Diagnostics)
-// =============================================================================
+// ============================================================================
 
 import type {
   SMILESDiagnosticsResponse,
@@ -1256,3 +1431,176 @@ export const diagnosticsApi = {
     }
   },
 };
+
+// =============================================================================
+// GenChem Filter API (Phase 11: Generative Chemistry Filter)
+// Covers all endpoints under /api/v1/genchem/
+// =============================================================================
+
+/**
+ * GenChem Filter API client.
+ *
+ * Endpoints:
+ * - POST /genchem/filter              — sync filter for <=1000 SMILES
+ * - POST /genchem/score               — score SMILES list as [0,1] floats
+ * - POST /genchem/reinvent-score      — REINVENT-compatible scoring API
+ * - POST /genchem/batch/upload        — async batch file upload
+ * - GET  /genchem/batch/{id}/status   — poll job status
+ * - GET  /genchem/batch/{id}/results  — fetch completed results
+ * - GET  /genchem/batch/{id}/download/{format} — download passed/full CSV
+ */
+export const genchemApi = {
+  /**
+   * Run the generative chemistry filter funnel on a list of SMILES.
+   * Use for <=1000 SMILES (sync path). Larger batches should use batchUpload.
+   */
+  filter: async (smilesList: string[], preset?: string, config?: FilterConfig): Promise<FilterResult> => {
+    const response = await api.post<FilterResult>('/genchem/filter', {
+      smiles_list: smilesList,
+      preset: preset || undefined,
+      config: config || undefined,
+    });
+    return response.data;
+  },
+
+  /**
+   * Score a list of SMILES as composite [0,1] values using the filter config.
+   */
+  score: async (smilesList: string[], preset?: string): Promise<ScoreResponse> => {
+    const response = await api.post<ScoreResponse>('/genchem/score', {
+      smiles_list: smilesList,
+      preset,
+    });
+    return response.data;
+  },
+
+  /**
+   * REINVENT-compatible scoring endpoint.
+   * Accepts items with input_string + query_id, returns output.successes_list.
+   */
+  reinventScore: async (items: REINVENTInput[], preset?: string): Promise<REINVENTResponse> => {
+    const response = await api.post<REINVENTResponse>(
+      `/genchem/reinvent-score${preset ? `?preset=${preset}` : ''}`,
+      items,
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload a file for async batch filtering.
+   * Returns job_id for WebSocket / polling progress tracking.
+   */
+  batchUpload: async (file: File, preset?: string, config?: FilterConfig): Promise<GenChemBatchUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (preset) formData.append('preset', preset);
+    if (config) formData.append('config', JSON.stringify(config));
+    const response = await api.post<GenChemBatchUploadResponse>('/genchem/batch/upload', formData);
+    return response.data;
+  },
+
+  /**
+   * Poll the status of a running batch filter job.
+   */
+  batchStatus: async (jobId: string): Promise<GenChemBatchStatusResponse> => {
+    const response = await api.get<GenChemBatchStatusResponse>(`/genchem/batch/${jobId}/status`);
+    return response.data;
+  },
+
+  /**
+   * Fetch the results of a completed batch filter job.
+   */
+  batchResults: async (jobId: string): Promise<GenChemBatchResultsResponse> => {
+    const response = await api.get<GenChemBatchResultsResponse>(`/genchem/batch/${jobId}/results`);
+    return response.data;
+  },
+
+  /** URL for downloading passed SMILES as a .txt file. */
+  downloadPassedTxt: (jobId: string): string =>
+    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/passed_txt`,
+
+  /** URL for downloading full results as a CSV file. */
+  downloadFullCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/full_csv`,
+};
+
+export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };
+
+// =============================================================================
+// Dataset Intelligence API (Phase 12)
+// =============================================================================
+
+/**
+ * Dataset intelligence API methods.
+ * Endpoints under /api/v1/dataset/ for dataset health audit, contradictory
+ * label detection, dataset diff, and curation reports.
+ */
+export const datasetApi = {
+  /**
+   * Upload a CSV or SDF file for dataset audit.
+   * Returns a job_id for WebSocket / polling progress tracking.
+   */
+  upload: async (
+    file: File,
+    smilesColumn?: string,
+    activityColumn?: string,
+  ): Promise<DatasetUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (smilesColumn) formData.append('smiles_column', smilesColumn);
+    if (activityColumn) formData.append('activity_column', activityColumn);
+    const { data } = await api.post<DatasetUploadResponse>('/dataset/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** Poll the status of a running dataset audit job. */
+  getStatus: async (jobId: string): Promise<DatasetAuditStatusResponse> => {
+    const { data } = await api.get<DatasetAuditStatusResponse>(`/dataset/${jobId}/status`);
+    return data;
+  },
+
+  /** Fetch the full results of a completed dataset audit job. */
+  getResults: async (jobId: string): Promise<DatasetAuditResults> => {
+    const { data } = await api.get<DatasetAuditResults>(`/dataset/${jobId}/results`);
+    return data;
+  },
+
+  /**
+   * Upload a comparison file for dataset diff against an existing audit job.
+   * Returns the diff results inline (synchronous).
+   */
+  uploadDiff: async (jobId: string, file: File): Promise<DatasetDiffResults> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<DatasetDiffResults>(`/dataset/${jobId}/diff`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** URL for downloading the JSON curation report. */
+  downloadReport: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/report`,
+
+  /** URL for downloading the curated CSV. */
+  downloadCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/csv`,
+};
+export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
+export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
+export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
+export type { StandardizeRequest, StandardizeResponse, StandardizeError, StandardizeOptionsResponse };
+export type { BatchUploadResponse, BatchResultsResponse, BatchStatistics, BatchResultsFilters, CSVColumnsResponse };
+export type { IntegrationRequest, PubChemResult, ChEMBLResult, COCONUTResult, IntegrationError };
+export type { BatchAnalyticsResponse, AnalyticsTriggerResponse };
+export type {
+  ScoringProfile, ScoringProfileCreate, ScoringProfileUpdate, ScoringProfileExport,
+  Bookmark, BookmarkCreate, BookmarkUpdate,
+  AuditEntry, AuditHistoryResponse, AuditHistoryParams, AuditHistoryStats,
+  PermalinkResponse, PermalinkResolveResponse,
+  ExportFormat as WorkflowExportFormat,
+};
+
+export type { DatasetUploadResponse, DatasetAuditStatusResponse, DatasetAuditResults, DatasetDiffResults };

@@ -33,6 +33,24 @@ const HistoryPage = lazy(() =>
 const ReportPermalinkPage = lazy(() =>
   import('./pages/ReportPermalink').then(module => ({ default: module.ReportPermalinkPage }))
 );
+const CompoundProfilerPage = lazy(() =>
+  import('./pages/CompoundProfiler').then(module => ({ default: module.CompoundProfilerPage }))
+);
+const SafetyPage = lazy(() =>
+  import('./pages/Safety').then(module => ({ default: module.Safety }))
+);
+const DiagnosticsPage = lazy(() =>
+  import('./pages/Diagnostics').then(module => ({ default: module.Diagnostics }))
+);
+const QSARReadyPage = lazy(() =>
+  import('./pages/QSARReady').then(module => ({ default: module.QSARReady }))
+);
+const GenChemFilterPage = lazy(() =>
+  import('./pages/GenChemFilter')
+);
+const DatasetAuditPage = lazy(() =>
+  import('./pages/DatasetAudit')
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -147,6 +165,96 @@ function AppRoutes() {
                 transition={{ duration: 0.2 }}
               >
                 <HistoryPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/profiler"
+            element={
+              <motion.div
+                key="profiler"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CompoundProfilerPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/safety"
+            element={
+              <motion.div
+                key="safety"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <SafetyPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/diagnostics"
+            element={
+              <motion.div
+                key="diagnostics"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DiagnosticsPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/qsar-ready"
+            element={
+              <motion.div
+                key="qsar-ready"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <QSARReadyPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/genchem"
+            element={
+              <motion.div
+                key="genchem"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <GenChemFilterPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/dataset-audit"
+            element={
+              <motion.div
+                key="dataset-audit"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DatasetAuditPage />
               </motion.div>
             }
           />

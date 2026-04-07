@@ -43,7 +43,7 @@ import { InfoTooltip } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
-import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
+import { alertsApi, scoringApi, standardizationApi, integrationsApi, diagnosticsApi } from '../services/api';
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
 import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
@@ -61,8 +61,10 @@ import { DrillDownSection } from '../components/ui/DrillDownSection';
 import { FlaskConical, Shield, Stethoscope } from 'lucide-react';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
-import { diagnosticsApi } from '../services/api';
 import type { CrossPipelineResponse, RoundTripResponse } from '../types/diagnostics';
+import { SafetyBadge } from '../components/safety/SafetyBadge';
+import { DiagnosticsBadge } from '../components/diagnostics/DiagnosticsBadge';
+import { ProfilerBadge } from '../components/profiler/ProfilerBadge';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -1012,6 +1014,18 @@ export function SingleValidationPage() {
                   source="single_validation"
                   onAfterBookmark={handleAfterBookmark}
                 />
+              )}
+              {/* View Full Profile cross-link — per D-24 */}
+              {result && resolvedSmiles && (
+                <ClayButton
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Microscope className="w-4 h-4" />}
+                  onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
+                  className="text-[var(--color-primary)]"
+                >
+                  View Full Profile
+                </ClayButton>
               )}
             </div>
 
@@ -2129,6 +2143,27 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Safety cross-link badge (D-02) — links to /safety?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-4">
+          <SafetyBadge smiles={canonicalSmiles} />
+        </div>
+      )}
+
+      {/* Diagnostics cross-link badge — links to /diagnostics?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-3">
+          <DiagnosticsBadge smiles={canonicalSmiles} />
+        </div>
+      )}
+
+      {/* Profiler cross-link badge (D-24) — links to /profiler?smiles=... */}
+      {canonicalSmiles && (
+        <div className="mt-3">
+          <ProfilerBadge smiles={canonicalSmiles} />
+        </div>
+      )}
 
       {/* Cross-Database Comparison - Full Width Below Grid */}
       <AnimatePresence>

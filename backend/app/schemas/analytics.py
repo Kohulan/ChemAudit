@@ -227,6 +227,128 @@ class StatisticsResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Clustering (Butina)
+# ---------------------------------------------------------------------------
+
+
+class ClusterMember(BaseModel):
+    """A molecule within a cluster."""
+
+    index: int
+    smiles: str
+
+
+class ClusterInfo(BaseModel):
+    """A single Butina cluster."""
+
+    cluster_id: int
+    size: int
+    representative_index: int
+    member_indices: list[int]
+
+
+class ClusteringResult(BaseModel):
+    """Butina clustering result."""
+
+    clusters: list[ClusterInfo]
+    cluster_count: int
+    singleton_count: int
+    largest_cluster_size: int
+    distance_cutoff: float
+
+
+# ---------------------------------------------------------------------------
+# Chemical Taxonomy
+# ---------------------------------------------------------------------------
+
+
+class TaxonomyMoleculeResult(BaseModel):
+    """Taxonomy classification for a single molecule."""
+
+    index: int
+    smiles: str
+    categories: list[dict]  # [{name, category, description}]
+
+
+class TaxonomyResult(BaseModel):
+    """Batch taxonomy classification result."""
+
+    per_molecule: list[TaxonomyMoleculeResult]
+    category_counts: dict[str, int]
+    total_molecules: int
+    classified_molecules: int
+    unclassified_molecules: int
+
+
+# ---------------------------------------------------------------------------
+# Registration Hash
+# ---------------------------------------------------------------------------
+
+
+class RegistrationHashMolecule(BaseModel):
+    """Registration hash for a single molecule."""
+
+    index: int
+    smiles: str
+    hash: str
+    canonical_smiles: str
+    formula: str
+
+
+class RegistrationHashCollisionGroup(BaseModel):
+    """Group of molecules sharing the same hash."""
+
+    hash: str
+    molecule_indices: list[int]
+    count: int
+
+
+class RegistrationHashResult(BaseModel):
+    """Batch registration hash result."""
+
+    per_molecule: list[RegistrationHashMolecule]
+    unique_count: int
+    total_count: int
+    collision_groups: list[RegistrationHashCollisionGroup]
+    rdkit_version: str
+    tautomer_hash_v2: bool
+
+
+# ---------------------------------------------------------------------------
+# MCS Comparison
+# ---------------------------------------------------------------------------
+
+
+class MCSPropertyDelta(BaseModel):
+    """Property comparison between two molecules."""
+
+    property: str
+    mol_a: float
+    mol_b: float
+    delta: float
+
+
+class MCSComparisonResult(BaseModel):
+    """MCS comparison result for two molecules."""
+
+    mcs_smarts: str
+    num_atoms: int
+    num_bonds: int
+    timed_out: bool
+    tanimoto: float
+    property_deltas: list[MCSPropertyDelta]
+    smiles_a: str
+    smiles_b: str
+
+
+class MCSCompareRequest(BaseModel):
+    """Request body for MCS comparison."""
+
+    index_a: int
+    index_b: int
+
+
+# ---------------------------------------------------------------------------
 # Top-level response schemas
 # ---------------------------------------------------------------------------
 
@@ -242,6 +364,9 @@ class BatchAnalyticsResponse(BaseModel):
     similarity_matrix: Optional[SimilarityMatrixResult] = None
     mmp: Optional[MMPResult] = None
     statistics: Optional[StatisticsResult] = None
+    clustering: Optional[ClusteringResult] = None
+    taxonomy: Optional[TaxonomyResult] = None
+    registration: Optional[RegistrationHashResult] = None
 
 
 class AnalyticsTriggerResponse(BaseModel):

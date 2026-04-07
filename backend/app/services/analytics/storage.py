@@ -135,6 +135,9 @@ class AnalyticsStorage:
             "mmp",
             "similarity_search",
             "rgroup",
+            "clustering",
+            "taxonomy",
+            "registration",
         ]
 
         r = self._get_redis()

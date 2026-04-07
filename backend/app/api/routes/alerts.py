@@ -23,9 +23,13 @@ from app.schemas.alerts import (
     AlertSeverity,
     CatalogInfoSchema,
     CatalogListResponse,
+    ConcernGroupSchema,
+    UnifiedScreenRequest,
+    UnifiedScreenResponse,
 )
 from app.services.alerts.alert_manager import alert_manager
 from app.services.alerts.filter_catalog import AVAILABLE_CATALOGS
+from app.services.alerts.unified_screen import unified_screen
 from app.services.parser.molecule_parser import MoleculeFormat, parse_molecule
 
 router = APIRouter()
@@ -199,3 +203,122 @@ async def quick_check_alerts(
     }
 
 
+@router.post("/alerts/screen", response_model=UnifiedScreenResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def unified_screen_endpoint(
+    request: Request,
+    body: UnifiedScreenRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Unified structural alert screening across ALL catalogs.
+
+    Screens the input molecule against all available alert sources:
+    PAINS, BRENK, NIH, ZINC, ChEMBL sub-catalogs, custom SMARTS (21 patterns),
+    Kazius toxicophores (29 patterns), and NIBR Novartis filters.
+
+    Returns both a flat raw-alert list and a deduplicated concern-group view.
+
+    Args:
+        body: Request with molecule string and format hint
+
+    Returns:
+        UnifiedScreenResponse with alerts, concern_groups, and summary flags
+
+    Raises:
+        HTTPException: If molecule cannot be parsed
+    """
+    start_time = time.time()
+
+    # Parse molecule
+    format_map = {
+        "smiles": MoleculeFormat.SMILES,
+        "inchi": MoleculeFormat.INCHI,
+        "mol": MoleculeFormat.MOL,
+        "auto": None,
+    }
+    input_format = format_map.get(body.format)
+
+    parse_result = parse_molecule(body.molecule, input_format)
+
+    if not parse_result.success or parse_result.mol is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Failed to parse molecule",
+                "errors": parse_result.errors,
+                "warnings": parse_result.warnings,
+                "format_detected": parse_result.format_detected.value,
+            },
+        )
+
+    mol = parse_result.mol
+    mol_info = extract_molecule_info(mol, body.molecule)
+
+    # Run unified screening across all catalogs
+    result = unified_screen(mol)
+
+    # Convert raw AlertResult objects to AlertResultSchema objects
+    alerts_schema = [
+        AlertResultSchema(
+            pattern_name=alert.pattern_name,
+            description=alert.description,
+            severity=AlertSeverity(alert.severity.value)
+            if hasattr(alert.severity, "value")
+            else AlertSeverity(alert.severity),
+            matched_atoms=alert.matched_atoms,
+            catalog_source=alert.catalog_source,
+            smarts=getattr(alert, "smarts", None),
+            reference=getattr(alert, "reference", None),
+            scope=getattr(alert, "scope", None),
+            filter_set=getattr(alert, "filter_set", None),
+            catalog_description=getattr(alert, "catalog_description", None),
+            category=getattr(alert, "category", None),
+            concern_group=getattr(alert, "concern_group", None),
+        )
+        for alert in result["alerts"]
+    ]
+
+    # Convert concern_groups dict values to ConcernGroupSchema objects
+    concern_groups_schema: dict[str, ConcernGroupSchema] = {}
+    for group_name, group_data in result["concern_groups"].items():
+        group_alerts_schema = [
+            AlertResultSchema(
+                pattern_name=alert.pattern_name,
+                description=alert.description,
+                severity=AlertSeverity(alert.severity.value)
+                if hasattr(alert.severity, "value")
+                else AlertSeverity(alert.severity),
+                matched_atoms=alert.matched_atoms,
+                catalog_source=alert.catalog_source,
+                smarts=getattr(alert, "smarts", None),
+                reference=getattr(alert, "reference", None),
+                scope=getattr(alert, "scope", None),
+                filter_set=getattr(alert, "filter_set", None),
+                catalog_description=getattr(alert, "catalog_description", None),
+                category=getattr(alert, "category", None),
+                concern_group=getattr(alert, "concern_group", None),
+            )
+            for alert in group_data["alerts"]
+        ]
+        concern_groups_schema[group_name] = ConcernGroupSchema(
+            name=group_name,
+            count=group_data["count"],
+            severity=group_data["severity"],
+            alerts=group_alerts_schema,
+        )
+
+    execution_time = int((time.time() - start_time) * 1000)
+
+    return UnifiedScreenResponse(
+        status="completed",
+        molecule_info=mol_info,
+        alerts=alerts_schema,
+        concern_groups=concern_groups_schema,
+        total_raw=result["total_raw"],
+        total_deduped=result["total_deduped"],
+        screened_catalogs=result["screened_catalogs"],
+        has_critical=result["has_critical"],
+        has_warning=result["has_warning"],
+        execution_time_ms=execution_time,
+    )
