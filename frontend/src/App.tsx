@@ -166,6 +166,9 @@ function AppRoutes() {
             }
           />
           <Route path="/profiles" element={<Navigate to="/batch" replace />} />
+          <Route path="/profiler" element={<Navigate to="/?section=profiler" replace />} />
+          <Route path="/safety" element={<Navigate to="/?section=safety" replace />} />
+          <Route path="/diagnostics" element={<Navigate to="/?section=diagnostics" replace />} />
           <Route
             path="/about"
             element={
