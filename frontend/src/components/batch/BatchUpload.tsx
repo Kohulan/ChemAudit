@@ -51,6 +51,8 @@ export function BatchUpload({
   const [includeExtendedSafety, setIncludeExtendedSafety] = useState(false);
   const [includeChemblAlerts, setIncludeChemblAlerts] = useState(false);
   const [includeStandardization, setIncludeStandardization] = useState(false);
+  const [includeProfiling, setIncludeProfiling] = useState(false);
+  const [includeSafetyAssessment, setIncludeSafetyAssessment] = useState(false);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +199,8 @@ export function BatchUpload({
           includeExtended: includeExtendedSafety,
           includeChembl: includeChemblAlerts,
           includeStandardization: includeStandardization,
+          includeProfiling: includeProfiling,
+          includeSafetyAssessment: includeSafetyAssessment,
         },
         profileId
       );
@@ -563,6 +567,64 @@ export function BatchUpload({
                 </p>
               </div>
             </label>
+          </div>
+        </div>
+      )}
+
+      {/* Enrichment Options */}
+      {selectedFile && !isAnalyzing && (
+        <div className="bg-[var(--color-surface-elevated)] rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-[var(--color-primary)]" />
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">Enrichment Options</p>
+            </div>
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              Add computed molecular properties and safety predictions to each result.
+            </p>
+          </div>
+          <div className="p-4 space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={includeProfiling}
+                onChange={(e) => setIncludeProfiling(e.target.checked)}
+                disabled={isUploading}
+                className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+              />
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                  Molecular Profiling
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  PFI, stars, bioavailability, drug-likeness, SA comparison
+                </p>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={includeSafetyAssessment}
+                onChange={(e) => setIncludeSafetyAssessment(e.target.checked)}
+                disabled={isUploading}
+                className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+              />
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                  Safety Assessment
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  CYP, hERG, bRo5, REOS, complexity analysis
+                </p>
+              </div>
+            </label>
+            {(includeProfiling || includeSafetyAssessment) && csvColumns && csvColumns.row_count_estimate > 0 && (
+              <p className="text-xs text-[var(--color-text-muted)] italic mt-2">
+                Estimated additional time: ~{Math.ceil(
+                  csvColumns.row_count_estimate * ((includeProfiling ? 0.035 : 0) + (includeSafetyAssessment ? 0.018 : 0))
+                )}s for {csvColumns.row_count_estimate.toLocaleString()} molecules
+              </p>
+            )}
           </div>
         </div>
       )}

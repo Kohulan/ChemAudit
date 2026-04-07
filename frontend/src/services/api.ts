@@ -422,7 +422,7 @@ export const batchApi = {
     smilesColumn?: string,
     nameColumn?: string,
     onUploadProgress?: (progress: number) => void,
-    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean },
+    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean; includeProfiling?: boolean; includeSafetyAssessment?: boolean },
     profileId?: number | null
   ): Promise<BatchUploadResponse> => {
     const formData = new FormData();
@@ -441,6 +441,12 @@ export const batchApi = {
     }
     if (safetyOptions?.includeStandardization) {
       formData.append('include_standardization', 'true');
+    }
+    if (safetyOptions?.includeProfiling) {
+      formData.append('include_profiling', 'true');
+    }
+    if (safetyOptions?.includeSafetyAssessment) {
+      formData.append('include_safety_assessment', 'true');
     }
     if (profileId != null) {
       formData.append('profile_id', String(profileId));
