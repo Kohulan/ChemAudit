@@ -2169,59 +2169,57 @@ export function SingleValidationPage() {
         )}
       </AnimatePresence>
 
-      {/* Enrichment Accordion Sections */}
-      {canonicalSmiles && (
-        <div className="space-y-3 mt-6">
-          <DrillDownSection
-            title="Compound Profile"
-            icon={<FlaskConical className="w-4 h-4" />}
-            summary={profileResult ? `PFI ${profileResult.pfi?.pfi ?? '\u2014'} | ${profileResult.stars?.stars ?? '\u2014'}\u2605 | SA ${profileResult.sa_comparison?.sa_score?.score ?? '\u2014'}` : undefined}
-            summaryLoading={profileLoading}
-            defaultOpen={sectionParam === 'profile'}
-            onToggle={handleProfileToggle}
-          >
-            <ProfilerAccordion
-              smiles={canonicalSmiles}
-              profile={profileResult}
-              isLoading={profileLoading}
-              error={profileError}
-            />
-          </DrillDownSection>
+      {/* Enrichment Accordion Sections — always visible */}
+      <div className="space-y-3 mt-6">
+        <DrillDownSection
+          title="Compound Profile"
+          icon={<FlaskConical className="w-4 h-4" />}
+          summary={profileResult ? `PFI ${profileResult.pfi?.pfi ?? '\u2014'} | ${profileResult.stars?.stars ?? '\u2014'}\u2605 | SA ${profileResult.sa_comparison?.sa_score?.score ?? '\u2014'}` : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
+          summaryLoading={profileLoading}
+          defaultOpen={sectionParam === 'profile'}
+          onToggle={handleProfileToggle}
+        >
+          <ProfilerAccordion
+            smiles={canonicalSmiles || ''}
+            profile={profileResult}
+            isLoading={profileLoading}
+            error={profileError}
+          />
+        </DrillDownSection>
 
-          <DrillDownSection
-            title="Safety Assessment"
-            icon={<Shield className="w-4 h-4" />}
-            summary={safetyAlertResult ? `${safetyAlertResult.total_raw ?? 0} alerts` : undefined}
-            summaryLoading={safetyLoading}
-            defaultOpen={sectionParam === 'safety'}
-            onToggle={handleSafetyToggle}
-          >
-            <SafetyAccordion
-              smiles={canonicalSmiles}
-              alertResult={safetyAlertResult}
-              safetyResult={safetyAssessResult}
-              isLoading={safetyLoading}
-              error={safetyAlertError || safetyAssessError}
-            />
-          </DrillDownSection>
+        <DrillDownSection
+          title="Safety Assessment"
+          icon={<Shield className="w-4 h-4" />}
+          summary={safetyAlertResult ? `${safetyAlertResult.total_raw ?? 0} alerts` : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
+          summaryLoading={safetyLoading}
+          defaultOpen={sectionParam === 'safety'}
+          onToggle={handleSafetyToggle}
+        >
+          <SafetyAccordion
+            smiles={canonicalSmiles || ''}
+            alertResult={safetyAlertResult}
+            safetyResult={safetyAssessResult}
+            isLoading={safetyLoading}
+            error={safetyAlertError || safetyAssessError}
+          />
+        </DrillDownSection>
 
-          <DrillDownSection
-            title="Diagnostics"
-            icon={<Stethoscope className="w-4 h-4" />}
-            summary={diagCrossPipeline ? (diagCrossPipeline.disagreements > 0 ? `${diagCrossPipeline.disagreements} disagreement(s)` : 'All pipelines agree') : undefined}
-            summaryLoading={diagLoading}
-            defaultOpen={sectionParam === 'diagnostics'}
-            onToggle={handleDiagnosticsToggle}
-          >
-            <DiagnosticsAccordion
-              smiles={canonicalSmiles}
-              crossPipelineResult={diagCrossPipeline}
-              roundTripResult={diagRoundTrip}
-              isLoading={diagLoading}
-            />
-          </DrillDownSection>
-        </div>
-      )}
+        <DrillDownSection
+          title="Diagnostics"
+          icon={<Stethoscope className="w-4 h-4" />}
+          summary={diagCrossPipeline ? (diagCrossPipeline.disagreements > 0 ? `${diagCrossPipeline.disagreements} disagreement(s)` : 'All pipelines agree') : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
+          summaryLoading={diagLoading}
+          defaultOpen={sectionParam === 'diagnostics'}
+          onToggle={handleDiagnosticsToggle}
+        >
+          <DiagnosticsAccordion
+            smiles={canonicalSmiles || ''}
+            crossPipelineResult={diagCrossPipeline}
+            roundTripResult={diagRoundTrip}
+            isLoading={diagLoading}
+          />
+        </DrillDownSection>
+      </div>
 
       {/* Share URL Toast */}
       <AnimatePresence>
