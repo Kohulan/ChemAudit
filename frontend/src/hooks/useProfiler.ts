@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { api } from '../services/api';
 import type {
   ProfileResponse,
   Shape3DResult,
@@ -12,7 +13,7 @@ import type {
  * Hook for compound profiling API calls.
  *
  * Provides:
- * - profileCompound: full profile via /api/v1/profiler/full
+ * - profileCompound: full profile via /profiler/full
  * - compute3DShape: on-demand 3D shape descriptors
  * - computeEfficiency: ligand efficiency from activity value
  * - computeCustomMPO: custom MPO score from user-defined property profile
@@ -26,8 +27,8 @@ export function useProfiler() {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await axios.post<ProfileResponse>(
-        '/api/v1/profiler/full',
+      const { data } = await api.post<ProfileResponse>(
+        '/profiler/full',
         { smiles }
       );
       setProfile(data);
@@ -44,8 +45,8 @@ export function useProfiler() {
 
   const compute3DShape = useCallback(async (smiles: string): Promise<Shape3DResult | null> => {
     try {
-      const { data } = await axios.post<Shape3DResult>(
-        '/api/v1/profiler/shape-3d',
+      const { data } = await api.post<Shape3DResult>(
+        '/profiler/shape-3d',
         { smiles }
       );
       return data;
@@ -60,8 +61,8 @@ export function useProfiler() {
     activityType: string
   ): Promise<LEResult | null> => {
     try {
-      const { data } = await axios.post<LEResult>(
-        '/api/v1/profiler/efficiency',
+      const { data } = await api.post<LEResult>(
+        '/profiler/efficiency',
         { smiles, activity_value: activityValue, activity_type: activityType }
       );
       return data;
@@ -75,8 +76,8 @@ export function useProfiler() {
     mpoProfile: MPOProperty[]
   ): Promise<CustomMPOResult | null> => {
     try {
-      const { data } = await axios.post<CustomMPOResult>(
-        '/api/v1/profiler/mpo',
+      const { data } = await api.post<CustomMPOResult>(
+        '/profiler/mpo',
         { smiles, profile: mpoProfile }
       );
       return data;

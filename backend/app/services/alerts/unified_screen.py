@@ -119,7 +119,10 @@ def unified_screen(mol: Chem.Mol) -> dict:
     # ------------------------------------------------------------------ #
     custom_alerts = screen_custom_smarts(mol)
     kazius_alerts = screen_kazius(mol)
-    nibr_alerts = screen_nibr(mol)
+    try:
+        nibr_alerts = screen_nibr(mol)
+    except (ImportError, ModuleNotFoundError):
+        nibr_alerts = []
 
     # Flat raw list (catalog-source view preserves all entries)
     raw_alerts = (
