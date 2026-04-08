@@ -17,6 +17,7 @@ import {
   Database,
   ChevronDown,
   FlaskConical,
+  Stethoscope,
   Library,
 } from 'lucide-react';
 
@@ -83,6 +84,12 @@ const navEntries: NavEntry[] = [
         label: 'Dataset Audit',
         icon: Database,
         description: 'Health scoring, contradiction detection, and curation reports',
+      },
+      {
+        to: '/diagnostics',
+        label: 'Diagnostics',
+        icon: Stethoscope,
+        description: 'SMILES error detection, InChI diff, round-trip checks, file validation',
       },
     ],
   },

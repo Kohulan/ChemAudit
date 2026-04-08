@@ -43,7 +43,7 @@ import { InfoTooltip } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
-import { alertsApi, scoringApi, standardizationApi, integrationsApi, diagnosticsApi } from '../services/api';
+import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
 import { cn, getScoreLabel } from '../lib/utils';
 import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
@@ -56,12 +56,10 @@ import { IdentifierResolverCard } from '../components/integrations/IdentifierRes
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
 import { SafetyAccordion } from '../components/safety/SafetyAccordion';
-import { DiagnosticsAccordion } from '../components/diagnostics/DiagnosticsAccordion';
 import { DrillDownSection } from '../components/ui/DrillDownSection';
-import { FlaskConical, Shield, Stethoscope } from 'lucide-react';
+import { FlaskConical, Shield } from 'lucide-react';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
-import type { CrossPipelineResponse, RoundTripResponse } from '../types/diagnostics';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -306,11 +304,6 @@ export function SingleValidationPage() {
     safetyError: safetyAssessError,
     screenMolecule: screenSafety,
   } = useSafety();
-
-  // Enrichment: Diagnostics state (lazy-loaded on accordion expand)
-  const [diagCrossPipeline, setDiagCrossPipeline] = useState<CrossPipelineResponse | null>(null);
-  const [diagRoundTrip, setDiagRoundTrip] = useState<RoundTripResponse | null>(null);
-  const [diagLoading, setDiagLoading] = useState(false);
 
   // URL deep-link: ?section= param auto-expands a specific accordion
   const sectionParam = searchParams.get('section');
@@ -574,9 +567,6 @@ export function SingleValidationPage() {
     setHighlightedAtoms([]);
     setHighlightLocked(false);
     setShowCIP(false);
-    // Reset enrichment state
-    setDiagCrossPipeline(null);
-    setDiagRoundTrip(null);
   };
 
   // Restore cached results on mount (from navigation cache or bookmark snapshot)
@@ -760,24 +750,6 @@ export function SingleValidationPage() {
       screenSafety(canonicalSmiles);
     }
   }, [canonicalSmiles, safetyAlertResult, safetyAssessResult, safetyLoading, screenSafety]);
-
-  const handleDiagnosticsToggle = useCallback((isOpen: boolean) => {
-    if (isOpen && !diagCrossPipeline && !diagLoading && canonicalSmiles) {
-      setDiagLoading(true);
-      Promise.all([
-        diagnosticsApi.crossPipeline(canonicalSmiles),
-        diagnosticsApi.roundtrip(canonicalSmiles),
-      ])
-        .then(([crossPipeline, roundTrip]) => {
-          setDiagCrossPipeline(crossPipeline);
-          setDiagRoundTrip(roundTrip);
-        })
-        .catch((e) => {
-          logger.error('Diagnostics fetch error:', e);
-        })
-        .finally(() => setDiagLoading(false));
-    }
-  }, [canonicalSmiles, diagCrossPipeline, diagLoading]);
 
   function getLoadingText(): string {
     if (isLoading) return 'Running validation checks...';
@@ -2206,22 +2178,6 @@ export function SingleValidationPage() {
           />
         </DrillDownSection>
 
-        <DrillDownSection
-          title="Diagnostics"
-          icon={<Stethoscope className="w-4 h-4" />}
-          summary={diagCrossPipeline ? (diagCrossPipeline.disagreements > 0 ? `${diagCrossPipeline.disagreements} disagreement(s)` : 'All pipelines agree') : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
-          summaryLoading={diagLoading}
-          defaultOpen={sectionParam === 'diagnostics'}
-          onToggle={handleDiagnosticsToggle}
-          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
-        >
-          <DiagnosticsAccordion
-            smiles={canonicalSmiles || ''}
-            crossPipelineResult={diagCrossPipeline}
-            roundTripResult={diagRoundTrip}
-            isLoading={diagLoading}
-          />
-        </DrillDownSection>
       </div>
 
       {/* Share URL Toast */}
