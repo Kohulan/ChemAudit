@@ -56,7 +56,6 @@ import { IdentifierResolverCard } from '../components/integrations/IdentifierRes
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
 import { SafetyAccordion } from '../components/safety/SafetyAccordion';
-import { DrillDownSection } from '../components/ui/DrillDownSection';
 import { FlaskConical, Shield } from 'lucide-react';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
@@ -177,6 +176,7 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
+  // Row 1
   {
     id: 'validate',
     label: 'Validate & Score',
@@ -193,8 +193,15 @@ const TABS: TabConfig[] = [
     id: 'scoring-profiles',
     label: 'Scoring Profiles',
     icon: <BarChart3 className="w-4 h-4" />,
-    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar, and BOILED-Egg',
+    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
   },
+  {
+    id: 'compound-profile',
+    label: 'Compound Profile',
+    icon: <FlaskConical className="w-4 h-4" />,
+    description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
+  },
+  // Row 2
   {
     id: 'database',
     label: 'Database Lookup',
@@ -203,9 +210,9 @@ const TABS: TabConfig[] = [
   },
   {
     id: 'alerts',
-    label: 'Alerts Screening',
-    icon: <AlertTriangle className="w-4 h-4" />,
-    description: 'Screen for problematic structural patterns using PAINS, BRENK, NIH, and ZINC filters',
+    label: 'Safety',
+    icon: <Shield className="w-4 h-4" />,
+    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
   },
   {
     id: 'standardize',
@@ -305,8 +312,12 @@ export function SingleValidationPage() {
     screenMolecule: screenSafety,
   } = useSafety();
 
-  // URL deep-link: ?section= param auto-expands a specific accordion
+  // URL deep-link: ?section= param maps to a tab
   const sectionParam = searchParams.get('section');
+  useEffect(() => {
+    if (sectionParam === 'profile') setActiveTab('compound-profile');
+    else if (sectionParam === 'safety') setActiveTab('alerts');
+  }, [sectionParam]);
 
   // Load molecule from URL on mount
   useEffect(() => {
@@ -737,19 +748,16 @@ export function SingleValidationPage() {
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
 
-  // ── Enrichment accordion toggle handlers (lazy-load on expand) ──────────
-
-  const handleProfileToggle = useCallback((isOpen: boolean) => {
-    if (isOpen && !profileResult && !profileLoading && canonicalSmiles) {
+  // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
+  useEffect(() => {
+    if (activeTab === 'compound-profile' && !profileResult && !profileLoading && canonicalSmiles) {
       profileCompound(canonicalSmiles);
     }
-  }, [canonicalSmiles, profileResult, profileLoading, profileCompound]);
-
-  const handleSafetyToggle = useCallback((isOpen: boolean) => {
-    if (isOpen && !safetyAlertResult && !safetyAssessResult && !safetyLoading && canonicalSmiles) {
+    if (activeTab === 'alerts' && !safetyAssessResult && !safetyLoading && canonicalSmiles) {
       screenSafety(canonicalSmiles);
     }
-  }, [canonicalSmiles, safetyAlertResult, safetyAssessResult, safetyLoading, screenSafety]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, canonicalSmiles]);
 
   function getLoadingText(): string {
     if (isLoading) return 'Running validation checks...';
@@ -1301,20 +1309,21 @@ export function SingleValidationPage() {
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
             {/* Tab Bar */}
-            <div className="flex flex-wrap gap-1 p-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/30">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  title={tab.description}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all',
+                    'flex items-center justify-center gap-2 px-3 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200',
                     activeTab === tab.id
-                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
+                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-primary)]/10'
                       : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]/50 hover:text-[var(--color-text-primary)]'
                   )}
                 >
                   {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="hidden sm:inline font-display">{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -1467,7 +1476,28 @@ export function SingleValidationPage() {
                   </div>
                 )}
 
-                {/* Alerts Screening Tab */}
+                {/* Compound Profile Tab */}
+                {activeTab === 'compound-profile' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <FlaskConical className="w-4 h-4" />
+                      </div>
+                      <p className="text-[var(--color-text-secondary)] text-sm">
+                        Comprehensive molecular profiling with physicochemical properties, drug-likeness assessment,
+                        synthesizability comparison, and 3D shape analysis.
+                      </p>
+                    </div>
+                    <ProfilerAccordion
+                      smiles={canonicalSmiles || ''}
+                      profile={profileResult}
+                      isLoading={profileLoading}
+                      error={profileError}
+                    />
+                  </div>
+                )}
+
+                {/* Safety Tab (alerts screening + safety assessment) */}
                 {activeTab === 'alerts' && (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
@@ -1555,6 +1585,15 @@ export function SingleValidationPage() {
                     >
                       Screen Alerts
                     </ClayButton>
+
+                    {/* Safety Assessment (merged into this tab) */}
+                    <SafetyAccordion
+                      smiles={canonicalSmiles || ''}
+                      alertResult={safetyAlertResult}
+                      safetyResult={safetyAssessResult}
+                      isLoading={safetyLoading}
+                      error={safetyAlertError || safetyAssessError}
+                    />
                   </div>
                 )}
 
@@ -2140,45 +2179,6 @@ export function SingleValidationPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Enrichment Accordion Sections — single card, width matches left column */}
-      <div className="card mt-6 lg:w-[calc(50%-0.75rem)] divide-y divide-border/30 overflow-hidden">
-        <DrillDownSection
-          title="Compound Profile"
-          icon={<FlaskConical className="w-4 h-4" />}
-          summary={profileResult ? `PFI ${profileResult.pfi?.pfi ?? '\u2014'} | ${profileResult.stars?.stars ?? '\u2014'}\u2605 | SA ${profileResult.sa_comparison?.sa_score?.score ?? '\u2014'}` : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
-          summaryLoading={profileLoading}
-          defaultOpen={sectionParam === 'profile'}
-          onToggle={handleProfileToggle}
-          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
-        >
-          <ProfilerAccordion
-            smiles={canonicalSmiles || ''}
-            profile={profileResult}
-            isLoading={profileLoading}
-            error={profileError}
-          />
-        </DrillDownSection>
-
-        <DrillDownSection
-          title="Safety Assessment"
-          icon={<Shield className="w-4 h-4" />}
-          summary={safetyAlertResult ? `${safetyAlertResult.total_raw ?? 0} alerts` : !canonicalSmiles ? 'Validate a molecule to view' : undefined}
-          summaryLoading={safetyLoading}
-          defaultOpen={sectionParam === 'safety'}
-          onToggle={handleSafetyToggle}
-          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
-        >
-          <SafetyAccordion
-            smiles={canonicalSmiles || ''}
-            alertResult={safetyAlertResult}
-            safetyResult={safetyAssessResult}
-            isLoading={safetyLoading}
-            error={safetyAlertError || safetyAssessError}
-          />
-        </DrillDownSection>
-
-      </div>
 
       {/* Share URL Toast */}
       <AnimatePresence>
