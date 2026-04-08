@@ -60,7 +60,7 @@ export function DrillDownSection({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/50 bg-surface-secondary overflow-hidden',
+        'card overflow-hidden',
         className,
       )}
     >
@@ -68,10 +68,10 @@ export function DrillDownSection({
       <button
         type="button"
         className={cn(
-          'flex w-full items-center gap-3 px-4 py-3 text-left',
+          'relative z-[1] flex w-full items-center gap-3 px-6 py-4 text-left',
           'cursor-pointer select-none',
-          'transition-colors duration-150 hover:bg-surface-secondary/80',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+          'transition-colors duration-200 hover:bg-surface-secondary/40',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-inset',
         )}
         aria-expanded={isOpen}
         aria-controls={panelId}
@@ -81,26 +81,32 @@ export function DrillDownSection({
         {/* Chevron */}
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           className="flex-shrink-0 text-text-tertiary"
         >
           <ChevronDown className="h-4 w-4" />
         </motion.div>
 
         {/* Icon (optional) */}
-        {icon && <span className="flex-shrink-0">{icon}</span>}
+        {icon && (
+          <span className="flex-shrink-0 text-text-secondary">{icon}</span>
+        )}
 
         {/* Title */}
-        <span className="flex-1 text-sm font-medium text-text-primary">{title}</span>
+        <span className="flex-1 text-sm font-semibold text-text-primary font-display">
+          {title}
+        </span>
 
         {/* Summary badge (collapsed only) */}
         {!isOpen && summary && !summaryLoading && (
-          <span className="flex-shrink-0 text-xs text-text-tertiary">{summary}</span>
+          <span className="flex-shrink-0 text-xs text-text-tertiary font-medium tracking-wide">
+            {summary}
+          </span>
         )}
 
         {/* Summary loading skeleton */}
         {!isOpen && summaryLoading && (
-          <span className="h-4 w-16 animate-pulse rounded bg-border/50" />
+          <span className="h-4 w-20 animate-pulse rounded-full bg-border/40" />
         )}
       </button>
 
@@ -113,10 +119,12 @@ export function DrillDownSection({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4">{children}</div>
+            <div className="relative z-[1] border-t border-border/30 px-6 pb-6 pt-4">
+              {children}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
