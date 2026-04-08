@@ -2169,8 +2169,8 @@ export function SingleValidationPage() {
         )}
       </AnimatePresence>
 
-      {/* Enrichment Accordion Sections — always visible */}
-      <div className="space-y-3 mt-6">
+      {/* Enrichment Accordion Sections — single card, width matches left column */}
+      <div className="card mt-6 lg:w-[calc(50%-0.75rem)] divide-y divide-border/30 overflow-hidden">
         <DrillDownSection
           title="Compound Profile"
           icon={<FlaskConical className="w-4 h-4" />}
@@ -2178,6 +2178,7 @@ export function SingleValidationPage() {
           summaryLoading={profileLoading}
           defaultOpen={sectionParam === 'profile'}
           onToggle={handleProfileToggle}
+          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
         >
           <ProfilerAccordion
             smiles={canonicalSmiles || ''}
@@ -2194,6 +2195,7 @@ export function SingleValidationPage() {
           summaryLoading={safetyLoading}
           defaultOpen={sectionParam === 'safety'}
           onToggle={handleSafetyToggle}
+          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
         >
           <SafetyAccordion
             smiles={canonicalSmiles || ''}
@@ -2211,6 +2213,7 @@ export function SingleValidationPage() {
           summaryLoading={diagLoading}
           defaultOpen={sectionParam === 'diagnostics'}
           onToggle={handleDiagnosticsToggle}
+          className="border-0 rounded-none shadow-none bg-transparent [&::before]:hidden"
         >
           <DiagnosticsAccordion
             smiles={canonicalSmiles || ''}
