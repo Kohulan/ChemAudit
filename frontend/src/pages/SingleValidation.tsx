@@ -1308,34 +1308,55 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            {/* Tab Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/30">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.description}
-                  className={cn(
-                    'flex items-center justify-center gap-2 px-3 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-200',
-                    activeTab === tab.id
-                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-primary)]/10'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]/50 hover:text-[var(--color-text-primary)]'
-                  )}
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline font-display">{tab.label}</span>
-                </button>
-              ))}
+            {/* Tab Bar — 4-column grid, compact and refined */}
+            <div className="grid grid-cols-4 gap-px p-1.5 bg-[var(--color-surface-sunken)]/40">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    title={tab.description}
+                    className={cn(
+                      'group relative flex items-center justify-center gap-1.5',
+                      'px-2 py-2 text-[12px] tracking-wide font-semibold',
+                      'rounded-lg transition-all duration-250 cursor-pointer',
+                      'font-[Outfit,system-ui,sans-serif]',
+                      isActive
+                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_0_0_1px_rgba(var(--color-primary-rgb),0.08)]'
+                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/60',
+                    )}
+                  >
+                    <span className={cn(
+                      'transition-transform duration-200',
+                      isActive && 'scale-110',
+                    )}>
+                      {tab.icon}
+                    </span>
+                    <span className="hidden sm:inline truncate leading-tight">{tab.label}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTabIndicator"
+                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-[var(--color-primary)]"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Accent line below tab bar */}
+            <div className="h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent" />
 
             {/* Tab Content */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
                 className="p-5 sm:p-6"
               >
                 {/* Validate & Score Tab */}
