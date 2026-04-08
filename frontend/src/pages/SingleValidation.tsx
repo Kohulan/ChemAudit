@@ -178,45 +178,45 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   {
     id: 'validate',
-    label: 'Validate',
+    label: 'Validate & Score',
     icon: <CheckCircle2 className="w-4 h-4" />,
-    description: 'Structure validity checks, quality score, and ML-readiness assessment',
+    description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
   },
   {
     id: 'deep-validation',
-    label: 'Deep Check',
+    label: 'Deep Validation',
     icon: <Microscope className="w-4 h-4" />,
-    description: 'Stereo, tautomers, composition, and complexity analysis',
+    description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
   },
   {
     id: 'scoring-profiles',
-    label: 'Scoring',
+    label: 'Scoring Profiles',
     icon: <BarChart3 className="w-4 h-4" />,
-    description: 'Drug-likeness, lead-likeness, bioavailability, and property profiles',
-  },
-  {
-    id: 'compound-profile',
-    label: 'Profile',
-    icon: <FlaskConical className="w-4 h-4" />,
-    description: 'PFI, stars, bioavailability, synthesizability, and 3D shape',
-  },
-  {
-    id: 'database',
-    label: 'Database',
-    icon: <Database className="w-4 h-4" />,
-    description: 'Search PubChem, ChEMBL, and COCONUT databases',
+    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
   },
   {
     id: 'alerts',
     label: 'Safety',
     icon: <Shield className="w-4 h-4" />,
-    description: 'Structural alerts, CYP, hERG, bRo5, REOS, and complexity',
+    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
+  },
+  {
+    id: 'compound-profile',
+    label: 'Compound Profile',
+    icon: <FlaskConical className="w-4 h-4" />,
+    description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
+  },
+  {
+    id: 'database',
+    label: 'Database Lookup',
+    icon: <Database className="w-4 h-4" />,
+    description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
   },
   {
     id: 'standardize',
     label: 'Standardize',
     icon: <Layers className="w-4 h-4" />,
-    description: 'Normalize structure and remove salts/solvents',
+    description: 'Normalize structure representation and remove salts/solvents',
   },
 ];
 
@@ -1307,7 +1307,7 @@ export function SingleValidationPage() {
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
             {/* Tab Bar */}
-            <div className="grid grid-cols-4 gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
+            <div className="flex flex-wrap gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -1316,8 +1316,8 @@ export function SingleValidationPage() {
                     onClick={() => setActiveTab(tab.id)}
                     title={tab.description}
                     className={cn(
-                      'group relative flex items-center justify-center gap-2',
-                      'px-3 py-2.5 text-[13px] font-medium',
+                      'group flex items-center gap-2',
+                      'px-3.5 py-2 text-[13px] font-medium whitespace-nowrap',
                       'rounded-xl transition-all duration-200 cursor-pointer',
                       'font-[Outfit,system-ui,sans-serif]',
                       isActive
@@ -1331,7 +1331,7 @@ export function SingleValidationPage() {
                     )}>
                       {tab.icon}
                     </span>
-                    <span className="hidden sm:inline truncate">{tab.label}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 );
               })}
