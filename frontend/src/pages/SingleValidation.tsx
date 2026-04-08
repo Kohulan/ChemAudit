@@ -176,49 +176,47 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  // Row 1
   {
     id: 'validate',
-    label: 'Validate & Score',
+    label: 'Validate',
     icon: <CheckCircle2 className="w-4 h-4" />,
-    description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
+    description: 'Structure validity checks, quality score, and ML-readiness assessment',
   },
   {
     id: 'deep-validation',
-    label: 'Deep Validation',
+    label: 'Deep Check',
     icon: <Microscope className="w-4 h-4" />,
-    description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
+    description: 'Stereo, tautomers, composition, and complexity analysis',
   },
   {
     id: 'scoring-profiles',
-    label: 'Scoring Profiles',
+    label: 'Scoring',
     icon: <BarChart3 className="w-4 h-4" />,
-    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
+    description: 'Drug-likeness, lead-likeness, bioavailability, and property profiles',
   },
   {
     id: 'compound-profile',
-    label: 'Compound Profile',
+    label: 'Profile',
     icon: <FlaskConical className="w-4 h-4" />,
-    description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
+    description: 'PFI, stars, bioavailability, synthesizability, and 3D shape',
   },
-  // Row 2
   {
     id: 'database',
-    label: 'Database Lookup',
+    label: 'Database',
     icon: <Database className="w-4 h-4" />,
-    description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
+    description: 'Search PubChem, ChEMBL, and COCONUT databases',
   },
   {
     id: 'alerts',
     label: 'Safety',
     icon: <Shield className="w-4 h-4" />,
-    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
+    description: 'Structural alerts, CYP, hERG, bRo5, REOS, and complexity',
   },
   {
     id: 'standardize',
     label: 'Standardize',
     icon: <Layers className="w-4 h-4" />,
-    description: 'Normalize structure representation and remove salts/solvents',
+    description: 'Normalize structure and remove salts/solvents',
   },
 ];
 
@@ -1308,8 +1306,8 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            {/* Tab Bar — 4-column grid, compact and refined */}
-            <div className="grid grid-cols-4 gap-px p-1.5 bg-[var(--color-surface-sunken)]/40">
+            {/* Tab Bar */}
+            <div className="grid grid-cols-4 gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -1318,29 +1316,22 @@ export function SingleValidationPage() {
                     onClick={() => setActiveTab(tab.id)}
                     title={tab.description}
                     className={cn(
-                      'group relative flex items-center justify-center gap-1.5',
-                      'px-2 py-2 text-[12px] tracking-wide font-semibold',
-                      'rounded-lg transition-all duration-250 cursor-pointer',
+                      'group relative flex items-center justify-center gap-2',
+                      'px-3 py-2.5 text-[13px] font-medium',
+                      'rounded-xl transition-all duration-200 cursor-pointer',
                       'font-[Outfit,system-ui,sans-serif]',
                       isActive
-                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_0_0_1px_rgba(var(--color-primary-rgb),0.08)]'
-                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/60',
+                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/50',
                     )}
                   >
                     <span className={cn(
-                      'transition-transform duration-200',
-                      isActive && 'scale-110',
+                      'shrink-0 transition-colors duration-200',
+                      isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]',
                     )}>
                       {tab.icon}
                     </span>
-                    <span className="hidden sm:inline truncate leading-tight">{tab.label}</span>
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeTabIndicator"
-                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full bg-[var(--color-primary)]"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
+                    <span className="hidden sm:inline truncate">{tab.label}</span>
                   </button>
                 );
               })}
