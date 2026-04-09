@@ -2,7 +2,7 @@
 REOS (Rapid Elimination of Swill) Filter (SAFE-04)
 
 Evaluates molecules against 7 physicochemical property ranges to rapidly
-identify undesirable compounds. Originally published by Walters et al. (1998).
+identify undesirable compounds. Originally published by Walters et al. (1999).
 """
 from __future__ import annotations
 

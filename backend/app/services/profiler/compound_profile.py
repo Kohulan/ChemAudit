@@ -2,7 +2,7 @@
 Compound Profiler — Core Property Computation
 
 Implements 6 profiling metrics:
-- PFI (Property Forecast Index) — Pfizer / Hopkins 2014
+- PFI (Property Forecast Index) — Young et al., Drug Discov Today 2011
 - #Stars (QikProp-equivalent 95th-percentile outlier count)
 - Abbott Bioavailability Score — Martin, J Med Chem 2005
 - Consensus LogP (Wildman-Crippen + XLOGP3 approximation)
@@ -50,7 +50,7 @@ def compute_pfi(mol: Chem.Mol) -> dict:
     Compute the Property Forecast Index (PFI).
 
     PFI = cLogP + Number of aromatic rings.
-    Thresholds: <5 low, 5-7 moderate, >=7 high (Hopkins et al., 2014).
+    Thresholds: <5 low, 5-7 moderate, >=7 high (Young et al., 2011).
 
     Args:
         mol: RDKit molecule object.

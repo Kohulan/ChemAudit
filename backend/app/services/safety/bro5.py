@@ -17,7 +17,7 @@ def compute_bro5(mol: Chem.Mol) -> dict:
     bRo5 applies only to molecules with MW > 500. For smaller molecules,
     standard Ro5 applies and this check returns not applicable.
 
-    bRo5 thresholds (Doak et al., 2016):
+    bRo5 thresholds (Doak et al., 2014):
       - MW > 1000
       - LogP > 10
       - HBD > 6
