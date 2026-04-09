@@ -4,6 +4,7 @@ import { batchApi } from '../../services/api';
 import { useLimits } from '../../context/ConfigContext';
 import { ClayButton } from '../ui/ClayButton';
 import { logger } from '../../lib/logger';
+import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import type { CSVColumnsResponse } from '../../types/batch';
 
 interface BatchUploadProps {
@@ -593,9 +594,49 @@ export function BatchUpload({
                 className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               <div>
-                <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
-                  Molecular Profiling
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                    Molecular Profiling
+                  </p>
+                  <InfoTooltip
+                    title="Molecular Profiling Metrics"
+                    position="right"
+                    content={
+                      <div className="text-xs space-y-2">
+                        <div>
+                          <p className="font-semibold text-white">PFI (Property Forecast Index)</p>
+                          <p className="text-white/70">cLogP + aromatic ring count. &lt;5 low, 5-7 moderate, &gt;7 high risk.</p>
+                          <p className="text-white/50 italic">Young et al. Drug Discov Today (2011)</p>
+                          <DoiLink doi="10.1016/j.drudis.2011.06.001" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">#Stars (Outlier Count)</p>
+                          <p className="text-white/70">Properties outside 95th-percentile drug-like ranges. 0 = drug-like, 3+ = outlier.</p>
+                          <p className="text-white/50 italic">Jorgensen &amp; Duffy. Adv Drug Deliv Rev (2002)</p>
+                          <DoiLink doi="10.1016/S0169-409X(02)00008-X" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Abbott Bioavailability Score</p>
+                          <p className="text-white/70">4-class oral bioavailability probability (11%, 17%, 56%, 85%).</p>
+                          <p className="text-white/50 italic">Martin. J Med Chem (2005)</p>
+                          <DoiLink doi="10.1021/jm0492002" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Drug-likeness Rules</p>
+                          <p className="text-white/70">Lipinski, Veber, Egan, Muegge, Ghose filter evaluation.</p>
+                          <p className="text-white/50 italic">Lipinski et al. Adv Drug Deliv Rev (2001)</p>
+                          <DoiLink doi="10.1016/S0169-409X(00)00129-0" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">SA Comparison</p>
+                          <p className="text-white/70">Synthetic accessibility: SA Score + SCScore + SYBA side-by-side.</p>
+                          <p className="text-white/50 italic">Ertl &amp; Schuffenhauer. J Cheminform (2009)</p>
+                          <DoiLink doi="10.1186/1758-2946-1-8" />
+                        </div>
+                      </div>
+                    }
+                  />
+                </div>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                   PFI, stars, bioavailability, drug-likeness, SA comparison
                 </p>
@@ -610,9 +651,49 @@ export function BatchUpload({
                 className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               <div>
-                <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
-                  Safety Assessment
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                    Safety Assessment
+                  </p>
+                  <InfoTooltip
+                    title="Safety Assessment Metrics"
+                    position="right"
+                    content={
+                      <div className="text-xs space-y-2">
+                        <div>
+                          <p className="font-semibold text-white">CYP Soft-Spots</p>
+                          <p className="text-white/70">SMARTS-based cytochrome P450 metabolism site prediction with atom highlighting.</p>
+                          <p className="text-white/50 italic">Rydberg et al. ACS Med Chem Lett (2010)</p>
+                          <DoiLink doi="10.1021/ml100016x" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">hERG Risk</p>
+                          <p className="text-white/70">Rule-based hERG channel liability assessment using amphiphilic properties.</p>
+                          <p className="text-white/50 italic">Aronov. Drug Discov Today (2005)</p>
+                          <DoiLink doi="10.1016/S1359-6446(04)03278-7" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">bRo5 (Beyond Rule of 5)</p>
+                          <p className="text-white/70">Relaxed thresholds for macrocycles, PROTACs, and natural products (MW &gt; 500).</p>
+                          <p className="text-white/50 italic">Doak et al. Chem Biol (2014)</p>
+                          <DoiLink doi="10.1016/j.chembiol.2014.08.013" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">REOS Filter</p>
+                          <p className="text-white/70">Rapid Elimination of Swill — 7 physicochemical property range filters.</p>
+                          <p className="text-white/50 italic">Walters &amp; Murcko. Curr Opin Chem Biol (1999)</p>
+                          <DoiLink doi="10.1016/S1367-5931(99)80058-1" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">Complexity Analysis</p>
+                          <p className="text-white/70">Bertz complexity index percentile vs commercial compound distributions.</p>
+                          <p className="text-white/50 italic">Bertz. J Am Chem Soc (1981)</p>
+                          <DoiLink doi="10.1021/ja00402a071" />
+                        </div>
+                      </div>
+                    }
+                  />
+                </div>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                   CYP, hERG, bRo5, REOS, complexity analysis
                 </p>

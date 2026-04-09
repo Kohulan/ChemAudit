@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { api } from '../../services/api';
 import { useProfiler } from '../../hooks/useProfiler';
+import type { ProfileResponse } from '../../types/profiler';
 import { HeroSection } from './HeroSection';
 import { PFIPanel } from './PFIPanel';
 import { StarsPanel } from './StarsPanel';
@@ -12,7 +15,7 @@ import { Shape3DPanel } from './Shape3DPanel';
 import { LigandEfficiencyPanel } from './LigandEfficiencyPanel';
 import { MPOPanel } from './MPOPanel';
 import { ComparisonBar, type PinnedMolecule } from './ComparisonBar';
-import type { ProfileResponse } from '../../types/profiler';
+import { ComparisonView } from './ComparisonView';
 
 interface ProfilerAccordionProps {
   /** Current molecule SMILES */
@@ -52,6 +55,7 @@ export function ProfilerAccordion({
 
   // Comparison state (multi-molecule pinning)
   const [pinnedMolecules, setPinnedMolecules] = useState<PinnedMolecule[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   const handlePin = useCallback(() => {
     if (!profile || !smiles) return;
@@ -73,10 +77,26 @@ export function ProfilerAccordion({
 
   const handleAddMultiple = useCallback(
     async (smilesList: string[]) => {
-      // Stub for comparison bar batch paste — limited use in accordion context
-      void smilesList;
+      const remaining = 5 - pinnedMolecules.length;
+      const toAdd = smilesList.slice(0, remaining);
+
+      const results = await Promise.allSettled(
+        toAdd.map(async (smi) => {
+          const { data } = await api.post<ProfileResponse>('/profiler/full', { smiles: smi });
+          return { smiles: smi, label: smi.substring(0, 20), profile: data };
+        })
+      );
+
+      const newPinned = results
+        .filter((r): r is PromiseFulfilledResult<PinnedMolecule> => r.status === 'fulfilled')
+        .map((r) => r.value)
+        .filter((m) => !pinnedMolecules.some((existing) => existing.smiles === m.smiles));
+
+      if (newPinned.length > 0) {
+        setPinnedMolecules((prev) => [...prev, ...newPinned]);
+      }
     },
-    []
+    [pinnedMolecules]
   );
 
   // Empty state: no SMILES entered
@@ -126,20 +146,18 @@ export function ProfilerAccordion({
   // Data loaded: full profiler content
   return (
     <div className="space-y-8">
-      {/* 1. Hero section: 2D structure + 6-axis property radar */}
+      {/* Property radar chart */}
       <HeroSection smiles={smiles} profile={profile} onPin={handlePin} />
 
-      {/* 2. Core Metrics grid */}
-      <section className="space-y-2">
-        <h3 className="text-lg font-semibold font-display mb-4">Core Metrics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Core Metrics grid */}
+      <section>
+        <h3 className="text-lg font-semibold font-display mb-5">Core Metrics</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <PFIPanel data={profile.pfi} />
           <StarsPanel data={profile.stars} />
           <BioavailabilityPanel data={profile.abbott} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <ConsensusLogPPanel data={profile.consensus_logp} />
-          <SkinPermeationPanel data={profile.skin_permeation} />
+          <SkinPermeationPanel data={profile.skin_permeation} className="md:col-span-2" />
         </div>
       </section>
 
@@ -173,15 +191,25 @@ export function ProfilerAccordion({
         />
       </section>
 
-      {/* 6. ComparisonBar — sticky bottom strip when >= 1 molecule pinned */}
+      {/* ComparisonBar — fixed bottom strip when >= 1 molecule pinned */}
       {pinnedMolecules.length > 0 && (
         <ComparisonBar
           molecules={pinnedMolecules}
           onRemove={handleRemove}
-          onCompare={() => {}}
+          onCompare={() => setShowComparison(true)}
           onAddMultiple={handleAddMultiple}
         />
       )}
+
+      {/* Comparison sidebar — slides in from right */}
+      <AnimatePresence>
+        {showComparison && pinnedMolecules.length >= 2 && (
+          <ComparisonView
+            molecules={pinnedMolecules}
+            onClose={() => setShowComparison(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

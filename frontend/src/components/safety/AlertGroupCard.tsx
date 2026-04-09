@@ -168,13 +168,13 @@ export function AlertGroupCard({
                     {/* Pattern name + NIBR badge */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm text-[var(--color-text-primary)] truncate">
+                        <span className="text-sm text-[var(--color-text-primary)]">
                           {alert.pattern_name}
                         </span>
                         {nibrLabel && <NibrBadge label={nibrLabel} />}
                       </div>
                       {/* Source attribution */}
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
+                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                         {alert.catalog_source}
                       </p>
                     </div>

@@ -39,7 +39,7 @@ import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
-import { InfoTooltip } from '../components/ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -1344,10 +1344,10 @@ export function SingleValidationPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="p-5 sm:p-6"
               >
                 {/* Validate & Score Tab */}
@@ -1495,10 +1495,52 @@ export function SingleValidationPage() {
                       <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
                         <FlaskConical className="w-4 h-4" />
                       </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm">
-                        Comprehensive molecular profiling with physicochemical properties, drug-likeness assessment,
-                        synthesizability comparison, and 3D shape analysis.
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5">
+                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
+                            Comprehensive molecular profiling with physicochemical properties, drug-likeness assessment,
+                            synthesizability comparison, and 3D shape analysis.
+                          </p>
+                          <InfoTooltip
+                            title="Profiling Metrics"
+                            position="bottom"
+                            content={
+                              <div className="text-xs space-y-2">
+                                <div>
+                                  <p className="font-semibold text-white">PFI (Property Forecast Index)</p>
+                                  <p className="text-white/70">cLogP + aromatic ring count. &lt;5 low, 5-7 moderate, &gt;7 high risk.</p>
+                                  <p className="text-white/50 italic">Young et al. Drug Discov Today (2011)</p>
+                                  <DoiLink doi="10.1016/j.drudis.2011.06.001" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">#Stars (Outlier Count)</p>
+                                  <p className="text-white/70">Properties outside 95th-percentile drug-like ranges. 0 = drug-like, 3+ = outlier.</p>
+                                  <p className="text-white/50 italic">Jorgensen &amp; Duffy. Adv Drug Deliv Rev (2002)</p>
+                                  <DoiLink doi="10.1016/S0169-409X(02)00008-X" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Abbott Bioavailability Score</p>
+                                  <p className="text-white/70">4-class oral bioavailability probability (11%, 17%, 56%, 85%).</p>
+                                  <p className="text-white/50 italic">Martin. J Med Chem (2005)</p>
+                                  <DoiLink doi="10.1021/jm0492002" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Drug-likeness Rules</p>
+                                  <p className="text-white/70">Lipinski, Veber, Egan, Muegge, Ghose filter evaluation.</p>
+                                  <p className="text-white/50 italic">Lipinski et al. Adv Drug Deliv Rev (2001)</p>
+                                  <DoiLink doi="10.1016/S0169-409X(00)00129-0" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">SA Comparison</p>
+                                  <p className="text-white/70">Synthetic accessibility: SA Score + SCScore + SYBA side-by-side.</p>
+                                  <p className="text-white/50 italic">Ertl &amp; Schuffenhauer. J Cheminform (2009)</p>
+                                  <DoiLink doi="10.1186/1758-2946-1-8" />
+                                </div>
+                              </div>
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
                     <ProfilerAccordion
                       smiles={canonicalSmiles || ''}
@@ -1516,10 +1558,52 @@ export function SingleValidationPage() {
                       <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
                         <Info className="w-4 h-4" />
                       </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm">
-                        Screen for problematic structural patterns that may cause issues
-                        in assays or drug development.
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5">
+                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
+                            Screen for problematic structural patterns that may cause issues
+                            in assays or drug development.
+                          </p>
+                          <InfoTooltip
+                            title="Safety Assessment Metrics"
+                            position="bottom"
+                            content={
+                              <div className="text-xs space-y-2">
+                                <div>
+                                  <p className="font-semibold text-white">CYP Soft-Spots</p>
+                                  <p className="text-white/70">SMARTS-based cytochrome P450 metabolism site prediction with atom highlighting.</p>
+                                  <p className="text-white/50 italic">Rydberg et al. ACS Med Chem Lett (2010)</p>
+                                  <DoiLink doi="10.1021/ml100016x" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">hERG Risk</p>
+                                  <p className="text-white/70">Rule-based hERG channel liability assessment using amphiphilic properties.</p>
+                                  <p className="text-white/50 italic">Aronov. Drug Discov Today (2005)</p>
+                                  <DoiLink doi="10.1016/S1359-6446(04)03278-7" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">bRo5 (Beyond Rule of 5)</p>
+                                  <p className="text-white/70">Relaxed thresholds for macrocycles, PROTACs, and natural products (MW &gt; 500).</p>
+                                  <p className="text-white/50 italic">Doak et al. Chem Biol (2014)</p>
+                                  <DoiLink doi="10.1016/j.chembiol.2014.08.013" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">REOS Filter</p>
+                                  <p className="text-white/70">Rapid Elimination of Swill — 7 physicochemical property range filters.</p>
+                                  <p className="text-white/50 italic">Walters &amp; Murcko. Curr Opin Chem Biol (1999)</p>
+                                  <DoiLink doi="10.1016/S1367-5931(99)80058-1" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Complexity Analysis</p>
+                                  <p className="text-white/70">Bertz complexity index percentile vs commercial compound distributions.</p>
+                                  <p className="text-white/50 italic">Bertz. J Am Chem Soc (1981)</p>
+                                  <DoiLink doi="10.1021/ja00402a071" />
+                                </div>
+                              </div>
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Catalog selector */}

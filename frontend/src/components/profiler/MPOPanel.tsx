@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Settings2 } from 'lucide-react';
 import { ClayCard } from '../ui/ClayCard';
 import { ClayButton } from '../ui/ClayButton';
@@ -107,10 +108,10 @@ export function MPOPanel({ smiles, cnsMPO, computeCustomMPO }: MPOPanelProps) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-semibold text-text-primary font-display">
-              Custom Multi-Parameter Optimization (MPO)
+              Multi-Parameter Optimization (MPO)
             </h3>
             <p className="text-xs text-text-muted mt-0.5">
-              Composite desirability score across multiple molecular properties.
+              Weighted desirability score across molecular properties. Select a preset or create your own profile with custom thresholds and curve shapes.
             </p>
           </div>
           <ClayButton
@@ -119,7 +120,7 @@ export function MPOPanel({ smiles, cnsMPO, computeCustomMPO }: MPOPanelProps) {
             onClick={() => setIsEditorOpen(true)}
             leftIcon={<Settings2 className="w-3.5 h-3.5" />}
           >
-            Configure MPO
+            {isCNSMPO || isPreset(selectedProfileId) ? 'New Custom Profile' : 'Edit Profile'}
           </ClayButton>
         </div>
 
@@ -141,64 +142,93 @@ export function MPOPanel({ smiles, cnsMPO, computeCustomMPO }: MPOPanelProps) {
           </select>
         </div>
 
-        {/* Score display */}
-        {isComputing ? (
-          <div className="flex items-center gap-2 text-sm text-text-muted py-2">
-            <span className="inline-block w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            Computing MPO score...
-          </div>
-        ) : displayScore !== null && displayMax !== null && displayNormalized !== null ? (
-          <div className="space-y-3">
-            {/* Main score */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold tabular-nums text-text-primary font-display">
-                {displayScore.toFixed(2)}
-              </span>
-              <span className="text-sm text-text-muted">/ {displayMax.toFixed(2)}</span>
-              <Badge
-                variant={getScoreVariant(displayNormalized)}
-                size="sm"
-              >
-                {(displayNormalized * 100).toFixed(0)}%
-              </Badge>
-            </div>
-
-            {/* Component breakdown */}
-            {components.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-                  Component breakdown
-                </p>
-                {components.map((c) => (
-                  <div key={c.property} className="flex items-center gap-2">
-                    <span className="text-xs text-text-secondary w-16 shrink-0">{c.property}</span>
-                    {/* Desirability bar */}
-                    <div className="flex-1 h-1.5 bg-surface-sunken rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(0, Math.min(1, c.desirability)) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs tabular-nums text-text-muted w-8 text-right">
-                      {c.desirability.toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+        {/* Score display — animated transitions between states */}
+        <AnimatePresence mode="wait">
+          {isComputing ? (
+            <motion.div
+              key="computing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2 text-sm text-text-muted py-2"
+            >
+              <span className="inline-block w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+              Computing MPO score...
+            </motion.div>
+          ) : displayScore !== null && displayMax !== null && displayNormalized !== null ? (
+            <motion.div
+              key={`result-${selectedProfileId}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-3"
+            >
+              {/* Main score */}
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-semibold tabular-nums text-text-primary font-display">
+                  {displayScore.toFixed(2)}
+                </span>
+                <span className="text-sm text-text-muted">/ {displayMax.toFixed(2)}</span>
+                <Badge
+                  variant={getScoreVariant(displayNormalized)}
+                  size="sm"
+                >
+                  {(displayNormalized * 100).toFixed(0)}%
+                </Badge>
               </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted">Select a profile to compute MPO score.</p>
-        )}
+
+              {/* Component breakdown */}
+              {components.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+                    Component breakdown
+                  </p>
+                  {components.map((c) => (
+                    <div key={c.property} className="flex items-center gap-2">
+                      <span className="text-xs text-text-secondary w-16 shrink-0">{c.property}</span>
+                      {/* Desirability bar */}
+                      <div className="flex-1 h-1.5 bg-surface-sunken rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-500"
+                          style={{ width: `${Math.max(0, Math.min(1, c.desirability)) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs tabular-nums text-text-muted w-8 text-right">
+                        {c.desirability.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.p
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-sm text-text-muted"
+            >
+              Select a profile to compute MPO score.
+            </motion.p>
+          )}
+        </AnimatePresence>
       </ClayCard>
 
-      {/* Desirability editor modal */}
+      {/* Desirability editor modal — presets open as editable copies */}
       <DesirabilityEditorModal
         isOpen={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         profile={
           isPreset(selectedProfileId)
-            ? (selectedProfile ?? newProfileTemplate)
+            ? {
+                ...newProfileTemplate,
+                name: `Custom ${selectedProfile?.name ?? 'MPO'}`,
+                properties: selectedProfile?.properties ? [...selectedProfile.properties] : [],
+              }
             : (selectedProfile ?? newProfileTemplate)
         }
         onSave={handleSaveProfile}

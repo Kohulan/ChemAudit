@@ -8,7 +8,6 @@ import {
   Radar,
   ResponsiveContainer,
 } from 'recharts';
-import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { ClayButton } from '../ui/ClayButton';
 import { ClayCard } from '../ui/ClayCard';
 import type { ProfileResponse } from '../../types/profiler';
@@ -81,14 +80,12 @@ export function HeroSection({ smiles, profile, onPin }: HeroSectionProps) {
 
   return (
     <motion.div
-      className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-4 lg:gap-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      {/* Left column — 2D structure */}
       <ClayCard size="md" className="relative">
-        {/* Pin button — top-right corner (D-20) */}
+        {/* Pin button — top-right corner */}
         {onPin && (
           <div className="absolute top-3 right-3 z-10">
             <ClayButton
@@ -102,30 +99,20 @@ export function HeroSection({ smiles, profile, onPin }: HeroSectionProps) {
           </div>
         )}
 
-        <MoleculeViewer
-          smiles={smiles}
-          width={400}
-          height={280}
-          className="w-full"
-        />
-      </ClayCard>
-
-      {/* Right column — 6-axis property radar */}
-      <ClayCard size="md">
-        <p className="text-sm font-semibold text-text-secondary font-display mb-3">
+        <p className="text-sm font-semibold text-text-secondary font-display mb-1">
           Property Profile
         </p>
         <p className="text-xs text-text-muted mb-4">
           Normalized to drug-like ranges: MW (0–500), LogP (−2 to 5), TPSA (0–140), HBD (0–5), HBA (0–10), RotBonds (0–10)
         </p>
 
-        <div className="w-full" style={{ height: 260 }}>
+        <div className="w-full" style={{ height: 300 }}>
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart
               data={radarData}
               cx="50%"
               cy="50%"
-              outerRadius="70%"
+              outerRadius="75%"
             >
               <PolarGrid
                 stroke="var(--color-border)"
@@ -159,7 +146,7 @@ export function HeroSection({ smiles, profile, onPin }: HeroSectionProps) {
         </div>
 
         <p className="text-xs text-text-muted text-center mt-2">
-          Outer edge = drug-like upper bound. Values outside ideal range are visible beyond the boundary.
+          Outer edge = drug-like upper bound
         </p>
       </ClayCard>
     </motion.div>

@@ -51,39 +51,37 @@ export function MetricCard({
           hasChildren && 'cursor-pointer'
         )}
       >
-        <div className="flex items-start justify-between gap-3">
-          {/* Left: title + score */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-secondary font-display truncate">
-              {title}
-            </p>
-            <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-2xl font-semibold tabular-nums text-text-primary font-display">
-                {typeof score === 'number' && !isNaN(score) ? score : score}
-              </span>
-              {unit && (
-                <span className="text-xs text-text-muted">{unit}</span>
-              )}
-            </div>
-          </div>
+        {/* Title row — full width, wraps freely */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <p className="text-xs font-medium text-text-muted uppercase tracking-wider leading-snug flex-1">
+            {title}
+          </p>
+          {hasChildren && (
+            <motion.div
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="text-text-muted shrink-0 mt-0.5"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </motion.div>
+          )}
+        </div>
 
-          {/* Right: classification badge + chevron */}
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
-            {classification && (
-              <Badge variant={classificationVariant} size="sm">
-                {classification}
-              </Badge>
-            )}
-            {hasChildren && (
-              <motion.div
-                animate={{ rotate: expanded ? 180 : 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="text-text-muted"
-              >
-                <ChevronDown className="w-4 h-4" />
-              </motion.div>
+        {/* Score + badge row */}
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-semibold tabular-nums text-text-primary font-display">
+              {typeof score === 'number' && !isNaN(score) ? score : score}
+            </span>
+            {unit && (
+              <span className="text-xs text-text-muted">{unit}</span>
             )}
           </div>
+          {classification && (
+            <Badge variant={classificationVariant} size="sm">
+              {classification}
+            </Badge>
+          )}
         </div>
       </button>
 

@@ -10,7 +10,6 @@ import {
 } from 'recharts';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { ClayButton } from '../ui/ClayButton';
-import { ClayCard } from '../ui/ClayCard';
 import type { PinnedMolecule } from './ComparisonBar';
 
 interface ComparisonViewProps {
@@ -20,20 +19,16 @@ interface ComparisonViewProps {
 
 /**
  * Drug-like property ranges for radar normalization (0-1).
- * Same axes as HeroSection.
  */
-const RADAR_RANGES: Record<string, { min: number; max: number; label: string }> = {
-  MW:       { min: 0,  max: 500,  label: 'MW' },
-  LogP:     { min: -2, max: 5,    label: 'LogP' },
-  TPSA:     { min: 0,  max: 140,  label: 'TPSA' },
-  HBD:      { min: 0,  max: 5,    label: 'HBD' },
-  HBA:      { min: 0,  max: 10,   label: 'HBA' },
-  RotBonds: { min: 0,  max: 10,   label: 'Rot. Bonds' },
+const RADAR_RANGES: Record<string, { min: number; max: number }> = {
+  MW:       { min: 0,  max: 500 },
+  LogP:     { min: -2, max: 5 },
+  TPSA:     { min: 0,  max: 140 },
+  HBD:      { min: 0,  max: 5 },
+  HBA:      { min: 0,  max: 10 },
+  RotBonds: { min: 0,  max: 10 },
 };
 
-/**
- * Per-molecule colors: first molecule uses primary crimson.
- */
 const MOLECULE_COLORS = [
   'var(--color-primary)',
   '#3b82f6',
@@ -46,9 +41,6 @@ function normalize(value: number, min: number, max: number): number {
   return Math.min(1, Math.max(0, (value - min) / (max - min)));
 }
 
-/**
- * Build radar data point for a single molecule.
- */
 function buildRadarData(mol: PinnedMolecule) {
   const profile = mol.profile;
   const detailMap: Record<string, number> = {};
@@ -59,9 +51,9 @@ function buildRadarData(mol: PinnedMolecule) {
   const mw = detailMap['mw'] ?? detailMap['mol weight'] ?? detailMap['molecular weight'] ?? 0;
   const logp = profile.consensus_logp?.consensus_logp ?? profile.pfi?.clogp ?? 0;
   const tpsa = detailMap['tpsa'] ?? 0;
-  const hbd = detailMap['hbd'] ?? detailMap['h-bond donors'] ?? 0;
-  const hba = detailMap['hba'] ?? detailMap['h-bond acceptors'] ?? 0;
-  const rotbonds = detailMap['rotatable bonds'] ?? detailMap['rotbonds'] ?? 0;
+  const hbd = detailMap['hbd'] ?? detailMap['h-bond donors'] ?? detailMap['hbond donors'] ?? 0;
+  const hba = detailMap['hba'] ?? detailMap['h-bond acceptors'] ?? detailMap['hbond acceptors'] ?? 0;
+  const rotbonds = detailMap['rotatable bonds'] ?? detailMap['rotbonds'] ?? detailMap['rot bonds'] ?? 0;
 
   return {
     MW: normalize(mw, RADAR_RANGES.MW.min, RADAR_RANGES.MW.max),
@@ -73,10 +65,6 @@ function buildRadarData(mol: PinnedMolecule) {
   };
 }
 
-/**
- * Build overlay radar chart data (one entry per radar axis).
- * Each entry has values for all molecules.
- */
 function buildOverlayRadarData(molecules: PinnedMolecule[]) {
   const axes = Object.keys(RADAR_RANGES);
   const perMolecule = molecules.map(buildRadarData);
@@ -90,9 +78,6 @@ function buildOverlayRadarData(molecules: PinnedMolecule[]) {
   });
 }
 
-/**
- * Key properties for the delta table.
- */
 interface DeltaProperty {
   key: string;
   label: string;
@@ -102,79 +87,57 @@ interface DeltaProperty {
 
 const DELTA_PROPERTIES: DeltaProperty[] = [
   {
-    key: 'mw',
-    label: 'MW',
+    key: 'mw', label: 'MW', decimals: 1,
     getValue: (mol) => {
       const d = mol.profile.stars.details.find((x) =>
-        x.property.toLowerCase().includes('mw') ||
-        x.property.toLowerCase().includes('mol weight') ||
-        x.property.toLowerCase().includes('molecular weight')
+        x.property.toLowerCase().includes('mw') || x.property.toLowerCase().includes('mol weight')
       );
       return d?.value ?? null;
     },
-    decimals: 1,
   },
   {
-    key: 'logp',
-    label: 'LogP',
+    key: 'logp', label: 'LogP', decimals: 2,
     getValue: (mol) => mol.profile.consensus_logp?.consensus_logp ?? mol.profile.pfi?.clogp ?? null,
-    decimals: 2,
   },
   {
-    key: 'tpsa',
-    label: 'TPSA',
+    key: 'tpsa', label: 'TPSA', decimals: 1,
     getValue: (mol) => {
       const d = mol.profile.stars.details.find((x) => x.property.toLowerCase().includes('tpsa'));
       return d?.value ?? null;
     },
-    decimals: 1,
   },
   {
-    key: 'hbd',
-    label: 'HBD',
+    key: 'hbd', label: 'HBD', decimals: 0,
     getValue: (mol) => {
       const d = mol.profile.stars.details.find((x) =>
-        x.property.toLowerCase().includes('hbd') ||
-        x.property.toLowerCase().includes('h-bond donor')
+        x.property.toLowerCase().includes('hbd') || x.property.toLowerCase().includes('h-bond donor')
       );
       return d?.value ?? null;
     },
-    decimals: 0,
   },
   {
-    key: 'hba',
-    label: 'HBA',
+    key: 'hba', label: 'HBA', decimals: 0,
     getValue: (mol) => {
       const d = mol.profile.stars.details.find((x) =>
-        x.property.toLowerCase().includes('hba') ||
-        x.property.toLowerCase().includes('h-bond acceptor')
+        x.property.toLowerCase().includes('hba') || x.property.toLowerCase().includes('h-bond acceptor')
       );
       return d?.value ?? null;
     },
-    decimals: 0,
   },
   {
-    key: 'rotbonds',
-    label: 'Rot. Bonds',
+    key: 'rotbonds', label: 'Rot. Bonds', decimals: 0,
     getValue: (mol) => {
-      const d = mol.profile.stars.details.find((x) =>
-        x.property.toLowerCase().includes('rotat')
-      );
+      const d = mol.profile.stars.details.find((x) => x.property.toLowerCase().includes('rotat'));
       return d?.value ?? null;
     },
-    decimals: 0,
   },
   {
-    key: 'pfi',
-    label: 'PFI',
+    key: 'pfi', label: 'PFI', decimals: 2,
     getValue: (mol) => mol.profile.pfi?.pfi ?? null,
-    decimals: 2,
   },
   {
-    key: 'abbott',
-    label: 'Abbott %',
+    key: 'abbott', label: 'Abbott %', decimals: 0,
     getValue: (mol) => mol.profile.abbott?.probability_pct ?? null,
-    decimals: 0,
   },
 ];
 
@@ -183,9 +146,6 @@ function formatDelta(delta: number, decimals: number): string {
   return delta >= 0 ? `+${rounded}` : rounded;
 }
 
-/**
- * Drug-likeness pass count for a molecule (simple count from druglikeness field).
- */
 function getDruglikenessPassCount(mol: PinnedMolecule): { pass: number; total: number } {
   const dl = mol.profile.druglikeness as Record<string, { passed: boolean }> | undefined;
   if (!dl) return { pass: 0, total: 0 };
@@ -195,223 +155,234 @@ function getDruglikenessPassCount(mol: PinnedMolecule): { pass: number; total: n
 }
 
 /**
- * ComparisonView — side-by-side molecule comparison.
+ * ComparisonView — right sidebar panel for side-by-side molecule comparison.
  *
- * Per D-21, D-22: columns per molecule, overlaid radar chart, delta table.
+ * Slides in from the right with a semi-transparent backdrop. Panel width
+ * grows with molecule count (min 480px for 2, up to full width for 5).
  */
 export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
   const n = molecules.length;
   const radarData = buildOverlayRadarData(molecules);
 
+  // Panel width scales with molecule count
+  const panelWidth = Math.min(n * 320 + 80, 1400);
+
   return (
-    <motion.div
-      className="mt-8"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold font-display text-text-primary">
-          Comparison ({n} molecules)
-        </h2>
-        <ClayButton
-          variant="ghost"
-          size="sm"
-          leftIcon={<X className="w-4 h-4" />}
-          onClick={onClose}
-        >
-          Exit comparison
-        </ClayButton>
-      </div>
+    <div className="fixed inset-x-0 bottom-0 top-[76px] z-40 flex justify-end">
+      {/* Backdrop — fades in smoothly */}
+      <motion.div
+        className="absolute inset-0 bg-black/50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        onClick={onClose}
+      />
 
-      {/* Per-molecule columns */}
-      <div
-        className={`grid gap-4 overflow-x-auto`}
-        style={{ gridTemplateColumns: `repeat(${n}, minmax(200px, 1fr))` }}
+      {/* Sidebar panel — smooth slide from right with spring physics */}
+      <motion.div
+        className="relative h-full overflow-y-auto bg-[var(--color-surface-base)] border-l border-[var(--color-border)] shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.25)]"
+        style={{ width: `min(${panelWidth}px, 92vw)` }}
+        initial={{ x: '100%', opacity: 0.5 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: '100%', opacity: 0 }}
+        transition={{
+          x: { type: 'spring', stiffness: 300, damping: 30, mass: 0.8 },
+          opacity: { duration: 0.25, ease: 'easeOut' },
+        }}
       >
-        {molecules.map((mol, i) => {
-          const { pass, total } = getDruglikenessPassCount(mol);
-          return (
-            <ClayCard key={mol.smiles} size="sm" className="min-w-[200px]">
-              {/* Molecule number + label */}
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
-                  style={{ backgroundColor: MOLECULE_COLORS[i] ?? '#6b7280' }}
-                >
-                  {i + 1}
-                </span>
-                <span
-                  className="text-xs font-mono text-text-secondary truncate"
-                  title={mol.smiles}
-                >
-                  {mol.label}
-                </span>
-              </div>
+        {/* Header — sticky at top with gradient background */}
+        <div className="sticky top-0 z-10 px-6 py-4 border-b border-zinc-700 bg-gradient-to-r from-zinc-800 to-zinc-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold font-display text-white">
+              Comparison ({n} molecules)
+            </h2>
+            <ClayButton
+              variant="primary"
+              size="sm"
+              leftIcon={<X className="w-4 h-4" />}
+              onClick={onClose}
+            >
+              Close
+            </ClayButton>
+          </div>
+        </div>
 
-              {/* 2D structure */}
-              <div className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-surface-sunken">
-                <MoleculeViewer smiles={mol.smiles} width={220} height={128} />
-              </div>
-
-              {/* Key scores */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-text-muted">PFI</span>
-                  <span className="font-semibold tabular-nums text-text-primary">
-                    {mol.profile.pfi?.pfi?.toFixed(2) ?? '—'}
+        {/* Scrollable content */}
+        <div className="p-6 space-y-6">
+          {/* Per-molecule cards */}
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}
+          >
+            {molecules.map((mol, i) => {
+              const { pass, total } = getDruglikenessPassCount(mol);
+              return (
+                <div
+                  key={mol.smiles}
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 space-y-3"
+                >
+                  {/* Molecule number + label */}
+                  <div className="flex items-center gap-2">
                     <span
-                      className="ml-1 text-[10px]"
-                      style={{
-                        color:
-                          mol.profile.pfi?.risk === 'low'
-                            ? 'var(--color-score-good, #d97706)'
-                            : mol.profile.pfi?.risk === 'moderate'
-                            ? '#ea580c'
-                            : '#dc2626',
-                      }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+                      style={{ backgroundColor: MOLECULE_COLORS[i] ?? '#6b7280' }}
                     >
-                      {mol.profile.pfi?.risk}
+                      {i + 1}
                     </span>
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-text-muted">Abbott %</span>
-                  <span className="font-semibold tabular-nums text-text-primary">
-                    {mol.profile.abbott?.probability_pct != null
-                      ? `${mol.profile.abbott.probability_pct}%`
-                      : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-text-muted">SA Score</span>
-                  <span className="font-semibold tabular-nums text-text-primary">
-                    {mol.profile.sa_comparison?.sa_score?.score != null
-                      ? mol.profile.sa_comparison.sa_score.score.toFixed(2)
-                      : '—'}
-                  </span>
-                </div>
-                {total > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-text-muted">Drug-likeness</span>
                     <span
-                      className="font-semibold tabular-nums"
-                      style={{
-                        color: pass === total ? '#16a34a' : pass >= total / 2 ? '#d97706' : '#dc2626',
-                      }}
+                      className="text-xs font-mono text-[var(--color-text-secondary)] truncate"
+                      title={mol.smiles}
                     >
-                      {pass}/{total} rules
+                      {mol.smiles}
                     </span>
                   </div>
-                )}
-              </div>
-            </ClayCard>
-          );
-        })}
-      </div>
 
-      {/* Overlaid radar chart */}
-      <ClayCard className="mt-6">
-        <h3 className="text-base font-semibold font-display text-text-primary mb-4">
-          Property Radar (normalized)
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <RadarChart data={radarData}>
-            <PolarGrid stroke="var(--color-border)" />
-            <PolarAngleAxis
-              dataKey="axis"
-              tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-            />
-            {molecules.map((mol, i) => (
-              <Radar
-                key={mol.smiles}
-                name={mol.label}
-                dataKey={mol.label}
-                stroke={MOLECULE_COLORS[i] ?? '#6b7280'}
-                fill={MOLECULE_COLORS[i] ?? '#6b7280'}
-                fillOpacity={0.12}
-                strokeWidth={2}
-              />
-            ))}
-            <Legend
-              wrapperStyle={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </ClayCard>
+                  {/* 2D structure — white background for proper contrast */}
+                  <div className="w-full rounded-lg overflow-hidden bg-white border border-[var(--color-border)]">
+                    <MoleculeViewer smiles={mol.smiles} width={280} height={160} />
+                  </div>
 
-      {/* Delta table */}
-      <ClayCard className="mt-6 overflow-x-auto">
-        <h3 className="text-base font-semibold font-display text-text-primary mb-1">
-          Delta from molecule 1
-        </h3>
-        <p className="text-xs text-text-muted mb-4">
-          Differences relative to {molecules[0]?.label}.
-        </p>
-        <table className="w-full text-xs min-w-[400px]">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-2 pr-3 text-text-muted font-medium">Property</th>
-              {molecules.map((mol, i) => (
-                <th
-                  key={mol.smiles}
-                  className="text-right py-2 px-2 font-medium"
-                  style={{ color: MOLECULE_COLORS[i] ?? '#6b7280' }}
-                >
-                  {mol.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {DELTA_PROPERTIES.map((prop) => {
-              const values = molecules.map((mol) => prop.getValue(mol));
-              const base = values[0];
-              return (
-                <tr key={prop.key} className="border-b border-border/50 hover:bg-surface-sunken/50">
-                  <td className="py-2 pr-3 text-text-secondary">{prop.label}</td>
-                  {values.map((val, i) => {
-                    if (val === null) {
-                      return (
-                        <td key={i} className="text-right py-2 px-2 text-text-muted">
-                          —
-                        </td>
-                      );
-                    }
-                    if (i === 0) {
-                      return (
-                        <td key={i} className="text-right py-2 px-2 text-text-primary tabular-nums font-medium">
-                          {val.toFixed(prop.decimals)}
-                        </td>
-                      );
-                    }
-                    const delta = base !== null ? val - base : null;
-                    return (
-                      <td
-                        key={i}
-                        className="text-right py-2 px-2 tabular-nums"
-                        style={{
-                          color:
-                            delta === null
-                              ? 'var(--color-text-muted)'
-                              : delta === 0
-                              ? 'var(--color-text-secondary)'
-                              : delta > 0
-                              ? '#16a34a'
-                              : '#dc2626',
-                        }}
-                      >
-                        {delta !== null ? formatDelta(delta, prop.decimals) : '—'}
-                      </td>
-                    );
-                  })}
-                </tr>
+                  {/* Key scores */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[var(--color-text-muted)]">PFI</span>
+                      <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                        {mol.profile.pfi?.pfi?.toFixed(2) ?? '—'}
+                        {mol.profile.pfi?.risk && (
+                          <span className={`ml-1 text-[10px] ${
+                            mol.profile.pfi.risk === 'low' ? 'text-green-600' :
+                            mol.profile.pfi.risk === 'moderate' ? 'text-amber-600' : 'text-red-600'
+                          }`}>
+                            {mol.profile.pfi.risk}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[var(--color-text-muted)]">Abbott %</span>
+                      <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                        {mol.profile.abbott?.probability_pct != null ? `${mol.profile.abbott.probability_pct}%` : '—'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[var(--color-text-muted)]">SA Score</span>
+                      <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                        {mol.profile.sa_comparison?.sa_score?.score != null
+                          ? mol.profile.sa_comparison.sa_score.score.toFixed(2) : '—'}
+                      </span>
+                    </div>
+                    {total > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-[var(--color-text-muted)]">Drug-likeness</span>
+                        <span className={`font-semibold tabular-nums ${
+                          pass === total ? 'text-green-600' : pass >= total / 2 ? 'text-amber-600' : 'text-red-600'
+                        }`}>
+                          {pass}/{total} rules
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </ClayCard>
-    </motion.div>
+          </div>
+
+          {/* Overlaid radar chart */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5">
+            <h3 className="text-sm font-semibold font-display text-[var(--color-text-primary)] mb-4">
+              Property Radar (normalized)
+            </h3>
+            <ResponsiveContainer width="100%" height={280} minWidth={200} minHeight={200}>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="var(--color-border)" />
+                <PolarAngleAxis
+                  dataKey="axis"
+                  tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                />
+                {molecules.map((mol, i) => (
+                  <Radar
+                    key={mol.smiles}
+                    name={mol.label}
+                    dataKey={mol.label}
+                    stroke={MOLECULE_COLORS[i] ?? '#6b7280'}
+                    fill={MOLECULE_COLORS[i] ?? '#6b7280'}
+                    fillOpacity={0.12}
+                    strokeWidth={2}
+                  />
+                ))}
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Delta table */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 overflow-x-auto">
+            <h3 className="text-sm font-semibold font-display text-[var(--color-text-primary)] mb-1">
+              Delta from molecule 1
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)] mb-4">
+              Differences relative to {molecules[0]?.smiles?.substring(0, 20)}.
+            </p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className="text-left py-2 pr-3 text-[var(--color-text-muted)] font-medium">Property</th>
+                  {molecules.map((mol, i) => (
+                    <th
+                      key={mol.smiles}
+                      className="text-right py-2 px-2 font-medium"
+                      style={{ color: MOLECULE_COLORS[i] ?? '#6b7280' }}
+                    >
+                      {mol.smiles.substring(0, 15)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {DELTA_PROPERTIES.map((prop) => {
+                  const values = molecules.map((mol) => prop.getValue(mol));
+                  const base = values[0];
+                  return (
+                    <tr key={prop.key} className="border-b border-[var(--color-border)]/50">
+                      <td className="py-2 pr-3 text-[var(--color-text-secondary)]">{prop.label}</td>
+                      {values.map((val, i) => {
+                        if (val === null) {
+                          return <td key={i} className="text-right py-2 px-2 text-[var(--color-text-muted)]">—</td>;
+                        }
+                        if (i === 0) {
+                          return (
+                            <td key={i} className="text-right py-2 px-2 text-[var(--color-text-primary)] tabular-nums font-medium">
+                              {val.toFixed(prop.decimals)}
+                            </td>
+                          );
+                        }
+                        const delta = base !== null ? val - base : null;
+                        return (
+                          <td
+                            key={i}
+                            className="text-right py-2 px-2 tabular-nums"
+                            style={{
+                              color: delta === null ? 'var(--color-text-muted)'
+                                : delta === 0 ? 'var(--color-text-secondary)'
+                                : delta > 0 ? '#16a34a' : '#dc2626',
+                            }}
+                          >
+                            {delta !== null ? formatDelta(delta, prop.decimals) : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Bottom padding to clear ComparisonBar */}
+          <div className="h-16" />
+        </div>
+      </motion.div>
+    </div>
   );
 }

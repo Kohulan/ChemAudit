@@ -3,6 +3,7 @@ import type { SkinPermeationResult } from '../../types/profiler';
 
 interface SkinPermeationPanelProps {
   data: SkinPermeationResult;
+  className?: string;
 }
 
 /**
@@ -12,7 +13,7 @@ interface SkinPermeationPanelProps {
  * Low permeation is generally desirable for most oral/systemic drugs.
  * Reference: Potts & Guy, Pharm Res 1992.
  */
-export function SkinPermeationPanel({ data }: SkinPermeationPanelProps) {
+export function SkinPermeationPanel({ data, className }: SkinPermeationPanelProps) {
   const variantMap = {
     low:      'success',
     moderate: 'warning',
@@ -32,26 +33,22 @@ export function SkinPermeationPanel({ data }: SkinPermeationPanelProps) {
       unit="log Kp (cm/s)"
       classification={labelMap[data.classification]}
       classificationVariant={variantMap[data.classification]}
+      className={className}
     >
-      <div className="space-y-2 text-sm text-text-secondary">
-        <div className="p-3 rounded-lg bg-[var(--color-surface-sunken)] text-xs font-mono">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-text-secondary">
+        <div className="p-3 rounded-lg bg-[var(--color-surface-sunken)] font-mono">
           log Kp = −2.71 + 0.71 × logP − 0.0061 × MW
         </div>
 
-        <div className="mt-3 p-3 rounded-lg bg-[var(--color-surface-sunken)] text-xs space-y-1">
+        <div className="p-3 rounded-lg bg-[var(--color-surface-sunken)] space-y-1">
           <p className="font-medium text-text-secondary">Thresholds</p>
-          <p>&lt;−6 — low permeation</p>
-          <p>−6 to −4 — moderate permeation</p>
-          <p>&gt;−4 — high permeation</p>
+          <p>&lt;−6 low · −6 to −4 moderate · &gt;−4 high</p>
         </div>
 
-        <p className="text-xs text-text-muted">
-          Low permeation (low log Kp) is generally favourable for systemic oral drugs.
-        </p>
-
-        <p className="text-xs text-text-muted">
-          Reference: Potts &amp; Guy, Pharm Res 1992
-        </p>
+        <div className="p-3 rounded-lg bg-[var(--color-surface-sunken)] space-y-1">
+          <p className="text-text-muted">Low log Kp is favourable for systemic oral drugs.</p>
+          <p className="text-text-muted italic">Potts &amp; Guy, Pharm Res 1992</p>
+        </div>
       </div>
     </MetricCard>
   );

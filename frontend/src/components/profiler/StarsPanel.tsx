@@ -39,40 +39,30 @@ export function StarsPanel({ data }: StarsPanelProps) {
       classificationVariant={classificationVariant}
     >
       <div className="space-y-1 text-sm">
-        {/* Table header */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-2 pb-1 border-b border-[var(--color-border)]">
-          <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Property</span>
-          <span className="text-xs font-medium text-text-muted uppercase tracking-wider text-right">Value</span>
-          <span className="text-xs font-medium text-text-muted uppercase tracking-wider text-right">Range</span>
-          <span className="text-xs font-medium text-text-muted uppercase tracking-wider text-center">Status</span>
-        </div>
-
-        {/* Property rows */}
+        {/* Property rows — compact 3-col: status icon + name, value, range */}
         {data.details.map((detail) => (
           <div
             key={detail.property}
             className={cn(
-              'grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-2 py-1.5 rounded-lg',
+              'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs',
               detail.violated
                 ? 'bg-status-error/10 text-status-error'
                 : 'text-text-secondary'
             )}
           >
-            <span className="text-xs font-medium truncate" title={detail.property}>
+            {detail.violated ? (
+              <XCircle className="w-3.5 h-3.5 text-status-error shrink-0" aria-label="Violated" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5 text-status-success shrink-0" aria-label="In range" />
+            )}
+            <span className="font-medium flex-1 min-w-0" title={detail.property}>
               {detail.property}
             </span>
-            <span className="text-xs tabular-nums text-right">
-              {typeof detail.value === 'number' ? detail.value.toFixed(2) : detail.value}
+            <span className="tabular-nums shrink-0">
+              {typeof detail.value === 'number' ? detail.value.toFixed(1) : detail.value}
             </span>
-            <span className="text-xs tabular-nums text-right text-text-muted whitespace-nowrap">
-              {detail.range_low}–{detail.range_high}
-            </span>
-            <span className="flex items-center justify-center">
-              {detail.violated ? (
-                <XCircle className="w-3.5 h-3.5 text-status-error" aria-label="Violated" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 text-status-success" aria-label="In range" />
-              )}
+            <span className="tabular-nums text-text-muted shrink-0 hidden sm:inline">
+              ({detail.range_low}–{detail.range_high})
             </span>
           </div>
         ))}
