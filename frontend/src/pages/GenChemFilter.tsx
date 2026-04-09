@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Filter } from 'lucide-react';
 import { useGenChemConfig } from '../hooks/useGenChemConfig';
 import { useGenChemFilter } from '../hooks/useGenChemFilter';
-import { ClayCard } from '../components/ui/ClayCard';
 import { GenChemInput } from '../components/genchem/GenChemInput';
 import { FunnelChart } from '../components/genchem/FunnelChart';
 import { GenChemConfigPanel } from '../components/genchem/GenChemConfigPanel';
@@ -244,14 +243,7 @@ export default function GenChemFilter() {
         </AnimatePresence>
       )}
 
-      {/* ── Error card (full-width below grid) ── */}
-      {filterHook.state === 'error' && (
-        <ClayCard className="p-4 border border-red-200 dark:border-red-800/40">
-          <p className="text-sm text-red-600 dark:text-red-400">
-            Filtering failed. {filterHook.error}. Check your input and try again.
-          </p>
-        </ClayCard>
-      )}
+      {/* Error is already shown inline above (lines 156-166) */}
     </div>
   );
 }

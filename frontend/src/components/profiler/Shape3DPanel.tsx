@@ -124,19 +124,8 @@ export function Shape3DPanel({ smiles, compute3DShape }: Shape3DPanelProps) {
                 </div>
               )}
 
-              {/* Computed — conformer failed */}
-              {computed && !loading && result && result['3d_conformer_failed'] && (
-                <div className="flex items-start gap-2 py-2 text-text-muted">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">
-                    3D shape descriptors unavailable — conformer generation failed after 3 attempts.
-                    All other metrics are shown.
-                  </p>
-                </div>
-              )}
-
-              {/* Computed — null result (API error) */}
-              {computed && !loading && result === null && (
+              {/* Computed — conformer failed or null result */}
+              {computed && !loading && (result === null || result?.['3d_conformer_failed']) && (
                 <div className="flex items-start gap-2 py-2 text-text-muted">
                   <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <p className="text-sm">

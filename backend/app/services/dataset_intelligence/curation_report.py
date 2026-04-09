@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -110,12 +111,9 @@ def build_curated_csv_rows(
         List of row dicts ready for CSV serialization.
     """
     # Build lookup: row_index -> issues
-    issues_by_row: dict[int, list[dict]] = {}
+    issues_by_row: dict[int, list[dict]] = defaultdict(list)
     for issue in health_result.issues:
-        row_idx = issue.get("row_index", -1)
-        if row_idx not in issues_by_row:
-            issues_by_row[row_idx] = []
-        issues_by_row[row_idx].append(issue)
+        issues_by_row[issue.get("row_index", -1)].append(issue)
 
     # Build lookup: InChIKey -> is duplicate
     duplicate_inchikeys: set[str] = set()

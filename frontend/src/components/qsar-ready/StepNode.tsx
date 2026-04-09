@@ -126,8 +126,7 @@ function SmilesDiff({ before, after }: { before: string; after: string }) {
  * Per Phase 10 UI-SPEC interaction contracts.
  */
 export function StepNode({ step, expanded, onToggle }: StepNodeProps) {
-  const hasDetail = !!(step.before_smiles || step.after_smiles || step.detail);
-  const canExpand = hasDetail;
+  const canExpand = !!(step.before_smiles || step.after_smiles || step.detail);
 
   return (
     <div className="flex items-start gap-3">

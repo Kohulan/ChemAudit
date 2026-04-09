@@ -14,14 +14,10 @@ scoring service pattern. No SYBA or SCScore imports — those belong in
 sa_comparison.py (Plan 02).
 """
 
-import os
-import sys
 from typing import Optional
 
-from rdkit import Chem, RDConfig
+from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, Lipinski, rdMolDescriptors
-
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -309,11 +305,11 @@ def compute_3d_shape(mol: Chem.Mol) -> Optional[dict]:
         embed_result = AllChem.EmbedMolecule(mol3d, params)
 
         if embed_result == -1:
-            # Attempt 2: ETKDG fallback
+            # Attempt 2: ETKDG fallback (simpler, more permissive)
             mol3d = Chem.AddHs(mol)
-            params2 = AllChem.EmbedParameters()
+            params2 = AllChem.ETKDG()
             params2.randomSeed = 42
-            embed_result = AllChem.EmbedMolecule(mol3d, AllChem.ETKDGv3())
+            embed_result = AllChem.EmbedMolecule(mol3d, params2)
             if embed_result == -1:
                 return None
 

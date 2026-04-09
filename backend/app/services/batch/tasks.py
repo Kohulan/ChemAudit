@@ -264,8 +264,10 @@ def _process_single_molecule(
             result["error"] = "Failed to parse SMILES"
             return result
 
-        # Run standardization if enabled
+        # Options dict used throughout (assigned once)
         opts = safety_options or {}
+
+        # Run standardization if enabled
         if opts.get("include_standardization"):
             try:
                 std_result = standardize_molecule(mol)
@@ -318,7 +320,6 @@ def _process_single_molecule(
 
         # Run structural alerts screening
         try:
-            opts = safety_options or {}
             catalogs = ["PAINS", "BRENK"]
             if opts.get("include_extended"):
                 catalogs.extend(["NIH", "ZINC"])
@@ -395,7 +396,6 @@ def _process_single_molecule(
 
         # Calculate safety filters
         try:
-            opts = safety_options or {}
             sf_result = calculate_safety_filters(
                 mol,
                 include_extended=opts.get("include_extended", False),
@@ -434,7 +434,6 @@ def _process_single_molecule(
             result["scoring"]["admet"] = {"error": str(e)}
 
         # Calculate profile score (if profile was selected at upload)
-        opts = safety_options or {}
         if opts.get("profile_id") is not None:
             try:
                 dl = result.get("scoring", {}).get("druglikeness", {})
@@ -462,7 +461,6 @@ def _process_single_molecule(
                 result["scoring"]["profile"] = {"error": str(e)}
 
         # Compound profiling enrichment (PFI, stars, bioavailability, etc.)
-        opts = safety_options or {}
         if opts.get("include_profiling"):
             try:
                 from app.services.profiler.compound_profile import compute_full_profile
@@ -475,11 +473,11 @@ def _process_single_molecule(
         # Safety assessment enrichment (CYP, hERG, bRo5, REOS, complexity)
         if opts.get("include_safety_assessment"):
             try:
+                from app.services.alerts.complexity_filter import compute_complexity_percentile
+                from app.services.safety.bro5 import compute_bro5
                 from app.services.safety.cyp_softspots import screen_cyp_softspots
                 from app.services.safety.herg_risk import compute_herg_risk
-                from app.services.safety.bro5 import compute_bro5
                 from app.services.safety.reos import compute_reos
-                from app.services.alerts.complexity_filter import compute_complexity_percentile
 
                 safety_data = {
                     "cyp_softspots": screen_cyp_softspots(mol),

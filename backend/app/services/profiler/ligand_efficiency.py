@@ -48,9 +48,7 @@ def compute_ligand_efficiency(
         On unknown activity_type: {"error": "Unknown activity_type: {type}"}.
     """
     # Convert activity to pIC50
-    if activity_type == "pIC50":
-        pic50 = activity_value
-    elif activity_type == "pKd":
+    if activity_type in ("pIC50", "pKd"):
         pic50 = activity_value
     elif activity_type in ("IC50_nM", "Ki_nM"):
         pic50 = -math.log10(activity_value * 1e-9)

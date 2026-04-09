@@ -17,6 +17,8 @@ is a separate assessment served by the safety/assess endpoint (Plan 02).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from rdkit import Chem
 
 from .alert_manager import AlertSeverity, alert_manager
@@ -30,25 +32,18 @@ _SEVERITY_ORDER = {
     AlertSeverity.CRITICAL: 2,
     AlertSeverity.WARNING: 1,
     AlertSeverity.INFO: 0,
-    # Handle string forms too
-    "critical": 2,
-    "warning": 1,
-    "info": 0,
 }
 
 
-def _severity_value(severity) -> int:
+def _severity_value(severity: AlertSeverity) -> int:
     """Return numeric value for severity comparison."""
     return _SEVERITY_ORDER.get(severity, 0)
 
 
-def _worst_severity(severities) -> str:
+def _worst_severity(severities: Iterable[AlertSeverity]) -> str:
     """Return the worst (highest) severity from a collection."""
     best = max(severities, key=_severity_value, default=AlertSeverity.INFO)
-    # Normalize to string form
-    if hasattr(best, "value"):
-        return best.value
-    return str(best)
+    return best.value
 
 
 def unified_screen(mol: Chem.Mol) -> dict:
@@ -134,10 +129,9 @@ def unified_screen(mol: Chem.Mol) -> dict:
 
     # Track all screened catalog sources
     screened_catalogs: list[str] = list(screening_result.screened_catalogs)
-    if custom_alerts or True:  # always include custom sources in screened list
-        for src in ["CUSTOM", "KAZIUS", "NIBR"]:
-            if src not in screened_catalogs:
-                screened_catalogs.append(src)
+    for src in ["CUSTOM", "KAZIUS", "NIBR"]:
+        if src not in screened_catalogs:
+            screened_catalogs.append(src)
 
     # ------------------------------------------------------------------ #
     # 5–6. Build concern_groups with deduplication                        #

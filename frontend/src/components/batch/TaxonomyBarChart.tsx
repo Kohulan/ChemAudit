@@ -6,7 +6,7 @@
  * toggle behavior (clicking active bar deselects).
  */
 
-import React, { useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -61,7 +61,7 @@ export function TaxonomyBarChart({
     [onCategoryClick],
   );
 
-  const barHeight = Math.max(44, 30); // minimum 44px touch target
+  const barHeight = 44; // minimum touch target
   const chartHeight = Math.max(300, chartData.length * barHeight + 40);
 
   return (

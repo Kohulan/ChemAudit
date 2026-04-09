@@ -72,7 +72,7 @@ export function PresetSelector({ activePreset, modifiedFrom, onSelectPreset }: P
           return (
             <div key={preset.id} className="flex flex-col gap-1">
               <ClayButton
-                variant={isActive ? 'outline' : 'outline'}
+                variant="outline"
                 size="sm"
                 onClick={() => onSelectPreset(preset.id)}
                 className={cn(

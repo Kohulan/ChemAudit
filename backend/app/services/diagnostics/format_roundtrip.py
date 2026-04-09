@@ -5,11 +5,9 @@ Detects information loss when converting SMILES through InChI or MOL block
 and back. Checks for stereo center loss, formal charge loss, and isotope loss.
 """
 
-from typing import Optional
-
 from rdkit import Chem
-from rdkit.Chem import Descriptors, FindMolChiralCenters
-from rdkit.Chem.inchi import MolToInchi, MolFromInchi
+from rdkit.Chem import FindMolChiralCenters
+from rdkit.Chem.inchi import MolFromInchi, MolToInchi
 from rdkit.Chem.rdchem import Mol
 
 
@@ -74,6 +72,48 @@ def _compute_losses(original_mol: Mol, roundtrip_mol: Mol) -> list[dict]:
     return losses
 
 
+def _make_error_result(route: str, original_smiles: str, error: str,
+                       intermediate: str | None = None) -> dict:
+    """Build a standardized error result dict for a failed round-trip route."""
+    return {
+        "route": route,
+        "original_smiles": original_smiles,
+        "intermediate": intermediate,
+        "roundtrip_smiles": None,
+        "lossy": False,
+        "losses": [],
+        "error": error,
+    }
+
+
+def _roundtrip_via_inchi(mol: Mol) -> tuple[str | None, Mol | None, str | None]:
+    """Convert mol to InChI and back. Returns (intermediate, roundtrip_mol, error)."""
+    inchi = MolToInchi(mol)
+    if inchi is None:
+        return None, None, "Failed to generate InChI from molecule"
+    roundtrip_mol = MolFromInchi(inchi)
+    if roundtrip_mol is None:
+        return inchi, None, "Failed to parse molecule from InChI"
+    return inchi, roundtrip_mol, None
+
+
+def _roundtrip_via_molblock(mol: Mol) -> tuple[str | None, Mol | None, str | None]:
+    """Convert mol to MOL block and back. Returns (intermediate, roundtrip_mol, error)."""
+    mol_block = Chem.MolToMolBlock(mol)
+    if mol_block is None:
+        return None, None, "Failed to generate MOL block from molecule"
+    roundtrip_mol = Chem.MolFromMolBlock(mol_block)
+    if roundtrip_mol is None:
+        return mol_block, None, "Failed to parse molecule from MOL block"
+    return mol_block, roundtrip_mol, None
+
+
+_ROUTE_FUNCTIONS = {
+    "smiles_inchi_smiles": _roundtrip_via_inchi,
+    "smiles_mol_smiles": _roundtrip_via_molblock,
+}
+
+
 def check_roundtrip(smiles: str, route: str = "smiles_inchi_smiles") -> dict:
     """Check whether a SMILES string round-trips losslessly through an intermediate format.
 
@@ -97,121 +137,33 @@ def check_roundtrip(smiles: str, route: str = "smiles_inchi_smiles") -> dict:
     """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
-        return {
-            "route": route,
-            "original_smiles": smiles,
-            "intermediate": None,
-            "roundtrip_smiles": None,
-            "lossy": False,
-            "losses": [],
-            "error": "Input SMILES could not be parsed by RDKit",
-        }
+        return _make_error_result(route, smiles, "Input SMILES could not be parsed by RDKit")
 
     original_canonical = Chem.MolToSmiles(mol, canonical=True)
 
-    if route == "smiles_inchi_smiles":
-        try:
-            inchi = MolToInchi(mol)
-            if inchi is None:
-                return {
-                    "route": route,
-                    "original_smiles": original_canonical,
-                    "intermediate": None,
-                    "roundtrip_smiles": None,
-                    "lossy": False,
-                    "losses": [],
-                    "error": "Failed to generate InChI from molecule",
-                }
+    route_fn = _ROUTE_FUNCTIONS.get(route)
+    if route_fn is None:
+        return _make_error_result(
+            route, original_canonical,
+            f"Unknown route '{route}'. Supported: smiles_inchi_smiles, smiles_mol_smiles",
+        )
 
-            roundtrip_mol = MolFromInchi(inchi)
-            if roundtrip_mol is None:
-                return {
-                    "route": route,
-                    "original_smiles": original_canonical,
-                    "intermediate": inchi,
-                    "roundtrip_smiles": None,
-                    "lossy": False,
-                    "losses": [],
-                    "error": "Failed to parse molecule from InChI",
-                }
+    try:
+        intermediate, roundtrip_mol, error = route_fn(mol)
+    except Exception as exc:
+        return _make_error_result(route, original_canonical, str(exc))
 
-            roundtrip_smiles = Chem.MolToSmiles(roundtrip_mol, canonical=True)
-            losses = _compute_losses(mol, roundtrip_mol)
-            return {
-                "route": route,
-                "original_smiles": original_canonical,
-                "intermediate": inchi,
-                "roundtrip_smiles": roundtrip_smiles,
-                "lossy": len(losses) > 0,
-                "losses": losses,
-                "error": None,
-            }
-        except Exception as exc:
-            return {
-                "route": route,
-                "original_smiles": original_canonical,
-                "intermediate": None,
-                "roundtrip_smiles": None,
-                "lossy": False,
-                "losses": [],
-                "error": str(exc),
-            }
+    if error is not None:
+        return _make_error_result(route, original_canonical, error, intermediate=intermediate)
 
-    elif route == "smiles_mol_smiles":
-        try:
-            mol_block = Chem.MolToMolBlock(mol)
-            if mol_block is None:
-                return {
-                    "route": route,
-                    "original_smiles": original_canonical,
-                    "intermediate": None,
-                    "roundtrip_smiles": None,
-                    "lossy": False,
-                    "losses": [],
-                    "error": "Failed to generate MOL block from molecule",
-                }
-
-            roundtrip_mol = Chem.MolFromMolBlock(mol_block)
-            if roundtrip_mol is None:
-                return {
-                    "route": route,
-                    "original_smiles": original_canonical,
-                    "intermediate": mol_block,
-                    "roundtrip_smiles": None,
-                    "lossy": False,
-                    "losses": [],
-                    "error": "Failed to parse molecule from MOL block",
-                }
-
-            roundtrip_smiles = Chem.MolToSmiles(roundtrip_mol, canonical=True)
-            losses = _compute_losses(mol, roundtrip_mol)
-            return {
-                "route": route,
-                "original_smiles": original_canonical,
-                "intermediate": mol_block,
-                "roundtrip_smiles": roundtrip_smiles,
-                "lossy": len(losses) > 0,
-                "losses": losses,
-                "error": None,
-            }
-        except Exception as exc:
-            return {
-                "route": route,
-                "original_smiles": original_canonical,
-                "intermediate": None,
-                "roundtrip_smiles": None,
-                "lossy": False,
-                "losses": [],
-                "error": str(exc),
-            }
-
-    else:
-        return {
-            "route": route,
-            "original_smiles": original_canonical,
-            "intermediate": None,
-            "roundtrip_smiles": None,
-            "lossy": False,
-            "losses": [],
-            "error": f"Unknown route '{route}'. Supported: smiles_inchi_smiles, smiles_mol_smiles",
-        }
+    roundtrip_smiles = Chem.MolToSmiles(roundtrip_mol, canonical=True)
+    losses = _compute_losses(mol, roundtrip_mol)
+    return {
+        "route": route,
+        "original_smiles": original_canonical,
+        "intermediate": intermediate,
+        "roundtrip_smiles": roundtrip_smiles,
+        "lossy": len(losses) > 0,
+        "losses": losses,
+        "error": None,
+    }

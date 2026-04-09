@@ -151,14 +151,10 @@ def _desirability_value(value: float, low: float, high: float, shape: str) -> fl
         x = (value - low) / (high - low)
         clamped = max(0.0, min(1.0, x))
         return 1.0 / (1.0 + math.exp(-12.0 * (clamped - 0.5)))
-    elif shape == "ramp":
-        if high == low:
-            return 1.0 if value >= high else 0.0
-        return max(0.0, min(1.0, (value - low) / (high - low)))
     elif shape == "step":
         return 1.0 if value >= high else 0.0
     else:
-        # Unknown shape — default to ramp
+        # ramp (also default for unknown shapes)
         if high == low:
             return 1.0 if value >= high else 0.0
         return max(0.0, min(1.0, (value - low) / (high - low)))

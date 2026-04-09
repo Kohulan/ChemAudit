@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { MetricCard } from '../profiler/MetricCard';
 import { CypSoftSpotsPanel } from './CypSoftSpotsPanel';
 import type { CypResult, HergResult, Bro5Result, ReosResult, Bro5Violation, ReosViolation } from '../../types/safety';
@@ -52,12 +53,12 @@ function HergDetail({ flags, descriptors }: { flags: string[]; descriptors: Reco
           <p className="text-xs font-semibold text-text-secondary mb-1.5">Descriptors</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {Object.entries(descriptors).map(([key, value]) => (
-              <>
-                <span key={`${key}-label`} className="text-xs text-text-muted">{formatKey(key)}</span>
-                <span key={`${key}-value`} className="text-xs text-text-primary font-medium tabular-nums">
+              <Fragment key={key}>
+                <span className="text-xs text-text-muted">{formatKey(key)}</span>
+                <span className="text-xs text-text-primary font-medium tabular-nums">
                   {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : typeof value === 'number' ? value.toFixed(2) : String(value)}
                 </span>
-              </>
+              </Fragment>
             ))}
           </div>
         </div>
@@ -91,12 +92,12 @@ function Bro5Detail({ violations, values }: { violations: Bro5Violation[]; value
           <p className="text-xs font-semibold text-text-secondary mb-1.5">Values</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {Object.entries(values).map(([key, value]) => (
-              <>
-                <span key={`${key}-label`} className="text-xs text-text-muted">{formatKey(key)}</span>
-                <span key={`${key}-value`} className="text-xs text-text-primary font-medium tabular-nums">
+              <Fragment key={key}>
+                <span className="text-xs text-text-muted">{formatKey(key)}</span>
+                <span className="text-xs text-text-primary font-medium tabular-nums">
                   {typeof value === 'number' ? value.toFixed(2) : String(value)}
                 </span>
-              </>
+              </Fragment>
             ))}
           </div>
         </div>
@@ -132,12 +133,12 @@ function ReosDetail({ violations, descriptors }: { violations: ReosViolation[]; 
           <p className="text-xs font-semibold text-text-secondary mb-1.5">Descriptors</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {Object.entries(descriptors).map(([key, value]) => (
-              <>
-                <span key={`${key}-label`} className="text-xs text-text-muted">{formatKey(key)}</span>
-                <span key={`${key}-value`} className="text-xs text-text-primary font-medium tabular-nums">
+              <Fragment key={key}>
+                <span className="text-xs text-text-muted">{formatKey(key)}</span>
+                <span className="text-xs text-text-primary font-medium tabular-nums">
                   {typeof value === 'number' ? value.toFixed(2) : String(value)}
                 </span>
-              </>
+              </Fragment>
             ))}
           </div>
         </div>

@@ -18,9 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import numpy as np
-from rdkit import Chem
 from rdkit.Chem import Descriptors, FindMolChiralCenters
-from rdkit.Chem import inchi as rdkit_inchi
 
 from app.services.alerts.unified_screen import unified_screen
 from app.services.diagnostics.std_comparison import compare_pipelines
@@ -266,7 +264,7 @@ def compute_health_score(
                     "severity": "info",
                     "description": "Standardization pipelines disagree",
                 })
-        except (ValueError, Exception) as exc:
+        except Exception as exc:
             disagree_count += 1
             logger.warning(
                 "compare_pipelines failed for row %d: %s", mol_dict["index"], exc

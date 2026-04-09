@@ -71,7 +71,7 @@ export function MetricCard({
         <div className="flex items-baseline justify-between gap-3">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-semibold tabular-nums text-text-primary font-display">
-              {typeof score === 'number' && !isNaN(score) ? score : score}
+              {score}
             </span>
             {unit && (
               <span className="text-xs text-text-muted">{unit}</span>

@@ -70,7 +70,7 @@ export default function DatasetAudit() {
       }
       void auditState.uploadFile(file);
     },
-    [auditState],
+    [auditState.status, auditState.resetAll, auditState.uploadFile],
   );
 
   // Handle sub-score card click: scroll to treemap and highlight matching category

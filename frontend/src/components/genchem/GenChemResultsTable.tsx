@@ -152,21 +152,10 @@ export function GenChemResultsTable({
             </thead>
 
             <tbody>
-              <AnimatePresence mode="wait">
-                <motion.tr
-                  key={`page-${currentPage}-${selectedStage}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                  style={{ display: 'none' }}
-                  aria-hidden="true"
-                />
-              </AnimatePresence>
-
               {pageRows.map((molecule, idx) => {
-                const truncated = molecule.smiles.slice(0, 40);
-                const isTruncated = molecule.smiles.length > 40;
-                const displaySmiles = isTruncated ? `${truncated}…` : truncated;
+                const displaySmiles = molecule.smiles.length > 40
+                  ? `${molecule.smiles.slice(0, 40)}…`
+                  : molecule.smiles;
 
                 return (
                   <tr
