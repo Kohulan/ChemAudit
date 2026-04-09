@@ -543,6 +543,21 @@ async def get_batch_analytics(
             if raw is not None:
                 result_kwargs[field_name] = raw
 
+    # Backfill smiles_map for clustering results that predate the field
+    clustering_data = result_kwargs.get("clustering")
+    if clustering_data and not clustering_data.get("smiles_map"):
+        all_results = result_storage.get_all_results(job_id)
+        if all_results:
+            smap: dict[str, str] = {}
+            for r in all_results:
+                idx = r.get("index", 0)
+                std = r.get("standardization")
+                std_smi = std.get("standardized_smiles") if isinstance(std, dict) else None
+                smi = std_smi or r.get("smiles", "")
+                if smi:
+                    smap[str(idx)] = smi
+            clustering_data["smiles_map"] = smap
+
     return BatchAnalyticsResponse(
         job_id=job_id,
         status=status_dict,
@@ -624,12 +639,17 @@ async def trigger_batch_analytics(
             )
 
         if current_status_val == "complete":
-            # For chemical_space: allow re-computation when a *different*
-            # method is requested (e.g. PCA stored, user wants t-SNE).
+            # Allow re-computation when params differ from stored result.
             needs_recompute = False
             if analysis_type == "chemical_space" and params and params.get("method"):
                 stored = analytics_storage.get_result(job_id, "chemical_space")
                 if stored and stored.get("method") != params["method"]:
+                    needs_recompute = True
+            elif analysis_type == "clustering" and params and params.get("cutoff"):
+                stored = analytics_storage.get_result(job_id, "clustering")
+                stored_cutoff = stored.get("distance_cutoff") if stored else None
+                new_cutoff = float(params["cutoff"])
+                if stored_cutoff is None or abs(stored_cutoff - new_cutoff) > 1e-9:
                     needs_recompute = True
 
             if not needs_recompute:

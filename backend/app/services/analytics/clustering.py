@@ -67,6 +67,18 @@ def compute_butina_clustering(
 
     n = len(valid_mols)
 
+    # Build index -> SMILES lookup for the response
+    index_to_smiles: dict[int, str] = {}
+    for result in results[:MAX_MOLECULES]:
+        idx = result.get("index", 0)
+        smiles = result.get("smiles", "")
+        std_smiles = None
+        std = result.get("standardization")
+        if isinstance(std, dict):
+            std_smiles = std.get("standardized_smiles")
+        if smiles or std_smiles:
+            index_to_smiles[idx] = std_smiles or smiles
+
     # Edge case: no valid molecules
     if n == 0:
         return {
@@ -75,6 +87,7 @@ def compute_butina_clustering(
             "singleton_count": 0,
             "largest_cluster_size": 0,
             "distance_cutoff": distance_cutoff,
+            "smiles_map": {},
         }
 
     # Edge case: single molecule -> 1 cluster, no singletons
@@ -92,6 +105,9 @@ def compute_butina_clustering(
             "singleton_count": 0,
             "largest_cluster_size": 1,
             "distance_cutoff": distance_cutoff,
+            "smiles_map": {
+                str(valid_indices[0]): index_to_smiles.get(valid_indices[0], ""),
+            },
         }
 
     # Step 2: Generate Morgan fingerprints
@@ -130,10 +146,18 @@ def compute_butina_clustering(
             }
         )
 
+    # Build smiles_map for all indices referenced by clusters
+    smiles_map: dict[str, str] = {}
+    for cluster in clusters:
+        for idx in cluster["member_indices"]:
+            if idx in index_to_smiles:
+                smiles_map[str(idx)] = index_to_smiles[idx]
+
     return {
         "clusters": clusters,
         "cluster_count": len(clusters),
         "singleton_count": singleton_count,
         "largest_cluster_size": largest_size,
         "distance_cutoff": distance_cutoff,
+        "smiles_map": smiles_map,
     }

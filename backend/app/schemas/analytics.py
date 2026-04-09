@@ -7,7 +7,7 @@ Covers deduplication, scaffold analysis, chemical space, similarity, MMP, and st
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Shared / status
@@ -255,6 +255,10 @@ class ClusteringResult(BaseModel):
     singleton_count: int
     largest_cluster_size: int
     distance_cutoff: float
+    smiles_map: dict[str, str] = Field(
+        default_factory=dict,
+        description="Index-to-SMILES map for rendering molecules without paginated results lookup",
+    )
 
 
 # ---------------------------------------------------------------------------

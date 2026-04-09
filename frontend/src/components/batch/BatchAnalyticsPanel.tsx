@@ -51,6 +51,7 @@ interface BatchAnalyticsPanelProps {
   activeScoreRange?: { min: number; max: number } | null;
   onAlertClick?: (catalogName: string) => void;
   activeAlertFilter?: string | null;
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
 }
 
 const TABS = ['Distributions', 'Chemical Space', 'Clustering', 'Taxonomy', 'Registration'] as const;
@@ -323,6 +324,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   activeScoreRange,
   onAlertClick,
   activeAlertFilter,
+  onNavigateToMolecule,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
@@ -721,6 +723,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
               analyticsData={analyticsData}
               results={results}
               onRetrigger={onRetrigger}
+              onNavigateToMolecule={onNavigateToMolecule}
             />
           </motion.div>
         )}

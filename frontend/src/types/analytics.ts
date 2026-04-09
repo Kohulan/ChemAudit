@@ -162,6 +162,8 @@ export interface ClusteringResult {
   singleton_count: number;
   largest_cluster_size: number;
   distance_cutoff: number;
+  /** Maps batch result index (as string key) to SMILES for molecule rendering */
+  smiles_map?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------

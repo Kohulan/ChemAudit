@@ -8,6 +8,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import type { TaxonomyResult } from '../../types/analytics';
 
 interface TaxonomyTableProps {
@@ -15,6 +16,10 @@ interface TaxonomyTableProps {
   taxonomyResult: TaxonomyResult;
   /** Search query for filtering categories (case-insensitive) */
   searchQuery: string;
+  /** Batch result index→name lookup for molecule name tooltips */
+  nameMap?: Map<number, string>;
+  /** Navigate to a molecule in the Detailed Results table */
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
 }
 
 const PAGE_SIZE = 50;
@@ -23,10 +28,12 @@ interface CategoryRow {
   name: string;
   count: number;
   exampleSmiles: string;
+  exampleName: string;
+  exampleIndex: number;
   description: string;
 }
 
-export function TaxonomyTable({ taxonomyResult, searchQuery }: TaxonomyTableProps) {
+export function TaxonomyTable({ taxonomyResult, searchQuery, nameMap, onNavigateToMolecule }: TaxonomyTableProps) {
   const [currentPage, setCurrentPage] = useState(0);
 
   // Build rows from category_counts, enriched with per_molecule data
@@ -36,6 +43,8 @@ export function TaxonomyTable({ taxonomyResult, searchQuery }: TaxonomyTableProp
     for (const [categoryName, count] of Object.entries(taxonomyResult.category_counts)) {
       // Find first molecule that has this category
       let exampleSmiles = '';
+      let exampleName = '';
+      let exampleIndex = -1;
       let description = '';
 
       for (const mol of taxonomyResult.per_molecule) {
@@ -44,18 +53,20 @@ export function TaxonomyTable({ taxonomyResult, searchQuery }: TaxonomyTableProp
         );
         if (match) {
           exampleSmiles = mol.smiles;
+          exampleName = nameMap?.get(mol.index) || '';
+          exampleIndex = mol.index;
           description = match.description;
           break;
         }
       }
 
-      rows.push({ name: categoryName, count, exampleSmiles, description });
+      rows.push({ name: categoryName, count, exampleSmiles, exampleName, exampleIndex, description });
     }
 
     // Sort by count descending
     rows.sort((a, b) => b.count - a.count);
     return rows;
-  }, [taxonomyResult]);
+  }, [taxonomyResult, nameMap]);
 
   // Filter by search query
   const filteredRows = useMemo(() => {
@@ -115,8 +126,20 @@ export function TaxonomyTable({ taxonomyResult, searchQuery }: TaxonomyTableProp
                 <td className="px-3 py-2 text-xs font-mono tabular-nums text-[var(--color-text-secondary)] text-right">
                   {row.count}
                 </td>
-                <td className="px-3 py-2 text-xs font-mono text-[var(--color-text-muted)] max-w-[200px] truncate" title={row.exampleSmiles}>
-                  {row.exampleSmiles || '-'}
+                <td className="px-3 py-2">
+                  {row.exampleSmiles ? (
+                    <button
+                      type="button"
+                      onClick={() => row.exampleIndex >= 0 && onNavigateToMolecule?.(row.exampleIndex)}
+                      className="rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow"
+                      style={{ width: 100, height: 70 }}
+                      title={row.exampleName ? `${row.exampleName}\nClick to show in results` : 'Click to show in results'}
+                    >
+                      <MoleculeViewer smiles={row.exampleSmiles} width={100} height={70} />
+                    </button>
+                  ) : (
+                    <span className="text-xs text-[var(--color-text-muted)]">-</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-sm text-[var(--color-text-secondary)] max-w-[300px]">
                   {row.description || '-'}

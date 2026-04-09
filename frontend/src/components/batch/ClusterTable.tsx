@@ -5,9 +5,9 @@
  * cluster member grids. Cluster IDs are colored badges.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { ClusterMemberGrid } from './ClusterMemberGrid';
 import type { ClusterInfo } from '../../types/analytics';
@@ -16,6 +16,8 @@ import type { BatchResult } from '../../types/batch';
 interface ClusterTableProps {
   clusters: ClusterInfo[];
   results: BatchResult[];
+  /** Index→SMILES map from clustering response (covers all molecules, not just current page) */
+  smilesMap?: Record<string, string>;
   expandedClusterId: number | null;
   onToggleExpand: (id: number) => void;
 }
@@ -42,12 +44,23 @@ function getClusterColor(index: number): string {
 export function ClusterTable({
   clusters,
   results,
+  smilesMap,
   expandedClusterId,
   onToggleExpand,
 }: ClusterTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('size');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [copiedSmiles, setCopiedSmiles] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleCopySmiles = useCallback((smiles: string | null) => {
+    if (!smiles) return;
+    navigator.clipboard.writeText(smiles);
+    setCopiedSmiles(smiles);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopiedSmiles(null), 1500);
+  }, []);
 
   // Sort clusters
   const sorted = useMemo(() => {
@@ -127,15 +140,18 @@ export function ClusterTable({
           <tbody className="divide-y divide-[var(--color-border)]">
             {paged.map((cluster) => {
               const isExpanded = expandedClusterId === cluster.cluster_id;
-              const repMol = resultMap.get(cluster.representative_index);
               const repSmiles =
-                repMol?.standardization?.standardized_smiles || repMol?.smiles || null;
+                smilesMap?.[String(cluster.representative_index)] ??
+                (() => {
+                  const repMol = resultMap.get(cluster.representative_index);
+                  return repMol?.standardization?.standardized_smiles || repMol?.smiles || null;
+                })();
               const clusterColorIndex =
                 clusters.findIndex((c) => c.cluster_id === cluster.cluster_id);
               const color = getClusterColor(clusterColorIndex);
 
               return (
-                <tr key={cluster.cluster_id} className="group">
+                <tr key={cluster.cluster_id}>
                   <td className="px-3 py-2">
                     <span className="flex flex-col gap-1">
                       <span
@@ -151,17 +167,31 @@ export function ClusterTable({
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden flex-shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => handleCopySmiles(repSmiles)}
+                        className="relative rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow group"
                         style={{ width: 120, height: 100 }}
+                        title={repSmiles ? 'Click to copy SMILES' : ''}
+                        disabled={!repSmiles}
                       >
                         <MoleculeViewer smiles={repSmiles} width={120} height={100} />
-                      </div>
+                        {repSmiles && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                            {copiedSmiles === repSmiles ? (
+                              <Check className="w-5 h-5 text-green-400" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-white" />
+                            )}
+                          </span>
+                        )}
+                      </button>
                       <span
-                        className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[200px]"
-                        title={repSmiles || ''}
+                        className="text-xs font-mono text-[var(--color-text-muted)] break-all cursor-pointer hover:text-[var(--color-text-primary)] transition-colors"
+                        title={repSmiles ? 'Click to copy SMILES' : ''}
+                        onClick={() => handleCopySmiles(repSmiles)}
                       >
-                        {repSmiles || '-'}
+                        {copiedSmiles === repSmiles ? 'Copied!' : repSmiles || '-'}
                       </span>
                     </div>
                   </td>
@@ -192,6 +222,7 @@ export function ClusterTable({
                             <ClusterMemberGrid
                               memberIndices={cluster.member_indices}
                               results={results}
+                              smilesMap={smilesMap}
                               clusterId={cluster.cluster_id}
                             />
                           </div>

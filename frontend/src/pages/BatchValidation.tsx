@@ -277,10 +277,8 @@ export function BatchValidationPage() {
       setSortBy('index');
       setSortDir('asc');
       setFocusedMoleculeIndex(moleculeIndex);
-      // Scroll to results section
-      scrollToResults();
     } catch {
-      // Fall back to just scrolling
+      // Fall back to scrolling to results section
       scrollToResults();
     } finally {
       setResultsLoading(false);
@@ -753,6 +751,7 @@ export function BatchValidationPage() {
                   onScoreRangeClick={handleChartScoreRangeFilter}
                   activeAlertFilter={filters.alert_filter ?? null}
                   onAlertClick={handleChartAlertFilter}
+                  onNavigateToMolecule={handleNavigateToMolecule}
                 />
               </div>
             )}

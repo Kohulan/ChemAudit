@@ -25,15 +25,25 @@ interface TaxonomyTabProps {
   onRetrigger: (type: string, params?: Record<string, string>) => void;
   /** Propagate category filter to batch table */
   onCategoryFilter?: (category: string | null) => void;
+  /** Navigate to a molecule in the Detailed Results table */
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
 }
 
 export function TaxonomyTab({
   analyticsData,
-  results: _results,
+  results,
   onRetrigger,
   onCategoryFilter,
+  onNavigateToMolecule,
 }: TaxonomyTabProps) {
-  void _results; // Available for future use (e.g. molecule lookup)
+  // Build index→name lookup from batch results for molecule name tooltips
+  const nameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const r of results) {
+      if (r.name) map.set(r.index, r.name);
+    }
+    return map;
+  }, [results]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -169,7 +179,7 @@ export function TaxonomyTab({
           </div>
 
           {/* Category table */}
-          <TaxonomyTable taxonomyResult={taxonomyResult} searchQuery={debouncedQuery} />
+          <TaxonomyTable taxonomyResult={taxonomyResult} searchQuery={debouncedQuery} nameMap={nameMap} onNavigateToMolecule={onNavigateToMolecule} />
         </div>
       )}
 

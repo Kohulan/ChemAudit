@@ -220,6 +220,24 @@ def run_expensive_analytics(
                 # "computing" before this task ran.
                 analytics_storage.update_status(job_id, analysis_type, "complete")
                 return
+        elif analysis_type == "clustering" and params.get("cutoff"):
+            stored = analytics_storage.get_result(job_id, "clustering")
+            stored_cutoff = stored.get("distance_cutoff") if stored else None
+            new_cutoff = float(params["cutoff"])
+            if stored_cutoff is not None and abs(stored_cutoff - new_cutoff) > 1e-9:
+                logger.info(
+                    "run_expensive_analytics: re-computing %s for job %s "
+                    "(cutoff %s -> %s).",
+                    analysis_type, job_id, stored_cutoff, new_cutoff,
+                )
+            else:
+                logger.info(
+                    "run_expensive_analytics: %s already complete for job %s "
+                    "with same cutoff, skipping.",
+                    analysis_type, job_id,
+                )
+                analytics_storage.update_status(job_id, analysis_type, "complete")
+                return
         else:
             logger.info(
                 "run_expensive_analytics: %s already complete for job %s, skipping.",

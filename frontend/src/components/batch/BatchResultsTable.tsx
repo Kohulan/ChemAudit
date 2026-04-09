@@ -66,11 +66,13 @@ export function BatchResultsTable({
     if (results.some(r => r.index === focusedMoleculeIndex)) {
       setExpandedRow(focusedMoleculeIndex);
       setHighlightedAtoms([]);
-      // Wait for render, then scroll
+      // Wait for render, then scroll to the specific row
       requestAnimationFrame(() => {
         focusedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
-      onFocusHandled?.();
+      // Keep highlight visible for 3s before clearing
+      const timer = setTimeout(() => onFocusHandled?.(), 3000);
+      return () => clearTimeout(timer);
     }
   }, [focusedMoleculeIndex, results, onFocusHandled]);
 

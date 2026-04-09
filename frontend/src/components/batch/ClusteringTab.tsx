@@ -86,6 +86,7 @@ export function ClusteringTab({
               <ClusterTable
                 clusters={clusteringResult.clusters}
                 results={results}
+                smilesMap={clusteringResult.smiles_map}
                 expandedClusterId={expandedClusterId}
                 onToggleExpand={handleToggleExpand}
               />
@@ -109,6 +110,7 @@ export function ClusteringTab({
           <ClusterTable
             clusters={clusteringResult.clusters}
             results={results}
+            smilesMap={clusteringResult.smiles_map}
             expandedClusterId={expandedClusterId}
             onToggleExpand={handleToggleExpand}
           />
