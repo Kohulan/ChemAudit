@@ -473,7 +473,7 @@ export function BatchValidationPage() {
   return (
     <div className={cn(
       "mx-auto space-y-8 px-4 sm:px-6",
-      pageState === 'results' ? 'max-w-[1600px]' : 'max-w-7xl'
+      pageState === 'results' ? 'max-w-[1800px]' : 'max-w-7xl'
     )}>
       {/* Hero Header */}
       <motion.div

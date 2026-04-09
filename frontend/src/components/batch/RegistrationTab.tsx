@@ -19,9 +19,13 @@ interface RegistrationTabProps {
   analyticsData: BatchAnalyticsResponse | null;
   /** Batch results for molecule SMILES lookup */
   results: BatchResult[];
+  /** Navigate to a molecule in the results table */
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
+  /** Select indices and trigger comparison */
+  onCompareGroup?: (indices: number[]) => void;
 }
 
-export function RegistrationTab({ analyticsData, results }: RegistrationTabProps) {
+export function RegistrationTab({ analyticsData, results, onNavigateToMolecule, onCompareGroup }: RegistrationTabProps) {
   const registrationResult: RegistrationHashResult | undefined = analyticsData?.registration;
   const isComputing = analyticsData?.status?.registration?.status === 'computing';
   const errorMessage = analyticsData?.status?.registration?.error;
@@ -129,6 +133,9 @@ export function RegistrationTab({ analyticsData, results }: RegistrationTabProps
                 key={group.hash}
                 group={group}
                 results={results}
+                perMolecule={registrationResult.per_molecule}
+                onNavigateToMolecule={onNavigateToMolecule}
+                onCompareGroup={onCompareGroup}
               />
             ))}
           </div>

@@ -6,7 +6,7 @@
  * error states, and summary badges.
  */
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, AlertTriangle, RotateCcw, Loader2, GitCompare, X, Beaker } from 'lucide-react';
 import {
@@ -339,6 +339,22 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   const propScatterRef = useRef<HTMLDivElement>(null);
   const scaffoldTreemapRef = useRef<HTMLDivElement>(null);
   const profileHistRef = useRef<HTMLDivElement>(null);
+
+  // Compare a collision group: select the first 2 indices, then trigger compare
+  const pendingCompareRef = useRef(false);
+  const handleCompareGroup = useCallback((indices: number[]) => {
+    const selected = new Set(indices.slice(0, 2));
+    onSelectionChange(selected);
+    pendingCompareRef.current = true;
+  }, [onSelectionChange]);
+
+  // Fire compare once selection is updated
+  useEffect(() => {
+    if (pendingCompareRef.current && selectedIndices.size >= 2 && onCompare) {
+      pendingCompareRef.current = false;
+      onCompare();
+    }
+  }, [selectedIndices, onCompare]);
 
   // Badge counts
   const outlierCount = analyticsData?.statistics?.outliers?.length ?? 0;
@@ -710,7 +726,6 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
           </motion.div>
         )}
 
-
         {activeTab === 'Taxonomy' && (
           <motion.div
             key="taxonomy"
@@ -739,6 +754,8 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             <RegistrationTab
               analyticsData={analyticsData}
               results={results}
+              onNavigateToMolecule={onNavigateToMolecule}
+              onCompareGroup={handleCompareGroup}
             />
           </motion.div>
         )}
