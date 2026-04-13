@@ -4,6 +4,7 @@ const pubchemLogo = '/assets/logos/pubchem.png';
 const chemblLogo = '/assets/logos/chembl.png';
 const coconutLogo = '/assets/logos/coconut.png';
 const wikidataLogo = '/assets/logos/wikidata.svg';
+const surechemblLogo = '/assets/logos/surechembl.png';
 
 interface DatabaseLookupResultsProps {
   results: {
@@ -374,7 +375,7 @@ function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
     return (
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <div className="flex items-center gap-2">
-          <span className="text-lg">📄</span>
+          <img src={surechemblLogo} alt="SureChEMBL" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900 dark:text-gray-100">SureChEMBL</span>
           <span className="text-xs text-gray-400">Failed to query</span>
         </div>
@@ -385,7 +386,7 @@ function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
   return (
     <div className={`border rounded-lg p-4 ${result.found ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">📄</span>
+        <img src={surechemblLogo} alt="SureChEMBL" className="w-5 h-5 rounded-sm object-contain" />
         <span className="font-medium text-gray-900 dark:text-gray-100">SureChEMBL</span>
         {result.found ? (
           <span className="px-2 py-0.5 bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 text-xs rounded-full">In Patents</span>

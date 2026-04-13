@@ -78,7 +78,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
 
       {!results && !isLoading && (
         <p className="text-sm text-gray-500">
-          Check if this molecule exists in PubChem, ChEMBL, COCONUT, or Wikidata.
+          Check if this molecule exists in PubChem, ChEMBL, COCONUT, Wikidata, or SureChEMBL.
         </p>
       )}
 

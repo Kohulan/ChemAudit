@@ -1779,7 +1779,7 @@ export function SingleValidationPage() {
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Database Results
                     </h4>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT, Wikidata details</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT, Wikidata, SureChEMBL details</p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
                 </button>
