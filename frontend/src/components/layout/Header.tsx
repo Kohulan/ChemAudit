@@ -23,7 +23,7 @@ import {
 
 import { cn } from '../../lib/utils';
 import { API_DOCS_URL } from '../../services/api';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { BB8ThemeToggle } from '../ui/BB8ThemeToggle';
 
 /* ─── Nav item types ─── */
 
@@ -594,12 +594,12 @@ export function Header() {
             {/* Divider */}
             <div className="w-px h-5 bg-[var(--color-border-strong)] mx-2.5" />
 
-            <ThemeToggle />
+            <BB8ThemeToggle />
           </div>
 
           {/* ── Mobile controls ── */}
           <div className="flex lg:hidden items-center gap-1.5">
-            <ThemeToggle />
+            <BB8ThemeToggle />
             <motion.button
               onClick={() => setMobileOpen(v => !v)}
               className={cn(

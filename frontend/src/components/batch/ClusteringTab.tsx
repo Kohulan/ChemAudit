@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
 import { ClusterCutoffSelector } from './ClusterCutoffSelector';
 import { ClusterSummaryBar } from './ClusterSummaryBar';
 import { ClusterTable } from './ClusterTable';
@@ -53,9 +53,38 @@ export function ClusteringTab({
         hasTriggered={hasTriggered}
       />
 
+      {/* Method info box */}
+      <div className="rounded-2xl border border-[var(--color-primary)]/15 bg-gradient-to-br from-[var(--color-primary)]/[0.03] to-transparent px-5 py-4">
+        <div className="flex gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center">
+              <Info className="w-4 h-4 text-[var(--color-primary)]" />
+            </div>
+          </div>
+          <div className="space-y-1.5 text-xs text-[var(--color-text-muted)] leading-relaxed">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              How clustering works
+            </p>
+            <p>
+              Molecules are grouped using the <strong className="text-[var(--color-text-secondary)]">Butina sphere-exclusion algorithm</strong>{' '}
+              (RDKit). Each molecule is represented as a <strong className="text-[var(--color-text-secondary)]">Morgan fingerprint</strong>{' '}
+              (radius&nbsp;=&nbsp;2, 2048&nbsp;bits), and pairwise <strong className="text-[var(--color-text-secondary)]">Tanimoto distances</strong>{' '}
+              (1&nbsp;&minus;&nbsp;similarity) are computed between all pairs.
+            </p>
+            <p>
+              The <strong className="text-[var(--color-text-secondary)]">Tanimoto cutoff</strong> sets the maximum distance for two molecules to be
+              placed in the same cluster. Lower values (e.g.&nbsp;0.2) produce fewer, larger clusters
+              of highly similar molecules; higher values (e.g.&nbsp;0.6) produce more, smaller clusters.
+              The first member of each cluster is the <strong className="text-[var(--color-text-secondary)]">centroid</strong> (most neighbors within
+              the cutoff). Limited to 1,000 molecules.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Error state */}
       {errorMessage && (
-        <div className="rounded-xl p-4 bg-red-500/5 border border-red-500/20">
+        <div className="rounded-2xl p-5 bg-red-500/5 border border-red-500/20">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-red-600 dark:text-red-400">

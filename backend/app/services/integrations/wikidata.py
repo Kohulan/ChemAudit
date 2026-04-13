@@ -11,8 +11,10 @@ import urllib.parse
 from typing import Optional
 
 import httpx
+from rdkit import Chem
 
 from app.core.config import settings
+from app.schemas.integrations import WikidataRequest, WikidataResult
 
 WIKIDATA_SPARQL_URL = "https://query.wikidata.org/sparql"
 
@@ -178,3 +180,47 @@ class WikidataClient:
 
         except (httpx.HTTPError, KeyError, ValueError):
             return None
+
+
+async def lookup_wikidata(request: WikidataRequest) -> WikidataResult:
+    """Look up a compound in Wikidata by SMILES or InChIKey.
+
+    If only SMILES is provided, an InChIKey is derived via RDKit first,
+    since Wikidata SPARQL indexes compounds by InChIKey (P235).
+
+    Args:
+        request: WikidataRequest with smiles and/or inchikey.
+
+    Returns:
+        WikidataResult with compound data or found=False.
+    """
+    inchikey = request.inchikey
+
+    # Derive InChIKey from SMILES if not provided
+    if not inchikey and request.smiles:
+        mol = Chem.MolFromSmiles(request.smiles)
+        if mol:
+            inchi = Chem.inchi.MolToInchi(mol)
+            if inchi:
+                inchikey = Chem.inchi.InchiToInchiKey(inchi)
+
+    if not inchikey:
+        return WikidataResult(found=False)
+
+    client = WikidataClient()
+    data = await client.resolve_from_inchikey(inchikey)
+
+    if not data:
+        return WikidataResult(found=False)
+
+    return WikidataResult(
+        found=True,
+        label=data.get("label"),
+        smiles=data.get("smiles"),
+        inchi=data.get("inchi"),
+        inchikey=data.get("inchikey"),
+        cas=data.get("cas"),
+        molecular_formula=data.get("formula"),
+        molecular_weight=data.get("mass"),
+        url=data.get("url"),
+    )

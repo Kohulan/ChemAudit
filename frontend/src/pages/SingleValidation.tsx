@@ -51,7 +51,7 @@ import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
-import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
@@ -416,6 +416,7 @@ export function SingleValidationPage() {
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
+    wikidata: WikidataResult | null;
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
@@ -602,7 +603,7 @@ export function SingleValidationPage() {
           if (snapshot.alertResult) setAlertResult(snapshot.alertResult);
           if (snapshot.scoringResult) setScoringResult(snapshot.scoringResult);
           if (snapshot.standardizationResult) setStandardizationResult(snapshot.standardizationResult);
-          if (snapshot.databaseResults) setDatabaseResults(snapshot.databaseResults);
+          if (snapshot.databaseResults) setDatabaseResults({ wikidata: null, ...snapshot.databaseResults });
         } else if (locState.smiles) {
           // No snapshot (different device / cleared) — auto-validate
           setMolecule(locState.smiles);
@@ -629,7 +630,7 @@ export function SingleValidationPage() {
       if (cached.alertResult) setAlertResult(cached.alertResult);
       if (cached.scoringResult) setScoringResult(cached.scoringResult);
       if (cached.standardizationResult) setStandardizationResult(cached.standardizationResult);
-      if (cached.databaseResults) setDatabaseResults(cached.databaseResults);
+      if (cached.databaseResults) setDatabaseResults({ wikidata: null, ...cached.databaseResults });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1446,6 +1447,10 @@ export function SingleValidationPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             <strong className="text-[var(--color-text-primary)]">COCONUT</strong> — Natural products database
                           </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">Wikidata</strong> — Open knowledge base
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -1770,7 +1775,7 @@ export function SingleValidationPage() {
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Database Results
                     </h4>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT details</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT, Wikidata details</p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
                 </button>

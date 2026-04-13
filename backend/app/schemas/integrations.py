@@ -97,6 +97,28 @@ class ChEMBLResult(BaseModel):
     url: Optional[str] = None
 
 
+# Wikidata
+class WikidataRequest(BaseModel):
+    """Request for Wikidata lookup."""
+
+    smiles: Optional[str] = None
+    inchikey: Optional[str] = None
+
+
+class WikidataResult(BaseModel):
+    """Wikidata compound result."""
+
+    found: bool
+    label: Optional[str] = None
+    smiles: Optional[str] = None
+    inchi: Optional[str] = None
+    inchikey: Optional[str] = None
+    cas: Optional[str] = None
+    molecular_formula: Optional[str] = None
+    molecular_weight: Optional[float] = None
+    url: Optional[str] = None
+
+
 # =============================================================================
 # Universal Identifier Resolution
 # =============================================================================

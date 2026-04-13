@@ -109,6 +109,7 @@ import type {
   PubChemResult,
   ChEMBLResult,
   COCONUTResult,
+  WikidataResult,
   IntegrationError,
   ResolveRequest,
   ResolvedCompound,
@@ -819,22 +820,29 @@ export const integrationsApi = {
   lookupCOCONUT: (request: IntegrationRequest): Promise<COCONUTResult> =>
     integrationPost('/integrations/coconut/lookup', request, 'Network error'),
 
+  /** Look up molecule in Wikidata knowledge base. */
+  lookupWikidata: (request: IntegrationRequest): Promise<WikidataResult> =>
+    integrationPost('/integrations/wikidata/lookup', request, 'Network error'),
+
   /** Look up molecule in all databases in parallel. */
   lookupAll: async (request: IntegrationRequest): Promise<{
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
+    wikidata: WikidataResult | null;
   }> => {
-    const [pubchem, chembl, coconut] = await Promise.allSettled([
+    const [pubchem, chembl, coconut, wikidata] = await Promise.allSettled([
       integrationsApi.lookupPubChem(request),
       integrationsApi.lookupChEMBL(request),
       integrationsApi.lookupCOCONUT(request),
+      integrationsApi.lookupWikidata(request),
     ]);
 
     return {
       pubchem: pubchem.status === 'fulfilled' ? pubchem.value : null,
       chembl: chembl.status === 'fulfilled' ? chembl.value : null,
       coconut: coconut.status === 'fulfilled' ? coconut.value : null,
+      wikidata: wikidata.status === 'fulfilled' ? wikidata.value : null,
     };
   },
 

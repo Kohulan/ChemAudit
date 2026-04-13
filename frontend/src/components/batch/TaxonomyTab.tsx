@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Loader2, AlertTriangle, RotateCcw, Info } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
 import { TaxonomyBarChart } from './TaxonomyBarChart';
 import { TaxonomyTable } from './TaxonomyTable';
@@ -111,6 +111,34 @@ export function TaxonomyTab({
         {summaryText && (
           <span className="text-sm text-[var(--color-text-muted)]">{summaryText}</span>
         )}
+      </div>
+
+      {/* Method info box */}
+      <div className="rounded-2xl border border-[var(--color-primary)]/15 bg-gradient-to-br from-[var(--color-primary)]/[0.03] to-transparent px-5 py-4">
+        <div className="flex gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center">
+              <Info className="w-4 h-4 text-[var(--color-primary)]" />
+            </div>
+          </div>
+          <div className="space-y-1.5 text-xs text-[var(--color-text-muted)] leading-relaxed">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              How classification works
+            </p>
+            <p>
+              Each molecule is matched against <strong className="text-[var(--color-text-secondary)]">~50 curated SMARTS rules</strong> using
+              RDKit substructure matching. Rules are organized into three groups:{' '}
+              <strong className="text-[var(--color-text-secondary)]">Ring Systems</strong> (e.g. indoles, pyridines, benzodiazepines),{' '}
+              <strong className="text-[var(--color-text-secondary)]">Functional Groups</strong> (e.g. sulfonamides, amides, phenols), and{' '}
+              <strong className="text-[var(--color-text-secondary)]">Pharmacophoric/Drug-class</strong> (e.g. steroids, barbiturates, coumarins).
+            </p>
+            <p>
+              A molecule can match <strong className="text-[var(--color-text-secondary)]">multiple categories</strong> simultaneously, so category
+              counts may sum to more than the number of classified molecules. Molecules that match
+              no rules are reported as unclassified.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Error state */}

@@ -1,14 +1,16 @@
-import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult } from '../../types/integrations';
 import { safeHref } from '../../lib/sanitize';
 const pubchemLogo = '/assets/logos/pubchem.png';
 const chemblLogo = '/assets/logos/chembl.png';
 const coconutLogo = '/assets/logos/coconut.png';
+const wikidataLogo = '/assets/logos/wikidata.svg';
 
 interface DatabaseLookupResultsProps {
   results: {
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
+    wikidata: WikidataResult | null;
   };
 }
 
@@ -23,6 +25,9 @@ export function DatabaseLookupResults({ results }: DatabaseLookupResultsProps) {
 
       {/* COCONUT Result */}
       <COCONUTCard result={results.coconut} />
+
+      {/* Wikidata Result */}
+      <WikidataCard result={results.wikidata} />
     </div>
   );
 }
@@ -280,6 +285,79 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
         <p className="text-xs text-gray-500 mt-2">
           Not found in the COCONUT natural products database.
         </p>
+      )}
+    </div>
+  );
+}
+
+function WikidataCard({ result }: { result: WikidataResult | null }) {
+  if (!result) {
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <img src={wikidataLogo} alt="Wikidata" className="w-5 h-5 rounded-sm object-contain" />
+          <span className="font-medium text-gray-900 dark:text-gray-100">Wikidata</span>
+          <span className="text-xs text-gray-400">Failed to query</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border rounded-lg p-4 ${result.found ? 'border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <img src={wikidataLogo} alt="Wikidata" className="w-5 h-5 rounded-sm object-contain" />
+        <span className="font-medium text-gray-900 dark:text-gray-100">Wikidata</span>
+        {result.found ? (
+          <span className="px-2 py-0.5 bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400 text-xs rounded-full">Found</span>
+        ) : (
+          <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded-full">Not Found</span>
+        )}
+      </div>
+
+      {result.found && (
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2">
+            {result.label && (
+              <div className="col-span-2">
+                <span className="text-gray-500">Name:</span>{' '}
+                <span className="text-gray-900 dark:text-gray-100">{result.label}</span>
+              </div>
+            )}
+            {result.cas && (
+              <div>
+                <span className="text-gray-500">CAS:</span>{' '}
+                <span className="font-mono text-teal-700 dark:text-teal-400">{result.cas}</span>
+              </div>
+            )}
+            {result.molecular_formula && (
+              <div>
+                <span className="text-gray-500">Formula:</span>{' '}
+                <span className="font-mono">{result.molecular_formula}</span>
+              </div>
+            )}
+            {result.molecular_weight != null && (
+              <div>
+                <span className="text-gray-500">MW:</span>{' '}
+                <span>{result.molecular_weight.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+
+          {result.url && (
+            <a
+              href={safeHref(result.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
+            >
+              View on Wikidata
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

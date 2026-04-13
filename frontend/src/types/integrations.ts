@@ -1,5 +1,5 @@
 /**
- * Types for external database integrations (PubChem, ChEMBL, COCONUT)
+ * Types for external database integrations (PubChem, ChEMBL, COCONUT, Wikidata)
  */
 
 // Request types
@@ -66,11 +66,25 @@ export interface COCONUTResult {
   url?: string;
 }
 
+// Wikidata
+export interface WikidataResult {
+  found: boolean;
+  label?: string;
+  smiles?: string;
+  inchi?: string;
+  inchikey?: string;
+  cas?: string;
+  molecular_formula?: string;
+  molecular_weight?: number;
+  url?: string;
+}
+
 // Combined lookup result
 export interface DatabaseLookupResult {
   pubchem?: PubChemResult;
   chembl?: ChEMBLResult;
   coconut?: COCONUTResult;
+  wikidata?: WikidataResult;
 }
 
 export interface IntegrationError {
