@@ -1,5 +1,5 @@
 """
-FilterConfig dataclass and preset configurations for the GenChem filter pipeline.
+FilterConfig dataclass and preset configurations for the structure filter pipeline.
 
 Defines property thresholds, alert catalog selection, novelty settings, and
 composite scorer weight vectors for 4 preset configurations per D-12 and D-15.
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 @dataclass
 class FilterConfig:
     """
-    Configuration for the generative chemistry filter pipeline.
+    Configuration for the structure filter pipeline.
 
     Specifies property thresholds (D-12), alert catalog selection (D-12),
     novelty settings (D-18, D-19), and composite scorer weight vectors (D-15).

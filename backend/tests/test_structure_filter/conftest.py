@@ -1,4 +1,4 @@
-"""Fixtures for GenChem filter pipeline and scorer tests."""
+"""Fixtures for structure filter pipeline and scorer tests."""
 
 import pytest
 from rdkit import Chem

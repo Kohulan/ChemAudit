@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, FileJson, FileSpreadsheet } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
+import { InfoTooltip } from '../ui/Tooltip';
 import { datasetApi } from '../../services/api';
 
 // =============================================================================
@@ -220,9 +221,25 @@ export function CurationReportTab({
   return (
     <div className="min-h-[200px] space-y-6">
       {/* Heading */}
-      <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-        Curation Report
-      </h2>
+      <div className="flex items-center gap-1.5">
+        <h2 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+          Curation Report
+        </h2>
+        <InfoTooltip
+          title="Curation Report"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Machine-readable summary of all audit findings, suitable for reproducible documentation and regulatory submissions.</p>
+              <ul className="mt-1 text-white/70 space-y-0.5">
+                <li><strong>JSON Report</strong> &mdash; Complete structured report with file metadata, health scores, issues, and standardization decisions</li>
+                <li><strong>Curated CSV</strong> &mdash; Cleaned dataset with issue flags appended as extra columns</li>
+              </ul>
+              <p className="mt-1 text-white/60">Use the JSON report to integrate audit results into automated pipelines or archive them alongside published datasets.</p>
+            </div>
+          }
+          size="small"
+        />
+      </div>
 
       {/* Report preview */}
       <div>

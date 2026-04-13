@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { STAGE_COLORS, type StageResult } from '../../types/genchem';
-import { STAGE_CRITERIA } from './GenChemInput';
+import { STAGE_COLORS, type StageResult } from '../../types/structure_filter';
+import { STAGE_CRITERIA } from './StructureFilterInput';
 
 // =============================================================================
 // Animation variants (D-05 locked — Pitfall 8: must use variants pattern)
@@ -9,15 +9,20 @@ import { STAGE_CRITERIA } from './GenChemInput';
 
 const containerVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.18, delayChildren: 0.1 } },
 };
 
 const stageVariants = {
-  hidden: { opacity: 0, y: -8 },
+  hidden: { opacity: 0, scaleX: 0, y: -12 },
   visible: {
     opacity: 1,
+    scaleX: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] },
+    transition: {
+      duration: 0.5,
+      ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // spring-like overshoot
+      opacity: { duration: 0.3 },
+    },
   },
 };
 
@@ -86,7 +91,7 @@ function trapezoidPoints(
  *
  * Design decisions (locked):
  * - D-05: Framer Motion stagger via containerVariants/stageVariants pattern
- * - D-06: Stage colors from STAGE_COLORS in types/genchem.ts
+ * - D-06: Stage colors from STAGE_COLORS in types/structure_filter.ts
  * - D-07: Click to select/deselect stage (re-click clears selection)
  * - D-08: Count and percentage labels below each trapezoid
  *
@@ -199,7 +204,7 @@ export function FunnelChart({
               </text>
 
               {/* Count + percentage badge below trapezoid */}
-              <text
+              <motion.text
                 x={SVG_WIDTH / 2}
                 y={y + STAGE_HEIGHT + 10}
                 textAnchor="middle"
@@ -207,9 +212,12 @@ export function FunnelChart({
                 fontSize="11"
                 fill="var(--color-text-secondary, #6b7280)"
                 pointerEvents="none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 + index * 0.18 + 0.3, duration: 0.3 }}
               >
                 {stage.passed_count.toLocaleString()} passed ({pct}%)
-              </text>
+              </motion.text>
             </motion.g>
           );
         })}

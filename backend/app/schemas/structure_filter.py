@@ -1,10 +1,10 @@
 """
-Pydantic v2 schemas for GenChem Filter API (Phase 11).
+Pydantic v2 schemas for Structure Filter API (Phase 11).
 
 Provides request and response models for:
-- POST /genchem/filter        — multi-stage funnel pipeline
-- POST /genchem/score         — composite 0-1 scorer per SMILES
-- POST /genchem/reinvent-score — REINVENT 4-compatible scoring API
+- POST /structure-filter/filter        — multi-stage funnel pipeline
+- POST /structure-filter/score         — composite 0-1 scorer per SMILES
+- POST /structure-filter/reinvent-score — REINVENT 4-compatible scoring API
 - Batch upload, status, results, download
 """
 
@@ -21,7 +21,7 @@ class FilterConfigSchema(BaseModel):
     """Pydantic mirror of FilterConfig dataclass for API serialization.
 
     Specifies property thresholds, alert catalog selection, novelty settings,
-    and composite scorer weight vectors for the GenChem filter pipeline.
+    and composite scorer weight vectors for the structure filter pipeline.
     """
 
     model_config = {"from_attributes": True}
@@ -67,7 +67,7 @@ class FilterConfigSchema(BaseModel):
 
 
 class FilterRequest(BaseModel):
-    """Request body for /genchem/filter endpoint.
+    """Request body for /structure-filter/filter endpoint.
 
     Accepts a SMILES list with either a named preset or an explicit config.
     If preset is provided, it overrides config.
@@ -112,7 +112,7 @@ class MoleculeResultSchema(BaseModel):
 
 
 class FilterResponse(BaseModel):
-    """Response from /genchem/filter endpoint."""
+    """Response from /structure-filter/filter endpoint."""
 
     model_config = {"from_attributes": True}
 
@@ -128,7 +128,7 @@ class FilterResponse(BaseModel):
 
 
 class ScoreRequest(BaseModel):
-    """Request body for /genchem/score endpoint."""
+    """Request body for /structure-filter/score endpoint."""
 
     smiles_list: list[str] = Field(description="List of SMILES strings to score")
     preset: Optional[str] = Field(
@@ -138,7 +138,7 @@ class ScoreRequest(BaseModel):
 
 
 class ScoreResponse(BaseModel):
-    """Response from /genchem/score endpoint.
+    """Response from /structure-filter/score endpoint.
 
     Scores are in [0, 1] range. None (JSON null) for unparseable SMILES (D-14).
     """
@@ -179,7 +179,7 @@ class REINVENTOutput(BaseModel):
 
 
 class REINVENTResponse(BaseModel):
-    """Response from /genchem/reinvent-score endpoint.
+    """Response from /structure-filter/reinvent-score endpoint.
 
     Matches the REINVENT 4 component contract exactly:
     {output: {successes_list: [{query_id, output_value}]}}
@@ -193,16 +193,16 @@ class REINVENTResponse(BaseModel):
 # =============================================================================
 
 
-class GenChemBatchUploadResponse(BaseModel):
-    """Response from submitting a GenChem async batch job."""
+class StructureFilterBatchUploadResponse(BaseModel):
+    """Response from submitting a structure filter async batch job."""
 
     job_id: str = Field(description="Unique job identifier for tracking progress")
     total_molecules: int = Field(description="Number of molecules submitted")
     status: str = Field(default="pending", description="Initial job status")
 
 
-class GenChemBatchStatusResponse(BaseModel):
-    """Current status of a GenChem async batch job."""
+class StructureFilterBatchStatusResponse(BaseModel):
+    """Current status of a structure filter async batch job."""
 
     job_id: str = Field(description="Job identifier")
     status: str = Field(
@@ -216,8 +216,8 @@ class GenChemBatchStatusResponse(BaseModel):
     )
 
 
-class GenChemBatchResultsResponse(BaseModel):
-    """Results response for a completed GenChem async batch job."""
+class StructureFilterBatchResultsResponse(BaseModel):
+    """Results response for a completed structure filter async batch job."""
 
     job_id: str = Field(description="Job identifier")
     status: str = Field(description="Job status")

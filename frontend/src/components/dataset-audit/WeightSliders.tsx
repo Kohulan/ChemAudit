@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { ClayButton } from '../ui/ClayButton';
+import { InfoTooltip } from '../ui/Tooltip';
 import type { DatasetWeightProfile } from '../../types/dataset_intelligence';
 import { PRESET_WEIGHT_IDS } from '../../types/dataset_intelligence';
 
@@ -97,9 +98,28 @@ export function WeightSliders({
   return (
     <div className="space-y-4">
       {/* Section heading */}
-      <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-        Sub-Score Weights
-      </h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+          Sub-Score Weights
+        </h3>
+        <InfoTooltip
+          title="Sub-Score Weights"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Control how much each quality dimension contributes to the overall health score.</p>
+              <ul className="mt-1 text-white/70 space-y-0.5">
+                <li><strong>Parsability</strong> &mdash; % of SMILES that RDKit can parse</li>
+                <li><strong>Stereo</strong> &mdash; % with fully defined stereochemistry</li>
+                <li><strong>Uniqueness</strong> &mdash; % of non-duplicate structures</li>
+                <li><strong>Alerts</strong> &mdash; % free of structural alerts</li>
+                <li><strong>Std. Consistency</strong> &mdash; % where all pipelines agree</li>
+              </ul>
+              <p className="mt-1 text-white/60">Weights are normalized to sum to 100%. Adjust to emphasize dimensions most critical to your ML use case.</p>
+            </div>
+          }
+          size="small"
+        />
+      </div>
 
       {/* Sliders */}
       <div className="space-y-3">

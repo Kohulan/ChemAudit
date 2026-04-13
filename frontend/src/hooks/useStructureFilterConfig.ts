@@ -1,30 +1,30 @@
 import { useState, useCallback } from 'react';
-import type { FilterConfig, GenChemProfile } from '../types/genchem';
-import { PRESET_CONFIGS, PRESET_IDS } from '../types/genchem';
+import type { FilterConfig, StructureFilterProfile } from '../types/structure_filter';
+import { PRESET_CONFIGS, PRESET_IDS } from '../types/structure_filter';
 
 // =============================================================================
 // Constants
 // =============================================================================
 
-const STORAGE_KEY = 'chemaudit_genchem_configs';
+const STORAGE_KEY = 'chemaudit_structure_filter_configs';
 
 // =============================================================================
 // localStorage helpers
 // =============================================================================
 
-function loadCustomProfiles(): GenChemProfile[] {
+function loadCustomProfiles(): StructureFilterProfile[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as GenChemProfile[];
+    return parsed as StructureFilterProfile[];
   } catch {
     return [];
   }
 }
 
-function saveCustomProfiles(profiles: GenChemProfile[]): void {
+function saveCustomProfiles(profiles: StructureFilterProfile[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
   } catch {
@@ -36,7 +36,7 @@ function saveCustomProfiles(profiles: GenChemProfile[]): void {
 // Return type
 // =============================================================================
 
-export interface UseGenChemConfigReturn {
+export interface UseStructureFilterConfigReturn {
   /** Current active filter configuration. */
   config: FilterConfig;
   /** ID of the currently active preset, or null if a custom config is active. */
@@ -44,7 +44,7 @@ export interface UseGenChemConfigReturn {
   /** Name of the preset this config was modified from (if any). */
   modifiedFrom: string | null;
   /** All custom profiles saved to localStorage. */
-  profiles: GenChemProfile[];
+  profiles: StructureFilterProfile[];
   /** Activate a preset by ID (drug_like, lead_like, fragment_like, permissive, or custom). */
   selectPreset: (id: string) => void;
   /** Apply a partial config update. Clears activePreset and tracks modifiedFrom. */
@@ -60,23 +60,23 @@ export interface UseGenChemConfigReturn {
 // =============================================================================
 
 /**
- * Hook for managing GenChem Filter configuration with localStorage
+ * Hook for managing Structure Filter configuration with localStorage
  * persistence for custom profiles.
  *
  * Four built-in presets (drug_like, lead_like, fragment_like, permissive)
  * are always available and cannot be deleted. Custom profiles are stored
- * under `chemaudit_genchem_configs` in localStorage.
+ * under `chemaudit_structure_filter_configs` in localStorage.
  *
  * When a field changes while a preset is active, the preset is cleared and
  * `modifiedFrom` tracks which preset was the base — matching the
  * useQSARPipelineConfig pattern from Phase 10.
  */
-export function useGenChemConfig(): UseGenChemConfigReturn {
+export function useStructureFilterConfig(): UseStructureFilterConfigReturn {
   // Initialize with drug_like preset (D-12 default)
   const [config, setConfig] = useState<FilterConfig>(() => ({ ...PRESET_CONFIGS.drug_like }));
   const [activePreset, setActivePreset] = useState<string | null>('drug_like');
   const [modifiedFrom, setModifiedFrom] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<GenChemProfile[]>(loadCustomProfiles);
+  const [profiles, setProfiles] = useState<StructureFilterProfile[]>(loadCustomProfiles);
 
   const selectPreset = useCallback(
     (id: string) => {
@@ -115,7 +115,7 @@ export function useGenChemConfig(): UseGenChemConfigReturn {
   const saveProfile = useCallback(
     (name: string) => {
       const id = name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
-      const newProfile: GenChemProfile = { id, name, config: { ...config } };
+      const newProfile: StructureFilterProfile = { id, name, config: { ...config } };
       setProfiles((prev) => {
         const next = [...prev, newProfile];
         saveCustomProfiles(next);

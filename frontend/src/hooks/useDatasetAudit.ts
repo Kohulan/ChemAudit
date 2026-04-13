@@ -52,7 +52,7 @@ export interface UseDatasetAuditReturn {
  * 3. On complete, fetch results via datasetApi.getResults
  * 4. Optionally upload a comparison file for dataset diff
  *
- * WebSocket follows the established pattern from useGenChemFilter / useQSARReady
+ * WebSocket follows the established pattern from useStructureFilter / useQSARReady
  * (Phase 10/11), with polling fallback on ws.onerror (2s interval).
  */
 export function useDatasetAudit(): UseDatasetAuditReturn {

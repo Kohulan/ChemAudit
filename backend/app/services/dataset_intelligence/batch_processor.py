@@ -6,22 +6,24 @@ detection, and curation report generation.
 
 Progress is published to the Redis channel ``dataset:{job_id}`` -- distinct from
 ``batch:{job_id}`` (regular batch), ``qsar:{job_id}`` (QSAR pipeline), and
-``genchem:{job_id}`` (GenChem filter) channels to avoid channel collision
+``structure-filter:{job_id}`` (structure filter) channels to avoid channel collision
 (Pitfall 4 from RESEARCH.md).
 
 Redis key structure:
 - ``dataset:meta:{job_id}``    -- hash with status, progress, current_stage, filename
 - ``dataset:results:{job_id}`` -- JSON blob with full audit results (24h TTL)
 
-File handling uses temp file path on disk (NOT base64) per Pitfall 6 -- the
-upload route writes to a NamedTemporaryFile and passes the path as a string.
-The task deletes the temp file in a finally block after processing.
+File content is passed as base64-encoded string from the upload route to the
+Celery task, avoiding cross-container temp-file access issues in Docker.
+The task decodes the content and writes to a local temp file for processing.
 """
 
+import base64
 import hashlib
 import json
 import logging
 import os
+import tempfile
 
 import pandas as pd
 from rdkit import Chem
@@ -74,7 +76,16 @@ def _parse_csv_full(file_path: str, smiles_column: str | None) -> tuple[list[dic
     Returns:
         Tuple of (molecule list, column names).
     """
-    df = pd.read_csv(file_path, dtype=str, na_filter=False)
+    # Auto-detect delimiter (handles tab-separated files with .csv extension)
+    with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
+        sample = fh.read(8192)
+    import csv
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;|")
+        sep = dialect.delimiter
+    except csv.Error:
+        sep = ","
+    df = pd.read_csv(file_path, sep=sep, dtype=str, na_filter=False)
     columns = df.columns.tolist()
 
     # Determine SMILES column
@@ -173,7 +184,7 @@ def _parse_sdf_full(file_path: str) -> tuple[list[dict], list[str]]:
 )
 def process_dataset_audit(
     self,
-    file_path: str,
+    file_content_b64: str,
     filename: str,
     file_type: str,
     job_id: str,
@@ -193,7 +204,8 @@ def process_dataset_audit(
     real-time WebSocket updates via /ws/dataset/{job_id}.
 
     Args:
-        file_path: Path to the uploaded temp file on disk (NOT base64).
+        file_content_b64: Base64-encoded file content (avoids cross-container
+            temp-file issues in Docker).
         filename: Original filename for metadata.
         file_type: File type: 'csv' or 'sdf'.
         job_id: Unique job identifier.
@@ -209,8 +221,22 @@ def process_dataset_audit(
 
     r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
 
+    # Decode base64 content and write to a local temp file
+    file_content = base64.b64decode(file_content_b64)
+    suffix = f".{file_type}"
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    tmp.write(file_content)
+    tmp.flush()
+    tmp.close()
+    file_path = tmp.name
+
     def publish_progress(stage: str, pct: float) -> None:
-        """Publish progress to Redis channel and update metadata."""
+        """Publish progress to Redis channel and update metadata.
+
+        Publishes to ``batch:progress:{job_id}`` (the channel the shared
+        ConnectionManager subscribes to) AND stores metadata in
+        ``dataset:meta:{job_id}`` for the polling status endpoint.
+        """
         msg = json.dumps({
             "job_id": job_id,
             "status": "processing",
@@ -218,7 +244,7 @@ def process_dataset_audit(
             "current_stage": stage,
         })
         try:
-            r.publish(f"dataset:{job_id}", msg)
+            r.publish(f"batch:progress:{job_id}", msg)
             r.hset(f"dataset:meta:{job_id}", mapping={
                 "status": "processing",
                 "progress": str(round(pct, 1)),
@@ -372,14 +398,15 @@ def process_dataset_audit(
         ]
 
         # Strip mol objects before serialization (not JSON-serializable)
-        serializable_molecules = []
-        for mol_dict in molecules:
-            serializable_molecules.append({
+        serializable_molecules = [
+            {
                 "index": mol_dict["index"],
                 "smiles": mol_dict["smiles"],
                 "inchikey": mol_dict.get("inchikey"),
                 "properties": mol_dict.get("properties", {}),
-            })
+            }
+            for mol_dict in molecules
+        ]
 
         result_data = {
             "job_id": job_id,
@@ -417,9 +444,9 @@ def process_dataset_audit(
         })
         r.expire(f"dataset:meta:{job_id}", settings.BATCH_RESULT_TTL)
 
-        # Publish final progress
+        # Publish final progress to the shared ConnectionManager channel
         r.publish(
-            f"dataset:{job_id}",
+            f"batch:progress:{job_id}",
             json.dumps({
                 "job_id": job_id,
                 "status": "complete",
@@ -427,8 +454,6 @@ def process_dataset_audit(
                 "current_stage": None,
             }),
         )
-
-        publish_progress("complete", 100.0)
 
         logger.info(
             "Dataset audit complete for job %s: %d molecules, score=%.1f",
@@ -450,7 +475,7 @@ def process_dataset_audit(
             })
             r.expire(f"dataset:meta:{job_id}", 3600)
             r.publish(
-                f"dataset:{job_id}",
+                f"batch:progress:{job_id}",
                 json.dumps({
                     "job_id": job_id,
                     "status": "error",

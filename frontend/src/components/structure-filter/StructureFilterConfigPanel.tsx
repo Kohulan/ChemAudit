@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ClayCard } from '../ui/ClayCard';
-import { GenChemPresetSelector } from './GenChemPresetSelector';
-import type { FilterConfig, GenChemProfile } from '../../types/genchem';
+import { StructureFilterPresetSelector } from './StructureFilterPresetSelector';
+import type { FilterConfig, StructureFilterProfile } from '../../types/structure_filter';
 
 // =============================================================================
 // Props
 // =============================================================================
 
-interface GenChemConfigPanelProps {
+interface StructureFilterConfigPanelProps {
   /** Current filter configuration. */
   config: FilterConfig;
   /** ID of the active preset (null = custom). */
@@ -18,7 +18,7 @@ interface GenChemConfigPanelProps {
   /** Preset this config was modified from (null = not modified). */
   modifiedFrom: string | null;
   /** Custom profiles saved to localStorage. */
-  profiles: GenChemProfile[];
+  profiles: StructureFilterProfile[];
   /** Called on any config field change. */
   onUpdateConfig: (partial: Partial<FilterConfig>) => void;
   /** Called when a preset is selected. */
@@ -117,18 +117,18 @@ function CheckboxRow({ id, label, checked, onChange, description }: CheckboxRowP
 // =============================================================================
 
 /**
- * Configuration panel for the GenChem Filter page.
+ * Configuration panel for the Structure Filter page.
  *
  * Shows preset selector, property threshold inputs, alert catalog toggles,
  * and novelty stage controls in a collapsible ClayCard.
  *
  * All inputs have associated label elements (htmlFor) for accessibility.
  * Each onChange triggers onUpdateConfig(partial), which updates the hook state
- * and triggers modified-from detection in useGenChemConfig.
+ * and triggers modified-from detection in useStructureFilterConfig.
  *
  * Per Phase 11 UI-SPEC D-12 config panel spec.
  */
-export function GenChemConfigPanel({
+export function StructureFilterConfigPanel({
   config,
   activePreset,
   modifiedFrom,
@@ -137,7 +137,7 @@ export function GenChemConfigPanel({
   onSelectPreset,
   onSaveProfile,
   onDeleteProfile,
-}: GenChemConfigPanelProps) {
+}: StructureFilterConfigPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [ringLimitEnabled, setRingLimitEnabled] = useState(config.max_rings !== null);
 
@@ -190,7 +190,7 @@ export function GenChemConfigPanel({
               <div className="border-t border-[var(--color-border)]" />
 
               {/* ── Preset selector ── */}
-              <GenChemPresetSelector
+              <StructureFilterPresetSelector
                 activePreset={activePreset}
                 modifiedFrom={modifiedFrom}
                 profiles={profiles}

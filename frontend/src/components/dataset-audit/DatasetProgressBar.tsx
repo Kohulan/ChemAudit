@@ -40,7 +40,7 @@ const STAGE_LABELS: Record<string, string> = {
 /**
  * Progress bar for dataset audit processing.
  *
- * Follows the GenChemProgressBar.tsx pattern exactly:
+ * Follows the StructureFilterProgressBar.tsx pattern exactly:
  * - role="progressbar" with aria attributes
  * - Smooth width transition (0.3s ease-out)
  * - 500ms delay before showing to avoid flash on fast jobs
@@ -52,7 +52,7 @@ export function DatasetProgressBar({
   currentStage,
   status,
 }: DatasetProgressBarProps) {
-  // 500ms delay to prevent flash for fast jobs (GenChemProgressBar pattern)
+  // 500ms delay to prevent flash for fast jobs (StructureFilterProgressBar pattern)
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

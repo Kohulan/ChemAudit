@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClayButton } from '../ui/ClayButton';
-import type { MoleculeResult } from '../../types/genchem';
+import type { MoleculeResult } from '../../types/structure_filter';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface GenChemResultsTableProps {
+interface StructureFilterResultsTableProps {
   molecules: MoleculeResult[];
   selectedStage: string | null;
   onClearFilter: () => void;
@@ -57,7 +57,7 @@ function statusLabel(status: MoleculeResult['status']): string {
 // =============================================================================
 
 /**
- * Filterable, paginated table for GenChem filter results.
+ * Filterable, paginated table for Structure Filter results.
  *
  * Per UI-SPEC D-09 and results table spec:
  * - Columns: SMILES (mono, truncated 40 chars) | Status chip | Failed At | Rejection Reason
@@ -66,11 +66,11 @@ function statusLabel(status: MoleculeResult['status']): string {
  * - AnimatePresence on table content (opacity 0→1, 0.3s ease-out)
  * - Accessibility: aria-live on caption region and filter chip
  */
-export function GenChemResultsTable({
+export function StructureFilterResultsTable({
   molecules,
   selectedStage,
   onClearFilter,
-}: GenChemResultsTableProps) {
+}: StructureFilterResultsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset pagination when filter changes

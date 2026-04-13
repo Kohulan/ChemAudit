@@ -23,7 +23,7 @@ from rdkit.Chem import QED
 
 from app.services.alerts.kazius_rules import screen_kazius
 from app.services.alerts.nibr_filters import screen_nibr
-from app.services.genchem.filter_config import FilterConfig
+from app.services.structure_filter.filter_config import FilterConfig
 from app.services.scoring.safety_filters import _scorer
 
 # SA Score via RDKit Contrib (Phase 7 pattern)

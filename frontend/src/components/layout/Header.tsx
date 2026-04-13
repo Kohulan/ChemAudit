@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Atom,
@@ -74,7 +74,7 @@ const navEntries: NavEntry[] = [
         description: '10-step structure curation pipeline for ML-ready SMILES',
       },
       {
-        to: '/genchem',
+        to: '/structure-filter',
         label: 'Structure Filter',
         icon: Filter,
         description: '6-stage validation funnel for generative model output',
@@ -162,12 +162,16 @@ function NavDropdown({
   hoveredNav,
   setHoveredNav,
   navTextColor,
+  navigate,
+  registerRef,
 }: {
   group: NavGroup;
   isActive: (path: string) => boolean;
   hoveredNav: string | null;
-  setHoveredNav: (v: string | null) => void;
+  setHoveredNav: React.Dispatch<React.SetStateAction<string | null>>;
   navTextColor: (active: boolean, focused: boolean) => string;
+  navigate: ReturnType<typeof useNavigate>;
+  registerRef: (key: string) => (el: HTMLElement | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -188,9 +192,12 @@ function NavDropdown({
   const handleLeave = () => {
     tooltipTimeoutRef.current && clearTimeout(tooltipTimeoutRef.current);
     setTooltipVisible(false);
+    const groupKey = `group:${group.label}`;
     timeoutRef.current = setTimeout(() => {
       setOpen(false);
-      setHoveredNav(null);
+      // Only clear if still pointing at this group — prevents overwriting
+      // a valid hover state set by another item's onMouseEnter
+      setHoveredNav(prev => prev === groupKey ? null : prev);
     }, 150);
   };
 
@@ -202,6 +209,7 @@ function NavDropdown({
       onMouseLeave={handleLeave}
     >
       <motion.button
+        ref={registerRef(`group:${group.label}`)}
         type="button"
         className={cn(
           'relative px-3 py-2 text-[13px] font-medium rounded-xl cursor-pointer',
@@ -209,25 +217,17 @@ function NavDropdown({
           navTextColor(groupActive, groupFocused),
         )}
         whileTap={{ scale: 0.96 }}
+        onClick={() => {
+          navigate(group.items[0].to);
+          setOpen(false);
+          setHoveredNav(null);
+        }}
         onMouseEnter={() => {
           tooltipTimeoutRef.current = setTimeout(() => {
             if (!open) setTooltipVisible(true);
           }, 400);
         }}
       >
-        {(groupFocused || groupActive) && (
-          <motion.div
-            layoutId="navFocus"
-            className={cn(
-              'absolute inset-0 rounded-xl transition-colors duration-200',
-              groupActive
-                ? 'bg-[rgba(var(--color-primary-rgb),0.08)] shadow-[0_0_16px_var(--glow-soft)]'
-                : 'bg-[var(--color-surface-sunken)]',
-            )}
-            initial={false}
-            transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
-          />
-        )}
         {groupActive && (
           <motion.span
             className="relative z-10 w-[5px] h-[5px] rounded-full bg-[var(--color-primary)] shrink-0"
@@ -324,11 +324,18 @@ function NavDropdown({
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const navRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const registerItemRef = useCallback((key: string) => (el: HTMLElement | null) => {
+    if (el) itemRefs.current.set(key, el);
+    else itemRefs.current.delete(key);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -343,11 +350,39 @@ export function Header() {
     return location.pathname.startsWith(path);
   }
 
-  // Collect all direct nav items (not in groups) for focus pill
+  // Compute active nav target — maps group children to group key for pill placement
   const allDirectItems = navEntries.filter((e): e is NavItem => !isGroup(e));
-  const activeNav = allDirectItems.find(item => isActive(item.to))?.to
-    ?? navEntries.filter(isGroup).flatMap(g => g.items).find(i => isActive(i.to))?.to;
-  const focusTarget = hoveredNav ?? activeNav;
+  const activeNav: string | null = allDirectItems.find(item => isActive(item.to))?.to
+    ?? (() => {
+      const g = navEntries.filter(isGroup).find(g => g.items.some(i => isActive(i.to)));
+      return g ? `group:${g.label}` : null;
+    })();
+  // Unified pill target: hovered item takes priority, falls back to active route
+  const pillTarget = hoveredNav ?? activeNav;
+  const pillIsActive = pillTarget !== null && pillTarget === activeNav;
+
+  // Measure pill position from the target element's ref
+  const [pillRect, setPillRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!pillTarget || !navRef.current) {
+      setPillRect(null);
+      return;
+    }
+    const el = itemRefs.current.get(pillTarget);
+    if (!el) {
+      setPillRect(null);
+      return;
+    }
+    const navRect = navRef.current.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    setPillRect({
+      left: elRect.left - navRect.left,
+      top: elRect.top - navRect.top,
+      width: elRect.width,
+      height: elRect.height,
+    });
+  }, [pillTarget]);
 
   function navTextColor(active: boolean, focused: boolean): string {
     if (active) return 'text-[var(--color-primary)]';
@@ -441,13 +476,35 @@ export function Header() {
           {/* ── Desktop nav ── */}
           <div className="hidden lg:flex items-center gap-0.5">
             <nav
-              className="flex items-center gap-0.5"
+              ref={navRef}
+              className="relative flex items-center gap-0.5"
               onMouseLeave={() => {
                 setHoveredNav(null);
                 setHoveredTooltip(null);
                 tooltipTimerRef.current && clearTimeout(tooltipTimerRef.current);
               }}
             >
+              {/* Single sliding focus pill — never unmounts/remounts per item */}
+              {pillRect && (
+                <motion.div
+                  className={cn(
+                    'absolute top-0 left-0 rounded-xl pointer-events-none z-0',
+                    'transition-[background-color,box-shadow] duration-200',
+                    pillIsActive
+                      ? 'bg-[rgba(var(--color-primary-rgb),0.08)] shadow-[0_0_16px_var(--glow-soft)]'
+                      : 'bg-[var(--color-surface-sunken)]',
+                  )}
+                  initial={false}
+                  animate={{
+                    x: pillRect.left,
+                    y: pillRect.top,
+                    width: pillRect.width,
+                    height: pillRect.height,
+                  }}
+                  transition={{ type: 'spring', bounce: 0, duration: 0.25 }}
+                />
+              )}
+
               {navEntries.map((entry) => {
                 if (isGroup(entry)) {
                   return (
@@ -458,13 +515,15 @@ export function Header() {
                       hoveredNav={hoveredNav}
                       setHoveredNav={setHoveredNav}
                       navTextColor={navTextColor}
+                      navigate={navigate}
+                      registerRef={registerItemRef}
                     />
                   );
                 }
 
                 const item = entry;
                 const active = isActive(item.to);
-                const focused = focusTarget === item.to;
+                const focused = pillTarget === item.to;
 
                 return (
                   <NavLink
@@ -482,6 +541,7 @@ export function Header() {
                     className="relative"
                   >
                     <motion.div
+                      ref={registerItemRef(item.to)}
                       className={cn(
                         'relative px-3 py-2 text-[13px] font-medium rounded-xl cursor-pointer',
                         'flex items-center gap-1.5 transition-colors duration-200',
@@ -489,19 +549,6 @@ export function Header() {
                       )}
                       whileTap={{ scale: 0.96 }}
                     >
-                      {focused && (
-                        <motion.div
-                          layoutId="navFocus"
-                          className={cn(
-                            'absolute inset-0 rounded-xl transition-colors duration-200',
-                            active
-                              ? 'bg-[rgba(var(--color-primary-rgb),0.08)] shadow-[0_0_16px_var(--glow-soft)]'
-                              : 'bg-[var(--color-surface-sunken)]',
-                          )}
-                          initial={false}
-                          transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
-                        />
-                      )}
                       {active && (
                         <motion.span
                           className="relative z-10 w-[5px] h-[5px] rounded-full bg-[var(--color-primary)] shrink-0"

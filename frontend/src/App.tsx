@@ -36,8 +36,8 @@ const ReportPermalinkPage = lazy(() =>
 const QSARReadyPage = lazy(() =>
   import('./pages/QSARReady').then(module => ({ default: module.QSARReady }))
 );
-const GenChemFilterPage = lazy(() =>
-  import('./pages/GenChemFilter')
+const StructureFilterPage = lazy(() =>
+  import('./pages/StructureFilter')
 );
 const DatasetAuditPage = lazy(() =>
   import('./pages/DatasetAudit')
@@ -178,17 +178,17 @@ function AppRoutes() {
             }
           />
           <Route
-            path="/genchem"
+            path="/structure-filter"
             element={
               <motion.div
-                key="genchem"
+                key="structure-filter"
                 className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <GenChemFilterPage />
+                <StructureFilterPage />
               </motion.div>
             }
           />

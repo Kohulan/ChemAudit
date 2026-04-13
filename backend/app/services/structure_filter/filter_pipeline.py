@@ -1,9 +1,9 @@
 """
-Generative Chemistry Filter Pipeline.
+Structure Filter Pipeline.
 
-Implements a 6-stage funnel pipeline for filtering SMILES lists from generative
-chemistry models. Each stage rejects molecules that fail specific criteria and
-passes remaining molecules to the next stage.
+Implements a 6-stage funnel pipeline for filtering SMILES lists through
+structure-based criteria. Each stage rejects molecules that fail specific criteria
+and passes remaining molecules to the next stage.
 
 Stages:
   1. parse     — SMILES parsability and non-empty atom count
@@ -29,7 +29,7 @@ from rdkit.Chem import inchi as rdkit_inchi
 
 from app.services.alerts.kazius_rules import screen_kazius
 from app.services.alerts.nibr_filters import screen_nibr
-from app.services.genchem.filter_config import FilterConfig
+from app.services.structure_filter.filter_config import FilterConfig
 from app.services.scoring.safety_filters import _scorer
 
 # SA Score via RDKit Contrib (Phase 7 pattern)
@@ -82,7 +82,7 @@ class FilterResult:
 
 def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     """
-    Run the 6-stage generative chemistry filter pipeline on a list of SMILES.
+    Run the 6-stage structure filter pipeline on a list of SMILES.
 
     Stages: parse → valence → alerts → property → sa → dedup (+ novelty if enabled).
     Each stage tracks per-molecule status and aggregate counts.
@@ -111,7 +111,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 1: Parse
     # -------------------------------------------------------------------
     stage_input = len(active)
-    parse_rejected: list[int] = []
+    parse_rejected: set[int] = set()
     for idx in active:
         smi = smiles_list[idx]
         mol = Chem.MolFromSmiles(smi)
@@ -119,12 +119,12 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
             results[idx].status = "rejected"
             results[idx].failed_at = STAGE_PARSE
             results[idx].rejection_reason = "Invalid SMILES"
-            parse_rejected.append(idx)
+            parse_rejected.add(idx)
         elif mol.GetNumAtoms() == 0:
             results[idx].status = "rejected"
             results[idx].failed_at = STAGE_PARSE
             results[idx].rejection_reason = "Empty molecule"
-            parse_rejected.append(idx)
+            parse_rejected.add(idx)
         else:
             mol_objects[idx] = mol
 
@@ -159,7 +159,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 3: Alerts
     # -------------------------------------------------------------------
     stage_input = len(active)
-    alerts_rejected: list[int] = []
+    alerts_rejected: set[int] = set()
 
     alerts_enabled = config.use_pains or config.use_brenk or config.use_kazius or config.use_nibr
 
@@ -188,7 +188,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
                 results[idx].status = "rejected"
                 results[idx].failed_at = STAGE_ALERTS
                 results[idx].rejection_reason = reason
-                alerts_rejected.append(idx)
+                alerts_rejected.add(idx)
 
     active = [i for i in active if i not in alerts_rejected]
     stages.append(
@@ -206,7 +206,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 4: Property
     # -------------------------------------------------------------------
     stage_input = len(active)
-    property_rejected: list[int] = []
+    property_rejected: set[int] = set()
 
     for idx in active:
         mol = mol_objects[idx]
@@ -219,15 +219,9 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
 
         rejection_reason: Optional[str] = None
 
-        if mw < config.min_mw:
+        if not (config.min_mw <= mw <= config.max_mw):
             rejection_reason = f"MW {mw:.1f} outside range [{config.min_mw}, {config.max_mw}]"
-        elif mw > config.max_mw:
-            rejection_reason = f"MW {mw:.1f} outside range [{config.min_mw}, {config.max_mw}]"
-        elif logp < config.min_logp:
-            rejection_reason = (
-                f"LogP {logp:.1f} outside range [{config.min_logp}, {config.max_logp}]"
-            )
-        elif logp > config.max_logp:
+        elif not (config.min_logp <= logp <= config.max_logp):
             rejection_reason = (
                 f"LogP {logp:.1f} outside range [{config.min_logp}, {config.max_logp}]"
             )
@@ -248,7 +242,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
             results[idx].status = "rejected"
             results[idx].failed_at = STAGE_PROPERTY
             results[idx].rejection_reason = rejection_reason
-            property_rejected.append(idx)
+            property_rejected.add(idx)
 
     active = [i for i in active if i not in property_rejected]
     stages.append(
@@ -265,7 +259,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 5: SA Score
     # -------------------------------------------------------------------
     stage_input = len(active)
-    sa_rejected: list[int] = []
+    sa_rejected: set[int] = set()
 
     for idx in active:
         mol = mol_objects[idx]
@@ -278,7 +272,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
             results[idx].rejection_reason = (
                 f"SA Score {sa_score:.1f} > {config.max_sa_score}"
             )
-            sa_rejected.append(idx)
+            sa_rejected.add(idx)
 
     active = [i for i in active if i not in sa_rejected]
     stages.append(
@@ -295,7 +289,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 6: Dedup (InChIKey-based)
     # -------------------------------------------------------------------
     stage_input = len(active)
-    dedup_rejected: list[int] = []
+    dedup_rejected: set[int] = set()
     seen_inchikeys: dict[str, int] = {}  # inchikey -> first seen index (0-based)
 
     for idx in active:
@@ -308,7 +302,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
             results[idx].status = "duplicate"
             results[idx].failed_at = STAGE_DEDUP
             results[idx].rejection_reason = f"Duplicate of row {first_idx + 1}"
-            dedup_rejected.append(idx)
+            dedup_rejected.add(idx)
         else:
             seen_inchikeys[inchikey] = idx
 
@@ -327,10 +321,10 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     # Stage 7: Novelty (only if enabled)
     # -------------------------------------------------------------------
     if config.enable_novelty:
-        from app.services.genchem.novelty import check_novelty  # noqa: PLC0415
+        from app.services.structure_filter.novelty import check_novelty  # noqa: PLC0415
 
         stage_input = len(active)
-        novelty_rejected: list[int] = []
+        novelty_rejected: set[int] = set()
 
         for idx in active:
             mol = mol_objects[idx]
@@ -344,7 +338,7 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
                 results[idx].rejection_reason = (
                     f"Max Tanimoto {sim_str} > {config.novelty_threshold}"
                 )
-                novelty_rejected.append(idx)
+                novelty_rejected.add(idx)
 
         active = [i for i in active if i not in novelty_rejected]
         stages.append(

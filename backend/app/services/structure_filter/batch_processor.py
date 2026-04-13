@@ -1,14 +1,14 @@
 """
-GenChem Filter Batch Processor (Phase 11).
+Structure Filter Batch Processor (Phase 11).
 
 Provides a Celery task for async batch filtering of SMILES lists through
-the multi-stage generative chemistry filter pipeline.
+the multi-stage structure filter pipeline.
 
-Progress is published to the Redis channel `genchem:{job_id}` — distinct from
+Progress is published to the Redis channel `structure-filter:{job_id}` — distinct from
 `batch:{job_id}` (regular batch) and `qsar:{job_id}` (QSAR pipeline) channels
 to avoid channel collision (Pitfall 5 from RESEARCH.md).
 
-Results are stored in Redis key `genchem:results:{job_id}` — NOT the Celery
+Results are stored in Redis key `structure-filter:results:{job_id}` — NOT the Celery
 result backend — matching the anti-pattern guidance from RESEARCH.md.
 """
 
@@ -24,24 +24,24 @@ logger = logging.getLogger(__name__)
 @celery_app.task(
     bind=True,
     queue="default",
-    name="app.services.genchem.batch_processor.process_genchem_batch",
+    name="app.services.structure_filter.batch_processor.process_structure_filter_batch",
 )
-def process_genchem_batch(
+def process_structure_filter_batch(
     self,
     smiles_list: list,
     config_dict: dict,
     job_id: str,
 ) -> dict:
     """
-    Process a GenChem batch job asynchronously.
+    Process a structure filter batch job asynchronously.
 
     Converts the serialized config_dict back to a FilterConfig dataclass, runs
     the full filter_batch pipeline, publishes per-stage progress to Redis pub/sub,
     stores the FilterResult in Redis, and updates job metadata.
 
-    Progress is published to the Redis channel `genchem:{job_id}` after each
+    Progress is published to the Redis channel `structure-filter:{job_id}` after each
     pipeline stage completes, enabling real-time WebSocket updates via
-    /ws/genchem/{job_id}.
+    /ws/structure-filter/{job_id}.
 
     Args:
         smiles_list: List of SMILES strings to filter.
@@ -56,29 +56,29 @@ def process_genchem_batch(
     import redis as sync_redis
 
     from app.core.config import settings
-    from app.services.genchem.filter_config import FilterConfig
-    from app.services.genchem.filter_pipeline import filter_batch
+    from app.services.structure_filter.filter_config import FilterConfig
+    from app.services.structure_filter.filter_pipeline import filter_batch
 
     r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
 
     # Update metadata to processing
     try:
         r.set(
-            f"genchem:meta:{job_id}",
+            f"structure-filter:meta:{job_id}",
             json.dumps({"status": "processing", "total": len(smiles_list)}),
             ex=3600,
         )
     except Exception:
-        logger.warning("Failed to update genchem meta for job %s", job_id)
+        logger.warning("Failed to update structure-filter meta for job %s", job_id)
 
     # Convert config_dict back to FilterConfig dataclass
     try:
         config = FilterConfig(**config_dict)
     except Exception as exc:
-        logger.error("Invalid config_dict for genchem job %s: %s", job_id, exc)
+        logger.error("Invalid config_dict for structure-filter job %s: %s", job_id, exc)
         try:
             r.set(
-                f"genchem:meta:{job_id}",
+                f"structure-filter:meta:{job_id}",
                 json.dumps({"status": "failed", "error": str(exc)}),
                 ex=3600,
             )
@@ -93,10 +93,10 @@ def process_genchem_batch(
     try:
         result = filter_batch(smiles_list, config)
     except Exception as exc:
-        logger.error("filter_batch failed for genchem job %s: %s", job_id, exc)
+        logger.error("filter_batch failed for structure-filter job %s: %s", job_id, exc)
         try:
             r.set(
-                f"genchem:meta:{job_id}",
+                f"structure-filter:meta:{job_id}",
                 json.dumps({"status": "failed", "error": str(exc)}),
                 ex=3600,
             )
@@ -117,17 +117,17 @@ def process_genchem_batch(
     # Store results in Redis (not Celery result backend — per RESEARCH.md anti-pattern)
     try:
         r.set(
-            f"genchem:results:{job_id}",
+            f"structure-filter:results:{job_id}",
             json.dumps(result_data),
             ex=settings.BATCH_RESULT_TTL,
         )
     except Exception:
-        logger.warning("Failed to store genchem results in Redis for job %s", job_id)
+        logger.warning("Failed to store structure-filter results in Redis for job %s", job_id)
 
-    # Publish final progress to genchem:{job_id} channel for WebSocket clients
+    # Publish final progress to the shared ConnectionManager channel
     try:
         r.publish(
-            f"genchem:{job_id}",
+            f"batch:progress:{job_id}",
             json.dumps(
                 {
                     "job_id": job_id,
@@ -140,12 +140,12 @@ def process_genchem_batch(
             ),
         )
     except Exception:
-        logger.warning("Failed to publish genchem completion for job %s", job_id)
+        logger.warning("Failed to publish structure-filter completion for job %s", job_id)
 
     # Update metadata to complete
     try:
         r.set(
-            f"genchem:meta:{job_id}",
+            f"structure-filter:meta:{job_id}",
             json.dumps(
                 {
                     "status": "complete",
@@ -158,6 +158,6 @@ def process_genchem_batch(
             ex=settings.BATCH_RESULT_TTL,
         )
     except Exception:
-        logger.warning("Failed to update genchem meta to complete for job %s", job_id)
+        logger.warning("Failed to update structure-filter meta to complete for job %s", job_id)
 
     return result_data

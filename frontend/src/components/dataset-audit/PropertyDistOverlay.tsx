@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'recharts';
 import type { PropertyDistributions, HistogramData } from '../../types/dataset_intelligence';
+import { InfoTooltip } from '../ui/Tooltip';
 
 // =============================================================================
 // Types
@@ -202,9 +203,26 @@ function findClosestBin(
 export function PropertyDistOverlay({ distributions }: PropertyDistOverlayProps) {
   return (
     <div className="space-y-3">
-      <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-        Property Distributions
-      </h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+          Property Distributions
+        </h3>
+        <InfoTooltip
+          title="Property Distributions"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Histograms of key physicochemical properties across your entire dataset.</p>
+              <ul className="mt-1 text-white/70 space-y-0.5">
+                <li><strong>MW</strong> &mdash; Molecular weight (Lipinski: 150-500 Da)</li>
+                <li><strong>LogP</strong> &mdash; Lipophilicity (Lipinski: -0.4 to 5)</li>
+                <li><strong>TPSA</strong> &mdash; Topological polar surface area (Veber: 20-130 &#x212B;&sup2;)</li>
+              </ul>
+              <p className="mt-1 text-white/60">Dashed reference lines show drug-like property ranges. Distributions skewed outside these ranges may indicate the dataset targets a non-oral or specialized chemical space.</p>
+            </div>
+          }
+          size="small"
+        />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {PROPERTY_CONFIGS.map((config) => (
           <PropertyHistogram

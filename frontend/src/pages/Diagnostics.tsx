@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,10 +16,7 @@ import { ClayCard } from '../components/ui/ClayCard';
 
 /**
  * Collapsible section container for each diagnostic panel.
- *
- * Used as a placeholder that Plan 04 and Plan 05 will fill with
- * real panel components. Collapsed by default, except SMILESDiagnosticsPanel
- * which auto-expands after first submission.
+ * Collapsed by default; auto-expands when `defaultOpen` becomes true.
  */
 function DiagnosticSection({
   title,
@@ -122,7 +119,7 @@ function EmptyState() {
   );
 }
 
-/** Utility: cn (tailwind class merge) — imported from lib/utils */
+/** Utility: join truthy class names into a single string. */
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -173,22 +170,70 @@ export function Diagnostics() {
   // Track whether any SMILES analysis has been submitted
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
+  // Track last action type so we can reorder results: show the relevant section first
+  const [lastAction, setLastAction] = useState<'smiles' | 'file' | null>(null);
+
+  // Ref for scrolling to results after processing completes
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const pendingScrollRef = useRef(false);
+
   const handleAnalyze = useCallback(
     (smiles: string) => {
       setHasSubmitted(true);
+      setLastAction('smiles');
+      pendingScrollRef.current = true;
       analyzeMolecule(smiles);
     },
     [analyzeMolecule],
   );
 
+  const handleFileUpload = useCallback(
+    (file: File) => {
+      setLastAction('file');
+      pendingScrollRef.current = true;
+      prevalidateFile(file);
+    },
+    [prevalidateFile],
+  );
+
   const hasAnyMoleculeResult = !!(
     smilesResult || inchiDiffResult || roundtripResult || crossPipelineResult
   );
-  const hasAnyResult = !!(hasAnyMoleculeResult || fileResult);
+  const hasAnyResult = hasAnyMoleculeResult || !!fileResult;
   const showEmptyState = !hasSubmitted && !fileResult;
 
-  // Disabled hint for sections that require a molecule
+  // Scroll to results when a user-initiated action completes
+  const anyLoading =
+    smilesLoading || inchiDiffLoading || roundtripLoading || crossPipelineLoading || fileLoading;
+  useEffect(() => {
+    if (!pendingScrollRef.current) return;
+    if (hasAnyResult && !anyLoading) {
+      pendingScrollRef.current = false;
+      requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [hasAnyResult, anyLoading]);
+
   const requiresMoleculeHint = 'Enter a molecule above to enable this section';
+
+  // Single definition for the File Pre-Validator section, rendered at top or bottom
+  // depending on which action the user performed last.
+  const filePreValidatorSection = (
+    <DiagnosticSection
+      title="File Pre-Validator"
+      subtitle="SDF block integrity and CSV structure checks"
+      defaultOpen={!!fileResult || fileLoading || !!fileError}
+    >
+      <FilePreValidatorPanel
+        result={fileResult}
+        isLoading={fileLoading}
+        error={fileError}
+        onFileUpload={prevalidateFile}
+        onClear={clearFileResult}
+      />
+    </DiagnosticSection>
+  );
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 pt-16 pb-16">
@@ -206,7 +251,7 @@ export function Diagnostics() {
       <div className="mb-12">
         <DiagnosticsInput
           onAnalyze={handleAnalyze}
-          onFileUpload={prevalidateFile}
+          onFileUpload={handleFileUpload}
           isLoading={smilesLoading}
           fileLoading={fileLoading}
           initialSmiles={initialSmiles}
@@ -221,10 +266,14 @@ export function Diagnostics() {
       )}
 
       {/* ── Diagnostic sections ── */}
+      {/* The last action's section renders first so the user sees it immediately. */}
       {(hasSubmitted || hasAnyResult) && (
-        <div className="space-y-12">
+        <div ref={resultsRef} className="space-y-12 scroll-mt-4">
 
-          {/* Section 1: SMILES Diagnostics (D-01) — Plan 04 */}
+          {/* File Pre-Validator at top when file was the last action */}
+          {lastAction === 'file' && filePreValidatorSection}
+
+          {/* SMILES Diagnostics (D-01) */}
           <DiagnosticSection
             title="SMILES Diagnostics"
             subtitle="Position-specific parse errors with fix suggestions"
@@ -240,7 +289,7 @@ export function Diagnostics() {
             />
           </DiagnosticSection>
 
-          {/* Section 2: InChI Layer Diff (D-02) — Plan 04 */}
+          {/* InChI Layer Diff (D-02) */}
           <DiagnosticSection
             title="InChI Layer Diff"
             subtitle="Compare two InChI strings layer-by-layer"
@@ -256,7 +305,7 @@ export function Diagnostics() {
             />
           </DiagnosticSection>
 
-          {/* Section 3: Round-Trip Check (D-03) — Plan 05 */}
+          {/* Round-Trip Check (D-03) */}
           <DiagnosticSection
             title="Round-Trip Lossiness"
             subtitle="Check SMILES → InChI → SMILES and SMILES → MOL → SMILES fidelity"
@@ -277,7 +326,7 @@ export function Diagnostics() {
             )}
           </DiagnosticSection>
 
-          {/* Section 4: Cross-Pipeline Comparison (D-04) — Plan 05 */}
+          {/* Cross-Pipeline Comparison (D-04) */}
           <DiagnosticSection
             title="Cross-Pipeline Standardization"
             subtitle="Compare RDKit, ChEMBL, and minimal pipeline outputs"
@@ -298,20 +347,8 @@ export function Diagnostics() {
             )}
           </DiagnosticSection>
 
-          {/* Section 5: File Pre-Validator (D-05) — Plan 05 */}
-          <DiagnosticSection
-            title="File Pre-Validator"
-            subtitle="SDF block integrity and CSV structure checks"
-            defaultOpen={!!fileResult || fileLoading || !!fileError}
-          >
-            <FilePreValidatorPanel
-              result={fileResult}
-              isLoading={fileLoading}
-              error={fileError}
-              onFileUpload={prevalidateFile}
-              onClear={clearFileResult}
-            />
-          </DiagnosticSection>
+          {/* File Pre-Validator at bottom (default position) */}
+          {lastAction !== 'file' && filePreValidatorSection}
         </div>
       )}
     </div>

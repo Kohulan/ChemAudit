@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ClayButton } from '../ui/ClayButton';
-import { PRESET_IDS } from '../../types/genchem';
-import type { GenChemProfile } from '../../types/genchem';
+import { PRESET_IDS } from '../../types/structure_filter';
+import type { StructureFilterProfile } from '../../types/structure_filter';
 
 // =============================================================================
 // Constants
@@ -51,13 +51,13 @@ const PRESET_LABELS: Record<string, string> = {
 // Props
 // =============================================================================
 
-interface GenChemPresetSelectorProps {
+interface StructureFilterPresetSelectorProps {
   /** The currently active preset ID, or null if a custom config is active. */
   activePreset: string | null;
   /** If non-null, shows "Custom (modified from {presetName})" label. */
   modifiedFrom: string | null;
   /** Custom profiles saved by the user. */
-  profiles: GenChemProfile[];
+  profiles: StructureFilterProfile[];
   /** Called when a preset pill or custom profile is clicked. */
   onSelectPreset: (id: string) => void;
   /** Called when the user saves a custom configuration. */
@@ -71,7 +71,7 @@ interface GenChemPresetSelectorProps {
 // =============================================================================
 
 /**
- * Preset selector for GenChem Filter configuration.
+ * Preset selector for Structure Filter configuration.
  *
  * Shows 4 built-in preset pills (Drug-like, Lead-like, Fragment-like, Permissive)
  * and custom profiles below with delete buttons.
@@ -84,14 +84,14 @@ interface GenChemPresetSelectorProps {
  *
  * Per Phase 11 UI-SPEC D-11, D-13 copywriting and interaction contracts.
  */
-export function GenChemPresetSelector({
+export function StructureFilterPresetSelector({
   activePreset,
   modifiedFrom,
   profiles,
   onSelectPreset,
   onSaveProfile,
   onDeleteProfile,
-}: GenChemPresetSelectorProps) {
+}: StructureFilterPresetSelectorProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleSaveConfig = () => {
@@ -139,18 +139,13 @@ export function GenChemPresetSelector({
         })}
       </div>
 
-      {/* ── Preset subtitles row ── */}
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map((preset) => {
-          const isActive = activePreset === preset.id;
-          if (!isActive) return null;
-          return (
-            <p key={preset.id} className="text-xs text-[var(--color-text-muted)]">
-              {preset.subtitle}
-            </p>
-          );
-        })}
-      </div>
+      {/* ── Active preset subtitle ── */}
+      {(() => {
+        const active = PRESETS.find((p) => p.id === activePreset);
+        return active ? (
+          <p className="text-xs text-[var(--color-text-muted)]">{active.subtitle}</p>
+        ) : null;
+      })()}
 
       {/* ── Modified-from label (D-13) ── */}
       {modifiedFrom !== null && (

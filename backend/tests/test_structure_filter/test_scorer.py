@@ -1,5 +1,5 @@
 """
-Unit tests for the GenChem composite scorer.
+Unit tests for the structure filter composite scorer.
 
 Tests cover:
 - score_for_generative() returns float 0-1 for valid SMILES
@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.genchem.filter_config import PRESETS
-from app.services.genchem.scorer import score_for_generative
+from app.services.structure_filter.filter_config import PRESETS
+from app.services.structure_filter.scorer import score_for_generative
 
 # ---------------------------------------------------------------------------
 # Basic scoring tests

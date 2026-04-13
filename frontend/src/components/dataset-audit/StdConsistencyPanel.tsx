@@ -1,4 +1,5 @@
 import { ClayCard } from '../ui/ClayCard';
+import { InfoTooltip } from '../ui/Tooltip';
 
 // =============================================================================
 // Types
@@ -15,11 +16,11 @@ interface StdConsistencyPanelProps {
 // Pipeline configuration
 // =============================================================================
 
-const PIPELINE_NAMES = [
-  'RDKit MolStandardize',
-  'ChEMBL-style',
-  'Minimal sanitize',
-];
+const PIPELINES = [
+  { key: 'rdkit_molstandardize', label: 'RDKit MolStandardize' },
+  { key: 'chembl_style', label: 'ChEMBL-style' },
+  { key: 'minimal_sanitize', label: 'Minimal sanitize' },
+] as const;
 
 // =============================================================================
 // Component
@@ -48,22 +49,37 @@ export function StdConsistencyPanel({ comparison, sampleSize }: StdConsistencyPa
     );
   }
 
-  // Extract pipeline results from comparison data
-  const pipelines = PIPELINE_NAMES.map((name) => {
-    const key = name.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
-    const pipelineData = (comparison[key] ?? comparison[name] ?? {}) as Record<string, unknown>;
+  const pipelines = PIPELINES.map(({ key, label }) => {
+    const data = (comparison[key] ?? {}) as Record<string, unknown>;
     return {
-      name,
-      agree: typeof pipelineData.agree === 'number' ? pipelineData.agree : 0,
-      disagree: typeof pipelineData.disagree === 'number' ? pipelineData.disagree : 0,
+      name: label,
+      agree: typeof data.agree === 'number' ? data.agree : 0,
+      disagree: typeof data.disagree === 'number' ? data.disagree : 0,
     };
   });
 
   return (
     <div className="space-y-3">
-      <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-        Standardization Pipeline Comparison
-      </h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+          Standardization Pipeline Comparison
+        </h3>
+        <InfoTooltip
+          title="Standardization Pipeline Comparison"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Compares how three standardization pipelines process each molecule in a random sample.</p>
+              <ul className="mt-1 text-white/70 space-y-0.5">
+                <li><strong>RDKit MolStandardize</strong> &mdash; Cleanup, largest fragment, uncharger, tautomer canonicalization</li>
+                <li><strong>ChEMBL-style</strong> &mdash; ChEMBL structure pipeline rules</li>
+                <li><strong>Minimal</strong> &mdash; Parse + sanitize only (baseline)</li>
+              </ul>
+              <p className="mt-1 text-white/60">&ldquo;Agree&rdquo; means that pipeline&apos;s canonical SMILES matches at least one other pipeline. Disagreements may indicate tautomeric ambiguity or charge handling differences.</p>
+            </div>
+          }
+          size="small"
+        />
+      </div>
 
       <ClayCard variant="flat" size="sm" className="p-0 overflow-hidden">
         <div className="overflow-x-auto">

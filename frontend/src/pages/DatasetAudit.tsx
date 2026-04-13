@@ -16,6 +16,7 @@ import { StdConsistencyPanel } from '../components/dataset-audit/StdConsistencyP
 import { ContradictoryLabelsTab } from '../components/dataset-audit/ContradictoryLabelsTab';
 import { DatasetDiffTab } from '../components/dataset-audit/DatasetDiffTab';
 import { CurationReportTab } from '../components/dataset-audit/CurationReportTab';
+import { InfoTooltip } from '../components/ui/Tooltip';
 import { cn } from '../lib/utils';
 
 // =============================================================================
@@ -152,13 +153,21 @@ export default function DatasetAudit() {
         </div>
       )}
 
-      {/* Tab bar */}
+      {/* Claymorphic tab bar */}
       <div
-        className="border-b border-[var(--color-border)] mb-6"
+        className="mb-8 p-1.5 rounded-2xl"
+        style={{
+          backgroundColor: 'var(--color-surface-sunken)',
+          boxShadow: `
+            2px 4px 8px 0 rgba(var(--color-primary-rgb), 0.08),
+            inset 2px 2px 6px rgba(255, 255, 255, 0.5),
+            inset -2px -2px 6px rgba(0, 0, 0, 0.06)
+          `,
+        }}
         role="tablist"
         aria-label="Dataset audit tabs"
       >
-        <div className="flex gap-0">
+        <div className="flex gap-1">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -170,24 +179,32 @@ export default function DatasetAudit() {
                 aria-controls={`tabpanel-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'relative px-4 py-3 text-sm font-medium transition-colors duration-200',
-                  'flex items-center gap-2',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset',
+                  'relative flex-1 px-3 py-2.5 text-sm font-medium rounded-xl',
+                  'flex items-center justify-center gap-2',
+                  'transition-all duration-400 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
                   isActive
-                    ? 'text-[var(--color-primary)] font-semibold'
+                    ? 'text-[var(--color-primary-dark)] font-semibold'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                 )}
+                style={isActive ? {
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  boxShadow: `
+                    1px 2px 4px 0 rgba(var(--color-primary-rgb), 0.12),
+                    2px 4px 10px 0 rgba(var(--color-primary-rgb), 0.08),
+                    inset 1px 1px 4px rgba(255, 255, 255, 0.6),
+                    inset -1px -1px 4px rgba(var(--color-primary-rgb), 0.06)
+                  `,
+                } : {
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className={cn(
+                  'w-4 h-4 transition-transform duration-300',
+                  isActive && 'scale-110',
+                )} />
                 <span className="font-display">{tab.label}</span>
-                {/* Active underline */}
-                {isActive && (
-                  <motion.div
-                    layoutId="datasetTabUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
-                    transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
-                  />
-                )}
               </button>
             );
           })}
@@ -217,7 +234,24 @@ export default function DatasetAudit() {
           {isComplete && activeTab === 'health' && healthAudit && (
             <div className="min-h-[200px] space-y-8">
               {/* Row 1: Health Score Gauge (centered) */}
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <InfoTooltip
+                    title="Dataset Health Score"
+                    content={
+                      <div className="text-xs space-y-1">
+                        <p>Weighted composite score (0-100) assessing five quality dimensions of your chemical dataset.</p>
+                        <ul className="mt-1 text-white/70 space-y-0.5">
+                          <li>&ge;80: Excellent &mdash; ready for ML workflows</li>
+                          <li>50-79: Fair &mdash; review sub-scores for targeted fixes</li>
+                          <li>&lt;50: Poor &mdash; curation strongly recommended</li>
+                        </ul>
+                        <p className="mt-1 text-white/60">Adjust the weight sliders below to emphasize the dimensions most important to your use case.</p>
+                      </div>
+                    }
+                    size="small"
+                  />
+                </div>
                 <HealthScoreGauge score={overallScore} />
               </div>
 

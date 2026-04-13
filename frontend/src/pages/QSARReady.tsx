@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Beaker } from 'lucide-react';
+import { Beaker, RefreshCw } from 'lucide-react';
 import { useQSARPipelineConfig } from '../hooks/useQSARPipelineConfig';
 import { useQSARReady } from '../hooks/useQSARReady';
 import { ClayCard } from '../components/ui/ClayCard';
@@ -49,11 +49,59 @@ export function QSARReady() {
   // QSAR processing hook — manages single result, batch WebSocket, pagination
   const qsarState = useQSARReady();
 
+  // Track whether config changed after results were produced
+  const lastRunConfigRef = useRef<string | null>(null);
+  const [configChanged, setConfigChanged] = useState(false);
+
+  // Track last batch input for re-run
+  const lastBatchInputRef = useRef<{ file: File | null; smilesText: string | null }>({ file: null, smilesText: null });
+
+  // Snapshot config when a run completes (single or batch)
+  useEffect(() => {
+    if (qsarState.singleResult || qsarState.batchResults) {
+      if (lastRunConfigRef.current === null) {
+        lastRunConfigRef.current = JSON.stringify(pipelineConfig.config);
+      }
+    }
+  }, [qsarState.singleResult, qsarState.batchResults, pipelineConfig.config]);
+
+  // Detect config changes after results exist
+  useEffect(() => {
+    if (lastRunConfigRef.current === null) return;
+    const current = JSON.stringify(pipelineConfig.config);
+    setConfigChanged(current !== lastRunConfigRef.current);
+  }, [pipelineConfig.config]);
+
+  const isRunning = qsarState.singleLoading || qsarState.batchLoading;
+
   // Handle single molecule pipeline run
   const handleRunPipeline = () => {
     const trimmed = singleInput.trim();
     if (!trimmed) return;
+    lastRunConfigRef.current = JSON.stringify(pipelineConfig.config);
+    setConfigChanged(false);
     void qsarState.runSingle(trimmed, pipelineConfig.config);
+  };
+
+  // Handle re-run with updated config
+  const handleRerun = () => {
+    lastRunConfigRef.current = JSON.stringify(pipelineConfig.config);
+    setConfigChanged(false);
+    if (activeTab === 'single') {
+      const trimmed = singleInput.trim();
+      if (trimmed) void qsarState.runSingle(trimmed, pipelineConfig.config);
+    } else {
+      const { file, smilesText } = lastBatchInputRef.current;
+      if (file || smilesText) void qsarState.runBatch(file, smilesText, pipelineConfig.config);
+    }
+  };
+
+  // Wrap runBatch to capture the last batch input
+  const handleRunBatch = (file: File | null, smilesText: string | null, config: typeof pipelineConfig.config) => {
+    lastBatchInputRef.current = { file, smilesText };
+    lastRunConfigRef.current = JSON.stringify(config);
+    setConfigChanged(false);
+    void qsarState.runBatch(file, smilesText, config);
   };
 
   return (
@@ -73,6 +121,37 @@ export function QSARReady() {
       <div className="mb-8">
         <PipelineConfigPanel {...pipelineConfig} />
       </div>
+
+      {/* ── Re-run banner when config changes after results exist ── */}
+      <AnimatePresence>
+        {configChanged && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-center gap-2.5">
+                <RefreshCw className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Pipeline configuration changed since last run
+                </p>
+              </div>
+              <ClayButton
+                variant="primary"
+                size="sm"
+                onClick={handleRerun}
+                disabled={isRunning}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              >
+                Re-run with new settings
+              </ClayButton>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Tab switcher ── */}
       <div
@@ -234,7 +313,7 @@ export function QSARReady() {
                     </p>
                   </div>
                   <QSARBatchInput
-                    onSubmit={qsarState.runBatch}
+                    onSubmit={handleRunBatch}
                     config={pipelineConfig.config}
                     loading={qsarState.batchLoading}
                   />
@@ -254,13 +333,6 @@ export function QSARReady() {
                 <>
                   <QSARBatchSummary summary={qsarState.batchResults.summary} />
 
-                  <QSARBatchTable
-                    results={qsarState.batchResults.results}
-                    page={qsarState.batchPage}
-                    totalPages={qsarState.batchResults.total_pages}
-                    onPageChange={qsarState.fetchBatchPage}
-                  />
-
                   <QSARDownloadPanel
                     onDownload={qsarState.downloadBatch}
                     disabled={
@@ -268,6 +340,13 @@ export function QSARReady() {
                       (qsarState.batchStatus.status === 'pending' ||
                         qsarState.batchStatus.status === 'processing')
                     }
+                  />
+
+                  <QSARBatchTable
+                    results={qsarState.batchResults.results}
+                    page={qsarState.batchPage}
+                    totalPages={qsarState.batchResults.total_pages}
+                    onPageChange={qsarState.fetchBatchPage}
                   />
                 </>
               )}

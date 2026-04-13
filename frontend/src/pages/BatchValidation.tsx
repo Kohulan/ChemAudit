@@ -623,7 +623,7 @@ export function BatchValidationPage() {
             className="space-y-6"
           >
             {/* Top bar: quick-nav + Start New Batch */}
-            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
+            <div className="sticky top-14 sm:top-16 z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
               <div className="flex items-center justify-between gap-4">
                 {/* Quick-nav clay pills */}
                 <nav className="flex gap-2.5" aria-label="Jump to section">
@@ -704,7 +704,7 @@ export function BatchValidationPage() {
 
             {/* Analytics & Visualizations (overview first) */}
             {jobId && includeAnalytics && (
-              <div id="section-analytics" className="card p-6 scroll-mt-20">
+              <div id="section-analytics" className="card p-6 scroll-mt-32">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                     <BarChart3 className="w-5 h-5" />
@@ -757,7 +757,7 @@ export function BatchValidationPage() {
             )}
 
             {/* Detailed Results table (drill-down) */}
-            <div id="section-results" className="card p-6 scroll-mt-20">
+            <div id="section-results" className="card p-6 scroll-mt-32">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
                   <FileSpreadsheet className="w-5 h-5" />

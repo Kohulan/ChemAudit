@@ -950,7 +950,7 @@ export function BatchResultsTable({
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                   {result.profiling.pfi && (
-                                    <MetricCard title="PFI" score={result.profiling.pfi.pfi.toFixed(2)} classification={result.profiling.pfi.risk === 'low' ? 'Low Risk' : result.profiling.pfi.risk === 'moderate' ? 'Moderate' : 'High Risk'} classificationVariant={result.profiling.pfi.risk === 'low' ? 'success' : result.profiling.pfi.risk === 'moderate' ? 'warning' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                    <MetricCard title="PFI" score={result.profiling.pfi.pfi.toFixed(2)} classification={result.profiling.pfi.risk === 'low' ? 'Low Risk' : result.profiling.pfi.risk === 'moderate' ? 'Moderate' : 'High Risk'} classificationVariant={result.profiling.pfi.risk === 'low' ? 'success' : result.profiling.pfi.risk === 'moderate' ? 'warning' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                       <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
                                         <p className="font-medium text-[var(--color-text-primary)]">cLogP + #Aromatic Rings</p>
                                         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
@@ -961,7 +961,7 @@ export function BatchResultsTable({
                                     </MetricCard>
                                   )}
                                   {result.profiling.stars && (
-                                    <MetricCard title="#Stars" score={result.profiling.stars.stars} classification={result.profiling.stars.stars === 0 ? 'Drug-like' : result.profiling.stars.stars <= 2 ? 'Borderline' : 'Outlier'} classificationVariant={result.profiling.stars.stars === 0 ? 'success' : result.profiling.stars.stars <= 2 ? 'warning' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                    <MetricCard title="#Stars" score={result.profiling.stars.stars} classification={result.profiling.stars.stars === 0 ? 'Drug-like' : result.profiling.stars.stars <= 2 ? 'Borderline' : 'Outlier'} classificationVariant={result.profiling.stars.stars === 0 ? 'success' : result.profiling.stars.stars <= 2 ? 'warning' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                       <div className="space-y-0.5">
                                         {result.profiling.stars.details.map((d) => (
                                           <div key={d.property} className={cn('flex items-center gap-1.5 text-xs', d.violated ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]')}>
@@ -975,7 +975,7 @@ export function BatchResultsTable({
                                     </MetricCard>
                                   )}
                                   {result.profiling.abbott && (
-                                    <MetricCard title="Abbott" score={`${result.profiling.abbott.probability_pct}%`} classification={result.profiling.abbott.probability_pct >= 85 ? 'High' : result.profiling.abbott.probability_pct >= 56 ? 'Moderate' : 'Low'} classificationVariant={result.profiling.abbott.probability_pct >= 85 ? 'success' : result.profiling.abbott.probability_pct >= 56 ? 'warning' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                    <MetricCard title="Abbott" score={`${result.profiling.abbott.probability_pct}%`} classification={result.profiling.abbott.probability_pct >= 85 ? 'High' : result.profiling.abbott.probability_pct >= 56 ? 'Moderate' : 'Low'} classificationVariant={result.profiling.abbott.probability_pct >= 85 ? 'success' : result.profiling.abbott.probability_pct >= 56 ? 'warning' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                       <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
                                         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                                           <span className="text-[var(--color-text-muted)]">TPSA</span><span className="tabular-nums text-[var(--color-text-primary)] font-medium">{result.profiling.abbott.tpsa.toFixed(1)} Å²</span>
@@ -1011,7 +1011,7 @@ export function BatchResultsTable({
                                   score={result.alerts?.alert_count ?? 0}
                                   classification={(result.alerts?.alert_count ?? 0) === 0 ? 'Clear' : `${result.alerts?.alert_count} flagged`}
                                   classificationVariant={(result.alerts?.alert_count ?? 0) === 0 ? 'success' : 'error'}
-                                  defaultExpanded={false}
+                                  defaultExpanded={true}
                                   className="!p-3 !rounded-lg"
                                 >
                                   {result.alerts?.alerts && result.alerts.alerts.length > 0 ? (
@@ -1042,29 +1042,29 @@ export function BatchResultsTable({
                                 {result.safety_assessment && !result.safety_assessment.error && (
                                   <>
                                     {result.safety_assessment.cyp_softspots && (
-                                      <MetricCard title="CYP" score={result.safety_assessment.cyp_softspots.length} classification={result.safety_assessment.cyp_softspots.length > 0 ? `${result.safety_assessment.cyp_softspots.length} site(s)` : 'None'} classificationVariant="default" defaultExpanded={false} className="!p-3 !rounded-lg">
+                                      <MetricCard title="CYP" score={result.safety_assessment.cyp_softspots.length} classification={result.safety_assessment.cyp_softspots.length > 0 ? `${result.safety_assessment.cyp_softspots.length} site(s)` : 'None'} classificationVariant="default" defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-1">{result.safety_assessment.cyp_softspots.length === 0 ? <p className="text-xs text-[var(--color-text-muted)]">No soft-spots</p> : result.safety_assessment.cyp_softspots.map((site) => (
                                           <div key={site.site_name} className="text-xs"><span className="font-medium text-[var(--color-text-primary)]">{site.site_name}</span><span className="text-[var(--color-text-muted)]"> — {site.reaction_type}</span></div>
                                         ))}</div>
                                       </MetricCard>
                                     )}
                                     {result.safety_assessment.herg && (
-                                      <MetricCard title="hERG" score={`${result.safety_assessment.herg.risk_score}/${result.safety_assessment.herg.max_score}`} classification={result.safety_assessment.herg.herg_risk.charAt(0).toUpperCase() + result.safety_assessment.herg.herg_risk.slice(1)} classificationVariant={result.safety_assessment.herg.herg_risk === 'low' ? 'success' : result.safety_assessment.herg.herg_risk === 'moderate' ? 'warning' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                      <MetricCard title="hERG" score={`${result.safety_assessment.herg.risk_score}/${result.safety_assessment.herg.max_score}`} classification={result.safety_assessment.herg.herg_risk.charAt(0).toUpperCase() + result.safety_assessment.herg.herg_risk.slice(1)} classificationVariant={result.safety_assessment.herg.herg_risk === 'low' ? 'success' : result.safety_assessment.herg.herg_risk === 'moderate' ? 'warning' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-1">{result.safety_assessment.herg.flags.map((flag, i) => <p key={i} className="text-xs text-[var(--color-text-primary)]">&#8226; {flag}</p>)}</div>
                                       </MetricCard>
                                     )}
                                     {result.safety_assessment.bro5 && (
-                                      <MetricCard title="bRo5" score={!result.safety_assessment.bro5.applicable ? 'N/A' : result.safety_assessment.bro5.passed ? 'Pass' : `${result.safety_assessment.bro5.violations.length} viol.`} classification={!result.safety_assessment.bro5.applicable ? 'N/A' : result.safety_assessment.bro5.passed ? 'Pass' : `${result.safety_assessment.bro5.violations.length} viol.`} classificationVariant={!result.safety_assessment.bro5.applicable ? 'default' : result.safety_assessment.bro5.passed ? 'success' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                      <MetricCard title="bRo5" score={!result.safety_assessment.bro5.applicable ? 'N/A' : result.safety_assessment.bro5.passed ? 'Pass' : `${result.safety_assessment.bro5.violations.length} viol.`} classification={!result.safety_assessment.bro5.applicable ? 'N/A' : result.safety_assessment.bro5.passed ? 'Pass' : `${result.safety_assessment.bro5.violations.length} viol.`} classificationVariant={!result.safety_assessment.bro5.applicable ? 'default' : result.safety_assessment.bro5.passed ? 'success' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                         {!result.safety_assessment.bro5.applicable ? <p className="text-xs text-[var(--color-text-muted)]">MW &le; 500</p> : <div className="space-y-0.5">{result.safety_assessment.bro5.violations.map((v, i) => <div key={i} className="flex justify-between text-xs"><span className="text-[var(--color-text-muted)]">{v.property.replace(/_/g, ' ')}</span><span className="text-[var(--color-text-primary)] font-medium tabular-nums">{v.value.toFixed(1)}</span></div>)}</div>}
                                       </MetricCard>
                                     )}
                                     {result.safety_assessment.reos && (
-                                      <MetricCard title="REOS" score={result.safety_assessment.reos.n_violations === 0 ? 'Pass' : `${result.safety_assessment.reos.n_violations} viol.`} classification={result.safety_assessment.reos.passed ? 'Pass' : `${result.safety_assessment.reos.n_violations} viol.`} classificationVariant={result.safety_assessment.reos.n_violations === 0 ? 'success' : result.safety_assessment.reos.n_violations === 1 ? 'warning' : 'error'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                      <MetricCard title="REOS" score={result.safety_assessment.reos.n_violations === 0 ? 'Pass' : `${result.safety_assessment.reos.n_violations} viol.`} classification={result.safety_assessment.reos.passed ? 'Pass' : `${result.safety_assessment.reos.n_violations} viol.`} classificationVariant={result.safety_assessment.reos.n_violations === 0 ? 'success' : result.safety_assessment.reos.n_violations === 1 ? 'warning' : 'error'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-0.5">{result.safety_assessment.reos.violations.map((v, i) => <div key={i} className="flex justify-between text-xs"><span className="text-[var(--color-text-muted)]">{v.property.replace(/_/g, ' ')}</span><span className="text-[var(--color-text-primary)] font-medium tabular-nums">{v.value.toFixed(1)}</span></div>)}</div>
                                       </MetricCard>
                                     )}
                                     {result.safety_assessment.complexity && (
-                                      <MetricCard title="Complexity" score={result.safety_assessment.complexity.n_outliers === 0 ? 'OK' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classification={result.safety_assessment.complexity.within_range ? 'Pass' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classificationVariant={result.safety_assessment.complexity.n_outliers === 0 ? 'success' : 'warning'} defaultExpanded={false} className="!p-3 !rounded-lg">
+                                      <MetricCard title="Complexity" score={result.safety_assessment.complexity.n_outliers === 0 ? 'OK' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classification={result.safety_assessment.complexity.within_range ? 'Pass' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classificationVariant={result.safety_assessment.complexity.n_outliers === 0 ? 'success' : 'warning'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-0.5">{Object.entries(result.safety_assessment.complexity.properties).map(([key, prop]) => (
                                           <div key={key} className={cn('flex items-center gap-1.5 text-xs', prop.outlier ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]')}>
                                             {prop.outlier ? <XCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}

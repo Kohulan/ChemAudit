@@ -1,14 +1,14 @@
 /**
- * TypeScript interfaces for the GenChem Filter API (Phase 11).
- * Covers all endpoints under /api/v1/genchem/.
+ * TypeScript interfaces for the Structure Filter API (Phase 11).
+ * Covers all endpoints under /api/v1/structure-filter/.
  *
- * All shapes match backend Pydantic schemas in backend/app/schemas/genchem.py.
+ * All shapes match backend Pydantic schemas in backend/app/schemas/structure_filter.py.
  */
 
 // ====================== Config ======================
 
 /**
- * Configuration for the generative chemistry filter funnel.
+ * Configuration for the structure filter funnel.
  * Controls property thresholds, alert catalogs, and scoring weights.
  */
 export interface FilterConfig {
@@ -70,7 +70,7 @@ export interface FilterResult {
 // ====================== Scoring ======================
 
 /**
- * Response from the /genchem/score endpoint.
+ * Response from the /structure-filter/score endpoint.
  * Returns a score in [0, 1] per molecule (null on error).
  */
 export interface ScoreResponse {
@@ -88,7 +88,7 @@ export interface REINVENTInput {
 }
 
 /**
- * Response from the /genchem/reinvent-score endpoint.
+ * Response from the /structure-filter/reinvent-score endpoint.
  * Follows the REINVENT Component API contract (output.successes_list).
  */
 export interface REINVENTResponse {
@@ -106,7 +106,7 @@ export interface REINVENTResponse {
  * Response from the batch upload endpoint.
  * Returns job_id for tracking progress via WebSocket or polling.
  */
-export interface GenChemBatchUploadResponse {
+export interface StructureFilterBatchUploadResponse {
   job_id: string;
   total_molecules: number;
   status: string;
@@ -115,7 +115,7 @@ export interface GenChemBatchUploadResponse {
 /**
  * Real-time status response for a batch filter job.
  */
-export interface GenChemBatchStatusResponse {
+export interface StructureFilterBatchStatusResponse {
   job_id: string;
   status: string;
   progress: number | null;
@@ -125,7 +125,7 @@ export interface GenChemBatchStatusResponse {
 /**
  * Results response for a completed batch filter job.
  */
-export interface GenChemBatchResultsResponse {
+export interface StructureFilterBatchResultsResponse {
   job_id: string;
   status: string;
   result: FilterResult | null;
@@ -136,7 +136,7 @@ export interface GenChemBatchResultsResponse {
 /**
  * Saved filter config profile for localStorage persistence.
  */
-export interface GenChemProfile {
+export interface StructureFilterProfile {
   id: string;
   name: string;
   config: FilterConfig;

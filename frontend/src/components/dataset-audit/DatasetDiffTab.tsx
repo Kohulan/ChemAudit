@@ -3,6 +3,7 @@ import { Upload, AlertCircle } from 'lucide-react';
 import type { DatasetDiffResults } from '../../types/dataset_intelligence';
 import { DiffSummary } from './DiffSummary';
 import { DiffMoleculeTable } from './DiffMoleculeTable';
+import { InfoTooltip } from '../ui/Tooltip';
 
 // =============================================================================
 // Types
@@ -98,6 +99,29 @@ export function DatasetDiffTab({
 
   return (
     <div className="min-h-[200px] space-y-6">
+      {/* Info header */}
+      <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)]">
+        <InfoTooltip
+          title="Dataset Version Comparison"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Compare two versions of the same dataset to track what changed between curation rounds, pipeline updates, or database releases.</p>
+              <p className="mt-1"><strong>How it works:</strong></p>
+              <ul className="text-white/70 space-y-0.5">
+                <li>1. Matches molecules by InChIKey across both files</li>
+                <li>2. Categorizes each molecule as Added, Removed, Modified, or Unchanged</li>
+                <li>3. For modified molecules, shows exactly which properties changed</li>
+              </ul>
+              <p className="mt-1 text-white/60">Upload a second version of the same dataset (CSV or SDF). Both files should contain SMILES that can be resolved to InChIKeys for matching.</p>
+            </div>
+          }
+          size="small"
+        />
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          Compare different versions of the same dataset to see what was added, removed, or modified between curation rounds.
+        </p>
+      </div>
+
       {/* Second upload zone for comparison file */}
       <div
         className={[
@@ -135,11 +159,10 @@ export function DatasetDiffTab({
           </div>
           <div>
             <p className="text-sm font-medium text-[var(--color-text-primary)]">
-              Upload comparison dataset
+              Upload a different version of this dataset
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
-              Drop a second CSV or SDF file here to compare against the primary
-              dataset
+              Drop a second CSV or SDF file to see what changed between versions (added, removed, modified molecules)
             </p>
           </div>
         </div>
@@ -169,8 +192,7 @@ export function DatasetDiffTab({
       {!diffResults && !diffLoading && !diffError && (
         <div className="flex items-center justify-center py-12">
           <p className="text-sm text-[var(--color-text-muted)]">
-            Upload a comparison dataset above to see what changed between
-            versions.
+            Upload a different version of this dataset above to see what was added, removed, or modified between versions.
           </p>
         </div>
       )}

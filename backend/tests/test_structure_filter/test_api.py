@@ -1,10 +1,10 @@
 """
-Integration tests for the GenChem Filter API endpoints (Phase 11).
+Integration tests for the Structure Filter API endpoints (Phase 11).
 
 Tests:
-- POST /api/v1/genchem/filter       — funnel pipeline (sync path ≤1000)
-- POST /api/v1/genchem/score        — composite 0-1 scorer
-- POST /api/v1/genchem/reinvent-score — REINVENT 4 contract
+- POST /api/v1/structure-filter/filter       — funnel pipeline (sync path ≤1000)
+- POST /api/v1/structure-filter/score        — composite 0-1 scorer
+- POST /api/v1/structure-filter/reinvent-score — REINVENT 4 contract
 
 Ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O, MW~206) is used as the reference
 drug-like SMILES because it reliably passes the drug_like property thresholds
@@ -47,8 +47,8 @@ def client():
 # =============================================================================
 
 
-class TestGenChemFilterEndpoint:
-    """Tests for POST /api/v1/genchem/filter."""
+class TestStructureFilterFilterEndpoint:
+    """Tests for POST /api/v1/structure-filter/filter."""
 
     def test_filter_endpoint(self, client):
         """POST with valid SMILES and drug_like preset returns funnel result."""
@@ -56,7 +56,7 @@ class TestGenChemFilterEndpoint:
             "smiles_list": [IBUPROFEN, ASPIRIN],
             "preset": "drug_like",
         }
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200, response.text
 
         data = response.json()
@@ -71,7 +71,7 @@ class TestGenChemFilterEndpoint:
     def test_filter_stage_structure(self, client):
         """Each stage result has the required fields."""
         payload = {"smiles_list": [IBUPROFEN], "preset": "drug_like"}
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -86,7 +86,7 @@ class TestGenChemFilterEndpoint:
     def test_filter_molecule_structure(self, client):
         """Each molecule result has the required fields."""
         payload = {"smiles_list": [IBUPROFEN, INVALID_SMILES], "preset": "drug_like"}
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -98,7 +98,7 @@ class TestGenChemFilterEndpoint:
     def test_filter_invalid_smiles_rejected(self, client):
         """Invalid SMILES is rejected at parse stage."""
         payload = {"smiles_list": [INVALID_SMILES], "preset": "drug_like"}
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -109,7 +109,7 @@ class TestGenChemFilterEndpoint:
     def test_filter_invalid_preset(self, client):
         """POST with unknown preset returns 400."""
         payload = {"smiles_list": [IBUPROFEN], "preset": "nonexistent_preset"}
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 400
 
     def test_filter_with_config(self, client):
@@ -135,7 +135,7 @@ class TestGenChemFilterEndpoint:
             "weight_sa": 0.2,
         }
         payload = {"smiles_list": [IBUPROFEN, ASPIRIN], "config": config}
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200, response.text
 
         data = response.json()
@@ -149,7 +149,7 @@ class TestGenChemFilterEndpoint:
             "smiles_list": [IBUPROFEN, IBUPROFEN],
             "preset": "permissive",
         }
-        response = client.post("/api/v1/genchem/filter", json=payload)
+        response = client.post("/api/v1/structure-filter/filter", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -160,7 +160,7 @@ class TestGenChemFilterEndpoint:
         """All 4 valid presets return 200."""
         for preset in ("drug_like", "lead_like", "fragment_like", "permissive"):
             payload = {"smiles_list": [IBUPROFEN], "preset": preset}
-            response = client.post("/api/v1/genchem/filter", json=payload)
+            response = client.post("/api/v1/structure-filter/filter", json=payload)
             assert response.status_code == 200, f"Preset '{preset}' failed: {response.text}"
 
 
@@ -169,13 +169,13 @@ class TestGenChemFilterEndpoint:
 # =============================================================================
 
 
-class TestGenChemScoreEndpoint:
-    """Tests for POST /api/v1/genchem/score."""
+class TestStructureFilterScoreEndpoint:
+    """Tests for POST /api/v1/structure-filter/score."""
 
     def test_score_endpoint(self, client):
         """POST with valid and invalid SMILES returns scores list."""
         payload = {"smiles_list": [IBUPROFEN, INVALID_SMILES]}
-        response = client.post("/api/v1/genchem/score", json=payload)
+        response = client.post("/api/v1/structure-filter/score", json=payload)
         assert response.status_code == 200, response.text
 
         data = response.json()
@@ -185,7 +185,7 @@ class TestGenChemScoreEndpoint:
     def test_score_float_for_valid(self, client):
         """Score for valid SMILES is a float in [0, 1]."""
         payload = {"smiles_list": [IBUPROFEN]}
-        response = client.post("/api/v1/genchem/score", json=payload)
+        response = client.post("/api/v1/structure-filter/score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -197,7 +197,7 @@ class TestGenChemScoreEndpoint:
     def test_score_null_for_invalid(self, client):
         """Score for invalid SMILES is null (None), not 0.0 — per D-14/Pitfall 4."""
         payload = {"smiles_list": [INVALID_SMILES]}
-        response = client.post("/api/v1/genchem/score", json=payload)
+        response = client.post("/api/v1/structure-filter/score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -212,7 +212,7 @@ class TestGenChemScoreEndpoint:
             "smiles_list": [IBUPROFEN, INVALID_SMILES, IBUPROFEN],
             "preset": "drug_like",
         }
-        response = client.post("/api/v1/genchem/score", json=payload)
+        response = client.post("/api/v1/structure-filter/score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -225,7 +225,7 @@ class TestGenChemScoreEndpoint:
     def test_score_invalid_preset_returns_400(self, client):
         """POST with unknown preset returns 400."""
         payload = {"smiles_list": [IBUPROFEN], "preset": "nonexistent"}
-        response = client.post("/api/v1/genchem/score", json=payload)
+        response = client.post("/api/v1/structure-filter/score", json=payload)
         assert response.status_code == 400
 
 
@@ -234,8 +234,8 @@ class TestGenChemScoreEndpoint:
 # =============================================================================
 
 
-class TestGenChemReinventScoreEndpoint:
-    """Tests for POST /api/v1/genchem/reinvent-score."""
+class TestStructureFilterReinventScoreEndpoint:
+    """Tests for POST /api/v1/structure-filter/reinvent-score."""
 
     def test_reinvent_score_endpoint(self, client):
         """POST raw list returns {output: {successes_list: [...]}} contract."""
@@ -243,7 +243,7 @@ class TestGenChemReinventScoreEndpoint:
             {"input_string": IBUPROFEN, "query_id": "0"},
             {"input_string": INVALID_SMILES, "query_id": "1"},
         ]
-        response = client.post("/api/v1/genchem/reinvent-score", json=payload)
+        response = client.post("/api/v1/structure-filter/reinvent-score", json=payload)
         assert response.status_code == 200, response.text
 
         data = response.json()
@@ -256,7 +256,7 @@ class TestGenChemReinventScoreEndpoint:
             {"input_string": IBUPROFEN, "query_id": "0"},
             {"input_string": INVALID_SMILES, "query_id": "1"},
         ]
-        response = client.post("/api/v1/genchem/reinvent-score", json=payload)
+        response = client.post("/api/v1/structure-filter/reinvent-score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -275,7 +275,7 @@ class TestGenChemReinventScoreEndpoint:
     def test_reinvent_success_item_structure(self, client):
         """Each success item has query_id and output_value fields."""
         payload = [{"input_string": IBUPROFEN, "query_id": "test-id"}]
-        response = client.post("/api/v1/genchem/reinvent-score", json=payload)
+        response = client.post("/api/v1/structure-filter/reinvent-score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -294,7 +294,7 @@ class TestGenChemReinventScoreEndpoint:
             {"input_string": INVALID_SMILES, "query_id": "0"},
             {"input_string": "another###invalid", "query_id": "1"},
         ]
-        response = client.post("/api/v1/genchem/reinvent-score", json=payload)
+        response = client.post("/api/v1/structure-filter/reinvent-score", json=payload)
         assert response.status_code == 200
 
         data = response.json()
@@ -308,7 +308,7 @@ class TestGenChemReinventScoreEndpoint:
         payload = [{"input_string": IBUPROFEN, "query_id": "0"}]
         for preset in ("drug_like", "lead_like", "fragment_like", "permissive"):
             response = client.post(
-                f"/api/v1/genchem/reinvent-score?preset={preset}", json=payload
+                f"/api/v1/structure-filter/reinvent-score?preset={preset}", json=payload
             )
             assert response.status_code == 200, (
                 f"Preset '{preset}' failed: {response.text}"
@@ -318,7 +318,7 @@ class TestGenChemReinventScoreEndpoint:
         """Unknown preset query param returns 400."""
         payload = [{"input_string": IBUPROFEN, "query_id": "0"}]
         response = client.post(
-            "/api/v1/genchem/reinvent-score?preset=nonexistent", json=payload
+            "/api/v1/structure-filter/reinvent-score?preset=nonexistent", json=payload
         )
         assert response.status_code == 400
 
@@ -328,29 +328,31 @@ class TestGenChemReinventScoreEndpoint:
 # =============================================================================
 
 
-class TestGenChemBatchEndpoints:
+class TestStructureFilterBatchEndpoints:
     """Tests for batch status and results endpoints (404/400 paths only)."""
 
     def test_batch_status_not_found(self, client):
         """GET status for unknown job returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
-        response = client.get(f"/api/v1/genchem/batch/{fake_id}/status")
+        response = client.get(f"/api/v1/structure-filter/batch/{fake_id}/status")
         # 404 or 503 (if Redis not available) — both are acceptable non-200 responses
         assert response.status_code in (404, 503), response.text
 
     def test_batch_invalid_uuid_returns_400(self, client):
         """GET status with non-UUID job_id returns 400."""
-        response = client.get("/api/v1/genchem/batch/not-a-uuid/status")
+        response = client.get("/api/v1/structure-filter/batch/not-a-uuid/status")
         assert response.status_code == 400
 
     def test_batch_results_not_found(self, client):
         """GET results for unknown job returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000001"
-        response = client.get(f"/api/v1/genchem/batch/{fake_id}/results")
+        response = client.get(f"/api/v1/structure-filter/batch/{fake_id}/results")
         assert response.status_code in (404, 503), response.text
 
     def test_batch_download_invalid_format(self, client):
         """GET download with unsupported format returns 400."""
         fake_id = "00000000-0000-0000-0000-000000000002"
-        response = client.get(f"/api/v1/genchem/batch/{fake_id}/download/unsupported_format")
+        response = client.get(
+            f"/api/v1/structure-filter/batch/{fake_id}/download/unsupported_format"
+        )
         assert response.status_code == 400

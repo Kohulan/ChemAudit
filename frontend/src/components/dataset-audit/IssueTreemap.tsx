@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import type { IssueEntry } from '../../types/dataset_intelligence';
+import { InfoTooltip } from '../ui/Tooltip';
 
 // =============================================================================
 // Types
@@ -188,9 +189,28 @@ export const IssueTreemap = React.memo(function IssueTreemap({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
-        Issue Breakdown
-      </h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-base font-semibold font-display text-[var(--color-text-primary)]">
+          Issue Breakdown
+        </h3>
+        <InfoTooltip
+          title="Issue Breakdown"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Treemap visualization showing the relative prevalence of each issue category in your dataset.</p>
+              <ul className="mt-1 text-white/70 space-y-0.5">
+                <li><strong>Parse failures</strong> &mdash; SMILES that RDKit cannot interpret</li>
+                <li><strong>Undefined stereo</strong> &mdash; Chiral centers or double-bond geometry not specified</li>
+                <li><strong>Duplicates</strong> &mdash; Multiple rows with the same InChIKey</li>
+                <li><strong>Alert hits</strong> &mdash; Molecules flagging structural alerts (PAINS, etc.)</li>
+                <li><strong>Std. inconsistency</strong> &mdash; Pipelines disagree on standardized form</li>
+              </ul>
+              <p className="mt-1 text-white/60">Click a cell to drill down into affected molecules. Larger cells represent more prevalent issues.</p>
+            </div>
+          }
+          size="small"
+        />
+      </div>
       <ResponsiveContainer width="100%" height={280}>
         <Treemap
           data={treemapData}

@@ -1,13 +1,13 @@
 import { Download } from 'lucide-react';
 import { ClayCard } from '../ui/ClayCard';
 import { ClayButton } from '../ui/ClayButton';
-import type { MoleculeResult } from '../../types/genchem';
+import type { MoleculeResult } from '../../types/structure_filter';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface GenChemDownloadPanelProps {
+interface StructureFilterDownloadPanelProps {
   molecules: MoleculeResult[];
   inputCount: number;
   outputCount: number;
@@ -32,7 +32,7 @@ function csvEscape(value: string | null): string {
 // =============================================================================
 
 /**
- * Download panel for GenChem filter results.
+ * Download panel for Structure Filter results.
  *
  * Per D-10:
  * - "Download Passed SMILES (.txt)": passed molecules only, one SMILES per line
@@ -40,11 +40,11 @@ function csvEscape(value: string | null): string {
  * - Summary text above buttons: "{N} molecules passed all stages ({pct}% of input)"
  * - Accessibility: aria-label on each download button
  */
-export function GenChemDownloadPanel({
+export function StructureFilterDownloadPanel({
   molecules,
   inputCount,
   outputCount,
-}: GenChemDownloadPanelProps) {
+}: StructureFilterDownloadPanelProps) {
   const pct = inputCount > 0 ? Math.round((outputCount / inputCount) * 100) : 0;
 
   // ── Download: Passed SMILES (.txt) ──────────────────────────────────────────
@@ -57,7 +57,7 @@ export function GenChemDownloadPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'genchem_passed.txt';
+    a.download = 'structure_filter_passed.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -80,7 +80,7 @@ export function GenChemDownloadPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'genchem_results.csv';
+    a.download = 'structure_filter_results.csv';
     a.click();
     URL.revokeObjectURL(url);
   };

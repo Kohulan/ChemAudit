@@ -1,5 +1,5 @@
 """
-Unit tests for the GenChem filter pipeline.
+Unit tests for the structure filter pipeline.
 
 Tests cover:
 - PRESETS configuration (4 presets with correct D-12 thresholds)
@@ -11,8 +11,8 @@ Tests cover:
 
 from __future__ import annotations
 
-from app.services.genchem.filter_config import PRESETS
-from app.services.genchem.filter_pipeline import filter_batch
+from app.services.structure_filter.filter_config import PRESETS
+from app.services.structure_filter.filter_pipeline import filter_batch
 
 # ---------------------------------------------------------------------------
 # Preset configuration tests

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { FilterConfig, FilterResult } from '../types/genchem';
-import { genchemApi } from '../services/api';
+import type { FilterConfig, FilterResult } from '../types/structure_filter';
+import { structureFilterApi } from '../services/api';
 
 // =============================================================================
 // Types
@@ -17,7 +17,7 @@ import { genchemApi } from '../services/api';
  */
 export type FilterState = 'idle' | 'loading-sync' | 'loading-async' | 'processing' | 'success' | 'error';
 
-export interface UseGenChemFilterReturn {
+export interface UseStructureFilterReturn {
   state: FilterState;
   result: FilterResult | null;
   error: string | null;
@@ -27,6 +27,7 @@ export interface UseGenChemFilterReturn {
   selectedStage: string | null;
   setSelectedStage: (stage: string | null) => void;
   runFilter: (smilesList: string[], config: FilterConfig, preset?: string) => Promise<void>;
+  runFilterFile: (file: File, config: FilterConfig, preset?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -42,18 +43,18 @@ const ASYNC_THRESHOLD = 1000;
 // =============================================================================
 
 /**
- * Hook for GenChem Filter execution state management.
+ * Hook for Structure Filter execution state management.
  *
  * Manages:
- * - Synchronous filter for <=1000 SMILES (runFilter → genchemApi.filter)
- * - Async batch for >1000 SMILES (runFilter → genchemApi.batchUpload → WebSocket/poll)
+ * - Synchronous filter for <=1000 SMILES (runFilter → structureFilterApi.filter)
+ * - Async batch for >1000 SMILES (runFilter → structureFilterApi.batchUpload → WebSocket/poll)
  * - WebSocket progress tracking with polling fallback on ws.onerror
  * - Stage selection for funnel chart drill-down
  *
  * The sync/async split at ASYNC_THRESHOLD=1000 follows the D-22 locked decision.
  * WebSocket + polling fallback follows the useQSARReady pattern from Phase 10.
  */
-export function useGenChemFilter(): UseGenChemFilterReturn {
+export function useStructureFilter(): UseStructureFilterReturn {
   const [state, setState] = useState<FilterState>('idle');
   const [result, setResult] = useState<FilterResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
     }
 
     const wsBase = window.location.origin.replace(/^http/, 'ws');
-    const wsUrl = `${wsBase}/ws/genchem/${jobId}`;
+    const wsUrl = `${wsBase}/ws/structure-filter/${jobId}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -102,7 +103,7 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
           ws.close();
           wsRef.current = null;
           // Fetch results
-          genchemApi
+          structureFilterApi
             .batchResults(jobId)
             .then((resp) => {
               if (resp.result) {
@@ -136,12 +137,12 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
 
       const poll = async () => {
         try {
-          const status = await genchemApi.batchStatus(jobId);
+          const status = await structureFilterApi.batchStatus(jobId);
           if (status.progress !== null) setProgress(status.progress);
           if (status.current_stage) setCurrentStage(status.current_stage);
 
           if (status.status === 'complete') {
-            const resp = await genchemApi.batchResults(jobId);
+            const resp = await structureFilterApi.batchResults(jobId);
             if (resp.result) {
               setResult(resp.result);
               setState('success');
@@ -188,7 +189,7 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
       // Synchronous path: direct API call
       setState('loading-sync');
       try {
-        const res = await genchemApi.filter(smilesList, preset, config);
+        const res = await structureFilterApi.filter(smilesList, preset, config);
         setResult(res);
         setState('success');
       } catch (err: unknown) {
@@ -201,9 +202,9 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
       setState('loading-async');
       // Convert SMILES list to a text blob for file upload
       const blob = new Blob([smilesList.join('\n')], { type: 'text/plain' });
-      const file = new File([blob], 'genchem_input.txt', { type: 'text/plain' });
+      const file = new File([blob], 'structure_filter_input.txt', { type: 'text/plain' });
       try {
-        const resp = await genchemApi.batchUpload(file, preset, config);
+        const resp = await structureFilterApi.batchUpload(file, preset, config);
         setJobId(resp.job_id);
         // WebSocket useEffect will trigger on jobId + state='loading-async'
       } catch (err: unknown) {
@@ -213,6 +214,32 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
       }
     }
   }, []);
+
+  // ==========================================================================
+  // runFilterFile — upload a raw file (SDF, CSV) to the batch endpoint
+  // ==========================================================================
+
+  const runFilterFile = useCallback(
+    async (file: File, config: FilterConfig, preset?: string) => {
+      setError(null);
+      setResult(null);
+      setSelectedStage(null);
+      setProgress(null);
+      setCurrentStage(null);
+      setState('loading-async');
+
+      try {
+        const resp = await structureFilterApi.batchUpload(file, preset, config);
+        setJobId(resp.job_id);
+        // WebSocket useEffect will trigger on jobId + state='loading-async'
+      } catch (err: unknown) {
+        const e = err as { error?: string; detail?: string };
+        setError(e?.error ?? e?.detail ?? 'Batch upload failed');
+        setState('error');
+      }
+    },
+    [],
+  );
 
   // ==========================================================================
   // reset
@@ -242,6 +269,7 @@ export function useGenChemFilter(): UseGenChemFilterReturn {
     selectedStage,
     setSelectedStage,
     runFilter,
+    runFilterFile,
     reset,
   };
 }

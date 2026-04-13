@@ -1,5 +1,5 @@
 /**
- * Vitest tests for the GenChem Filter page and types.
+ * Vitest tests for the Structure Filter page and types.
  *
  * Covers:
  * - PRESET_CONFIGS: exactly 4 presets matching PRESET_IDS (D-12)
@@ -7,12 +7,12 @@
  * - PRESET_CONFIGS: weight vectors sum to 1.0
  * - PRESET_CONFIGS: per-preset property threshold assertions
  * - STAGE_COLORS: all 6 core stages + novelty stage defined (D-06)
- * - GenChemFilter component: renders page heading and empty state
+ * - StructureFilterPage component: renders page heading and empty state
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { PRESET_CONFIGS, PRESET_IDS, STAGE_COLORS } from '../types/genchem';
+import { PRESET_CONFIGS, PRESET_IDS, STAGE_COLORS } from '../types/structure_filter';
 
 // =============================================================================
 // PRESET_CONFIGS tests (D-12, D-15)
@@ -108,35 +108,35 @@ describe('STAGE_COLORS', () => {
 });
 
 // =============================================================================
-// GenChemFilter component render tests
+// StructureFilterPage component render tests
 // =============================================================================
 
-describe('GenChemFilter page', () => {
+describe('StructureFilterPage', () => {
   it('renders page heading', async () => {
-    const GenChemFilter = (await import('./GenChemFilter')).default;
+    const StructureFilterPage = (await import('./StructureFilter')).default;
     render(
       <BrowserRouter>
-        <GenChemFilter />
+        <StructureFilterPage />
       </BrowserRouter>,
     );
-    expect(screen.getByText('Generative Chemistry Filter')).toBeInTheDocument();
+    expect(screen.getByText('Structure Filter')).toBeInTheDocument();
   });
 
   it('renders empty state when idle', async () => {
-    const GenChemFilter = (await import('./GenChemFilter')).default;
+    const StructureFilterPage = (await import('./StructureFilter')).default;
     render(
       <BrowserRouter>
-        <GenChemFilter />
+        <StructureFilterPage />
       </BrowserRouter>,
     );
     expect(screen.getByText('No molecules filtered yet')).toBeInTheDocument();
   });
 
   it('renders Run Filter button', async () => {
-    const GenChemFilter = (await import('./GenChemFilter')).default;
+    const StructureFilterPage = (await import('./StructureFilter')).default;
     render(
       <BrowserRouter>
-        <GenChemFilter />
+        <StructureFilterPage />
       </BrowserRouter>,
     );
     expect(screen.getByRole('button', { name: /run filter/i })).toBeInTheDocument();

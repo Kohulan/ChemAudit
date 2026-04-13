@@ -33,7 +33,7 @@ def test_mcp_include_tags_contains_required():
         "safety",
         "diagnostics",
         "qsar-ready",
-        "genchem",
+        "structure-filter",
         "dataset-intelligence",
         "batch",
         "export",

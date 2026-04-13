@@ -142,10 +142,10 @@ import type {
   ScoreResponse,
   REINVENTInput,
   REINVENTResponse,
-  GenChemBatchUploadResponse,
-  GenChemBatchStatusResponse,
-  GenChemBatchResultsResponse,
-} from '../types/genchem';
+  StructureFilterBatchUploadResponse,
+  StructureFilterBatchStatusResponse,
+  StructureFilterBatchResultsResponse,
+} from '../types/structure_filter';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -1433,29 +1433,29 @@ export const diagnosticsApi = {
 };
 
 // =============================================================================
-// GenChem Filter API (Phase 11: Generative Chemistry Filter)
-// Covers all endpoints under /api/v1/genchem/
+// Structure Filter API (Phase 11: Structure Filter)
+// Covers all endpoints under /api/v1/structure-filter/
 // =============================================================================
 
 /**
- * GenChem Filter API client.
+ * Structure Filter API client.
  *
  * Endpoints:
- * - POST /genchem/filter              — sync filter for <=1000 SMILES
- * - POST /genchem/score               — score SMILES list as [0,1] floats
- * - POST /genchem/reinvent-score      — REINVENT-compatible scoring API
- * - POST /genchem/batch/upload        — async batch file upload
- * - GET  /genchem/batch/{id}/status   — poll job status
- * - GET  /genchem/batch/{id}/results  — fetch completed results
- * - GET  /genchem/batch/{id}/download/{format} — download passed/full CSV
+ * - POST /structure-filter/filter              — sync filter for <=1000 SMILES
+ * - POST /structure-filter/score               — score SMILES list as [0,1] floats
+ * - POST /structure-filter/reinvent-score      — REINVENT-compatible scoring API
+ * - POST /structure-filter/batch/upload        — async batch file upload
+ * - GET  /structure-filter/batch/{id}/status   — poll job status
+ * - GET  /structure-filter/batch/{id}/results  — fetch completed results
+ * - GET  /structure-filter/batch/{id}/download/{format} — download passed/full CSV
  */
-export const genchemApi = {
+export const structureFilterApi = {
   /**
-   * Run the generative chemistry filter funnel on a list of SMILES.
+   * Run the structure filter funnel on a list of SMILES.
    * Use for <=1000 SMILES (sync path). Larger batches should use batchUpload.
    */
   filter: async (smilesList: string[], preset?: string, config?: FilterConfig): Promise<FilterResult> => {
-    const response = await api.post<FilterResult>('/genchem/filter', {
+    const response = await api.post<FilterResult>('/structure-filter/filter', {
       smiles_list: smilesList,
       preset: preset || undefined,
       config: config || undefined,
@@ -1467,7 +1467,7 @@ export const genchemApi = {
    * Score a list of SMILES as composite [0,1] values using the filter config.
    */
   score: async (smilesList: string[], preset?: string): Promise<ScoreResponse> => {
-    const response = await api.post<ScoreResponse>('/genchem/score', {
+    const response = await api.post<ScoreResponse>('/structure-filter/score', {
       smiles_list: smilesList,
       preset,
     });
@@ -1480,7 +1480,7 @@ export const genchemApi = {
    */
   reinventScore: async (items: REINVENTInput[], preset?: string): Promise<REINVENTResponse> => {
     const response = await api.post<REINVENTResponse>(
-      `/genchem/reinvent-score${preset ? `?preset=${preset}` : ''}`,
+      `/structure-filter/reinvent-score${preset ? `?preset=${preset}` : ''}`,
       items,
     );
     return response.data;
@@ -1490,38 +1490,42 @@ export const genchemApi = {
    * Upload a file for async batch filtering.
    * Returns job_id for WebSocket / polling progress tracking.
    */
-  batchUpload: async (file: File, preset?: string, config?: FilterConfig): Promise<GenChemBatchUploadResponse> => {
+  batchUpload: async (file: File, preset?: string, config?: FilterConfig): Promise<StructureFilterBatchUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     if (preset) formData.append('preset', preset);
     if (config) formData.append('config', JSON.stringify(config));
-    const response = await api.post<GenChemBatchUploadResponse>('/genchem/batch/upload', formData);
+    const response = await api.post<StructureFilterBatchUploadResponse>(
+      '/structure-filter/batch/upload',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return response.data;
   },
 
   /**
    * Poll the status of a running batch filter job.
    */
-  batchStatus: async (jobId: string): Promise<GenChemBatchStatusResponse> => {
-    const response = await api.get<GenChemBatchStatusResponse>(`/genchem/batch/${jobId}/status`);
+  batchStatus: async (jobId: string): Promise<StructureFilterBatchStatusResponse> => {
+    const response = await api.get<StructureFilterBatchStatusResponse>(`/structure-filter/batch/${jobId}/status`);
     return response.data;
   },
 
   /**
    * Fetch the results of a completed batch filter job.
    */
-  batchResults: async (jobId: string): Promise<GenChemBatchResultsResponse> => {
-    const response = await api.get<GenChemBatchResultsResponse>(`/genchem/batch/${jobId}/results`);
+  batchResults: async (jobId: string): Promise<StructureFilterBatchResultsResponse> => {
+    const response = await api.get<StructureFilterBatchResultsResponse>(`/structure-filter/batch/${jobId}/results`);
     return response.data;
   },
 
   /** URL for downloading passed SMILES as a .txt file. */
   downloadPassedTxt: (jobId: string): string =>
-    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/passed_txt`,
+    `${api.defaults.baseURL}/structure-filter/batch/${jobId}/download/passed_txt`,
 
   /** URL for downloading full results as a CSV file. */
   downloadFullCsv: (jobId: string): string =>
-    `${api.defaults.baseURL}/genchem/batch/${jobId}/download/full_csv`,
+    `${api.defaults.baseURL}/structure-filter/batch/${jobId}/download/full_csv`,
 };
 
 export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };

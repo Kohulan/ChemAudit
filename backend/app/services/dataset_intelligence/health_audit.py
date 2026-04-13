@@ -242,19 +242,22 @@ def compute_health_score(
     # ----- Stage 5: Standardization consistency (sampled) -----
     _progress("std_consistency", 0.0)
     sample_size = min(parsed_count, 500)
-    if sample_size > 0:
-        sample = random.sample(parsed_mols, sample_size)
-    else:
-        sample = []
+    sample = random.sample(parsed_mols, sample_size) if sample_size > 0 else []
     result.std_sample_size = sample_size
 
     agree_count = 0
     disagree_count = 0
+    _PIPELINE_KEYS = ["rdkit_molstandardize", "chembl_style", "minimal_sanitize"]
+    per_pipeline_agree = {k: 0 for k in _PIPELINE_KEYS}
+    per_pipeline_disagree = {k: 0 for k in _PIPELINE_KEYS}
+
     for i, mol_dict in enumerate(sample):
         try:
             comp = compare_pipelines(mol_dict["smiles"])
             if comp.get("all_agree", False):
                 agree_count += 1
+                for k in _PIPELINE_KEYS:
+                    per_pipeline_agree[k] += 1
             else:
                 disagree_count += 1
                 result.issues.append({
@@ -264,8 +267,22 @@ def compute_health_score(
                     "severity": "info",
                     "description": "Standardization pipelines disagree",
                 })
+                pipelines = comp.get("pipelines", [])
+                smiles_vals = [p.get("smiles") for p in pipelines]
+                for idx, k in enumerate(_PIPELINE_KEYS):
+                    smi = smiles_vals[idx] if idx < len(smiles_vals) else None
+                    others = [
+                        s for j, s in enumerate(smiles_vals)
+                        if j != idx and s is not None
+                    ]
+                    if smi is not None and others and any(s == smi for s in others):
+                        per_pipeline_agree[k] += 1
+                    else:
+                        per_pipeline_disagree[k] += 1
         except Exception as exc:
             disagree_count += 1
+            for k in _PIPELINE_KEYS:
+                per_pipeline_disagree[k] += 1
             logger.warning(
                 "compare_pipelines failed for row %d: %s", mol_dict["index"], exc
             )
@@ -280,6 +297,8 @@ def compute_health_score(
         "sample_size": sample_size,
         "agree_count": agree_count,
         "disagree_count": disagree_count,
+        **{k: {"agree": per_pipeline_agree[k], "disagree": per_pipeline_disagree[k]}
+           for k in _PIPELINE_KEYS},
     }
     _progress("std_consistency", 1.0)
 

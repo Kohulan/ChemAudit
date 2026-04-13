@@ -5,7 +5,7 @@ import { ClayCard } from '../ui/ClayCard';
 // Types
 // =============================================================================
 
-interface GenChemProgressBarProps {
+interface StructureFilterProgressBarProps {
   /** Progress percentage (0-100), or null while unknown. */
   progress: number | null;
   /** Current pipeline stage name. */
@@ -19,7 +19,7 @@ interface GenChemProgressBarProps {
 // =============================================================================
 
 /**
- * Async batch progress indicator for GenChem filtering.
+ * Async batch progress indicator for Structure Filter.
  *
  * Per UI-SPEC D-22 and state machine specification:
  * - ClayCard wrapper
@@ -30,11 +30,11 @@ interface GenChemProgressBarProps {
  * - 500ms delay before showing to avoid flash on fast jobs
  * - Transition: width 0.3s ease-out on progress fill
  */
-export function GenChemProgressBar({
+export function StructureFilterProgressBar({
   progress,
   currentStage,
   totalMolecules,
-}: GenChemProgressBarProps) {
+}: StructureFilterProgressBarProps) {
   // 500ms delay to prevent flash for fast jobs (UI-SPEC loading state)
   const [visible, setVisible] = useState(false);
 

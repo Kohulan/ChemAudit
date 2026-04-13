@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter } from 'lucide-react';
-import { useGenChemConfig } from '../hooks/useGenChemConfig';
-import { useGenChemFilter } from '../hooks/useGenChemFilter';
-import { GenChemInput } from '../components/genchem/GenChemInput';
-import { FunnelChart } from '../components/genchem/FunnelChart';
-import { GenChemConfigPanel } from '../components/genchem/GenChemConfigPanel';
-import { GenChemResultsTable } from '../components/genchem/GenChemResultsTable';
-import { GenChemDownloadPanel } from '../components/genchem/GenChemDownloadPanel';
-import { GenChemProgressBar } from '../components/genchem/GenChemProgressBar';
+import { useStructureFilterConfig } from '../hooks/useStructureFilterConfig';
+import { useStructureFilter } from '../hooks/useStructureFilter';
+import { StructureFilterInput } from '../components/structure-filter/StructureFilterInput';
+import { FunnelChart } from '../components/structure-filter/FunnelChart';
+import { StructureFilterConfigPanel } from '../components/structure-filter/StructureFilterConfigPanel';
+import { StructureFilterResultsTable } from '../components/structure-filter/StructureFilterResultsTable';
+import { StructureFilterDownloadPanel } from '../components/structure-filter/StructureFilterDownloadPanel';
+import { StructureFilterProgressBar } from '../components/structure-filter/StructureFilterProgressBar';
 
 /**
- * GenChem Filter page — multi-stage funnel pipeline for generative model output.
+ * Structure Filter page — multi-stage funnel pipeline for generative model output.
  *
  * Hooks wired at page top level so Plan 04/05 can add components without
  * prop drilling restructuring (Phase 10 pattern).
@@ -21,50 +21,36 @@ import { GenChemProgressBar } from '../components/genchem/GenChemProgressBar';
  * State machine rendering (per UI-SPEC):
  * - idle: empty state with filter icon prompt
  * - loading-sync: skeleton pulse in funnel area
- * - loading-async | processing: GenChemProgressBar with WebSocket progress
- * - success: FunnelChart + GenChemResultsTable + GenChemDownloadPanel
+ * - loading-async | processing: StructureFilterProgressBar with WebSocket progress
+ * - success: FunnelChart + StructureFilterResultsTable + StructureFilterDownloadPanel
  * - error: error card with "Filtering failed" message and retry link
  */
-export default function GenChemFilter() {
-  const configHook = useGenChemConfig();
-  const filterHook = useGenChemFilter();
+export default function StructureFilterPage() {
+  const configHook = useStructureFilterConfig();
+  const filterHook = useStructureFilter();
   const [smilesInput, setSmilesInput] = useState('');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  // Derived: count of SMILES lines for async threshold display (used by GenChemProgressBar)
+  // Derived: count of SMILES lines for async threshold display (used by StructureFilterProgressBar)
   const smilesList = smilesInput
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean);
 
   /**
-   * Run filter:
-   * - If uploadedFile is set, read it via FileReader and extract SMILES list.
-   * - Otherwise, split textarea content by newline.
+   * Run filter — called by StructureFilterInput with a parsed SMILES list.
+   * The input component handles CSV column extraction, SDF detection, etc.
    */
-  const handleRunFilter = useCallback(() => {
-    if (uploadedFile) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const fileSmilesList = text
-          .split('\n')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        if (fileSmilesList.length > 0) {
-          filterHook.runFilter(
-            fileSmilesList,
-            configHook.config,
-            configHook.activePreset || undefined,
-          );
-        }
-      };
-      reader.readAsText(uploadedFile);
-    } else {
-      if (smilesList.length === 0) return;
-      filterHook.runFilter(smilesList, configHook.config, configHook.activePreset || undefined);
-    }
-  }, [smilesList, uploadedFile, configHook.config, configHook.activePreset, filterHook.runFilter]);
+  const handleRunFilter = useCallback((parsedSmilesList: string[]) => {
+    if (parsedSmilesList.length === 0) return;
+    filterHook.runFilter(parsedSmilesList, configHook.config, configHook.activePreset || undefined);
+  }, [configHook.config, configHook.activePreset, filterHook.runFilter]);
+
+  /**
+   * Run filter for SDF files — sends the raw file to the backend batch endpoint.
+   */
+  const handleRunFilterFile = useCallback((file: File) => {
+    filterHook.runFilterFile(file, configHook.config, configHook.activePreset || undefined);
+  }, [configHook.config, configHook.activePreset, filterHook.runFilterFile]);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 pt-16 pb-16">
@@ -75,21 +61,20 @@ export default function GenChemFilter() {
         transition={{ duration: 0.3 }}
       >
         <h1 className="text-2xl font-semibold font-display mb-2">
-          Generative Chemistry Filter
+          Structure Filter
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)] mb-8">
-          Filter generative model output through a multi-stage validation funnel.
+          Filter chemical structures through a multi-stage validation funnel.
         </p>
       </motion.div>
 
       {/* ── Input area: textarea + file drop zone + Run Filter CTA ── */}
       <div className="mb-8">
-        <GenChemInput
+        <StructureFilterInput
           smilesInput={smilesInput}
           onSmilesChange={setSmilesInput}
-          uploadedFile={uploadedFile}
-          onFileChange={setUploadedFile}
           onRunFilter={handleRunFilter}
+          onRunFilterFile={handleRunFilterFile}
           isLoading={
             filterHook.state === 'loading-sync' ||
             filterHook.state === 'loading-async' ||
@@ -193,8 +178,8 @@ export default function GenChemFilter() {
         </div>
 
         <div className="lg:col-span-2">
-          {/* GenChemConfigPanel — wired in Plan 04 */}
-          <GenChemConfigPanel
+          {/* StructureFilterConfigPanel — wired in Plan 04 */}
+          <StructureFilterConfigPanel
             config={configHook.config}
             activePreset={configHook.activePreset}
             modifiedFrom={configHook.modifiedFrom}
@@ -210,7 +195,7 @@ export default function GenChemFilter() {
       {/* ── Progress bar for async batch ── */}
       {(filterHook.state === 'loading-async' || filterHook.state === 'processing') && (
         <div className="mb-6">
-          <GenChemProgressBar
+          <StructureFilterProgressBar
             progress={filterHook.progress}
             currentStage={filterHook.currentStage}
             totalMolecules={smilesList.length}
@@ -218,7 +203,7 @@ export default function GenChemFilter() {
         </div>
       )}
 
-      {/* ── Results table + download panel on success ── */}
+      {/* ── Download panel + results table on success ── */}
       {filterHook.state === 'success' && filterHook.result && (
         <AnimatePresence mode="wait">
           <motion.div
@@ -227,16 +212,16 @@ export default function GenChemFilter() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <GenChemResultsTable
+            <StructureFilterDownloadPanel
               molecules={filterHook.result.molecules}
-              selectedStage={filterHook.selectedStage}
-              onClearFilter={() => filterHook.setSelectedStage(null)}
+              inputCount={filterHook.result.input_count}
+              outputCount={filterHook.result.output_count}
             />
             <div className="mt-6">
-              <GenChemDownloadPanel
+              <StructureFilterResultsTable
                 molecules={filterHook.result.molecules}
-                inputCount={filterHook.result.input_count}
-                outputCount={filterHook.result.output_count}
+                selectedStage={filterHook.selectedStage}
+                onClearFilter={() => filterHook.setSelectedStage(null)}
               />
             </div>
           </motion.div>
