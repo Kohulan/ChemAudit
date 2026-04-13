@@ -6,7 +6,7 @@
  * error states, and summary badges.
  */
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, AlertTriangle, RotateCcw, Loader2, GitCompare, X, Beaker } from 'lucide-react';
 import {
@@ -25,7 +25,10 @@ import { AlertFrequencyChart } from './charts/AlertFrequencyChart';
 import { ValidationTreemap } from './charts/ValidationTreemap';
 import { ScaffoldTreemap } from './charts/ScaffoldTreemap';
 import { ChemicalSpaceScatter } from './charts/ChemicalSpaceScatter';
+import { ClusteringTab } from './ClusteringTab';
 import { ClayButton } from '../ui/ClayButton';
+import { TaxonomyTab } from './TaxonomyTab';
+import { RegistrationTab } from './RegistrationTab';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
@@ -48,9 +51,10 @@ interface BatchAnalyticsPanelProps {
   activeScoreRange?: { min: number; max: number } | null;
   onAlertClick?: (catalogName: string) => void;
   activeAlertFilter?: string | null;
+  onNavigateToMolecule?: (moleculeIndex: number) => void;
 }
 
-const TABS = ['Distributions', 'Chemical Space'] as const;
+const TABS = ['Distributions', 'Chemical Space', 'Clustering', 'Taxonomy', 'Registration'] as const;
 type TabName = (typeof TABS)[number];
 
 function ChartSkeleton() {
@@ -320,6 +324,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   activeScoreRange,
   onAlertClick,
   activeAlertFilter,
+  onNavigateToMolecule,
 }: BatchAnalyticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabName>('Distributions');
   const [scatterXProp, setScatterXProp] = useState('MW');
@@ -334,6 +339,22 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   const propScatterRef = useRef<HTMLDivElement>(null);
   const scaffoldTreemapRef = useRef<HTMLDivElement>(null);
   const profileHistRef = useRef<HTMLDivElement>(null);
+
+  // Compare a collision group: select the first 2 indices, then trigger compare
+  const pendingCompareRef = useRef(false);
+  const handleCompareGroup = useCallback((indices: number[]) => {
+    const selected = new Set(indices.slice(0, 2));
+    onSelectionChange(selected);
+    pendingCompareRef.current = true;
+  }, [onSelectionChange]);
+
+  // Fire compare once selection is updated
+  useEffect(() => {
+    if (pendingCompareRef.current && selectedIndices.size >= 2 && onCompare) {
+      pendingCompareRef.current = false;
+      onCompare();
+    }
+  }, [selectedIndices, onCompare]);
 
   // Badge counts
   const outlierCount = analyticsData?.statistics?.outliers?.length ?? 0;
@@ -372,7 +393,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
   return (
     <div className="space-y-4">
       {/* Tab bar */}
-      <div className="flex gap-1 p-1 rounded-xl bg-[var(--color-surface-sunken)] w-fit">
+      <div className="flex gap-1 p-1 rounded-xl bg-[var(--color-surface-sunken)] w-fit overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -428,6 +449,16 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
             {tab === 'Chemical Space' && scaffoldCount > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                 {scaffoldCount} scaffold{scaffoldCount !== 1 ? 's' : ''}
+              </span>
+            )}
+            {tab === 'Clustering' && analyticsData?.clustering && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                {analyticsData.clustering.cluster_count} clusters
+              </span>
+            )}
+            {tab === 'Registration' && analyticsData?.registration && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                {analyticsData.registration.unique_count} unique
               </span>
             )}
           </button>
@@ -676,6 +707,56 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
                 />
               )}
             </ChartCard>
+          </motion.div>
+        )}
+
+        {activeTab === 'Clustering' && (
+          <motion.div
+            key="clustering"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ClusteringTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'Taxonomy' && (
+          <motion.div
+            key="taxonomy"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TaxonomyTab
+              analyticsData={analyticsData}
+              results={results}
+              onRetrigger={onRetrigger}
+              onNavigateToMolecule={onNavigateToMolecule}
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'Registration' && (
+          <motion.div
+            key="registration"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <RegistrationTab
+              analyticsData={analyticsData}
+              results={results}
+              onNavigateToMolecule={onNavigateToMolecule}
+              onCompareGroup={handleCompareGroup}
+            />
           </motion.div>
         )}
       </AnimatePresence>

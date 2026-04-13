@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface TooltipProps {
@@ -222,24 +223,14 @@ export function InfoTooltip({
   const isSmall = size === 'small';
   
   const className = cn(
-    'inline-flex items-center justify-center rounded-full',
-    'border border-[var(--color-text-muted)]/40',
-    'bg-[var(--color-surface-sunken)]',
-    'text-[var(--color-text-secondary)]',
-    'hover:bg-[var(--color-primary)]/10',
-    'hover:border-[var(--color-primary)]/50',
+    'inline-flex items-center justify-center',
+    'text-[var(--color-text-muted)]',
     'hover:text-[var(--color-primary)]',
-    'transition-all duration-200 cursor-help',
-    isSmall ? 'w-4 h-4' : 'w-[18px] h-[18px]'
+    'transition-colors duration-200 cursor-help',
   );
 
   const innerContent = (
-    <span className={cn(
-      'font-semibold leading-none',
-      isSmall ? 'text-[9px]' : 'text-[11px]'
-    )}>
-      i
-    </span>
+    <Info className={isSmall ? 'w-3.5 h-3.5' : 'w-4 h-4'} strokeWidth={2} />
   );
 
   return (

@@ -1,13 +1,5 @@
 # Changelog
 
-## [1.4.0](https://github.com/Kohulan/ChemAudit/compare/v1.3.0...v1.4.0) (2026-03-26)
-
-
-### Features
-
-* interactive batch analytics with click-to-filter, shared report fixes, and security hardening ([a53b338](https://github.com/Kohulan/ChemAudit/commit/a53b3383815676e7bc2c8386c8fc2f9b1c4b86f2))
-* interactive batch analytics with click-to-filter, shared report… ([d4f39d6](https://github.com/Kohulan/ChemAudit/commit/d4f39d6cb0abbc1a2a6186fcbeddc8d919bfb3f0))
-
 ## [1.3.0](https://github.com/Kohulan/ChemAudit/compare/v1.2.1...v1.3.0) (2026-03-05)
 
 

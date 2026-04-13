@@ -54,6 +54,12 @@ class BatchResultItem(BaseModel):
     standardization: Optional[Dict[str, Any]] = Field(
         None, description="ChEMBL standardization pipeline results"
     )
+    profiling: Optional[Dict[str, Any]] = Field(
+        None, description="Compound profiling results (PFI, stars, bioavailability, etc.)"
+    )
+    safety_assessment: Optional[Dict[str, Any]] = Field(
+        None, description="Safety assessment results (CYP, hERG, bRo5, REOS, complexity)"
+    )
 
 
 class BatchStatistics(BaseModel):

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import SESSION_COOKIE, get_data_scope
 from app.db import get_db
@@ -18,6 +19,7 @@ router = APIRouter()
 
 
 @router.delete("/me/data")
+@limiter.limit("5/minute", key_func=get_rate_limit_key)
 async def purge_my_data(
     request: Request,
     response: Response,

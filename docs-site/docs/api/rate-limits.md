@@ -23,6 +23,7 @@ Default rate limits for requests without an API key:
 | `POST /alerts/quick-check` | 10 req/min |
 | `GET /alerts/catalogs` | 10 req/min |
 | `POST /score` | 10 req/min |
+| `POST /score/compare` | 10 req/min |
 | `POST /standardize` | 10 req/min |
 | `POST /batch/upload` | 10 req/min |
 | `GET /batch/{job_id}` | 60 req/min |
@@ -30,7 +31,26 @@ Default rate limits for requests without an API key:
 | `GET /batch/{job_id}/stats` | 10 req/min |
 | `DELETE /batch/{job_id}` | 10 req/min |
 | `POST /batch/detect-columns` | 10 req/min |
+| `POST /qsar-ready/single` | 30 req/min |
+| `POST /qsar-ready/batch/upload` | 3 req/min |
+| `GET /qsar-ready/batch/*/status` | 60 req/min |
+| `GET /qsar-ready/batch/*/results` | 30 req/min |
+| `GET /qsar-ready/batch/*/download/*` | 10 req/min |
+| `POST /structure-filter/filter` | 20 req/min |
+| `POST /structure-filter/score` | 30 req/min |
+| `POST /structure-filter/reinvent-score` | 30 req/min |
+| `POST /structure-filter/batch/upload` | 3 req/min |
+| `GET /structure-filter/batch/*/status` | 60 req/min |
+| `GET /structure-filter/batch/*/results` | 30 req/min |
+| `GET /structure-filter/batch/*/download/*` | 10 req/min |
+| `POST /dataset/upload` | 3 req/min |
+| `GET /dataset/*/status` | 60 req/min |
+| `GET /dataset/*/results` | 30 req/min |
+| `POST /dataset/*/diff` | 10 req/min |
+| `GET /dataset/*/download/*` | 10 req/min |
 | `POST /integrations/*` | 30 req/min |
+| `POST /integrations/compare` | 10 req/min |
+| `POST /integrations/resolve` | 30 req/min |
 
 ### Authenticated (with API Key)
 

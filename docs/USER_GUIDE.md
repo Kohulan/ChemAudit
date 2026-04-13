@@ -14,7 +14,13 @@
 
 - [Single Molecule Validation](#single-molecule-validation)
   - [Validation Checks](#validation-checks-explained)
+  - [Compound Profiler & Safety Tabs](#compound-profiler--safety-tabs)
 - [Batch Processing](#batch-processing)
+  - [Batch Analytics](#batch-analytics)
+- [QSAR-Ready Pipeline](#qsar-ready-pipeline)
+- [Structure Filter](#structure-filter)
+- [Dataset Audit](#dataset-audit)
+- [Diagnostics](#diagnostics)
 - [Structural Alerts](#structural-alerts)
 - [Scoring](#scoring)
   - [ML-Readiness](#ml-readiness-scoring)
@@ -24,8 +30,14 @@
   - [NP-Likeness](#np-likeness)
   - [Scaffold Analysis](#scaffold-analysis)
   - [Aggregator Likelihood](#aggregator-likelihood)
+  - [Ligand Efficiency](#ligand-efficiency)
+  - [Bioavailability Radar](#bioavailability-radar)
+  - [Property Breakdown](#property-breakdown)
+  - [Salt Inventory](#salt-inventory)
 - [Standardization](#standardization)
 - [Database Integrations](#database-integrations)
+  - [Identifier Resolution](#identifier-resolution)
+  - [Database Comparison](#database-comparison)
 - [Exporting Results](#exporting-results)
 - [Scoring Methodology Reference](SCORING_METHODOLOGY.md)
 
@@ -47,7 +59,7 @@
 1. Navigate to the **Single Validation** page (home)
 2. Enter or paste your molecule
 3. Click **Validate**
-4. Review results across all tabs: Validation, Alerts, Scoring, Standardization, Database Lookup
+4. Review results across all tabs: Validation, Alerts, Scoring, Scoring Profiles, Profiler, Safety, Standardization, Database Lookup
 
 **API:**
 ```bash
@@ -118,6 +130,21 @@ ChemAudit runs 5 basic checks on every molecule and 17 deep validation checks or
 </details>
 
 All deep validation check severities can be customized through the severity configuration panel. For detailed logic and thresholds, see the [Scoring Methodology](SCORING_METHODOLOGY.md#validation-checks).
+
+### Compound Profiler & Safety Tabs
+
+The **Profiler** and **Safety** panels are consolidated as tabs within the Single Validation page:
+
+**Profiler tab** provides:
+- **3D Shape** — Molecular shape descriptors and visualization
+- **Ligand Efficiency** — LE and LLE metrics (using proxy pIC50 from QED when no activity data is available)
+- **Property Breakdown** — Per-atom TPSA and LogP contributions with functional group summaries
+- **Bioavailability Radar** — 6-axis radar chart (LIPO, SIZE, POLAR, INSOLU, INSATU, FLEX) showing whether the molecule falls within optimal oral bioavailability ranges
+
+**Safety tab** provides:
+- Screening against all alert catalogs (PAINS, BRENK, NIH, ZINC, ChEMBL)
+- Matched atoms highlighting
+- Alert severity and details
 
 ### Options
 
@@ -193,6 +220,220 @@ curl http://localhost:8001/api/v1/batch/abc123/stats
 | **Sort By** | index, name, smiles, score, qed, safety, status, issues |
 | **Sort Direction** | ascending or descending |
 
+### Batch Analytics
+
+After batch processing completes, additional analytics tabs become available:
+
+| Analytics | Description | Limit |
+|-----------|-------------|-------|
+| **Butina Clustering** | Sphere-exclusion clustering using Morgan fingerprints (radius=2, 2048 bits) with configurable Tanimoto distance cutoff (0.2–0.6, default 0.35) | Max 1,000 molecules |
+| **Chemical Taxonomy** | Classifies molecules using ~50 curated SMARTS rules across 3 groups: Ring Systems, Functional Groups, and Pharmacophoric/Drug-class features. Multi-category matching per molecule. | No limit |
+| **Chemical Space** | t-SNE (openTSNE) and PCA visualization of chemical space using Morgan ECFP4 fingerprints | t-SNE: max 2,000 molecules |
+| **Registration Hashing** | Canonical deduplication using RDKit's registration hash with tautomer hash v2, identifying exact duplicates | No limit |
+| **Scaffold Analysis** | Murcko scaffold mining with Shannon entropy diversity metric and frequency distribution | No limit |
+
+For detailed analytics documentation, see the [Scoring Methodology](SCORING_METHODOLOGY.md#batch-analytics).
+
+---
+
+## QSAR-Ready Pipeline
+
+The QSAR-Ready Pipeline (`/qsar-ready`) prepares chemical datasets for machine learning by applying a multi-step curation pipeline.
+
+### Pipeline Steps
+
+| Step | Description |
+|------|-------------|
+| **Standardization** | ChEMBL-compatible structure normalization |
+| **Salt Stripping** | Remove counterions and salts, extract parent molecule |
+| **Neutralization** | Neutralize charged species |
+| **Tautomer Canonicalization** | Canonicalize tautomeric forms |
+| **Duplicate Removal** | Remove duplicates by InChIKey |
+
+### How to Use
+
+**Web Interface:**
+1. Navigate to **QSAR-Ready** under the Data Preparation dropdown
+2. Paste SMILES (one per line) or upload a CSV/SDF file
+3. Configure pipeline options
+4. Click **Process**
+5. Monitor progress via real-time status updates
+6. Review results with per-molecule step details
+7. Download curated dataset in CSV, SDF, or JSON format
+
+**API — Single molecule:**
+```bash
+curl -X POST http://localhost:8001/api/v1/qsar-ready/single \
+  -H "Content-Type: application/json" \
+  -d '{
+    "smiles": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+    "config": {}
+  }'
+```
+
+**API — Batch upload:**
+```bash
+curl -X POST http://localhost:8001/api/v1/qsar-ready/batch/upload \
+  -F "file=@molecules.csv" \
+  -F 'config={}'
+```
+
+**API — Check status and download:**
+```bash
+# Check status
+curl http://localhost:8001/api/v1/qsar-ready/batch/{job_id}/status
+
+# Get paginated results
+curl "http://localhost:8001/api/v1/qsar-ready/batch/{job_id}/results?page=1&per_page=50"
+
+# Download as CSV
+curl http://localhost:8001/api/v1/qsar-ready/batch/{job_id}/download/csv -o curated.csv
+```
+
+### Result Status
+
+Each molecule receives one of these statuses:
+
+| Status | Meaning |
+|--------|---------|
+| **ok** | Successfully curated |
+| **rejected** | Failed a pipeline step (see `rejection_reason`) |
+| **duplicate** | Duplicate of another molecule (by InChIKey) |
+| **error** | Processing error |
+
+---
+
+## Structure Filter
+
+The Structure Filter (`/structure-filter`) provides multi-stage funnel filtering for generative chemistry outputs, screening libraries, or any SMILES collection.
+
+### Filter Stages
+
+Molecules pass through a configurable sequence of filter stages. Each stage can be enabled/disabled:
+
+- **Property filters** — MW, LogP, TPSA, HBD, HBA, rotatable bonds, aromatic rings
+- **Substructure matching** — Custom SMARTS patterns for inclusion/exclusion
+- **Drug-likeness presets** — Pre-configured filter chains
+
+### Presets
+
+| Preset | Description |
+|--------|-------------|
+| **drug_like** | Lipinski-based drug-likeness criteria |
+| **lead_like** | Lead-likeness criteria (MW 200–450, LogP −1 to 4) |
+| **fragment_like** | Rule of Three fragment criteria |
+| **permissive** | Minimal filtering (basic validity only) |
+
+### How to Use
+
+**Web Interface:**
+1. Navigate to **Structure Filter** under the Library dropdown
+2. Paste SMILES or upload a file
+3. Select a preset or configure custom filters
+4. Click **Filter**
+5. View the funnel visualization showing molecules passing/failing each stage
+6. Download passing molecules
+
+**API — Synchronous (≤1,000 molecules):**
+```bash
+curl -X POST http://localhost:8001/api/v1/structure-filter/filter \
+  -H "Content-Type: application/json" \
+  -d '{
+    "smiles_list": ["CCO", "c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],
+    "preset": "drug_like"
+  }'
+```
+
+**API — Batch upload (>1,000 molecules):**
+```bash
+curl -X POST http://localhost:8001/api/v1/structure-filter/batch/upload \
+  -F "file=@molecules.csv" \
+  -F "preset=drug_like"
+```
+
+### Scoring Mode
+
+The Structure Filter also provides a 0–1 scoring mode for integration with generative models:
+
+```bash
+curl -X POST http://localhost:8001/api/v1/structure-filter/score \
+  -H "Content-Type: application/json" \
+  -d '{
+    "smiles_list": ["CCO", "c1ccccc1"],
+    "preset": "drug_like"
+  }'
+```
+
+A REINVENT-compatible scoring endpoint is also available at `POST /structure-filter/reinvent-score`.
+
+---
+
+## Dataset Audit
+
+The Dataset Audit (`/dataset-audit`) provides comprehensive dataset health auditing for chemical datasets.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Health Score** | Overall dataset quality score with sub-scores for validity, diversity, property distributions, and standardization |
+| **Contradictory Labels** | Detects molecules with contradictory activity labels (same structure, different labels) |
+| **Dataset Diff** | Compare two dataset versions to find added, removed, and modified molecules |
+| **Curation Report** | Detailed curation recommendations and downloadable curated CSV |
+| **Treemap Drill-down** | Interactive treemap visualization of dataset issues |
+
+### How to Use
+
+**Web Interface:**
+1. Navigate to **Dataset Audit** under the Data Preparation dropdown
+2. Upload a CSV or SDF file (with optional activity column)
+3. Monitor audit progress (health audit, contradiction detection, curation)
+4. Review health score and sub-scores
+5. Explore contradictory labels, property distributions, and issues
+6. Optionally upload a second file for dataset diff comparison
+7. Download the curation report or curated CSV
+
+**API:**
+```bash
+# Upload dataset for auditing
+curl -X POST http://localhost:8001/api/v1/dataset/upload \
+  -F "file=@dataset.csv" \
+  -F "smiles_column=SMILES" \
+  -F "activity_column=Activity"
+
+# Check audit status
+curl http://localhost:8001/api/v1/dataset/{job_id}/status
+
+# Get audit results
+curl http://localhost:8001/api/v1/dataset/{job_id}/results
+
+# Compare with another dataset version
+curl -X POST http://localhost:8001/api/v1/dataset/{job_id}/diff \
+  -F "file=@dataset_v2.csv"
+
+# Download curation report
+curl http://localhost:8001/api/v1/dataset/{job_id}/download/report -o report.json
+
+# Download curated CSV
+curl http://localhost:8001/api/v1/dataset/{job_id}/download/csv -o curated.csv
+```
+
+---
+
+## Diagnostics
+
+The Diagnostics page (`/diagnostics`, under the Data Preparation dropdown) provides low-level chemical structure analysis tools:
+
+| Tool | Description |
+|------|-------------|
+| **SMILES Diagnostics** | Parse and analyze SMILES string validity, atom-by-atom |
+| **InChI Layer Diff** | Compare InChI layers between two molecules to identify exact structural differences |
+| **Round-Trip Validation** | Validate SMILES→MOL→SMILES round-trip fidelity to detect representation loss |
+| **File Pre-Validation** | Check a file for parseable SMILES before uploading to batch processing |
+| **Coordinate Dimension Analysis** | Detect 2D, 3D, or missing coordinate data in MOL blocks/SDF files |
+
+These tools are useful for debugging parsing errors, investigating structural discrepancies, and pre-screening files before batch processing.
+
 ---
 
 ## Structural Alerts
@@ -241,7 +482,7 @@ curl -X POST http://localhost:8001/api/v1/alerts/quick-check \
 
 ## Scoring
 
-ChemAudit provides comprehensive molecular scoring across 7 dimensions. For complete calculation formulas, thresholds, and academic references, see the [Scoring Methodology](SCORING_METHODOLOGY.md).
+ChemAudit provides comprehensive molecular scoring across 10+ dimensions. For complete calculation formulas, thresholds, and academic references, see the [Scoring Methodology](SCORING_METHODOLOGY.md).
 
 ### ML-Readiness Scoring
 
@@ -349,13 +590,57 @@ Predicts whether a molecule is likely to form colloidal aggregates in biological
 
 Based on 6 indicators: LogP, TPSA, MW, aromatic ring count, conjugation fraction, and 10 known aggregator SMARTS patterns (rhodanines, quinones, catechols, curcumin-like, etc.). See [Aggregator Methodology](SCORING_METHODOLOGY.md#aggregator-likelihood) for full details.
 
+### Ligand Efficiency
+
+Measures how efficiently a molecule uses its heavy atoms to achieve binding potency.
+
+| Metric | Formula | Interpretation |
+|--------|---------|----------------|
+| **LE (Ligand Efficiency)** | pActivity / heavy atom count | ≥ 0.3 is generally considered efficient |
+| **LLE (Lipophilic Ligand Efficiency)** | pActivity − LogP | Higher is better; measures potency relative to lipophilicity |
+
+When no experimental activity data is available, ChemAudit uses QED as a proxy pIC50 value.
+
+### Bioavailability Radar
+
+A 6-axis radar chart showing whether a molecule falls within optimal ranges for oral bioavailability:
+
+| Axis | Property | Optimal Range |
+|------|----------|---------------|
+| **LIPO** | Wildman-Crippen LogP | −0.7 to 5.0 |
+| **SIZE** | Molecular Weight | 150–500 Da |
+| **POLAR** | TPSA | 20–130 A² |
+| **INSOLU** | LogS (ESOL) | −6 to 0 |
+| **INSATU** | Fsp3 | ≥ 0.25 |
+| **FLEX** | Rotatable Bonds | ≤ 9 |
+
+All axes are normalized to 0–1. A molecule with all 6 axes in range has excellent predicted oral bioavailability.
+
+### Property Breakdown
+
+Per-atom contribution analysis for key molecular properties:
+
+- **TPSA Breakdown** — Per-atom topological polar surface area contributions with functional group summaries
+- **LogP Breakdown** — Per-atom Wildman-Crippen LogP contributions with functional group summaries
+
+These breakdowns help identify which atoms or functional groups contribute most to a property, useful for lead optimization.
+
+### Salt Inventory
+
+Detects and inventories salt forms in a molecule:
+
+- **has_salts** — Whether the molecule contains salt fragments
+- **parent_smiles** — The parent (desalted) structure
+- **fragments** — List of all fragments with classification
+- **total_fragments** — Fragment count
+
 **How to Get Scores (API):**
 ```bash
 curl -X POST http://localhost:8001/api/v1/score \
   -H "Content-Type: application/json" \
   -d '{
     "molecule": "CCO",
-    "include": ["ml_readiness", "druglikeness", "safety_filters", "admet", "np_likeness", "scaffold", "aggregator"]
+    "include": ["ml_readiness", "druglikeness", "safety_filters", "admet", "np_likeness", "scaffold", "aggregator", "ligand_efficiency", "bioavailability_radar", "salt_inventory"]
   }'
 ```
 
@@ -414,16 +699,18 @@ Look up molecules in major chemical databases.
 
 | Database | Data Available | Rate Limit |
 |----------|----------------|------------|
-| **PubChem** | Properties, synonyms, IUPAC name | 30 req/min |
-| **ChEMBL** | Bioactivity, targets, clinical phase | 30 req/min |
+| **PubChem** | Properties, synonyms, IUPAC name, CID | 30 req/min |
+| **ChEMBL** | Bioactivity, targets, clinical phase, ChEMBL ID | 30 req/min |
 | **COCONUT** | Natural product data, organism source | 30 req/min |
+| **Wikidata** | SMILES (isomeric), InChI, InChIKey, CAS, formula, mass | 30 req/min |
 
 ### How to Search
 
 **Web Interface:**
 1. Enter your molecule on the Single Validation page
 2. Navigate to **Database Lookup** tab
-3. View cross-references from PubChem, ChEMBL, and COCONUT
+3. View cross-references from PubChem, ChEMBL, COCONUT, and Wikidata
+4. The **Cross-Database Comparison** panel runs automatically, comparing structural identifiers across all databases that returned results
 
 **API:**
 ```bash
@@ -441,6 +728,59 @@ curl -X POST http://localhost:8001/api/v1/integrations/chembl/bioactivity \
 curl -X POST http://localhost:8001/api/v1/integrations/coconut/lookup \
   -H "Content-Type: application/json" \
   -d '{"molecule": "CCO", "format": "smiles"}'
+
+# Search Wikidata
+curl -X POST http://localhost:8001/api/v1/integrations/wikidata/lookup \
+  -H "Content-Type: application/json" \
+  -d '{"molecule": "CCO", "format": "smiles"}'
+```
+
+### Identifier Resolution
+
+ChemAudit can resolve a wide range of chemical identifiers to canonical SMILES with cross-references. Supported identifier types:
+
+| Type | Example |
+|------|---------|
+| SMILES | `CCO` |
+| InChI | `InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3` |
+| InChIKey | `LFQSCWFLJHTTHZ-UHFFFAOYSA-N` |
+| PubChem CID | `702` |
+| ChEMBL ID | `CHEMBL545` |
+| CAS Number | `64-17-5` |
+| DrugBank ID | `DB00898` |
+| ChEBI ID | `CHEBI:16236` |
+| UNII | `3K9958V90M` |
+| Wikipedia URL | `https://en.wikipedia.org/wiki/Ethanol` |
+| Compound name | `aspirin`, `caffeine` |
+
+The identifier type is auto-detected, or you can specify it explicitly.
+
+**API:**
+```bash
+curl -X POST http://localhost:8001/api/v1/integrations/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "CHEMBL25", "identifier_type": "auto"}'
+```
+
+The response includes the resolved SMILES, InChI, InChIKey, molecular formula, weight, IUPAC name, resolution source, resolution chain, and cross-references to PubChem, ChEMBL, DrugBank, ChEBI, and KEGG.
+
+### Database Comparison
+
+Compare how different databases represent the same molecule. ChemAudit fetches the structure from PubChem, ChEMBL, COCONUT, and Wikidata, then compares:
+
+| Identifier | Comparison Method |
+|------------|-------------------|
+| **SMILES** | RDKit canonicalization, then tautomer-invariant comparison |
+| **InChIKey** | Layer-by-layer analysis (connectivity, stereo, version) |
+| **InChI** | Layer analysis (formula, connectivity, hydrogen, charge, stereo) |
+
+**Verdict values:** `consistent`, `minor_differences`, `major_discrepancies`, `no_data`
+
+**API:**
+```bash
+curl -X POST http://localhost:8001/api/v1/integrations/compare \
+  -H "Content-Type: application/json" \
+  -d '{"smiles": "C[C@H](N)C(=O)O"}'
 ```
 
 ---

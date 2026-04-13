@@ -1,6 +1,9 @@
 # GSD planning docs (local only)
 .planning/
 
+# Cloned repos (local only)
+.clone/
+
 # Local documentation (not for git)
 local_docs/
 docs/plans/
@@ -57,6 +60,7 @@ dist/
 
 # Frontend build output (generated, not committed)
 frontend-dist/
+frontend/test-results/
 
 # Environment files
 .env

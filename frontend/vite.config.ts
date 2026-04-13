@@ -32,6 +32,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/ws': {
+          target: backendUrl,
+          changeOrigin: true,
+          ws: true,
+        },
       },
     },
     define: {

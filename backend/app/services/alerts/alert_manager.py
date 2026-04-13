@@ -44,6 +44,7 @@ class AlertResult:
     filter_set: Optional[str] = None
     catalog_description: Optional[str] = None
     category: Optional[str] = None
+    concern_group: Optional[str] = None  # Functional concern group for deduplication
 
 
 @dataclass

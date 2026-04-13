@@ -33,6 +33,18 @@ const HistoryPage = lazy(() =>
 const ReportPermalinkPage = lazy(() =>
   import('./pages/ReportPermalink').then(module => ({ default: module.ReportPermalinkPage }))
 );
+const QSARReadyPage = lazy(() =>
+  import('./pages/QSARReady').then(module => ({ default: module.QSARReady }))
+);
+const StructureFilterPage = lazy(() =>
+  import('./pages/StructureFilter')
+);
+const DatasetAuditPage = lazy(() =>
+  import('./pages/DatasetAudit')
+);
+const DiagnosticsPage = lazy(() =>
+  import('./pages/Diagnostics').then(module => ({ default: module.Diagnostics }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFound').then(module => ({ default: module.NotFound }))
 );
@@ -151,6 +163,51 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/qsar-ready"
+            element={
+              <motion.div
+                key="qsar-ready"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <QSARReadyPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/structure-filter"
+            element={
+              <motion.div
+                key="structure-filter"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <StructureFilterPage />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/dataset-audit"
+            element={
+              <motion.div
+                key="dataset-audit"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DatasetAuditPage />
+              </motion.div>
+            }
+          />
+          <Route
             path="/report/:shortId"
             element={
               <motion.div
@@ -166,6 +223,23 @@ function AppRoutes() {
             }
           />
           <Route path="/profiles" element={<Navigate to="/batch" replace />} />
+          <Route path="/profiler" element={<Navigate to="/?section=profiler" replace />} />
+          <Route path="/safety" element={<Navigate to="/?section=safety" replace />} />
+          <Route
+            path="/diagnostics"
+            element={
+              <motion.div
+                key="diagnostics"
+                className="relative"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DiagnosticsPage />
+              </motion.div>
+            }
+          />
           <Route
             path="/about"
             element={

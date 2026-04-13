@@ -92,7 +92,9 @@ async def create_permalink(
 
 
 @router.get("/report/{short_id}", response_model=PermalinkResolveResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def resolve_permalink(
+    request: Request,
     short_id: str = Path(..., max_length=16, pattern=r"^[A-Za-z0-9_-]+$"),
     db: AsyncSession = Depends(get_db),
 ):
@@ -144,7 +146,9 @@ async def resolve_permalink(
 
 
 @router.get("/permalinks/single")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def single_molecule_permalink(
+    request: Request,
     smiles: str = Query(..., description="SMILES string"),
     settings_json: Optional[str] = Query(
         None, alias="settings", description="JSON settings string"

@@ -4,9 +4,10 @@ Configuration endpoint for ChemAudit API.
 Exposes deployment limits to the frontend for dynamic UI configuration.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.core.config import settings
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.schemas.config import ConfigResponse, DeploymentLimits
 
 router = APIRouter()
@@ -18,7 +19,8 @@ router = APIRouter()
     summary="Get application configuration",
     description="Returns public configuration including deployment limits for frontend use.",
 )
-async def get_config() -> ConfigResponse:
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def get_config(request: Request) -> ConfigResponse:
     """
     Get public application configuration.
 
