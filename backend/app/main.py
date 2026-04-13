@@ -22,7 +22,7 @@ from app.api.routes import (
     dataset_intelligence,
     diagnostics,
     export,
-    genchem,
+    structure_filter,
     health,
     history,
     integrations,
@@ -103,7 +103,7 @@ MCP_INCLUDE_TAGS = [
     "safety",
     "diagnostics",
     "qsar-ready",
-    "genchem",
+    "structure-filter",
     "dataset-intelligence",
 ]
 
@@ -344,7 +344,7 @@ app.include_router(profiler.router, prefix="/api/v1", tags=["profiler"])
 app.include_router(safety.router, prefix="/api/v1", tags=["safety"])
 app.include_router(diagnostics.router, prefix="/api/v1", tags=["diagnostics"])
 app.include_router(qsar_ready.router, prefix="/api/v1", tags=["qsar-ready"])
-app.include_router(genchem.router, prefix="/api/v1", tags=["genchem"])
+app.include_router(structure_filter.router, prefix="/api/v1", tags=["structure-filter"])
 app.include_router(
     dataset_intelligence.router, prefix="/api/v1", tags=["dataset-intelligence"]
 )
@@ -548,18 +548,18 @@ async def qsar_progress_websocket(websocket: WebSocket, job_id: str):
         _ws_qsar_connections[job_id] = max(0, _ws_qsar_connections.get(job_id, 1) - 1)
 
 
-_ws_genchem_connections: dict[str, int] = {}
+_ws_structure_filter_connections: dict[str, int] = {}
 
 
-@app.websocket("/ws/genchem/{job_id}")
-async def genchem_progress_websocket(websocket: WebSocket, job_id: str):
+@app.websocket("/ws/structure-filter/{job_id}")
+async def structure_filter_progress_websocket(websocket: WebSocket, job_id: str):
     """
-    WebSocket endpoint for real-time GenChem async batch progress updates.
+    WebSocket endpoint for real-time structure filter async batch progress updates.
 
-    Connect to /ws/genchem/{job_id} after uploading a batch file to receive
-    progress updates in real-time from the `genchem:{job_id}` Redis channel.
+    Connect to /ws/structure-filter/{job_id} after uploading a batch file to receive
+    progress updates in real-time from the `structure-filter:{job_id}` Redis channel.
 
-    Uses the `genchem:{job_id}` channel prefix to avoid collision with
+    Uses the `structure-filter:{job_id}` channel prefix to avoid collision with
     `batch:{job_id}` and `qsar:{job_id}` channels (Pitfall 5 from RESEARCH.md).
 
     Message format:
@@ -581,12 +581,26 @@ async def genchem_progress_websocket(websocket: WebSocket, job_id: str):
         return
 
     # Post-accept validation: enforce per-job connection limit
-    current = _ws_genchem_connections.get(job_id, 0)
+    current = _ws_structure_filter_connections.get(job_id, 0)
     if current >= _WS_MAX_PER_JOB:
         await websocket.close(code=4029, reason="Too many connections for this job")
         return
 
-    _ws_genchem_connections[job_id] = current + 1
+    # Post-accept validation: session-based ownership check
+    session_cookie = websocket.cookies.get("chemaudit_sid")
+    if session_cookie:
+        try:
+            import redis as sync_redis
+            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
+            owner = r.get(f"structure-filter:owner:{job_id}")
+            if owner and owner != session_cookie:
+                manager.disconnect(job_id, websocket)
+                await websocket.close(code=4003, reason="Access denied")
+                return
+        except Exception:
+            pass  # Degrade gracefully
+
+    _ws_structure_filter_connections[job_id] = current + 1
 
     # Send initial status after subscription is ready
     await manager.send_initial_status(job_id, websocket)
@@ -602,7 +616,9 @@ async def genchem_progress_websocket(websocket: WebSocket, job_id: str):
                 break
     finally:
         manager.disconnect(job_id, websocket)
-        _ws_genchem_connections[job_id] = max(0, _ws_genchem_connections.get(job_id, 1) - 1)
+        _ws_structure_filter_connections[job_id] = max(
+            0, _ws_structure_filter_connections.get(job_id, 1) - 1
+        )
 
 
 _ws_dataset_connections: dict[str, int] = {}
@@ -617,7 +633,7 @@ async def dataset_progress_websocket(websocket: WebSocket, job_id: str):
     progress updates in real-time from the ``dataset:{job_id}`` Redis channel.
 
     Uses the ``dataset:{job_id}`` channel prefix to avoid collision with
-    ``batch:{job_id}``, ``qsar:{job_id}``, and ``genchem:{job_id}`` channels.
+    ``batch:{job_id}``, ``qsar:{job_id}``, and ``structure-filter:{job_id}`` channels.
 
     Message format:
     {
@@ -642,6 +658,20 @@ async def dataset_progress_websocket(websocket: WebSocket, job_id: str):
     if current >= _WS_MAX_PER_JOB:
         await websocket.close(code=4029, reason="Too many connections for this job")
         return
+
+    # Post-accept validation: session-based ownership check
+    session_cookie = websocket.cookies.get("chemaudit_sid")
+    if session_cookie:
+        try:
+            import redis as sync_redis
+            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
+            owner = r.get(f"dataset:owner:{job_id}")
+            if owner and owner != session_cookie:
+                manager.disconnect(job_id, websocket)
+                await websocket.close(code=4003, reason="Access denied")
+                return
+        except Exception:
+            pass  # Degrade gracefully
 
     _ws_dataset_connections[job_id] = current + 1
 
