@@ -112,7 +112,7 @@ async def qsar_ready_single_endpoint(
 
 
 @router.post("/qsar-ready/batch/upload", response_model=QSARBatchUploadResponse)
-@limiter.limit("10/minute", key_func=get_rate_limit_key)
+@limiter.limit("3/minute", key_func=get_rate_limit_key)
 async def qsar_batch_upload(
     request: Request,
     config: str = Form(..., description="JSON-encoded QSARReadyConfig"),

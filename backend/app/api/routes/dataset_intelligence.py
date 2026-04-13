@@ -15,10 +15,12 @@ Routes:
 WebSocket /ws/dataset/{job_id} is registered in main.py.
 """
 
+import base64
 import csv
 import io
 import json
 import logging
+import os
 import re
 import tempfile
 from typing import Optional
@@ -79,7 +81,7 @@ def _get_file_extension(filename: str) -> str:
 
 
 @router.post("/dataset/upload", response_model=DatasetUploadResponse)
-@limiter.limit("10/minute", key_func=get_rate_limit_key)
+@limiter.limit("3/minute", key_func=get_rate_limit_key)
 async def upload_dataset(
     request: Request,
     file: UploadFile = File(..., description="CSV or SDF file with molecules"),
@@ -134,18 +136,10 @@ async def upload_dataset(
             detail="File exceeds maximum size limit.",
         )
 
-    # Save to temp file (NOT base64 -- per Pitfall 6)
-    suffix = f".{ext}"
-    try:
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-        tmp.write(content)
-        tmp.flush()
-        tmp.close()
-        file_path = tmp.name
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail="Failed to save uploaded file"
-        ) from exc
+    # Encode file content for Celery serialization (avoids cross-container
+    # temp-file issues — Celery workers run in separate Docker containers
+    # and cannot access the backend's /tmp filesystem).
+    file_content_b64 = base64.b64encode(content).decode("ascii")
 
     # Generate job ID and initialize Redis metadata
     job_id = str(uuid4())
@@ -172,7 +166,7 @@ async def upload_dataset(
             process_dataset_audit,
         )
 
-        process_dataset_audit.delay(file_path, filename, ext, job_id, options)
+        process_dataset_audit.delay(file_content_b64, filename, ext, job_id, options)
     except Exception as exc:
         logger.error("Failed to dispatch dataset audit task for %s: %s", job_id, exc)
         raise HTTPException(
@@ -399,17 +393,17 @@ async def compute_diff(
             comparison_molecules, _ = _parse_csv_full(comp_file_path, None)
 
         # Strip mol objects for the diff function (it only needs dict fields)
-        comparison_mols_clean = []
-        for mol_dict in comparison_molecules:
-            comparison_mols_clean.append({
+        comparison_mols_clean = [
+            {
                 "index": mol_dict["index"],
                 "smiles": mol_dict["smiles"],
                 "inchikey": mol_dict.get("inchikey"),
                 "properties": mol_dict.get("properties", {}),
-            })
+            }
+            for mol_dict in comparison_molecules
+        ]
     finally:
         try:
-            import os
             os.unlink(comp_file_path)
         except OSError:
             pass

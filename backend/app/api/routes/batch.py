@@ -72,7 +72,7 @@ def _parse_json_field(value: Any) -> Any:
 
 
 @router.post("/batch/upload", response_model=BatchUploadResponse)
-@limiter.limit("10/minute", key_func=get_rate_limit_key)
+@limiter.limit("3/minute", key_func=get_rate_limit_key)
 async def upload_batch(
     request: Request,
     file: UploadFile = File(..., description="SDF or CSV file to process"),

@@ -1,19 +1,19 @@
 """
-GenChem Filter API Routes (Phase 11).
+Structure Filter API Routes (Phase 11).
 
-Endpoints for multi-stage generative chemistry filtering, REINVENT-compatible
+Endpoints for multi-stage structure filtering, REINVENT-compatible
 scoring, and async batch processing.
 
 Routes:
-  POST /api/v1/genchem/filter          — multi-stage funnel (sync ≤1000, async >1000)
-  POST /api/v1/genchem/score           — composite 0-1 scores per SMILES
-  POST /api/v1/genchem/reinvent-score                      — REINVENT 4-compatible scoring endpoint
-  POST /api/v1/genchem/batch/upload                        — queue async batch job
-  GET  /api/v1/genchem/batch/{job_id}/status               — poll batch progress
-  GET  /api/v1/genchem/batch/{job_id}/results              — batch results (Redis-stored)
-  GET  /api/v1/genchem/batch/{job_id}/download/{format}    — download passed_txt or full_csv
+  POST /api/v1/structure-filter/filter          — multi-stage funnel (sync ≤1000, async >1000)
+  POST /api/v1/structure-filter/score           — composite 0-1 scores per SMILES
+  POST /api/v1/structure-filter/reinvent-score   — REINVENT 4-compatible scoring endpoint
+  POST /api/v1/structure-filter/batch/upload     — queue async batch job
+  GET  /api/v1/structure-filter/batch/{job_id}/status               — poll batch progress
+  GET  /api/v1/structure-filter/batch/{job_id}/results              — batch results (Redis-stored)
+  GET  /api/v1/structure-filter/batch/{job_id}/download/{format}    — download passed_txt or full_csv
 
-WebSocket /ws/genchem/{job_id} is registered in main.py.
+WebSocket /ws/structure-filter/{job_id} is registered in main.py.
 """
 
 import csv
@@ -21,6 +21,7 @@ import dataclasses
 import io
 import json
 import logging
+import re
 import uuid
 from typing import Optional
 
@@ -30,13 +31,10 @@ from fastapi.responses import StreamingResponse
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
-from app.schemas.genchem import (
+from app.schemas.structure_filter import (
     FilterConfigSchema,
     FilterRequest,
     FilterResponse,
-    GenChemBatchResultsResponse,
-    GenChemBatchStatusResponse,
-    GenChemBatchUploadResponse,
     MoleculeResultSchema,
     REINVENTInput,
     REINVENTOutput,
@@ -45,10 +43,13 @@ from app.schemas.genchem import (
     ScoreRequest,
     ScoreResponse,
     StageResultSchema,
+    StructureFilterBatchResultsResponse,
+    StructureFilterBatchStatusResponse,
+    StructureFilterBatchUploadResponse,
 )
-from app.services.genchem.filter_config import PRESETS, FilterConfig
-from app.services.genchem.filter_pipeline import filter_batch
-from app.services.genchem.scorer import score_for_generative
+from app.services.structure_filter.filter_config import PRESETS, FilterConfig
+from app.services.structure_filter.filter_pipeline import filter_batch
+from app.services.structure_filter.scorer import score_for_generative
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,10 @@ router = APIRouter()
 
 # Sync/async split threshold (D-22)
 _SYNC_THRESHOLD = 1000
+
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
+)
 
 
 # =============================================================================
@@ -111,18 +116,18 @@ def _get_redis():
 # =============================================================================
 
 
-@router.post("/genchem/filter")
+@router.post("/structure-filter/filter")
 @limiter.limit("20/minute", key_func=get_rate_limit_key)
-async def genchem_filter(
+async def structure_filter_filter(
     request: Request,
     body: FilterRequest,
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
-    Run the multi-stage GenChem filter pipeline on a list of SMILES.
+    Run the multi-stage structure filter pipeline on a list of SMILES.
 
     For ≤1,000 SMILES: runs synchronously and returns FilterResponse.
-    For >1,000 SMILES: queues a Celery task and returns GenChemBatchUploadResponse
+    For >1,000 SMILES: queues a Celery task and returns StructureFilterBatchUploadResponse
     with a job_id for async tracking (D-22).
 
     Stages: parse → valence → alerts → property → SA score → dedup (→ novelty if enabled).
@@ -131,7 +136,7 @@ async def genchem_filter(
         body: FilterRequest with smiles_list, optional preset or config.
 
     Returns:
-        FilterResponse (sync) or GenChemBatchUploadResponse (async).
+        FilterResponse (sync) or StructureFilterBatchUploadResponse (async).
 
     Raises:
         HTTPException: 400 for unknown preset or invalid input.
@@ -143,7 +148,7 @@ async def genchem_filter(
         try:
             result = filter_batch(body.smiles_list, config)
         except Exception as exc:
-            logger.exception("Error in genchem filter_batch: %s", exc)
+            logger.exception("Error in structure-filter filter_batch: %s", exc)
             raise HTTPException(
                 status_code=500,
                 detail={"error": "Filter pipeline failed", "detail": str(exc)},
@@ -165,25 +170,27 @@ async def genchem_filter(
     try:
         r = _get_redis()
         r.set(
-            f"genchem:meta:{job_id}",
+            f"structure-filter:meta:{job_id}",
             json.dumps({"status": "pending", "total": len(body.smiles_list)}),
             ex=3600,
         )
     except Exception as exc:
-        logger.warning("Failed to store genchem job metadata: %s", exc)
+        logger.warning("Failed to store structure-filter job metadata: %s", exc)
 
     try:
-        from app.services.genchem.batch_processor import process_genchem_batch
+        from app.services.structure_filter.batch_processor import (
+            process_structure_filter_batch,
+        )
 
-        process_genchem_batch.delay(body.smiles_list, config_dict, job_id)
+        process_structure_filter_batch.delay(body.smiles_list, config_dict, job_id)
     except Exception as exc:
-        logger.error("Failed to dispatch genchem batch task for %s: %s", job_id, exc)
+        logger.error("Failed to dispatch structure-filter batch task for %s: %s", job_id, exc)
         raise HTTPException(
             status_code=500,
             detail="Failed to start batch processing",
         ) from exc
 
-    return GenChemBatchUploadResponse(
+    return StructureFilterBatchUploadResponse(
         job_id=job_id,
         total_molecules=len(body.smiles_list),
         status="pending",
@@ -195,9 +202,9 @@ async def genchem_filter(
 # =============================================================================
 
 
-@router.post("/genchem/score", response_model=ScoreResponse)
+@router.post("/structure-filter/score", response_model=ScoreResponse)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def genchem_score(
+async def structure_filter_score(
     request: Request,
     body: ScoreRequest,
     api_key: Optional[str] = Depends(get_api_key),
@@ -236,9 +243,9 @@ async def genchem_score(
 # =============================================================================
 
 
-@router.post("/genchem/reinvent-score", response_model=REINVENTResponse)
+@router.post("/structure-filter/reinvent-score", response_model=REINVENTResponse)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def genchem_reinvent_score(
+async def structure_filter_reinvent_score(
     request: Request,
     body: list[REINVENTInput],
     preset: str = Query(default="drug_like"),
@@ -284,17 +291,17 @@ async def genchem_reinvent_score(
 # =============================================================================
 
 
-@router.post("/genchem/batch/upload", response_model=GenChemBatchUploadResponse)
-@limiter.limit("10/minute", key_func=get_rate_limit_key)
-async def genchem_batch_upload(
+@router.post("/structure-filter/batch/upload", response_model=StructureFilterBatchUploadResponse)
+@limiter.limit("3/minute", key_func=get_rate_limit_key)
+async def structure_filter_batch_upload(
     request: Request,
     file: UploadFile = File(..., description="CSV or SDF file with SMILES"),
     preset: Optional[str] = Form(default=None, description="Named preset name"),
     config: Optional[str] = Form(default=None, description="JSON-encoded FilterConfigSchema"),
     api_key: Optional[str] = Depends(get_api_key),
-) -> GenChemBatchUploadResponse:
+) -> StructureFilterBatchUploadResponse:
     """
-    Upload a file for async GenChem batch filtering.
+    Upload a file for async structure filter batch filtering.
 
     Parses the file, queues a Celery task on the 'default' queue, and returns
     immediately with a job_id for async tracking.
@@ -305,7 +312,7 @@ async def genchem_batch_upload(
         config: Optional JSON-encoded FilterConfigSchema.
 
     Returns:
-        GenChemBatchUploadResponse with job_id, total_molecules, status.
+        StructureFilterBatchUploadResponse with job_id, total_molecules, status.
 
     Raises:
         HTTPException: 400 for missing/invalid input.
@@ -364,26 +371,28 @@ async def genchem_batch_upload(
     try:
         r = _get_redis()
         r.set(
-            f"genchem:meta:{job_id}",
+            f"structure-filter:meta:{job_id}",
             json.dumps({"status": "pending", "total": len(smiles_list)}),
             ex=3600,
         )
     except Exception as exc:
-        logger.warning("Failed to store genchem batch metadata in Redis: %s", exc)
+        logger.warning("Failed to store structure-filter batch metadata in Redis: %s", exc)
 
     # Dispatch Celery task
     try:
-        from app.services.genchem.batch_processor import process_genchem_batch
+        from app.services.structure_filter.batch_processor import (
+            process_structure_filter_batch,
+        )
 
-        process_genchem_batch.delay(smiles_list, config_dict, job_id)
+        process_structure_filter_batch.delay(smiles_list, config_dict, job_id)
     except Exception as exc:
-        logger.error("Failed to dispatch genchem batch task for %s: %s", job_id, exc)
+        logger.error("Failed to dispatch structure-filter batch task for %s: %s", job_id, exc)
         raise HTTPException(
             status_code=500,
             detail="Failed to start batch processing",
         ) from exc
 
-    return GenChemBatchUploadResponse(
+    return StructureFilterBatchUploadResponse(
         job_id=job_id,
         total_molecules=len(smiles_list),
         status="pending",
@@ -395,23 +404,26 @@ async def genchem_batch_upload(
 # =============================================================================
 
 
-@router.get("/genchem/batch/{job_id}/status", response_model=GenChemBatchStatusResponse)
+@router.get(
+    "/structure-filter/batch/{job_id}/status",
+    response_model=StructureFilterBatchStatusResponse,
+)
 @limiter.limit("60/minute", key_func=get_rate_limit_key)
-async def genchem_batch_status(
+async def structure_filter_batch_status(
     request: Request,
     job_id: str,
     api_key: Optional[str] = Depends(get_api_key),
-) -> GenChemBatchStatusResponse:
+) -> StructureFilterBatchStatusResponse:
     """
-    Get the current processing status of a GenChem async batch job.
+    Get the current processing status of a structure filter async batch job.
 
-    Reads job metadata from Redis key `genchem:meta:{job_id}`.
+    Reads job metadata from Redis key `structure-filter:meta:{job_id}`.
 
     Args:
         job_id: Batch job identifier (UUID).
 
     Returns:
-        GenChemBatchStatusResponse with status, progress, current_stage.
+        StructureFilterBatchStatusResponse with status, progress, current_stage.
 
     Raises:
         HTTPException: 404 if job not found.
@@ -420,7 +432,7 @@ async def genchem_batch_status(
 
     try:
         r = _get_redis()
-        raw_meta = r.get(f"genchem:meta:{job_id}")
+        raw_meta = r.get(f"structure-filter:meta:{job_id}")
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Redis unavailable") from exc
 
@@ -428,7 +440,7 @@ async def genchem_batch_status(
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     meta = json.loads(raw_meta)
-    return GenChemBatchStatusResponse(
+    return StructureFilterBatchStatusResponse(
         job_id=job_id,
         status=meta.get("status", "unknown"),
         progress=meta.get("progress"),
@@ -441,23 +453,26 @@ async def genchem_batch_status(
 # =============================================================================
 
 
-@router.get("/genchem/batch/{job_id}/results", response_model=GenChemBatchResultsResponse)
+@router.get(
+    "/structure-filter/batch/{job_id}/results",
+    response_model=StructureFilterBatchResultsResponse,
+)
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def genchem_batch_results(
+async def structure_filter_batch_results(
     request: Request,
     job_id: str,
     api_key: Optional[str] = Depends(get_api_key),
-) -> GenChemBatchResultsResponse:
+) -> StructureFilterBatchResultsResponse:
     """
-    Retrieve results for a completed GenChem async batch job.
+    Retrieve results for a completed structure filter async batch job.
 
-    Reads results from Redis key `genchem:results:{job_id}` (not Celery result backend).
+    Reads results from Redis key `structure-filter:results:{job_id}` (not Celery result backend).
 
     Args:
         job_id: Batch job identifier (UUID).
 
     Returns:
-        GenChemBatchResultsResponse with status and optional result.
+        StructureFilterBatchResultsResponse with status and optional result.
 
     Raises:
         HTTPException: 404 if job or results not found.
@@ -466,8 +481,8 @@ async def genchem_batch_results(
 
     try:
         r = _get_redis()
-        raw_meta = r.get(f"genchem:meta:{job_id}")
-        raw_results = r.get(f"genchem:results:{job_id}")
+        raw_meta = r.get(f"structure-filter:meta:{job_id}")
+        raw_results = r.get(f"structure-filter:results:{job_id}")
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Redis unavailable") from exc
 
@@ -478,7 +493,7 @@ async def genchem_batch_results(
     status = meta.get("status", "unknown")
 
     if raw_results is None:
-        return GenChemBatchResultsResponse(job_id=job_id, status=status, result=None)
+        return StructureFilterBatchResultsResponse(job_id=job_id, status=status, result=None)
 
     result_data = json.loads(raw_results)
     stages = [StageResultSchema(**s) for s in result_data.get("stages", [])]
@@ -489,7 +504,7 @@ async def genchem_batch_results(
         stages=stages,
         molecules=molecules,
     )
-    return GenChemBatchResultsResponse(
+    return StructureFilterBatchResultsResponse(
         job_id=job_id,
         status=status,
         result=filter_response,
@@ -501,16 +516,16 @@ async def genchem_batch_results(
 # =============================================================================
 
 
-@router.get("/genchem/batch/{job_id}/download/{format}")
+@router.get("/structure-filter/batch/{job_id}/download/{format}")
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
-async def genchem_batch_download(
+async def structure_filter_batch_download(
     request: Request,
     job_id: str,
     format: str,
     api_key: Optional[str] = Depends(get_api_key),
 ) -> StreamingResponse:
     """
-    Download batch GenChem results in 'passed_txt' or 'full_csv' format.
+    Download batch structure filter results in 'passed_txt' or 'full_csv' format.
 
     passed_txt: one SMILES per line, only molecules with status == 'passed'.
     full_csv: all molecules with columns smiles,status,failed_at,rejection_reason.
@@ -535,7 +550,7 @@ async def genchem_batch_download(
 
     try:
         r = _get_redis()
-        raw_results = r.get(f"genchem:results:{job_id}")
+        raw_results = r.get(f"structure-filter:results:{job_id}")
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Redis unavailable") from exc
 
@@ -567,7 +582,9 @@ def _build_passed_txt_response(job_id: str, molecules: list) -> StreamingRespons
         iter([content]),
         media_type="text/plain",
         headers={
-            "Content-Disposition": f"attachment; filename=genchem_passed_{job_id[:8]}.txt"
+            "Content-Disposition": (
+                f"attachment; filename=structure_filter_passed_{job_id[:8]}.txt"
+            )
         },
     )
 
@@ -594,7 +611,9 @@ def _build_full_csv_response(job_id: str, molecules: list) -> StreamingResponse:
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename=genchem_results_{job_id[:8]}.csv"
+            "Content-Disposition": (
+                f"attachment; filename=structure_filter_results_{job_id[:8]}.csv"
+            )
         },
     )
 
@@ -606,11 +625,6 @@ def _build_full_csv_response(job_id: str, molecules: list) -> StreamingResponse:
 
 def _validate_uuid(job_id: str) -> None:
     """Validate UUID format; raises HTTPException 400 if invalid."""
-    import re
-
-    _UUID_RE = re.compile(
-        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
-    )
     if not _UUID_RE.match(job_id):
         raise HTTPException(
             status_code=400,
