@@ -110,6 +110,7 @@ import type {
   ChEMBLResult,
   COCONUTResult,
   WikidataResult,
+  SureChEMBLResult,
   IntegrationError,
   ResolveRequest,
   ResolvedCompound,
@@ -824,18 +825,24 @@ export const integrationsApi = {
   lookupWikidata: (request: IntegrationRequest): Promise<WikidataResult> =>
     integrationPost('/integrations/wikidata/lookup', request, 'Network error'),
 
+  /** Look up molecule in SureChEMBL patent database. */
+  lookupSureChEMBL: (request: IntegrationRequest): Promise<SureChEMBLResult> =>
+    integrationPost('/integrations/surechembl/lookup', request, 'Network error'),
+
   /** Look up molecule in all databases in parallel. */
   lookupAll: async (request: IntegrationRequest): Promise<{
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
     wikidata: WikidataResult | null;
+    surechembl: SureChEMBLResult | null;
   }> => {
-    const [pubchem, chembl, coconut, wikidata] = await Promise.allSettled([
+    const [pubchem, chembl, coconut, wikidata, surechembl] = await Promise.allSettled([
       integrationsApi.lookupPubChem(request),
       integrationsApi.lookupChEMBL(request),
       integrationsApi.lookupCOCONUT(request),
       integrationsApi.lookupWikidata(request),
+      integrationsApi.lookupSureChEMBL(request),
     ]);
 
     return {
@@ -843,6 +850,7 @@ export const integrationsApi = {
       chembl: chembl.status === 'fulfilled' ? chembl.value : null,
       coconut: coconut.status === 'fulfilled' ? coconut.value : null,
       wikidata: wikidata.status === 'fulfilled' ? wikidata.value : null,
+      surechembl: surechembl.status === 'fulfilled' ? surechembl.value : null,
     };
   },
 

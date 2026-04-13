@@ -79,12 +79,26 @@ export interface WikidataResult {
   url?: string;
 }
 
+// SureChEMBL
+export interface SureChEMBLResult {
+  found: boolean;
+  schembl_id?: string;
+  url?: string;
+  patent_count?: number;
+  source?: string;
+  smiles?: string;
+  inchi?: string;
+  inchikey?: string;
+  molecular_weight?: number;
+}
+
 // Combined lookup result
 export interface DatabaseLookupResult {
   pubchem?: PubChemResult;
   chembl?: ChEMBLResult;
   coconut?: COCONUTResult;
   wikidata?: WikidataResult;
+  surechembl?: SureChEMBLResult;
 }
 
 export interface IntegrationError {

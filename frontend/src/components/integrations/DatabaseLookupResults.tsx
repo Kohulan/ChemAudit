@@ -1,4 +1,4 @@
-import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult } from '../../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, SureChEMBLResult } from '../../types/integrations';
 import { safeHref } from '../../lib/sanitize';
 const pubchemLogo = '/assets/logos/pubchem.png';
 const chemblLogo = '/assets/logos/chembl.png';
@@ -11,6 +11,7 @@ interface DatabaseLookupResultsProps {
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
     wikidata: WikidataResult | null;
+    surechembl?: SureChEMBLResult | null;
   };
 }
 
@@ -28,6 +29,11 @@ export function DatabaseLookupResults({ results }: DatabaseLookupResultsProps) {
 
       {/* Wikidata Result */}
       <WikidataCard result={results.wikidata} />
+
+      {/* SureChEMBL Result */}
+      {results.surechembl !== undefined && (
+        <SureChEMBLCard result={results.surechembl ?? null} />
+      )}
     </div>
   );
 }
@@ -358,6 +364,79 @@ function WikidataCard({ result }: { result: WikidataResult | null }) {
             </a>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
+  if (!result) {
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📄</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">SureChEMBL</span>
+          <span className="text-xs text-gray-400">Failed to query</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border rounded-lg p-4 ${result.found ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">📄</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">SureChEMBL</span>
+        {result.found ? (
+          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 text-xs rounded-full">In Patents</span>
+        ) : (
+          <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded-full">Not Found</span>
+        )}
+      </div>
+
+      {result.found && (
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2">
+            {result.schembl_id && (
+              <div>
+                <span className="text-gray-500">SCHEMBL ID:</span>{' '}
+                <span className="font-mono text-rose-700 dark:text-rose-400">{result.schembl_id}</span>
+              </div>
+            )}
+            {result.patent_count != null && (
+              <div>
+                <span className="text-gray-500">Patents:</span>{' '}
+                <span className="font-medium">{result.patent_count.toLocaleString()}</span>
+              </div>
+            )}
+            {result.source && (
+              <div>
+                <span className="text-gray-500">Source:</span>{' '}
+                <span className="text-gray-700 dark:text-gray-300">{result.source === 'surechembl_api' ? 'SureChEMBL API' : 'UniChem'}</span>
+              </div>
+            )}
+          </div>
+
+          {result.url && (
+            <a
+              href={safeHref(result.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
+            >
+              View on SureChEMBL
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
+        </div>
+      )}
+
+      {!result.found && (
+        <p className="text-xs text-gray-500 mt-2">
+          Not found in patent literature via SureChEMBL.
+        </p>
       )}
     </div>
   );
