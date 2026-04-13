@@ -52,13 +52,20 @@ docker-compose up -d
 
 | Feature | Description |
 |---------|-------------|
-| **Single Validation** | Validate SMILES, InChI, or MOL blocks with detailed structural checks |
+| **Single Validation** | Validate SMILES, InChI, MOL blocks, or IUPAC names with 27 structural checks |
 | **Batch Processing** | Process up to 1M molecules with real-time WebSocket progress |
-| **Structural Alerts** | Screen against PAINS, BRENK, NIH, ZINC, and ChEMBL catalogs (~1500+ patterns) |
-| **Scoring** | ML-readiness, drug-likeness (Lipinski/QED/Veber/Ghose/Egan/Muegge), ADMET, NP-likeness, scaffold analysis, aggregator likelihood |
+| **Batch Analytics** | Butina clustering, chemical taxonomy (~50 SMARTS rules), t-SNE/PCA chemical space, scaffold analysis, registration hashing |
+| **Structural Alerts** | Screen against PAINS, BRENK, NIH, ZINC, and ChEMBL catalogs (~1,500+ patterns) |
+| **Scoring** | 10+ scoring modules: ML-readiness, drug-likeness, ADMET, NP-likeness, scaffold analysis, aggregator likelihood, ligand efficiency, bioavailability radar, property breakdown, salt inventory |
+| **QSAR-Ready Pipeline** | Multi-step ML-readiness curation: standardization, salt stripping, neutralization, tautomer canonicalization, duplicate removal |
+| **Structure Filter** | Multi-stage funnel filtering with property filters, SMARTS substructure matching, presets (drug-like, lead-like, fragment-like), REINVENT scoring |
+| **Dataset Audit** | Dataset health scoring, contradictory label detection, dataset diff/comparison, curation reports |
+| **Identifier Resolution** | Resolve 10+ identifier types (SMILES, InChI, InChIKey, CID, ChEMBL, CAS, DrugBank, ChEBI, UNII, Wikipedia, names) with cross-database linking |
+| **Database Comparison** | Cross-database structure comparison against PubChem, ChEMBL, COCONUT, Wikidata with consistency verdicts |
+| **Diagnostics** | SMILES diagnostics, InChI layer diff, round-trip validation, file pre-validation, coordinate analysis |
 | **Standardization** | ChEMBL-compatible pipeline: sanitize, get parent, remove salts, optional tautomer canonicalization |
-| **Database Lookup** | Cross-reference PubChem, ChEMBL, and COCONUT |
-| **Export** | CSV, Excel, SDF, JSON, and PDF report formats |
+| **Database Lookup** | Cross-reference PubChem, ChEMBL, COCONUT, and Wikidata |
+| **Export** | CSV, Excel, SDF, JSON, PDF, fingerprint matrix, deduplicated set, scaffold-grouped, property matrix |
 
 ---
 

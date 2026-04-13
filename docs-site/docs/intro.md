@@ -40,7 +40,7 @@ Screen against over 1,500 patterns from PAINS, BRENK, NIH, ZINC, and ChEMBL cata
 
 ### Comprehensive Scoring
 
-Evaluate molecules across multiple dimensions:
+Evaluate molecules across 10+ dimensions:
 
 - **ML-readiness**: Descriptor calculability, fingerprint generation, size constraints
 - **Drug-likeness**: Lipinski, QED, Veber, Rule of Three, Ghose, Egan, Muegge filters
@@ -48,6 +48,10 @@ Evaluate molecules across multiple dimensions:
 - **NP-likeness**: Natural product vs. synthetic classification
 - **Scaffold analysis**: Murcko scaffold extraction
 - **Aggregator likelihood**: Colloidal aggregation risk assessment
+- **Ligand efficiency**: LE and LLE metrics for lead optimization
+- **Bioavailability radar**: 6-axis oral bioavailability profile
+- **Property breakdown**: Per-atom TPSA and LogP contributions
+- **Salt inventory**: Salt form detection and fragment classification
 
 ### ChEMBL-Compatible Standardization
 
@@ -58,10 +62,29 @@ Standardize structures using a pipeline compatible with ChEMBL's curation workfl
 - Parent molecule extraction
 - Optional tautomer canonicalization
 
+### QSAR-Ready Pipeline
+
+Prepare chemical datasets for machine learning with a multi-step curation pipeline: standardization, salt stripping, neutralization, tautomer canonicalization, and duplicate removal. Batch export in CSV, SDF, or JSON.
+
+### Structure Filter
+
+Multi-stage funnel filtering for generative chemistry outputs with property filters, SMARTS substructure matching, preset configurations (drug-like, lead-like, fragment-like), funnel visualization, and REINVENT-compatible scoring.
+
+### Dataset Audit
+
+Comprehensive dataset health auditing with an overall health score, contradictory label detection, dataset diff/comparison, curation reports, and interactive treemap drill-down.
+
+### Diagnostics
+
+Low-level structure analysis tools: SMILES diagnostics, InChI layer diff, round-trip validation, file pre-validation, and coordinate dimension analysis.
+
 ### Batch Analytics & Visualizations
 
 Explore batch results with interactive charts and chemical space mapping:
 
+- Butina clustering with configurable Tanimoto cutoff (Morgan ECFP4 fingerprints)
+- Chemical taxonomy classification (~50 curated SMARTS rules)
+- Registration hashing for tautomer-invariant deduplication
 - Deduplication across 4 levels (exact, tautomer, stereo, salt-form)
 - Scaffold analysis with diversity metrics
 - PCA and t-SNE chemical space projections
@@ -105,6 +128,12 @@ Cross-reference molecules against:
 - **PubChem**: Properties, synonyms, IUPAC names
 - **ChEMBL**: Bioactivity data, targets, clinical phase
 - **COCONUT**: Natural product sources and organisms
+- **Wikidata**: Isomeric SMILES, InChI, CAS numbers, molecular mass
+
+Plus:
+
+- **Identifier Resolution**: Resolve 10+ identifier types (SMILES, InChI, InChIKey, CID, ChEMBL ID, CAS, DrugBank, ChEBI, UNII, Wikipedia URL, compound names) with automatic detection and cross-database linking via UniChem
+- **Cross-Database Comparison**: Compare structural representations across all four databases with consistency verdicts
 
 ## Quick Start
 
@@ -139,6 +168,9 @@ Ready to get started? Here's where to go next:
 
 - **[Getting Started](/docs/getting-started/installation)** — Install and configure ChemAudit
 - **[User Guide](/docs/user-guide/single-validation)** — Learn all features
+- **[QSAR-Ready Pipeline](/docs/user-guide/qsar-ready)** — Curate datasets for ML
+- **[Structure Filter](/docs/user-guide/structure-filter)** — Multi-stage compound filtering
+- **[Dataset Audit](/docs/user-guide/dataset-audit)** — Dataset health auditing
 - **[Batch Analytics](/docs/user-guide/batch-analytics)** — Interactive dataset exploration
 - **[Scoring Profiles](/docs/user-guide/scoring/profiles)** — Custom property scoring
 - **[Bookmarks & History](/docs/user-guide/bookmarks-history)** — Save and track results

@@ -38,6 +38,51 @@ Comprehensive property statistics computed across all successful molecules:
 
 These computationally expensive analyses are triggered manually and run in the background:
 
+### Butina Clustering
+
+Sphere-exclusion clustering groups structurally similar molecules using Morgan fingerprints (ECFP4, radius=2, 2048 bits) and Tanimoto distance:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **Fingerprint** | Morgan ECFP4 | radius=2, 2048 bits |
+| **Distance metric** | 1 − Tanimoto | Higher = more dissimilar |
+| **Distance cutoff** | 0.2–0.6 (default: 0.35) | Configurable in the UI |
+| **Max molecules** | 1,000 | Larger datasets must be subsetted first |
+
+The algorithm selects centroids (molecules with the most neighbors within the cutoff), assigns other molecules to the nearest centroid, and leaves unassigned molecules as singletons.
+
+**Output:** Cluster assignments, cluster count, singleton count, largest cluster size, and a SMILES map for 2D depictions.
+
+:::warning Molecule Limit
+Butina clustering is limited to 1,000 molecules due to the O(n²) pairwise distance computation. For larger datasets, select a subset first using the subset actions panel.
+:::
+
+### Chemical Taxonomy
+
+Classifies molecules into chemical categories using ~50 curated SMARTS rules organized into three groups:
+
+| Group | Examples |
+|-------|---------|
+| **Ring Systems** | Benzene, pyridine, pyrimidine, indole, quinoline, furan, thiophene, imidazole, piperidine |
+| **Functional Groups** | Amide, ester, carboxylic acid, sulfonamide, nitro, halide, ketone, aldehyde |
+| **Pharmacophoric / Drug-class** | Beta-lactam, benzodiazepine, statin-like, kinase inhibitor-like, steroid |
+
+Each molecule can match multiple categories (multi-label classification). The output includes:
+
+- **Per-molecule classifications**: List of matched categories for each molecule
+- **Category counts**: Aggregate counts across the dataset
+- **Classified/unclassified counts**: How many molecules matched at least one rule
+
+### Registration Hashing
+
+Computes canonical registration hashes for deduplication using RDKit's `RegistrationHash` with tautomer hash v2:
+
+- **Tautomer-invariant**: Tautomeric forms of the same molecule receive the same hash
+- **Collision groups**: Sets of molecules that hash identically (potential duplicates)
+- **Unique count**: Number of structurally unique molecules in the dataset
+
+This is useful for identifying duplicates that would be missed by simple SMILES comparison (e.g., different tautomeric representations of the same compound).
+
 ### Scaffold Analysis
 
 Extracts Murcko scaffolds (ring systems + linkers) and generic scaffolds (all atoms replaced with carbon):
