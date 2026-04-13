@@ -32,6 +32,7 @@ import {
   Search,
   Filter,
   Layers,
+  User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -130,7 +131,7 @@ export function AboutPage() {
             <WhatIsChemAudit />
           </AnimatedCard>
 
-          {/* Research Group - Tall card spanning 4 columns, 2 rows */}
+          {/* Research Group + Developer - Tall card spanning 4 columns, 2 rows */}
           <AnimatedCard className="lg:col-span-4 lg:row-span-2" delay={0.2}>
             <ResearchGroup />
           </AnimatedCard>
@@ -506,6 +507,12 @@ function WhatIsChemAudit() {
 function ResearchGroup() {
   const mapUrl = 'https://www.google.com/maps/place/Lessingstra%C3%9Fe+8,+07743+Jena,+Germany';
 
+  const devLinks = [
+    { icon: <Github className="w-6 h-6" />, href: 'https://github.com/Kohulan', label: 'GitHub', sphere: 'radial-gradient(circle at 35% 30%, #4b5563, #1f2937 50%, #111827)', glow: 'rgba(31,41,55,0.5)' },
+    { icon: <Globe className="w-6 h-6" />, href: 'https://kohulanr.com', label: 'Website', sphere: 'radial-gradient(circle at 35% 30%, #60a5fa, #3b82f6 50%, #1d4ed8)', glow: 'rgba(59,130,246,0.5)' },
+    { icon: <Mail className="w-6 h-6" />, href: 'mailto:kohulan.rajan@uni-jena.de', label: 'Email', sphere: 'radial-gradient(circle at 35% 30%, #fb7185, #f43f5e 50%, #be123c)', glow: 'rgba(244,63,94,0.5)' },
+  ];
+
   return (
     <div className="h-full flex flex-col">
       <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Research Group" />
@@ -517,19 +524,14 @@ function ResearchGroup() {
         rel="noopener noreferrer"
         className="block mb-4 group"
       >
-        <div className="rounded-xl bg-white dark:bg-white/10 p-4 transition-shadow hover:shadow-md">
+        <div className="rounded-xl bg-white dark:bg-white/10 p-2 transition-shadow hover:shadow-md">
           <img
             src="/cheminf-logo.png"
             alt="Natural Products Cheminformatics"
-            className="h-14 mx-auto object-contain"
+            className="h-20 mx-auto object-contain"
           />
         </div>
       </a>
-
-      {/* Title */}
-      <h3 className="font-semibold text-[var(--color-text-primary)] text-center mb-3">
-        Natural Products Cheminformatics
-      </h3>
 
       {/* Description */}
       <p className="text-sm text-[var(--color-text-secondary)] mb-4">
@@ -551,23 +553,127 @@ function ResearchGroup() {
         />
       </a>
 
-      {/* Address & Links */}
-      <div className="space-y-3 pt-4 border-t border-[var(--color-border)]/50">
-        <div className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
-          <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
-          <span>
-            Friedrich Schiller University Jena<br />
-            Lessingstr 8, 07743 Jena, Germany
-          </span>
-        </div>
+      {/* Address */}
+      <div className="flex items-start gap-2 text-sm text-[var(--color-text-muted)] mb-4">
+        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
+        <span>
+          Friedrich Schiller University Jena<br />
+          Lessingstr 8, 07743 Jena, Germany
+        </span>
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <ExternalLinkButton href="http://cheminf.uni-jena.de/" icon={<Globe className="w-4 h-4" />}>
-            Group Website
-          </ExternalLinkButton>
-          <ExternalLinkButton href="https://github.com/Steinbeck-Lab" icon={<Github className="w-4 h-4" />}>
-            Steinbeck-Lab GitHub
-          </ExternalLinkButton>
+      {/* Divider + Developer */}
+      <div className="border-t border-[var(--color-border)]/50 pt-4">
+        <SectionHeader icon={<User className="w-5 h-5" />} title="Developed By" />
+        <div className="flex flex-col items-center text-center group">
+          {/* Avatar */}
+          <motion.div
+            className="relative mb-3"
+            whileHover={{ y: -6, rotate: 3 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+          >
+            {/* Spinning glow ring on hover */}
+            <motion.div
+              className={cn(
+                'absolute -inset-1.5 rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-300',
+                'bg-[conic-gradient(from_0deg,var(--color-primary),var(--color-accent),var(--color-primary))]'
+              )}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            />
+            <div
+              className={cn(
+                'relative w-20 h-20 rounded-full overflow-hidden',
+                'bg-[var(--color-surface-sunken)]',
+                'shadow-[inset_4px_4px_8px_rgba(0,0,0,0.1),inset_-4px_-4px_8px_rgba(255,255,255,0.7)]',
+                'dark:shadow-[inset_4px_4px_8px_rgba(0,0,0,0.3),inset_-4px_-4px_8px_rgba(255,255,255,0.05)]',
+                'border-2 border-[var(--color-surface-elevated)]',
+                'transition-all duration-500 group-hover:scale-110'
+              )}
+            >
+              <img
+                src="https://github.com/Kohulan.png"
+                alt="Kohulan Rajan"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Online status */}
+            <div className="absolute bottom-0.5 right-0.5">
+              <div className="relative">
+                <div className="h-3 w-3 rounded-full bg-emerald-500 border-2 border-[var(--color-surface-elevated)]" />
+                <motion.div
+                  className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500"
+                  animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Info */}
+          <h3 className="text-base font-bold text-[var(--color-text-primary)] transition-colors duration-300 group-hover:text-[var(--color-primary)]">
+            Kohulan Rajan
+          </h3>
+          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+            Senior Researcher
+          </p>
+
+          {/* Tags */}
+          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+            {['AI', 'Deep Learning', 'Cheminformatics', 'Open Source'].map((tag) => (
+              <span
+                key={tag}
+                className={cn(
+                  'px-3 py-1 rounded-2xl text-[10px] font-semibold',
+                  'bg-[var(--color-surface-elevated)]',
+                  'text-[var(--color-text-secondary)]',
+                  'border border-[var(--color-border)]/20',
+                  'shadow-[inset_1px_1px_3px_rgba(255,255,255,0.7),inset_-1px_-1px_3px_rgba(0,0,0,0.06),0_3px_8px_rgba(0,0,0,0.08)]',
+                  'dark:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.04),inset_-1px_-1px_3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.25)]',
+                  'transition-all duration-300',
+                  'group-hover:text-[var(--color-primary)] group-hover:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.8),inset_-1px_-1px_3px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.1)]'
+                )}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2.5 mt-3">
+            {devLinks.map((link) => (
+              <motion.a
+                key={link.label}
+                href={link.href}
+                target={link.href.startsWith('mailto') ? undefined : '_blank'}
+                rel={link.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
+                aria-label={link.label}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95, y: 1 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative w-9 h-9 rounded-full text-white transition-all duration-200 overflow-hidden"
+                style={{
+                  background: link.sphere,
+                  boxShadow: `inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 8px rgba(255,255,255,0.2), 0 6px 16px ${link.glow}`,
+                }}
+              >
+                {/* Glossy highlight */}
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(ellipse 60% 40% at 35% 25%, rgba(255,255,255,0.5), transparent)',
+                  }}
+                />
+                {/* Centered icon with emboss shadow */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4)) drop-shadow(0 -1px 1px rgba(255,255,255,0.3))' }}
+                >
+                  {link.icon}
+                </div>
+              </motion.a>
+            ))}
+          </div>
         </div>
       </div>
     </div>
