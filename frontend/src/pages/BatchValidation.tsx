@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useBatchCache } from '../contexts/BatchCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Share2, Check } from 'lucide-react';
+import { Upload, AlertTriangle, X, ArrowRight, RotateCcw, FileSpreadsheet, Sparkles, Clock, BarChart3, Share2, Check, Download } from 'lucide-react';
 import { BatchUpload } from '../components/batch/BatchUpload';
 import { BatchProgress } from '../components/batch/BatchProgress';
 import { BatchSummary } from '../components/batch/BatchSummary';
@@ -13,6 +13,7 @@ import { MCSComparisonPanel } from '../components/batch/MCSComparisonPanel';
 import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
 import { BatchTimeline } from '../components/batch/BatchTimeline';
 import { ProfileSidebar } from '../components/batch/ProfileSidebar';
+import { ExportDialog } from '../components/batch/ExportDialog';
 import { ClayButton } from '../components/ui/ClayButton';
 import { useBatchProgress } from '../hooks/useBatchProgress';
 import { useBatchAnalytics } from '../hooks/useBatchAnalytics';
@@ -65,6 +66,8 @@ export function BatchValidationPage() {
   const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [focusedMoleculeIndex, setFocusedMoleculeIndex] = useState<number | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportSelectedIndices, setExportSelectedIndices] = useState<Set<number> | undefined>(undefined);
 
   // Analytics data for timeline and comparison radar
   const { data: analyticsData, status: analyticsStatus, error: analyticsError, progress: analyticsProgress, retrigger: analyticsRetrigger } = useBatchAnalytics(
@@ -666,6 +669,17 @@ export function BatchValidationPage() {
                     {shareCopied ? 'Link copied!' : 'Share'}
                   </ClayButton>
                   <ClayButton
+                    size="sm"
+                    onClick={() => {
+                      setExportSelectedIndices(undefined);
+                      setIsExportDialogOpen(true);
+                    }}
+                    leftIcon={<Download className="w-3.5 h-3.5" />}
+                    style={{ backgroundColor: '#003049', color: 'white', borderColor: '#003049' }}
+                  >
+                    Export
+                  </ClayButton>
+                  <ClayButton
                     variant="primary"
                     onClick={handleStartNew}
                     leftIcon={<RotateCcw className="w-4 h-4" />}
@@ -768,18 +782,33 @@ export function BatchValidationPage() {
 
             {/* Detailed Results table (drill-down) */}
             <div id="section-results" className="card p-6 scroll-mt-32">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
-                  <FileSpreadsheet className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
+                      Detailed Results
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      {resultsData.total_results.toLocaleString()} molecules processed
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] font-display">
-                    Detailed Results
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    {resultsData.total_results.toLocaleString()} molecules processed
-                  </p>
-                </div>
+                {selectedIndices.size > 0 && (
+                  <ClayButton
+                    size="sm"
+                    onClick={() => {
+                      setExportSelectedIndices(selectedIndices);
+                      setIsExportDialogOpen(true);
+                    }}
+                    leftIcon={<Download className="w-3.5 h-3.5" />}
+                    style={{ backgroundColor: '#003049', color: 'white', borderColor: '#003049' }}
+                  >
+                    Export Selected ({selectedIndices.size})
+                  </ClayButton>
+                )}
               </div>
               <BatchResultsTable
                 results={resultsData.results}
@@ -839,6 +868,19 @@ export function BatchValidationPage() {
                 isOpen={subsetPanelOpen}
                 onClose={() => setSubsetPanelOpen(false)}
                 onNavigateToMolecule={handleNavigateToMolecule}
+              />
+            )}
+
+            {/* Export Dialog */}
+            {jobId && (
+              <ExportDialog
+                jobId={jobId}
+                isOpen={isExportDialogOpen}
+                onClose={() => {
+                  setIsExportDialogOpen(false);
+                  setExportSelectedIndices(undefined);
+                }}
+                selectedIndices={exportSelectedIndices}
               />
             )}
           </motion.div>
