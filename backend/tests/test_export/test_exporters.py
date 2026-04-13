@@ -15,7 +15,8 @@ from app.services.export import (
     SDFExporter,
 )
 
-# Sample test data
+# Sample test data — includes nested fields required by the audit column registry.
+# All pre-existing top-level keys are preserved so non-CSV exporters are unaffected.
 SAMPLE_RESULTS = [
     {
         "smiles": "CCO",
@@ -27,6 +28,16 @@ SAMPLE_RESULTS = [
             "inchikey": "LFQSCWFLJHTTHZ-UHFFFAOYSA-N",
             "overall_score": 95,
             "issues": [],
+            "molecule_info": {
+                "inchi": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
+                "molecular_formula": "C2H6O",
+                "molecular_weight": 46.07,
+            },
+            "all_checks": [
+                {"check_name": "parsability", "passed": True},
+                {"check_name": "sanitization", "passed": True},
+                {"check_name": "valence", "passed": True},
+            ],
         },
         "alerts": {
             "pains": {"matches": []},
@@ -34,9 +45,73 @@ SAMPLE_RESULTS = [
         },
         "scoring": {
             "ml_readiness_score": 88,
+            "ml_readiness": {"label": "High"},
             "np_likeness_score": -0.5,
+            "druglikeness": {
+                "qed_score": 0.75,
+                "lipinski": {"passed": True, "violations": 0, "mw": 46.07, "logp": -0.3, "hbd": 1, "hba": 1},
+                "veber": {"passed": True, "rotatable_bonds": 1, "tpsa": 20.2},
+                "ro3": {"passed": True},
+                "ghose": {"passed": False},
+                "egan": {"passed": True},
+                "muegge": {"passed": True},
+            },
+            "admet": {
+                "synthetic_accessibility": {"score": 1.2, "classification": "Easy"},
+                "solubility": {"log_s": -1.5, "classification": "Soluble"},
+                "complexity": {"fsp3": 0.5},
+                "cns_mpo": {"score": 4.5},
+                "bioavailability": {"oral_absorption_likely": True},
+                "pfizer_rule": {"passed": True},
+                "gsk_rule": {"passed": True},
+                "golden_triangle": {"in_golden_triangle": True},
+            },
+            "safety_filters": {
+                "pains": {"passed": True, "alert_count": 0},
+                "brenk": {"passed": True, "alert_count": 0},
+                "nih": {"passed": True},
+                "zinc": {"passed": True},
+                "chembl": {"passed": True},
+                "all_passed": True,
+                "total_alerts": 0,
+            },
+            "aggregator": {"likelihood": "Low", "risk_score": 0.05},
+            "scaffold": {"scaffold_smiles": ""},
+            "boiled_egg": {"gi_absorbed": True, "bbb_permeant": False, "region": "white"},
+            "consensus": {"score": 4},
+            "lead_likeness": {"passed": True},
         },
         "standardized_smiles": "CCO",
+        "standardization": {
+            "result": {
+                "standardized_smiles": "CCO",
+                "success": True,
+                "steps_applied": [{"name": "normalize", "applied": True}],
+                "excluded_fragments": [],
+                "stereo_comparison": {"lost": 0, "gained": 0},
+                "mass_change_percent": 0.0,
+            }
+        },
+        "safety_assessment": {
+            "herg": {"herg_risk": "low", "risk_score": 1},
+            "bro5": {"passed": True},
+            "reos": {"passed": True, "n_violations": 0},
+            "cyp_softspots": {"n_sites": 0},
+            "complexity": {"n_outliers": 0},
+        },
+        "profiling": {
+            "pfi": {"pfi": 2.3, "risk": "low"},
+            "stars": {"stars": 6},
+            "abbott": {"abbott_score": 0.8, "probability_pct": 80},
+            "consensus_logp": {"consensus_logp": -0.3},
+            "skin_permeation": {"log_kp": -8.1, "classification": "Low"},
+            "sa_comparison": {
+                "sa_score": {"score": 1.2},
+                "scscore": {"score": 2.1},
+                "syba": {"score": 20.5},
+            },
+            "cns_mpo": {"score": 3.5},
+        },
     },
     {
         "smiles": "c1ccccc1",
@@ -53,6 +128,16 @@ SAMPLE_RESULTS = [
                     "message": "PAINS alert detected",
                 }
             ],
+            "molecule_info": {
+                "inchi": "InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H",
+                "molecular_formula": "C6H6",
+                "molecular_weight": 78.11,
+            },
+            "all_checks": [
+                {"check_name": "parsability", "passed": True},
+                {"check_name": "sanitization", "passed": True},
+                {"check_name": "valence", "passed": True},
+            ],
         },
         "alerts": {
             "pains": {
@@ -67,9 +152,73 @@ SAMPLE_RESULTS = [
         },
         "scoring": {
             "ml_readiness_score": 75,
+            "ml_readiness": {"label": "Medium"},
             "np_likeness_score": 1.2,
+            "druglikeness": {
+                "qed_score": 0.32,
+                "lipinski": {"passed": True, "violations": 0, "mw": 78.11, "logp": 1.9, "hbd": 0, "hba": 0},
+                "veber": {"passed": True, "rotatable_bonds": 0, "tpsa": 0.0},
+                "ro3": {"passed": True},
+                "ghose": {"passed": False},
+                "egan": {"passed": True},
+                "muegge": {"passed": True},
+            },
+            "admet": {
+                "synthetic_accessibility": {"score": 1.0, "classification": "Easy"},
+                "solubility": {"log_s": -1.0, "classification": "Soluble"},
+                "complexity": {"fsp3": 0.0},
+                "cns_mpo": {"score": 3.0},
+                "bioavailability": {"oral_absorption_likely": True},
+                "pfizer_rule": {"passed": False},
+                "gsk_rule": {"passed": True},
+                "golden_triangle": {"in_golden_triangle": True},
+            },
+            "safety_filters": {
+                "pains": {"passed": False, "alert_count": 1},
+                "brenk": {"passed": True, "alert_count": 0},
+                "nih": {"passed": True},
+                "zinc": {"passed": True},
+                "chembl": {"passed": True},
+                "all_passed": False,
+                "total_alerts": 1,
+            },
+            "aggregator": {"likelihood": "Low", "risk_score": 0.1},
+            "scaffold": {"scaffold_smiles": "c1ccccc1"},
+            "boiled_egg": {"gi_absorbed": True, "bbb_permeant": True, "region": "egg"},
+            "consensus": {"score": 3},
+            "lead_likeness": {"passed": True},
         },
         "standardized_smiles": "c1ccccc1",
+        "standardization": {
+            "result": {
+                "standardized_smiles": "c1ccccc1",
+                "success": True,
+                "steps_applied": [],
+                "excluded_fragments": [],
+                "stereo_comparison": {"lost": 0, "gained": 0},
+                "mass_change_percent": 0.0,
+            }
+        },
+        "safety_assessment": {
+            "herg": {"herg_risk": "moderate", "risk_score": 2},
+            "bro5": {"passed": True},
+            "reos": {"passed": True, "n_violations": 0},
+            "cyp_softspots": {"n_sites": 1},
+            "complexity": {"n_outliers": 0},
+        },
+        "profiling": {
+            "pfi": {"pfi": 1.9, "risk": "low"},
+            "stars": {"stars": 4},
+            "abbott": {"abbott_score": 0.6, "probability_pct": 60},
+            "consensus_logp": {"consensus_logp": 1.9},
+            "skin_permeation": {"log_kp": -6.0, "classification": "Medium"},
+            "sa_comparison": {
+                "sa_score": {"score": 1.0},
+                "scscore": {"score": 1.5},
+                "syba": {"score": 35.0},
+            },
+            "cns_mpo": {"score": 2.0},
+        },
     },
     {
         "smiles": "INVALID",
@@ -88,42 +237,70 @@ class TestCSVExporter:
     """Test CSV export functionality."""
 
     def test_csv_export_basic(self):
-        """Test basic CSV export."""
+        """Test basic CSV export produces correct identity columns and data rows."""
         exporter = CSVExporter()
         buffer = exporter.export(SAMPLE_RESULTS)
 
-        # Read CSV
         buffer.seek(0)
         content = buffer.read().decode("utf-8")
 
-        # Check header
-        assert "index,name,input_smiles,canonical_smiles" in content
-        assert "overall_score" in content
-        assert "ml_readiness_score" in content
+        # Identity columns must still be present
+        assert "index" in content
+        assert "name" in content
+        assert "input_smiles" in content
 
-        # Check data rows
+        # Data rows
         assert "Ethanol" in content
         assert "CCO" in content
+
+    def test_csv_has_audit_section_prefixes(self):
+        """CSV columns must carry section prefixes from the audit registry."""
+        exporter = CSVExporter()
+        buffer = exporter.export(SAMPLE_RESULTS)
+
+        buffer.seek(0)
+        header_line = buffer.read().decode("utf-8").splitlines()[0]
+
+        assert "[Validation]" in header_line
+        assert "[Scoring]" in header_line
+        assert "[Safety]" in header_line
+        assert "[Standardization]" in header_line
+
+    def test_csv_audit_column_values(self):
+        """Known audit values from SAMPLE_RESULTS must appear in the CSV."""
+        exporter = CSVExporter()
+        buffer = exporter.export(SAMPLE_RESULTS)
+
+        buffer.seek(0)
+        content = buffer.read().decode("utf-8")
+
+        # Overall score for Ethanol
         assert "95" in content
+        # ML-readiness score for Ethanol
+        assert "88" in content
+        # QED score
+        assert "0.75" in content
+        # SA score
+        assert "1.2" in content
 
     def test_csv_media_type(self):
-        """Test CSV media type."""
+        """Test CSV media type and file extension."""
         exporter = CSVExporter()
         assert exporter.media_type == "text/csv"
         assert exporter.file_extension == "csv"
 
     def test_csv_empty_results(self):
-        """Test CSV export with empty results."""
+        """Test CSV export with empty results produces only a header row."""
         exporter = CSVExporter()
         buffer = exporter.export([])
 
         buffer.seek(0)
         content = buffer.read().decode("utf-8")
 
-        # Should have header but no data rows
+        # Header must be present
         assert "index" in content
-        lines = content.strip().split("\n")
-        assert len(lines) == 1  # Only header
+        lines = [ln for ln in content.strip().split("\n") if ln]
+        assert len(lines) == 1  # Only header row
 
 
 class TestExcelExporter:
