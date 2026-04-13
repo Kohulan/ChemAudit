@@ -27,6 +27,7 @@
 [Quick Start](#-quick-start) &bull;
 [Documentation](https://www.kohulanr.com/ChemAudit/) &bull;
 [API](#-api-reference) &bull;
+[MCP](#-mcp-server-model-context-protocol) &bull;
 [CLI](#-command-line-interface) &bull;
 [Contributing](#-contributing)
 
@@ -428,6 +429,72 @@ curl -X POST http://localhost:8000/api/v1/profiler/full \
   -H "Content-Type: application/json" \
   -d '{"smiles": "CC(=O)Oc1ccccc1C(=O)O"}'
 ```
+
+---
+
+## 🤖 MCP Server (Model Context Protocol)
+
+ChemAudit exposes an MCP server that lets AI assistants (Claude, Cursor, Windsurf, etc.) call its chemistry tools directly. Built with [`fastapi-mcp`](https://github.com/tadata-ru/fastapi-mcp), it auto-generates **~68 tools** from the existing API — no separate server to run.
+
+### Quick Setup
+
+Add to your MCP client config (e.g. `claude_desktop_config.json`, `.cursor/mcp.json`, or `~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "chemaudit": {
+      "type": "sse",
+      "url": "http://localhost:8001/mcp"
+    }
+  }
+}
+```
+
+For production deployments behind nginx, use:
+
+```json
+{
+  "mcpServers": {
+    "chemaudit": {
+      "type": "sse",
+      "url": "https://your-domain.com/mcp"
+    }
+  }
+}
+```
+
+### Available Tool Categories
+
+| Category | Tools | Examples |
+|----------|-------|---------|
+| **Validation** | 4 | Validate molecule, list checks, compute similarity |
+| **Scoring** | 2 | ML-readiness score, radar comparison |
+| **Standardization** | 2 | ChEMBL-compatible standardization |
+| **Alerts & Safety** | 6 | PAINS/BRENK screening, CYP/hERG/bRo5/REOS |
+| **Compound Profiler** | 5 | PFI, 3D shape, SA comparison, ligand efficiency, MPO |
+| **Identifier Resolution** | 1 | Resolve SMILES, InChI, CAS, ChEMBL ID, name, etc. |
+| **Database Integrations** | 6 | PubChem, ChEMBL, COCONUT, Wikidata, SureChEMBL |
+| **Diagnostics** | 5 | SMILES errors, InChI diff, round-trip, cross-pipeline |
+| **QSAR-Ready** | 5 | Single/batch curation pipeline |
+| **Structure Filter** | 7 | Generative model funnel, REINVENT scoring |
+| **Dataset Intelligence** | 6 | Health audit, contradictions, dataset diff |
+| **Batch & Export** | 11 | Upload, process, analytics, export (CSV/Excel/SDF/JSON/PDF) |
+| **Scoring Profiles** | 7 | Create, manage, import/export custom profiles |
+
+### Security
+
+Admin endpoints (API key management, config, sessions) are **never** exposed via MCP. A runtime assertion on startup verifies no admin tags leak into the MCP allowlist.
+
+### Example AI Interaction
+
+Once connected, you can ask your AI assistant:
+
+> "Validate the molecule CC(=O)Oc1ccccc1C(=O)O and check for PAINS alerts"
+
+> "Resolve aspirin across PubChem, ChEMBL, and COCONUT and compare the structures"
+
+> "Run the QSAR-ready pipeline on this SMILES: CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
 
 ---
 
