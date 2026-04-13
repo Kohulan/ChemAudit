@@ -56,7 +56,7 @@ async def full_profile(
     if mol is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid SMILES", "smiles": body.smiles},
+            detail="Invalid SMILES",
         )
 
     profile = compute_full_profile(mol)
@@ -97,7 +97,7 @@ async def shape_3d(
     if mol is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid SMILES", "smiles": body.smiles},
+            detail="Invalid SMILES",
         )
 
     result = compute_3d_shape(mol)
@@ -141,7 +141,7 @@ async def sa_comparison(
     if mol is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid SMILES", "smiles": body.smiles},
+            detail="Invalid SMILES",
         )
 
     return compute_sa_comparison(mol, body.smiles)
@@ -174,7 +174,7 @@ async def ligand_efficiency(
     if mol is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid SMILES", "smiles": body.smiles},
+            detail="Invalid SMILES",
         )
 
     result = compute_ligand_efficiency(mol, body.activity_value, body.activity_type)
@@ -213,7 +213,7 @@ async def custom_mpo(
     if mol is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid SMILES", "smiles": body.smiles},
+            detail="Invalid SMILES",
         )
 
     profile_dicts = [p.model_dump() for p in body.profile]
