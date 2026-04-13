@@ -80,7 +80,7 @@ class PDFReportGenerator(BaseExporter):
         "mmp_pairs",
     ]
 
-    def __init__(self, sections: Optional[List[str]] = None):
+    def __init__(self, sections: Optional[List[str]] = None, include_audit: bool = False):
         """Initialize PDF generator with template environment.
 
         Args:
@@ -89,6 +89,8 @@ class PDFReportGenerator(BaseExporter):
                      Valid section names: validation_summary, score_distribution,
                      alert_frequency, chemical_space, scaffold_treemap,
                      statistics, correlation_matrix, mmp_pairs.
+            include_audit: Whether to include per-molecule audit data tables in
+                          the report. Defaults to False for backward compatibility.
         """
         # Find templates directory relative to this file
         template_dir = Path(__file__).parent.parent.parent / "templates" / "reports"
@@ -103,6 +105,7 @@ class PDFReportGenerator(BaseExporter):
             )
         # Default: include all sections
         self.sections = set(sections) if sections else set(self.AVAILABLE_SECTIONS)
+        self._include_audit = include_audit
 
     @property
     def media_type(self) -> str:
@@ -136,6 +139,16 @@ class PDFReportGenerator(BaseExporter):
         # Get all molecules with full validation data
         all_molecules = self._get_all_molecules(results)
 
+        # Build audit data per molecule when requested
+        audit_sections: Optional[Dict[str, Any]] = None
+        if self._include_audit:
+            from app.services.export.audit_columns import extract_by_section
+
+            audit_sections = {
+                result.get("smiles", str(result.get("index", i))): extract_by_section(result)
+                for i, result in enumerate(results)
+            }
+
         # Render HTML template with section selection
         html_content = self.template.render(
             job_id="batch_results",
@@ -145,6 +158,10 @@ class PDFReportGenerator(BaseExporter):
             critical_issues=critical_issues,
             all_molecules=all_molecules,
             sections=self.sections,
+            include_audit=self._include_audit,
+            audit_sections=audit_sections,
+            # TODO: update batch_report.html template to render per-molecule
+            # audit_sections tables when include_audit is True.
         )
 
         # Convert HTML to PDF

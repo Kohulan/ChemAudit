@@ -505,6 +505,29 @@ class TestJSONExporter:
         assert isinstance(first["validation"]["parsability_passed"], str)  # "Pass" not a dict
 
 
+class TestPDFReportGenerator:
+    """Test PDFReportGenerator constructor signature (no actual PDF generation)."""
+
+    def test_pdf_generator_accepts_include_audit(self):
+        """PDFReportGenerator should accept include_audit param."""
+        import inspect
+
+        from app.services.export.pdf_report import PDFReportGenerator
+
+        sig = inspect.signature(PDFReportGenerator.__init__)
+        assert "include_audit" in sig.parameters
+
+    def test_pdf_generator_include_audit_defaults_false(self):
+        """include_audit parameter should default to False."""
+        import inspect
+
+        from app.services.export.pdf_report import PDFReportGenerator
+
+        sig = inspect.signature(PDFReportGenerator.__init__)
+        param = sig.parameters["include_audit"]
+        assert param.default is False
+
+
 class TestExporterFactory:
     """Test ExporterFactory."""
 
