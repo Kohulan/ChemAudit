@@ -86,6 +86,7 @@ export function BatchValidationPage() {
     setError(null);
     setIncludeAnalytics(options?.includeAnalytics ?? true);
     setPageState('processing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   // Handle upload error

@@ -258,7 +258,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/30">
+                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-surface-sunken)]/50 border border-[var(--color-border)]/30">
                         <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">Sheet Layout</p>
                         <div className="flex flex-col gap-2">
                           <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
@@ -339,9 +339,8 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                   </AnimatePresence>
                 )}
                 {/* SDF/PDF audit toggle — inline, after PDF sections or after SDF card */}
-                {(format.value === 'sdf' || format.value === 'pdf') &&
-                  (selectedFormat === 'sdf' || selectedFormat === 'pdf') &&
-                  format.value === selectedFormat && (
+                {format.value === selectedFormat &&
+                  (selectedFormat === 'sdf' || selectedFormat === 'pdf') && (
                   <AnimatePresence>
                     <motion.div
                       key="audit-toggle"
@@ -350,7 +349,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/30">
+                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-surface-sunken)]/50 border border-[var(--color-border)]/30">
                         <label className="flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
                           <input
                             type="checkbox"

@@ -69,7 +69,9 @@ class ScaffoldExporter(BaseExporter):
                 "scaffold_smiles": scaffold,
                 "scaffold_group": scaffold_to_group.get(scaffold, 0),
                 "overall_score": validation.get("overall_score", ""),
-                "ml_readiness_score": scoring.get("ml_readiness_score", "") if scoring else "",
+                "ml_readiness_score": (scoring.get("ml_readiness") or {}).get("score", "")
+                if scoring
+                else "",
                 "inchikey": validation.get("inchikey", ""),
             }
             rows.append(row)

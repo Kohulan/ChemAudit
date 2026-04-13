@@ -8,7 +8,10 @@ Covers:
 - Custom one-off extractors
 - Public output helpers: get_identity_row, get_flat_headers,
   extract_flat_row, extract_nested, extract_by_section
-- Total column count (~91)
+- Total column count (78)
+
+The FULL_RESULT fixture matches the exact data structure produced by
+``app.services.batch.tasks._process_single_molecule()``.
 """
 
 from collections import OrderedDict
@@ -27,131 +30,367 @@ from app.services.export.audit_columns import (
 )
 
 # ---------------------------------------------------------------------------
-# Shared rich fixture
+# Shared rich fixture — matches actual batch result structure from tasks.py
 # ---------------------------------------------------------------------------
 
 FULL_RESULT: dict = {
     "smiles": "CCO",
     "name": "Ethanol",
-    "standardized_smiles": "CCO",
+    "index": 0,
+    "status": "success",
+    "error": None,
     "validation": {
+        "overall_score": 95,
         "canonical_smiles": "CCO",
         "inchikey": "LFQSCWFLJHTTHZ-UHFFFAOYSA-N",
-        "overall_score": 95,
         "molecule_info": {
             "inchi": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
             "molecular_formula": "C2H6O",
             "molecular_weight": 46.07,
         },
         "all_checks": [
-            {"check_name": "parsability", "passed": True},
-            {"check_name": "sanitization", "passed": True},
-            {"check_name": "valence", "passed": True},
-            {"check_name": "aromaticity", "passed": True},
-            {"check_name": "connectivity", "passed": True},
-            {"check_name": "undefined_stereocenters", "passed": True},
-            {"check_name": "undefined_doublebond_stereo", "passed": True},
-            {"check_name": "conflicting_stereo", "passed": True},
-            {"check_name": "smiles_roundtrip", "passed": True},
-            {"check_name": "inchi_generation", "passed": True},
-            {"check_name": "inchi_roundtrip", "passed": True},
-            # deep checks
-            {"check_name": "stereoisomer_enumeration", "passed": True},
-            {"check_name": "tautomer_detection", "passed": True},
-            {"check_name": "aromatic_system_validation", "passed": True},
-            {"check_name": "coordinate_dimension", "passed": True},
-            {"check_name": "mixture_detection", "passed": True},
-            {"check_name": "solvent_contamination", "passed": True},
-            {"check_name": "inorganic_filter", "passed": True},
-            {"check_name": "radical_detection", "passed": True},
-            {"check_name": "isotope_label_detection", "passed": True},
-            {"check_name": "trivial_molecule", "passed": False},
-            {"check_name": "hypervalent_atoms", "passed": True},
-            {"check_name": "polymer_detection", "passed": True},
-            {"check_name": "ring_strain", "passed": True},
-            {"check_name": "macrocycle_detection", "passed": True},
-            {"check_name": "charged_species", "passed": True},
-            {"check_name": "explicit_hydrogen_audit", "passed": True},
+            {
+                "check_name": "parsability",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "sanitization",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "valence",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "aromaticity",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "connectivity",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "undefined_stereocenters",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "undefined_doublebond_stereo",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "conflicting_stereo",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "smiles_roundtrip",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "inchi_generation",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "inchi_roundtrip",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            # deep validation checks
+            {
+                "check_name": "stereoisomer_enumeration",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "tautomer_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "aromatic_system_validation",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "coordinate_dimension",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "mixture_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "solvent_contamination",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "inorganic_filter",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "radical_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "isotope_label_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "trivial_molecule",
+                "passed": False,
+                "severity": "warning",
+                "message": "Too small",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "hypervalent_atoms",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "polymer_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "ring_strain",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "macrocycle_detection",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "charged_species",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+            {
+                "check_name": "explicit_hydrogen_audit",
+                "passed": True,
+                "severity": "pass",
+                "message": "",
+                "affected_atoms": [],
+            },
+        ],
+        "issues": [
+            {
+                "check_name": "trivial_molecule",
+                "passed": False,
+                "severity": "warning",
+                "message": "Too small",
+                "affected_atoms": [],
+            },
+        ],
+    },
+    "alerts": {
+        "has_alerts": True,
+        "alert_count": 3,
+        "alerts": [
+            {
+                "catalog": "PAINS",
+                "rule_name": "ene_one_A",
+                "severity": "warning",
+                "matched_atoms": [0],
+                "reference": "",
+                "scope": "",
+                "catalog_description": "",
+                "category": "",
+            },
+            {
+                "catalog": "BRENK",
+                "rule_name": "acyl_cyanide",
+                "severity": "warning",
+                "matched_atoms": [1],
+                "reference": "",
+                "scope": "",
+                "catalog_description": "",
+                "category": "",
+            },
+            {
+                "catalog": "BRENK",
+                "rule_name": "aldehyde",
+                "severity": "warning",
+                "matched_atoms": [2],
+                "reference": "",
+                "scope": "",
+                "catalog_description": "",
+                "category": "",
+            },
         ],
     },
     "scoring": {
-        "ml_readiness_score": 88,
-        "ml_readiness": {"label": "Good"},
+        "ml_readiness": {
+            "score": 88,
+            "label": "Good",
+            "interpretation": "Well-suited for ML",
+        },
         "druglikeness": {
             "qed_score": 0.72,
-            "lipinski": {
-                "passed": True,
-                "violations": 0,
-                "mw": 46.07,
-                "logp": -0.31,
-                "hbd": 1,
-                "hba": 1,
-            },
-            "veber": {"passed": True, "rotatable_bonds": 0, "tpsa": 20.23},
-            "ro3": {"passed": True},
-            "ghose": {"passed": False},
-            "egan": {"passed": True},
-            "muegge": {"passed": True},
+            "lipinski_passed": True,
+            "lipinski_violations": 0,
+            "mw": 46.07,
+            "logp": -0.31,
+            "hbd": 1,
+            "hba": 1,
+            "veber_passed": True,
+            "tpsa": 20.23,
+            "rotatable_bonds": 0,
+            "aromatic_rings": 0,
         },
-        "np_likeness_score": -0.5,
-        "consensus": {"score": 3.2},
-        "lead_likeness": {"passed": True},
-        "admet": {
-            "synthetic_accessibility": {"score": 1.5, "classification": "Easy"},
-            "solubility": {"log_s": -1.2, "classification": "Soluble"},
-            "complexity": {"fsp3": 0.33},
-            "cns_mpo": {"score": 4.5},
-            "bioavailability": {"oral_absorption_likely": True},
-            "pfizer_rule": {"passed": True},
-            "gsk_rule": {"passed": True},
-            "golden_triangle": {"in_golden_triangle": True},
-        },
-        "aggregator": {"likelihood": "Low", "risk_score": 0.05},
-        "scaffold": {"scaffold_smiles": ""},
-        "boiled_egg": {"gi_absorbed": True, "bbb_permeant": False, "region": "HIA"},
         "safety_filters": {
-            "pains": {"passed": True, "alert_count": 0},
-            "brenk": {"passed": True, "alert_count": 0},
-            "nih": {"passed": True},
-            "zinc": {"passed": True},
-            "chembl": {"passed": True},
-            "all_passed": True,
-            "total_alerts": 0,
+            "all_passed": False,
+            "total_alerts": 3,
+            "pains_passed": False,
+            "brenk_passed": False,
+            "nih_passed": True,
+            "zinc_passed": True,
+            "chembl_passed": True,
+        },
+        "admet": {
+            "sa_score": 1.5,
+            "sa_classification": "easy",
+            "solubility_class": "soluble",
+            "fsp3": 0.33,
         },
     },
     "safety_assessment": {
-        "herg": {"herg_risk": "low", "risk_score": 1},
-        "bro5": {"passed": True},
-        "reos": {"passed": True, "n_violations": 0},
-        "cyp_softspots": {"n_sites": 2},
-        "complexity": {"n_outliers": 0},
+        "herg": {
+            "herg_risk": "low",
+            "risk_score": 1,
+            "max_score": 4,
+            "flags": [],
+            "descriptors": {},
+        },
+        "bro5": {
+            "applicable": False,
+            "passed": True,
+            "message": None,
+            "violations": [],
+            "values": {},
+        },
+        "reos": {"passed": True, "violations": [], "n_violations": 0, "descriptors": {}},
+        "cyp_softspots": [
+            {"site_name": "benzylic_CH", "reaction_type": "C-hydroxylation", "matched_atoms": [0]},
+            {"site_name": "aromatic_OH", "reaction_type": "O-dealkylation", "matched_atoms": [1]},
+        ],
+        "complexity": {
+            "properties": {},
+            "n_outliers": 0,
+            "outlier_properties": [],
+            "within_range": True,
+        },
     },
     "profiling": {
-        "pfi": {"pfi": 3.5, "risk": "low"},
-        "stars": {"stars": 5},
-        "abbott": {"abbott_score": 0.85, "probability_pct": 85.0},
-        "consensus_logp": {"consensus_logp": -0.31},
-        "skin_permeation": {"log_kp": -2.5, "classification": "Medium"},
-        "sa_comparison": {
-            "sa_score": {"score": 1.5},
-            "scscore": {"score": 1.2},
-            "syba": {"score": 90.0},
+        "pfi": {"pfi": 3.5, "clogp": -0.31, "aromatic_rings": 0, "risk": "low"},
+        "stars": {"stars": 5, "details": []},
+        "abbott": {
+            "abbott_score": 0.85,
+            "probability_pct": 85.0,
+            "tpsa": 20.23,
+            "lipinski_violations": 0,
         },
-        "cns_mpo": {"score": 3.8},
+        "consensus_logp": {
+            "consensus_logp": -0.31,
+            "wildman_crippen": -0.31,
+            "xlogp3_approx": -0.30,
+            "xlogp3_is_approximation": True,
+        },
+        "skin_permeation": {"log_kp": -2.5, "classification": "Medium"},
+        "druglikeness": {
+            "lipinski": {"passed": True, "violations": 0},
+            "qed": 0.72,
+            "veber": {"passed": True},
+        },
     },
     "standardization": {
-        "result": {
-            "standardized_smiles": "CCO",
-            "success": True,
-            "steps_applied": [
-                {"name": "cleanup", "applied": True},
-                {"name": "normalize", "applied": True},
-                {"name": "reionize", "applied": False},
-            ],
-            "excluded_fragments": ["[Na+]", "[Cl-]"],
-            "stereo_comparison": {"lost": 0, "gained": 1},
-            "mass_change_percent": 0.0,
-        }
+        "standardized_smiles": "CCO",
+        "success": True,
+        "error": None,
+        "steps_applied": [
+            {"step_name": "cleanup", "applied": True, "description": "Clean up", "changes": "none"},
+            {
+                "step_name": "normalize",
+                "applied": True,
+                "description": "Normalize",
+                "changes": "none",
+            },
+            {
+                "step_name": "reionize",
+                "applied": False,
+                "description": "Reionize",
+                "changes": "none",
+            },
+        ],
+        "excluded_fragments": ["[Na+]", "[Cl-]"],
+        "changed": False,
     },
 }
 
@@ -195,9 +434,9 @@ class TestAuditSectionsRegistry:
             for col in section.columns:
                 assert isinstance(col, AuditColumn)
 
-    def test_total_column_count_at_least_91(self):
+    def test_total_column_count(self):
         total = sum(len(s.columns) for s in AUDIT_SECTIONS)
-        assert total >= 91, f"Expected >=91 columns, got {total}"
+        assert total == 78, f"Expected 78 columns, got {total}"
 
     def test_validation_section_has_17_columns(self):
         val_section = next(s for s in AUDIT_SECTIONS if s.name == "Validation")
@@ -207,21 +446,21 @@ class TestAuditSectionsRegistry:
         deep = next(s for s in AUDIT_SECTIONS if s.name == "Deep Validation")
         assert len(deep.columns) == 16
 
-    def test_scoring_section_has_35_columns(self):
+    def test_scoring_section_has_17_columns(self):
         scoring = next(s for s in AUDIT_SECTIONS if s.name == "Scoring")
-        assert len(scoring.columns) == 35
+        assert len(scoring.columns) == 17
 
     def test_safety_section_has_16_columns(self):
         safety = next(s for s in AUDIT_SECTIONS if s.name == "Safety")
         assert len(safety.columns) == 16
 
-    def test_compound_profile_section_has_12_columns(self):
+    def test_compound_profile_section_has_8_columns(self):
         cp = next(s for s in AUDIT_SECTIONS if s.name == "Compound Profile")
-        assert len(cp.columns) == 12
+        assert len(cp.columns) == 8
 
-    def test_standardization_section_has_6_columns(self):
+    def test_standardization_section_has_4_columns(self):
         std = next(s for s in AUDIT_SECTIONS if s.name == "Standardization")
-        assert len(std.columns) == 6
+        assert len(std.columns) == 4
 
     def test_all_keys_are_unique(self):
         keys = [col.key for s in AUDIT_SECTIONS for col in s.columns]
@@ -272,26 +511,15 @@ class TestValidationExtractors:
     def test_parsability_pass(self):
         assert self.cols["parsability_passed"].extractor(FULL_RESULT) == "Pass"
 
-    def test_trivial_molecule_fail(self):
-        # trivial_molecule is set to passed=False in FULL_RESULT
-        # But trivial_molecule is in deep validation; basic check test below
-        # Test that a failed check returns "Fail"
-        result = {
-            "validation": {
-                "all_checks": [{"check_name": "parsability", "passed": False}]
-            }
-        }
+    def test_failed_check_returns_fail(self):
+        result = {"validation": {"all_checks": [{"check_name": "parsability", "passed": False}]}}
         assert self.cols["parsability_passed"].extractor(result) == "Fail"
 
     def test_missing_check_returns_na(self):
         assert self.cols["parsability_passed"].extractor(EMPTY_RESULT) == "N/A"
 
     def test_none_passed_value_returns_na(self):
-        result = {
-            "validation": {
-                "all_checks": [{"check_name": "parsability", "passed": None}]
-            }
-        }
+        result = {"validation": {"all_checks": [{"check_name": "parsability", "passed": None}]}}
         assert self.cols["parsability_passed"].extractor(result) == "N/A"
 
     def test_empty_result_defaults(self):
@@ -365,7 +593,7 @@ class TestDeepValidationExtractors:
 
 
 # ---------------------------------------------------------------------------
-# Scoring section extractors
+# Scoring section extractors (flat keys from batch processor)
 # ---------------------------------------------------------------------------
 
 
@@ -411,75 +639,20 @@ class TestScoringExtractors:
     def test_veber_tpsa(self):
         assert self.cols["veber_tpsa"].extractor(FULL_RESULT) == 20.23
 
-    def test_ro3_passed(self):
-        assert self.cols["ro3_passed"].extractor(FULL_RESULT) == "Pass"
+    def test_aromatic_rings(self):
+        assert self.cols["aromatic_rings"].extractor(FULL_RESULT) == 0
 
-    def test_ghose_passed_false(self):
-        assert self.cols["ghose_passed"].extractor(FULL_RESULT) == "Fail"
-
-    def test_egan_passed(self):
-        assert self.cols["egan_passed"].extractor(FULL_RESULT) == "Pass"
-
-    def test_muegge_passed(self):
-        assert self.cols["muegge_passed"].extractor(FULL_RESULT) == "Pass"
-
-    def test_np_likeness_score(self):
-        assert self.cols["np_likeness_score"].extractor(FULL_RESULT) == -0.5
-
-    def test_consensus_score(self):
-        assert self.cols["consensus_score"].extractor(FULL_RESULT) == 3.2
-
-    def test_lead_likeness_passed(self):
-        assert self.cols["lead_likeness_passed"].extractor(FULL_RESULT) == "Pass"
-
-    def test_sa_score_uses_correct_path(self):
-        # path is scoring.admet.synthetic_accessibility.score NOT scoring.admet.sa_score
+    def test_sa_score(self):
         assert self.cols["sa_score"].extractor(FULL_RESULT) == 1.5
 
     def test_sa_classification(self):
-        assert self.cols["sa_classification"].extractor(FULL_RESULT) == "Easy"
+        assert self.cols["sa_classification"].extractor(FULL_RESULT) == "easy"
 
-    def test_esol_log_s(self):
-        assert self.cols["esol_log_s"].extractor(FULL_RESULT) == -1.2
-
-    def test_esol_classification(self):
-        assert self.cols["esol_classification"].extractor(FULL_RESULT) == "Soluble"
+    def test_solubility_class(self):
+        assert self.cols["solubility_class"].extractor(FULL_RESULT) == "soluble"
 
     def test_fsp3(self):
         assert self.cols["fsp3"].extractor(FULL_RESULT) == 0.33
-
-    def test_cns_mpo(self):
-        assert self.cols["cns_mpo"].extractor(FULL_RESULT) == 4.5
-
-    def test_oral_absorption(self):
-        assert self.cols["oral_absorption"].extractor(FULL_RESULT) == "Pass"
-
-    def test_pfizer_rule(self):
-        assert self.cols["pfizer_rule"].extractor(FULL_RESULT) == "Pass"
-
-    def test_gsk_rule(self):
-        assert self.cols["gsk_rule"].extractor(FULL_RESULT) == "Pass"
-
-    def test_golden_triangle(self):
-        assert self.cols["golden_triangle"].extractor(FULL_RESULT) == "Pass"
-
-    def test_aggregator_likelihood(self):
-        assert self.cols["aggregator_likelihood"].extractor(FULL_RESULT) == "Low"
-
-    def test_aggregator_risk(self):
-        assert self.cols["aggregator_risk"].extractor(FULL_RESULT) == 0.05
-
-    def test_scaffold_smiles_empty_string(self):
-        assert self.cols["scaffold_smiles"].extractor(FULL_RESULT) == ""
-
-    def test_boiled_egg_gi(self):
-        assert self.cols["boiled_egg_gi"].extractor(FULL_RESULT) == "Pass"
-
-    def test_boiled_egg_bbb_false(self):
-        assert self.cols["boiled_egg_bbb"].extractor(FULL_RESULT) == "Fail"
-
-    def test_boiled_egg_region(self):
-        assert self.cols["boiled_egg_region"].extractor(FULL_RESULT) == "HIA"
 
     def test_missing_scoring_returns_na(self):
         assert self.cols["ml_readiness_score"].extractor(EMPTY_RESULT) == "N/A"
@@ -487,24 +660,16 @@ class TestScoringExtractors:
         assert self.cols["lipinski_passed"].extractor(EMPTY_RESULT) == "N/A"
 
     def test_false_bool_returns_fail(self):
-        result = {
-            "scoring": {
-                "druglikeness": {"lipinski": {"passed": False}}
-            }
-        }
+        result = {"scoring": {"druglikeness": {"lipinski_passed": False}}}
         assert self.cols["lipinski_passed"].extractor(result) == "Fail"
 
     def test_none_bool_returns_na(self):
-        result = {
-            "scoring": {
-                "druglikeness": {"lipinski": {"passed": None}}
-            }
-        }
+        result = {"scoring": {"druglikeness": {"lipinski_passed": None}}}
         assert self.cols["lipinski_passed"].extractor(result) == "N/A"
 
 
 # ---------------------------------------------------------------------------
-# Safety section extractors
+# Safety section extractors (flat safety_filter keys + alert counts)
 # ---------------------------------------------------------------------------
 
 
@@ -514,17 +679,17 @@ class TestSafetyExtractors:
         self.section = next(s for s in AUDIT_SECTIONS if s.name == "Safety")
         self.cols = {col.key: col for col in self.section.columns}
 
-    def test_pains_passed(self):
-        assert self.cols["pains_passed"].extractor(FULL_RESULT) == "Pass"
+    def test_pains_passed_fail(self):
+        assert self.cols["pains_passed"].extractor(FULL_RESULT) == "Fail"
 
-    def test_pains_count(self):
-        assert self.cols["pains_count"].extractor(FULL_RESULT) == 0
+    def test_pains_count_from_alerts(self):
+        assert self.cols["pains_count"].extractor(FULL_RESULT) == 1
 
-    def test_brenk_passed(self):
-        assert self.cols["brenk_passed"].extractor(FULL_RESULT) == "Pass"
+    def test_brenk_passed_fail(self):
+        assert self.cols["brenk_passed"].extractor(FULL_RESULT) == "Fail"
 
-    def test_brenk_count(self):
-        assert self.cols["brenk_count"].extractor(FULL_RESULT) == 0
+    def test_brenk_count_from_alerts(self):
+        assert self.cols["brenk_count"].extractor(FULL_RESULT) == 2
 
     def test_nih_passed(self):
         assert self.cols["nih_passed"].extractor(FULL_RESULT) == "Pass"
@@ -535,12 +700,11 @@ class TestSafetyExtractors:
     def test_chembl_passed(self):
         assert self.cols["chembl_passed"].extractor(FULL_RESULT) == "Pass"
 
-    def test_safety_all_passed_direct_field(self):
-        # all_passed is directly under safety_filters, not under a sub-filter
-        assert self.cols["safety_all_passed"].extractor(FULL_RESULT) == "Pass"
+    def test_safety_all_passed(self):
+        assert self.cols["safety_all_passed"].extractor(FULL_RESULT) == "Fail"
 
     def test_total_alerts(self):
-        assert self.cols["total_alerts"].extractor(FULL_RESULT) == 0
+        assert self.cols["total_alerts"].extractor(FULL_RESULT) == 3
 
     def test_herg_risk(self):
         assert self.cols["herg_risk"].extractor(FULL_RESULT) == "low"
@@ -557,22 +721,15 @@ class TestSafetyExtractors:
     def test_reos_violations(self):
         assert self.cols["reos_violations"].extractor(FULL_RESULT) == 0
 
-    def test_cyp_softspot_count(self):
+    def test_cyp_softspot_count_from_list(self):
         assert self.cols["cyp_softspot_count"].extractor(FULL_RESULT) == 2
 
     def test_complexity_outliers(self):
         assert self.cols["complexity_outliers"].extractor(FULL_RESULT) == 0
 
-    def test_pains_failed_converts_bool(self):
-        result = {
-            "scoring": {
-                "safety_filters": {
-                    "pains": {"passed": False, "alert_count": 3}
-                }
-            }
-        }
-        assert self.cols["pains_passed"].extractor(result) == "Fail"
-        assert self.cols["pains_count"].extractor(result) == 3
+    def test_pains_pass_when_true(self):
+        result = {"scoring": {"safety_filters": {"pains_passed": True}}}
+        assert self.cols["pains_passed"].extractor(result) == "Pass"
 
     def test_bro5_false_returns_fail(self):
         result = {"safety_assessment": {"bro5": {"passed": False}}}
@@ -582,15 +739,27 @@ class TestSafetyExtractors:
         result = {"safety_assessment": {"reos": {"passed": False}}}
         assert self.cols["reos_passed"].extractor(result) == "Fail"
 
-    def test_safety_all_passed_false(self):
-        result = {"scoring": {"safety_filters": {"all_passed": False}}}
-        assert self.cols["safety_all_passed"].extractor(result) == "Fail"
+    def test_safety_all_passed_true(self):
+        result = {"scoring": {"safety_filters": {"all_passed": True}}}
+        assert self.cols["safety_all_passed"].extractor(result) == "Pass"
 
     def test_missing_safety_returns_na(self):
         assert self.cols["pains_passed"].extractor(EMPTY_RESULT) == "N/A"
         assert self.cols["herg_risk"].extractor(EMPTY_RESULT) == "N/A"
         assert self.cols["bro5_passed"].extractor(EMPTY_RESULT) == "N/A"
         assert self.cols["reos_passed"].extractor(EMPTY_RESULT) == "N/A"
+
+    def test_alert_count_zero_when_no_alerts(self):
+        result = {"alerts": {"alerts": []}}
+        assert self.cols["pains_count"].extractor(result) == 0
+        assert self.cols["brenk_count"].extractor(result) == 0
+
+    def test_alert_count_zero_when_missing(self):
+        assert self.cols["pains_count"].extractor(EMPTY_RESULT) == 0
+
+    def test_cyp_not_list_returns_na(self):
+        result = {"safety_assessment": {"cyp_softspots": {"n_sites": 2}}}
+        assert self.cols["cyp_softspot_count"].extractor(result) == "N/A"
 
 
 # ---------------------------------------------------------------------------
@@ -628,30 +797,17 @@ class TestCompoundProfileExtractors:
     def test_skin_perm_class(self):
         assert self.cols["skin_perm_class"].extractor(FULL_RESULT) == "Medium"
 
-    def test_sa_comparison_sa(self):
-        assert self.cols["sa_comparison_sa"].extractor(FULL_RESULT) == 1.5
-
-    def test_sa_comparison_scscore(self):
-        assert self.cols["sa_comparison_scscore"].extractor(FULL_RESULT) == 1.2
-
-    def test_sa_comparison_syba(self):
-        assert self.cols["sa_comparison_syba"].extractor(FULL_RESULT) == 90.0
-
-    def test_profile_cns_mpo(self):
-        assert self.cols["profile_cns_mpo"].extractor(FULL_RESULT) == 3.8
-
     def test_missing_profiling_returns_na(self):
         assert self.cols["pfi_score"].extractor(EMPTY_RESULT) == "N/A"
-        assert self.cols["sa_comparison_sa"].extractor(EMPTY_RESULT) == "N/A"
 
     def test_partial_profiling_returns_na(self):
-        result = {"profiling": {"pfi": {"pfi": 5.0}}}  # missing risk
+        result = {"profiling": {"pfi": {"pfi": 5.0}}}
         assert self.cols["pfi_score"].extractor(result) == 5.0
         assert self.cols["pfi_risk"].extractor(result) == "N/A"
 
 
 # ---------------------------------------------------------------------------
-# Standardization section extractors
+# Standardization section extractors (direct keys, no 'result' sub-key)
 # ---------------------------------------------------------------------------
 
 
@@ -661,17 +817,8 @@ class TestStandardizationExtractors:
         self.section = next(s for s in AUDIT_SECTIONS if s.name == "Standardization")
         self.cols = {col.key: col for col in self.section.columns}
 
-    def test_standardized_smiles_prefers_top_level(self):
-        # FULL_RESULT has top-level standardized_smiles="CCO"
+    def test_standardized_smiles(self):
         assert self.cols["standardized_smiles"].extractor(FULL_RESULT) == "CCO"
-
-    def test_standardized_smiles_falls_back_to_nested(self):
-        result = {
-            "standardization": {
-                "result": {"standardized_smiles": "c1ccccc1"}
-            }
-        }
-        assert self.cols["standardized_smiles"].extractor(result) == "c1ccccc1"
 
     def test_standardized_smiles_empty_when_missing(self):
         assert self.cols["standardized_smiles"].extractor(EMPTY_RESULT) == ""
@@ -680,7 +827,7 @@ class TestStandardizationExtractors:
         assert self.cols["std_success"].extractor(FULL_RESULT) == "Pass"
 
     def test_std_success_fail(self):
-        result = {"standardization": {"result": {"success": False}}}
+        result = {"standardization": {"success": False}}
         assert self.cols["std_success"].extractor(result) == "Fail"
 
     def test_std_success_missing_returns_na(self):
@@ -696,34 +843,19 @@ class TestStandardizationExtractors:
     def test_std_steps_count_all_false(self):
         result = {
             "standardization": {
-                "result": {
-                    "steps_applied": [
-                        {"name": "a", "applied": False},
-                        {"name": "b", "applied": False},
-                    ]
-                }
+                "steps_applied": [
+                    {"step_name": "a", "applied": False},
+                    {"step_name": "b", "applied": False},
+                ]
             }
         }
         assert self.cols["std_steps_count"].extractor(result) == 0
 
     def test_std_excluded_fragments_count(self):
-        # FULL_RESULT has 2 excluded fragments
         assert self.cols["std_excluded_fragments"].extractor(FULL_RESULT) == 2
 
     def test_std_excluded_fragments_missing_returns_na(self):
         assert self.cols["std_excluded_fragments"].extractor(EMPTY_RESULT) == "N/A"
-
-    def test_std_stereo_changes_format(self):
-        assert self.cols["std_stereo_changes"].extractor(FULL_RESULT) == "lost: 0, gained: 1"
-
-    def test_std_stereo_changes_missing_returns_na(self):
-        assert self.cols["std_stereo_changes"].extractor(EMPTY_RESULT) == "N/A"
-
-    def test_std_mass_change(self):
-        assert self.cols["std_mass_change"].extractor(FULL_RESULT) == 0.0
-
-    def test_std_mass_change_missing_returns_na(self):
-        assert self.cols["std_mass_change"].extractor(EMPTY_RESULT) == "N/A"
 
 
 # ---------------------------------------------------------------------------
@@ -816,15 +948,17 @@ class TestExtractFlatRow:
 
     def test_safety_all_passed_direct_path(self):
         row = extract_flat_row(FULL_RESULT)
-        assert row["[Safety] All Safety Filters (Pass/Fail)"] == "Pass"
+        assert row["[Safety] All Safety Filters (Pass/Fail)"] == "Fail"
 
     def test_standardization_steps_count(self):
         row = extract_flat_row(FULL_RESULT)
         assert row["[Standardization] Steps Applied"] == 2
 
-    def test_standardization_stereo_changes(self):
+    def test_no_na_for_full_result(self):
+        """Every column in FULL_RESULT has data, so none should be N/A."""
         row = extract_flat_row(FULL_RESULT)
-        assert row["[Standardization] Stereo Changes"] == "lost: 0, gained: 1"
+        na_keys = [k for k, v in row.items() if v == "N/A"]
+        assert len(na_keys) == 0, f"Unexpected N/A values: {na_keys}"
 
 
 class TestExtractNested:
@@ -871,7 +1005,6 @@ class TestExtractNested:
     def test_inner_dicts_keyed_by_col_key(self):
         nested = extract_nested(FULL_RESULT)
         val_keys = list(nested["validation"].keys())
-        # Should use col.key, not col.header
         assert "canonical_smiles" in val_keys
         assert "Canonical SMILES" not in val_keys
 
@@ -919,7 +1052,6 @@ class TestExtractBySection:
 
 class TestEdgeCases:
     def test_nested_helper_handles_non_dict_midpath(self):
-        # If a path segment is a non-dict value, return default
         result = {"scoring": "not_a_dict"}
         cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
         assert cols["ml_readiness_score"].extractor(result) == "N/A"
@@ -929,7 +1061,7 @@ class TestEdgeCases:
         cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
         assert cols["lipinski_passed"].extractor(result) == "N/A"
 
-    def test_safety_filter_handles_missing_sub_filter(self):
+    def test_safety_filter_flat_handles_missing_field(self):
         result = {"scoring": {"safety_filters": {}}}
         cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
         assert cols["pains_passed"].extractor(result) == "N/A"
@@ -945,19 +1077,14 @@ class TestEdgeCases:
         assert cols["pfi_score"].extractor(result) == "N/A"
 
     def test_std_steps_count_non_list_returns_na(self):
-        result = {"standardization": {"result": {"steps_applied": "not_a_list"}}}
+        result = {"standardization": {"steps_applied": "not_a_list"}}
         cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
         assert cols["std_steps_count"].extractor(result) == "N/A"
 
     def test_std_excluded_fragments_non_list_returns_na(self):
-        result = {"standardization": {"result": {"excluded_fragments": None}}}
+        result = {"standardization": {"excluded_fragments": None}}
         cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
         assert cols["std_excluded_fragments"].extractor(result) == "N/A"
-
-    def test_std_stereo_changes_non_dict_returns_na(self):
-        result = {"standardization": {"result": {"stereo_comparison": "n/a"}}}
-        cols = {col.key: col for s in AUDIT_SECTIONS for col in s.columns}
-        assert cols["std_stereo_changes"].extractor(result) == "N/A"
 
     def test_check_passed_with_empty_all_checks(self):
         result = {"validation": {"all_checks": []}}
@@ -965,12 +1092,11 @@ class TestEdgeCases:
         assert cols["parsability_passed"].extractor(result) == "N/A"
 
     def test_safety_all_passed_not_nested_under_sub_filter(self):
-        # Confirm that all_passed is read from top of safety_filters, not a sub-dict
         result = {
             "scoring": {
                 "safety_filters": {
                     "all_passed": True,
-                    "pains": {"passed": False},  # individual filter can differ
+                    "pains_passed": False,
                 }
             }
         }

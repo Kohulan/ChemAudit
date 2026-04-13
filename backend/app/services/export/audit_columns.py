@@ -1,9 +1,12 @@
 """
 Declarative Audit Column Registry
 
-Defines ~91 audit columns across 6 sections (Validation, Deep Validation,
+Defines ~78 audit columns across 6 sections (Validation, Deep Validation,
 Scoring, Safety, Compound Profile, Standardization). All exporters (CSV,
 Excel, JSON, SDF, PDF) import from this module as the single source of truth.
+
+Extractor paths match the batch result dict built by
+``app.services.batch.tasks._process_single_molecule()``.
 """
 
 from collections import OrderedDict
@@ -93,16 +96,19 @@ def _pass_fail(*path: str) -> Callable[[Dict[str, Any]], str]:
     return extractor
 
 
-def _safety_filter(filter_name: str, field: str) -> Callable[[Dict[str, Any]], Any]:
-    """Extract result["scoring"]["safety_filters"][filter_name][field]; bool->Pass/Fail."""
+def _safety_filter_flat(field: str) -> Callable[[Dict[str, Any]], Any]:
+    """Extract result['scoring']['safety_filters'][field]; bool->Pass/Fail.
+
+    The batch processor stores safety filter results as flat keys
+    (e.g. ``pains_passed``, ``brenk_passed``) not sub-dicts.
+    """
 
     def extractor(result: Dict[str, Any]) -> Any:
         scoring = result.get("scoring") or {}
-        safety_filters = scoring.get("safety_filters") or {}
-        sub = safety_filters.get(filter_name) or {}
-        if not isinstance(sub, dict):
+        sf = scoring.get("safety_filters") or {}
+        if not isinstance(sf, dict):
             return "N/A"
-        value = sub.get(field)
+        value = sf.get(field)
         if value is None:
             return "N/A"
         if isinstance(value, bool):
@@ -112,8 +118,25 @@ def _safety_filter(filter_name: str, field: str) -> Callable[[Dict[str, Any]], A
     return extractor
 
 
+def _alert_count(catalog_upper: str) -> Callable[[Dict[str, Any]], Any]:
+    """Count alerts from result['alerts']['alerts'] matching a catalog name."""
+
+    def extractor(result: Dict[str, Any]) -> Any:
+        alerts = result.get("alerts") or {}
+        alert_list = alerts.get("alerts") or []
+        if not isinstance(alert_list, list):
+            return 0
+        return sum(
+            1
+            for a in alert_list
+            if isinstance(a, dict) and str(a.get("catalog", "")).upper() == catalog_upper
+        )
+
+    return extractor
+
+
 def _safety_assess(category: str, field: str) -> Callable[[Dict[str, Any]], Any]:
-    """Extract result["safety_assessment"][category][field]; bool->Pass/Fail."""
+    """Extract result['safety_assessment'][category][field]; bool->Pass/Fail."""
 
     def extractor(result: Dict[str, Any]) -> Any:
         safety = result.get("safety_assessment") or {}
@@ -131,7 +154,7 @@ def _safety_assess(category: str, field: str) -> Callable[[Dict[str, Any]], Any]
 
 
 def _profile(*path: str) -> Callable[[Dict[str, Any]], Any]:
-    """Extract from result["profiling"][path...]."""
+    """Extract from result['profiling'][path...]."""
 
     def extractor(result: Dict[str, Any]) -> Any:
         node: Any = result.get("profiling") or {}
@@ -146,101 +169,46 @@ def _profile(*path: str) -> Callable[[Dict[str, Any]], Any]:
     return extractor
 
 
-def _std_field(field: str) -> Callable[[Dict[str, Any]], Any]:
-    """Extract result["standardization"]["result"][field]."""
-
-    def extractor(result: Dict[str, Any]) -> Any:
-        std = result.get("standardization") or {}
-        res = std.get("result") or {}
-        value = res.get(field)
-        return value if value is not None else "N/A"
-
-    return extractor
-
-
-def _pass_fail_std(field: str) -> Callable[[Dict[str, Any]], str]:
-    """Like _std_field but converts bool to Pass/Fail."""
-
-    def extractor(result: Dict[str, Any]) -> str:
-        std = result.get("standardization") or {}
-        res = std.get("result") or {}
-        value = res.get(field)
-        if value is True:
-            return "Pass"
-        elif value is False:
-            return "Fail"
-        return "N/A"
-
-    return extractor
-
-
 # ---------------------------------------------------------------------------
 # Custom extractors (one-off logic)
 # ---------------------------------------------------------------------------
 
 
 def _extract_standardized_smiles(result: Dict[str, Any]) -> str:
-    """Prefer top-level standardized_smiles (set by batch), fall back to nested."""
-    top = result.get("standardized_smiles")
-    if top:
-        return str(top)
+    """Get standardized SMILES from standardization dict (no 'result' sub-key)."""
     std = result.get("standardization") or {}
-    res = std.get("result") or {}
-    return res.get("standardized_smiles", "")
+    return std.get("standardized_smiles") or ""
 
 
 def _extract_std_steps_count(result: Dict[str, Any]) -> Any:
-    """Count standardization steps where applied=True."""
+    """Count standardization steps where applied=True (no 'result' sub-key)."""
     std = result.get("standardization") or {}
-    res = std.get("result") or {}
-    steps = res.get("steps_applied")
+    steps = std.get("steps_applied")
     if not isinstance(steps, list):
         return "N/A"
     return sum(1 for s in steps if isinstance(s, dict) and s.get("applied") is True)
 
 
 def _extract_std_excluded_fragments(result: Dict[str, Any]) -> Any:
-    """Count excluded fragments list length."""
+    """Count excluded fragments (no 'result' sub-key)."""
     std = result.get("standardization") or {}
-    res = std.get("result") or {}
-    frags = res.get("excluded_fragments")
+    frags = std.get("excluded_fragments")
     if not isinstance(frags, list):
         return "N/A"
     return len(frags)
 
 
-def _extract_std_stereo_changes(result: Dict[str, Any]) -> str:
-    """Summarize stereo_comparison as 'lost: X, gained: Y' or 'N/A'."""
-    std = result.get("standardization") or {}
-    res = std.get("result") or {}
-    stereo = res.get("stereo_comparison")
-    if not isinstance(stereo, dict):
+_extract_bro5_passed = _pass_fail("safety_assessment", "bro5", "passed")
+_extract_reos_passed = _pass_fail("safety_assessment", "reos", "passed")
+
+
+def _extract_cyp_count(result: Dict[str, Any]) -> Any:
+    """Count CYP soft-spot matches (cyp_softspots is a list, not a dict)."""
+    safety = result.get("safety_assessment") or {}
+    cyp = safety.get("cyp_softspots")
+    if not isinstance(cyp, list):
         return "N/A"
-    lost = stereo.get("lost", 0)
-    gained = stereo.get("gained", 0)
-    return f"lost: {lost}, gained: {gained}"
-
-
-def _extract_bro5_passed(result: Dict[str, Any]) -> str:
-    safety = result.get("safety_assessment") or {}
-    bro5 = safety.get("bro5") or {}
-    val = bro5.get("passed")
-    if val is True:
-        return "Pass"
-    elif val is False:
-        return "Fail"
-    return "N/A"
-
-
-def _extract_reos_passed(result: Dict[str, Any]) -> str:
-    safety = result.get("safety_assessment") or {}
-    reos = safety.get("reos") or {}
-    val = reos.get("passed")
-    if val is True:
-        return "Pass"
-    elif val is False:
-        return "Fail"
-    return "N/A"
+    return len(cyp)
 
 
 # ---------------------------------------------------------------------------
@@ -424,14 +392,21 @@ _DEEP_VALIDATION_COLUMNS: List[AuditColumn] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Section 3: Scoring (~35 columns)
+# Section 3: Scoring (~17 columns)
+#
+# Only includes fields the batch processor actually computes.
+# Batch uses flat keys (lipinski_passed, mw, sa_score, etc.) not nested
+# sub-dicts.  Extended druglikeness (ro3/ghose/egan/muegge), NP-likeness,
+# consensus, lead-likeness, aggregator, scaffold, boiled-egg, and advanced
+# ADMET (cns_mpo, pfizer_rule, gsk_rule, golden_triangle, bioavailability)
+# are not computed in batch mode and are therefore excluded.
 # ---------------------------------------------------------------------------
 
 _SCORING_COLUMNS: List[AuditColumn] = [
     AuditColumn(
         key="ml_readiness_score",
         header="ML-Readiness Score (0-100)",
-        extractor=_nested("scoring", "ml_readiness_score"),
+        extractor=_nested("scoring", "ml_readiness", "score"),
     ),
     AuditColumn(
         key="ml_readiness_label",
@@ -446,204 +421,119 @@ _SCORING_COLUMNS: List[AuditColumn] = [
     AuditColumn(
         key="lipinski_passed",
         header="Lipinski (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "lipinski", "passed"),
+        extractor=_pass_fail("scoring", "druglikeness", "lipinski_passed"),
     ),
     AuditColumn(
         key="lipinski_violations",
         header="Lipinski Violations (0-4)",
-        extractor=_nested("scoring", "druglikeness", "lipinski", "violations"),
+        extractor=_nested("scoring", "druglikeness", "lipinski_violations"),
     ),
     AuditColumn(
         key="lipinski_mw",
         header="Lipinski MW",
-        extractor=_nested("scoring", "druglikeness", "lipinski", "mw"),
+        extractor=_nested("scoring", "druglikeness", "mw"),
     ),
     AuditColumn(
         key="lipinski_logp",
         header="Lipinski LogP",
-        extractor=_nested("scoring", "druglikeness", "lipinski", "logp"),
+        extractor=_nested("scoring", "druglikeness", "logp"),
     ),
     AuditColumn(
         key="lipinski_hbd",
         header="Lipinski HBD",
-        extractor=_nested("scoring", "druglikeness", "lipinski", "hbd"),
+        extractor=_nested("scoring", "druglikeness", "hbd"),
     ),
     AuditColumn(
         key="lipinski_hba",
         header="Lipinski HBA",
-        extractor=_nested("scoring", "druglikeness", "lipinski", "hba"),
+        extractor=_nested("scoring", "druglikeness", "hba"),
     ),
     AuditColumn(
         key="veber_passed",
         header="Veber (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "veber", "passed"),
+        extractor=_pass_fail("scoring", "druglikeness", "veber_passed"),
     ),
     AuditColumn(
         key="veber_rotatable_bonds",
         header="Veber Rotatable Bonds",
-        extractor=_nested("scoring", "druglikeness", "veber", "rotatable_bonds"),
+        extractor=_nested("scoring", "druglikeness", "rotatable_bonds"),
     ),
     AuditColumn(
         key="veber_tpsa",
         header="Veber TPSA",
-        extractor=_nested("scoring", "druglikeness", "veber", "tpsa"),
+        extractor=_nested("scoring", "druglikeness", "tpsa"),
     ),
     AuditColumn(
-        key="ro3_passed",
-        header="Ro3 (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "ro3", "passed"),
-    ),
-    AuditColumn(
-        key="ghose_passed",
-        header="Ghose (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "ghose", "passed"),
-    ),
-    AuditColumn(
-        key="egan_passed",
-        header="Egan (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "egan", "passed"),
-    ),
-    AuditColumn(
-        key="muegge_passed",
-        header="Muegge (Pass/Fail)",
-        extractor=_pass_fail("scoring", "druglikeness", "muegge", "passed"),
-    ),
-    AuditColumn(
-        key="np_likeness_score",
-        header="NP-Likeness (-5 to +5)",
-        extractor=_nested("scoring", "np_likeness_score"),
-    ),
-    AuditColumn(
-        key="consensus_score",
-        header="Consensus Drug-Likeness (0-5)",
-        extractor=_nested("scoring", "consensus", "score"),
-    ),
-    AuditColumn(
-        key="lead_likeness_passed",
-        header="Lead-Likeness (Pass/Fail)",
-        extractor=_pass_fail("scoring", "lead_likeness", "passed"),
+        key="aromatic_rings",
+        header="Aromatic Rings",
+        extractor=_nested("scoring", "druglikeness", "aromatic_rings"),
     ),
     AuditColumn(
         key="sa_score",
         header="SA Score (1-10)",
-        extractor=_nested("scoring", "admet", "synthetic_accessibility", "score"),
+        extractor=_nested("scoring", "admet", "sa_score"),
     ),
     AuditColumn(
         key="sa_classification",
         header="SA Classification",
-        extractor=_nested("scoring", "admet", "synthetic_accessibility", "classification"),
+        extractor=_nested("scoring", "admet", "sa_classification"),
     ),
     AuditColumn(
-        key="esol_log_s",
-        header="ESOL Log S",
-        extractor=_nested("scoring", "admet", "solubility", "log_s"),
-    ),
-    AuditColumn(
-        key="esol_classification",
-        header="ESOL Classification",
-        extractor=_nested("scoring", "admet", "solubility", "classification"),
+        key="solubility_class",
+        header="Solubility Classification",
+        extractor=_nested("scoring", "admet", "solubility_class"),
     ),
     AuditColumn(
         key="fsp3",
         header="Fsp3 (0-1)",
-        extractor=_nested("scoring", "admet", "complexity", "fsp3"),
-    ),
-    AuditColumn(
-        key="cns_mpo",
-        header="CNS MPO (0-6)",
-        extractor=_nested("scoring", "admet", "cns_mpo", "score"),
-    ),
-    AuditColumn(
-        key="oral_absorption",
-        header="Oral Absorption Likely (Pass/Fail)",
-        extractor=_pass_fail("scoring", "admet", "bioavailability", "oral_absorption_likely"),
-    ),
-    AuditColumn(
-        key="pfizer_rule",
-        header="Pfizer Rule (Pass/Fail)",
-        extractor=_pass_fail("scoring", "admet", "pfizer_rule", "passed"),
-    ),
-    AuditColumn(
-        key="gsk_rule",
-        header="GSK Rule (Pass/Fail)",
-        extractor=_pass_fail("scoring", "admet", "gsk_rule", "passed"),
-    ),
-    AuditColumn(
-        key="golden_triangle",
-        header="Golden Triangle (Pass/Fail)",
-        extractor=_pass_fail("scoring", "admet", "golden_triangle", "in_golden_triangle"),
-    ),
-    AuditColumn(
-        key="aggregator_likelihood",
-        header="Aggregator Likelihood",
-        extractor=_nested("scoring", "aggregator", "likelihood"),
-    ),
-    AuditColumn(
-        key="aggregator_risk",
-        header="Aggregator Risk Score (0-1)",
-        extractor=_nested("scoring", "aggregator", "risk_score"),
-    ),
-    AuditColumn(
-        key="scaffold_smiles",
-        header="Murcko Scaffold SMILES",
-        extractor=_nested("scoring", "scaffold", "scaffold_smiles", default=""),
-    ),
-    AuditColumn(
-        key="boiled_egg_gi",
-        header="GI Absorption (Pass/Fail)",
-        extractor=_pass_fail("scoring", "boiled_egg", "gi_absorbed"),
-    ),
-    AuditColumn(
-        key="boiled_egg_bbb",
-        header="BBB Permeant (Pass/Fail)",
-        extractor=_pass_fail("scoring", "boiled_egg", "bbb_permeant"),
-    ),
-    AuditColumn(
-        key="boiled_egg_region",
-        header="BOILED-Egg Region",
-        extractor=_nested("scoring", "boiled_egg", "region"),
+        extractor=_nested("scoring", "admet", "fsp3"),
     ),
 ]
 
 # ---------------------------------------------------------------------------
 # Section 4: Safety (~16 columns)
+#
+# Safety filter results use flat keys (pains_passed, brenk_passed, etc.)
+# not sub-dicts.  Alert counts are derived from result["alerts"]["alerts"].
+# Safety assessment (hERG, bRo5, REOS, CYP, complexity) comes from the
+# optional "safety_assessment" top-level key.
 # ---------------------------------------------------------------------------
 
 _SAFETY_COLUMNS: List[AuditColumn] = [
     AuditColumn(
         key="pains_passed",
         header="PAINS (Pass/Fail)",
-        extractor=_safety_filter("pains", "passed"),
+        extractor=_safety_filter_flat("pains_passed"),
     ),
     AuditColumn(
         key="pains_count",
         header="PAINS Alert Count",
-        extractor=_safety_filter("pains", "alert_count"),
+        extractor=_alert_count("PAINS"),
     ),
     AuditColumn(
         key="brenk_passed",
         header="BRENK (Pass/Fail)",
-        extractor=_safety_filter("brenk", "passed"),
+        extractor=_safety_filter_flat("brenk_passed"),
     ),
     AuditColumn(
         key="brenk_count",
         header="BRENK Alert Count",
-        extractor=_safety_filter("brenk", "alert_count"),
+        extractor=_alert_count("BRENK"),
     ),
     AuditColumn(
         key="nih_passed",
         header="NIH (Pass/Fail)",
-        extractor=_safety_filter("nih", "passed"),
+        extractor=_safety_filter_flat("nih_passed"),
     ),
     AuditColumn(
         key="zinc_passed",
         header="ZINC (Pass/Fail)",
-        extractor=_safety_filter("zinc", "passed"),
+        extractor=_safety_filter_flat("zinc_passed"),
     ),
     AuditColumn(
         key="chembl_passed",
         header="ChEMBL (Pass/Fail)",
-        extractor=_pass_fail("scoring", "safety_filters", "chembl", "passed"),
+        extractor=_safety_filter_flat("chembl_passed"),
     ),
     AuditColumn(
         key="safety_all_passed",
@@ -683,7 +573,7 @@ _SAFETY_COLUMNS: List[AuditColumn] = [
     AuditColumn(
         key="cyp_softspot_count",
         header="CYP Soft Spots",
-        extractor=_safety_assess("cyp_softspots", "n_sites"),
+        extractor=_extract_cyp_count,
     ),
     AuditColumn(
         key="complexity_outliers",
@@ -693,7 +583,11 @@ _SAFETY_COLUMNS: List[AuditColumn] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Section 5: Compound Profile (~12 columns)
+# Section 5: Compound Profile (~8 columns)
+#
+# ``compute_full_profile()`` provides: pfi, stars, abbott, consensus_logp,
+# skin_permeation, and a druglikeness sub-dict.
+# ``sa_comparison`` and ``cns_mpo`` are NOT computed and therefore excluded.
 # ---------------------------------------------------------------------------
 
 _COMPOUND_PROFILE_COLUMNS: List[AuditColumn] = [
@@ -737,30 +631,15 @@ _COMPOUND_PROFILE_COLUMNS: List[AuditColumn] = [
         header="Skin Permeation Class",
         extractor=_profile("skin_permeation", "classification"),
     ),
-    AuditColumn(
-        key="sa_comparison_sa",
-        header="SA Score Comparison (1-10)",
-        extractor=_profile("sa_comparison", "sa_score", "score"),
-    ),
-    AuditColumn(
-        key="sa_comparison_scscore",
-        header="SCScore Comparison",
-        extractor=_profile("sa_comparison", "scscore", "score"),
-    ),
-    AuditColumn(
-        key="sa_comparison_syba",
-        header="SYBA Comparison",
-        extractor=_profile("sa_comparison", "syba", "score"),
-    ),
-    AuditColumn(
-        key="profile_cns_mpo",
-        header="Profile CNS MPO (0-4)",
-        extractor=_profile("cns_mpo", "score"),
-    ),
 ]
 
 # ---------------------------------------------------------------------------
-# Section 6: Standardization (~6 columns)
+# Section 6: Standardization (~4 columns)
+#
+# The batch processor stores standardization fields directly on the
+# ``standardization`` dict — there is NO ``result`` sub-key.
+# ``stereo_comparison`` and ``mass_change_percent`` are not stored in batch
+# and therefore excluded.
 # ---------------------------------------------------------------------------
 
 _STANDARDIZATION_COLUMNS: List[AuditColumn] = [
@@ -772,7 +651,7 @@ _STANDARDIZATION_COLUMNS: List[AuditColumn] = [
     AuditColumn(
         key="std_success",
         header="Success (Pass/Fail)",
-        extractor=_pass_fail_std("success"),
+        extractor=_pass_fail("standardization", "success"),
     ),
     AuditColumn(
         key="std_steps_count",
@@ -783,16 +662,6 @@ _STANDARDIZATION_COLUMNS: List[AuditColumn] = [
         key="std_excluded_fragments",
         header="Excluded Fragments",
         extractor=_extract_std_excluded_fragments,
-    ),
-    AuditColumn(
-        key="std_stereo_changes",
-        header="Stereo Changes",
-        extractor=_extract_std_stereo_changes,
-    ),
-    AuditColumn(
-        key="std_mass_change",
-        header="Mass Change (%)",
-        extractor=_std_field("mass_change_percent"),
     ),
 ]
 

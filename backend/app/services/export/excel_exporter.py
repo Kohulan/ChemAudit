@@ -10,6 +10,7 @@ Optionally embeds 2D chemical structure images rendered via RDKit.
 """
 
 import logging
+from collections import OrderedDict
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 
@@ -85,9 +86,16 @@ class ExcelExporter(BaseExporter):
             logger.debug("Failed to render structure for SMILES: %s", smiles, exc_info=True)
             return None
 
-    def _embed_structure_images(self, worksheet: Any, results: List[Dict[str, Any]]) -> None:
-        """Render and embed 2D structure PNGs into the worksheet's structure column."""
-        img_col = 1  # Column B (after index)
+    def _embed_structure_images(
+        self, worksheet: Any, results: List[Dict[str, Any]], *, img_col: int
+    ) -> None:
+        """Render and embed 2D structure PNGs into the worksheet's structure column.
+
+        Args:
+            worksheet: XlsxWriter Worksheet instance.
+            results: List of batch result dictionaries.
+            img_col: 0-based column index where the "structure" placeholder lives.
+        """
 
         for row_idx, result in enumerate(results):
             excel_row = row_idx + 1  # +1 for header row
@@ -210,11 +218,14 @@ class ExcelExporter(BaseExporter):
             alerts = result.get("alerts") or {}
             status = result.get("status", "error")
 
+            overall_score = validation.get("overall_score", 0)
+            ml_readiness = scoring.get("ml_readiness") or {}
+            ml_score = ml_readiness.get("score", 0) if isinstance(ml_readiness, dict) else 0
+
             if status == "success":
                 successful_count += 1
-
-            overall_score = validation.get("overall_score", 0)
-            ml_score = scoring.get("ml_readiness_score", 0) if scoring else 0
+                total_score += overall_score
+                total_ml_score += ml_score
 
             if scoring:
                 druglikeness = scoring.get("druglikeness") or {}
@@ -247,10 +258,6 @@ class ExcelExporter(BaseExporter):
                         safety_total += 1
                         if safety_passed:
                             safety_passes += 1
-
-            if status == "success":
-                total_score += overall_score
-                total_ml_score += ml_score
 
             for catalog, cnt in count_alerts_by_catalog(alerts).items():
                 alert_distribution[catalog] = alert_distribution.get(catalog, 0) + cnt
@@ -376,7 +383,8 @@ class ExcelExporter(BaseExporter):
 
         # Embed structure images if requested
         if self._include_images:
-            self._embed_structure_images(worksheet, results)
+            img_col = list(df.columns).index("structure")
+            self._embed_structure_images(worksheet, results, img_col=img_col)
 
     def _build_multi_sheet(
         self,
@@ -384,17 +392,22 @@ class ExcelExporter(BaseExporter):
         results: List[Dict[str, Any]],
     ) -> None:
         """Write one sheet per audit section, each with identity + section columns."""
+        # Pre-compute per-result: identity rows and section extractions (once each)
+        identities = []
+        all_by_section = []
+        for idx, result in enumerate(results):
+            identities.append(get_identity_row(idx, result))
+            all_by_section.append(extract_by_section(result))
+
         first_sheet = True
         for section in AUDIT_SECTIONS:
             rows = []
             for idx, result in enumerate(results):
-                identity = get_identity_row(idx, result)
+                identity = OrderedDict(identities[idx])
                 if first_sheet and self._include_images:
                     identity["structure"] = ""
 
-                # extract_by_section returns {section_name: OrderedDict{header: value}}
-                by_section = extract_by_section(result)
-                section_data = by_section.get(section.name, {})
+                section_data = all_by_section[idx].get(section.name, {})
 
                 row: Dict[str, Any] = dict(identity)
                 row.update(section_data)
@@ -418,7 +431,8 @@ class ExcelExporter(BaseExporter):
 
             # Embed structure images on the first sheet only
             if first_sheet and self._include_images:
-                self._embed_structure_images(worksheet, results)
+                img_col = list(df.columns).index("structure")
+                self._embed_structure_images(worksheet, results, img_col=img_col)
 
             first_sheet = False
 

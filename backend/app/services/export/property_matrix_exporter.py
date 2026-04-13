@@ -73,7 +73,7 @@ class PropertyMatrixExporter(BaseExporter):
             "ring_count": properties.get("ring_count", ""),
             # Scores
             "overall_score": validation.get("overall_score", ""),
-            "ml_readiness_score": scoring.get("ml_readiness_score", ""),
+            "ml_readiness_score": (scoring.get("ml_readiness") or {}).get("score", ""),
             "qed_score": druglikeness.get("qed_score", ""),
             "sa_score": admet.get("sa_score", ""),
             "np_likeness_score": scoring.get("np_likeness_score", ""),
