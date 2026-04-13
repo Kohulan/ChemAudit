@@ -101,7 +101,7 @@ async def qsar_ready_single_endpoint(
         logger.exception("Error in qsar_ready_single: %s", exc)
         raise HTTPException(
             status_code=500,
-            detail={"error": "Pipeline processing failed", "detail": str(exc)},
+            detail={"error": "Pipeline processing failed"},
         ) from exc
 
 
@@ -147,7 +147,7 @@ async def qsar_batch_upload(
     except (json.JSONDecodeError, Exception) as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid config JSON: {exc}",
+            detail="Invalid config JSON",
         ) from exc
 
     smiles_list: list[str] = []
@@ -212,8 +212,11 @@ async def qsar_batch_upload(
                     name_column=None,
                     max_file_size_mb=settings.MAX_FILE_SIZE_MB,
                 )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file content. Please check the file format and column names.",
+            )
         except Exception as exc:
             raise HTTPException(
                 status_code=400,

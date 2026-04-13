@@ -5,6 +5,7 @@ Five endpoints for SMILES error diagnostics, InChI layer diff,
 format round-trip lossiness, cross-pipeline comparison, and file pre-validation.
 """
 
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -30,6 +31,8 @@ from app.services.diagnostics import (
     prevalidate_csv,
     prevalidate_sdf,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -66,7 +69,7 @@ async def smiles_diagnostics(
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error": "Diagnostics failed", "detail": str(exc)},
+            detail={"error": "Diagnostics failed"},
         ) from exc
 
 
@@ -99,7 +102,7 @@ async def inchi_diff(
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error": "Diagnostics failed", "detail": str(exc)},
+            detail={"error": "Diagnostics failed"},
         ) from exc
 
 
@@ -132,7 +135,7 @@ async def roundtrip_check(
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error": "Diagnostics failed", "detail": str(exc)},
+            detail={"error": "Diagnostics failed"},
         ) from exc
 
 
@@ -169,12 +172,12 @@ async def cross_pipeline(
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
-            detail={"error": "Invalid molecule input", "detail": str(exc)},
+            detail={"error": "Invalid molecule input"},
         ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error": "Diagnostics failed", "detail": str(exc)},
+            detail={"error": "Diagnostics failed"},
         ) from exc
 
 
@@ -233,5 +236,5 @@ async def file_prevalidate(
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail={"error": "Diagnostics failed", "detail": str(exc)},
+            detail={"error": "Diagnostics failed"},
         ) from exc
