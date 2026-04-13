@@ -84,7 +84,7 @@ class TestFullProfile:
         assert response.status_code == 400
         data = response.json()
         assert "detail" in data
-        assert "error" in data["detail"]
+        assert "Invalid SMILES" in data["detail"]
 
     @pytest.mark.asyncio
     async def test_full_profile_cns_mpo_structure(self, client):
