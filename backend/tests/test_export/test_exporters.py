@@ -337,6 +337,34 @@ class TestExcelExporter:
         content = buffer.read()
         assert len(content) > 0  # Should still create a valid Excel file
 
+    def test_excel_single_sheet_has_audit_columns(self):
+        """Excel single-sheet export should have prefixed audit columns."""
+        exporter = ExcelExporter()
+        result = exporter.export(SAMPLE_RESULTS)
+        import openpyxl
+
+        wb = openpyxl.load_workbook(result)
+        ws = wb["Results"]
+        headers = [cell.value for cell in ws[1]]
+        assert any("[Validation]" in str(h) for h in headers if h)
+        assert any("[Scoring]" in str(h) for h in headers if h)
+
+    def test_excel_multi_sheet_mode(self):
+        """Excel multi-sheet should have one sheet per section plus Summary."""
+        exporter = ExcelExporter(sheet_layout="multi")
+        result = exporter.export(SAMPLE_RESULTS)
+        import openpyxl
+
+        wb = openpyxl.load_workbook(result)
+        sheet_names = wb.sheetnames
+        assert "Validation" in sheet_names
+        assert "Deep Validation" in sheet_names
+        assert "Scoring" in sheet_names
+        assert "Safety" in sheet_names
+        assert "Compound Profile" in sheet_names
+        assert "Standardization" in sheet_names
+        assert "Summary" in sheet_names
+
 
 class TestSDFExporter:
     """Test SDF export functionality."""
