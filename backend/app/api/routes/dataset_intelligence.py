@@ -157,6 +157,11 @@ async def upload_dataset(
             "filename": filename,
         })
         r.expire(f"dataset:meta:{job_id}", 3600)
+        # Store session ownership for WebSocket access control
+        from app.core.session import get_session_id
+        session_id = get_session_id(request)
+        if session_id:
+            r.set(f"dataset:owner:{job_id}", session_id, ex=3600)
     except Exception as exc:
         logger.warning("Failed to store dataset job metadata: %s", exc)
 
