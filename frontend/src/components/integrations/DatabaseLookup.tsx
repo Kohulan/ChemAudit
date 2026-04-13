@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { integrationsApi } from '../../services/api';
 import { logger } from '../../lib/logger';
-import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, ConsistencyResult } from '../../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, SureChEMBLResult, ConsistencyResult } from '../../types/integrations';
 import { DatabaseComparisonPanel } from './DatabaseComparisonPanel';
 import { DatabaseLookupResults } from './DatabaseLookupResults';
 import { ClayButton } from '../ui/ClayButton';
@@ -18,6 +18,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
     wikidata: WikidataResult | null;
+    surechembl: SureChEMBLResult | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [comparisonResult, setComparisonResult] = useState<ConsistencyResult | null>(null);
@@ -77,7 +78,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
 
       {!results && !isLoading && (
         <p className="text-sm text-gray-500">
-          Check if this molecule exists in PubChem, ChEMBL, COCONUT, or Wikidata.
+          Check if this molecule exists in PubChem, ChEMBL, COCONUT, Wikidata, or SureChEMBL.
         </p>
       )}
 

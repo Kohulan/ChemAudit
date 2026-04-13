@@ -1,0 +1,18 @@
+# Gitleaks configuration for ChemAudit
+# https://github.com/gitleaks/gitleaks
+
+title = "ChemAudit Secret Scanning"
+
+[allowlist]
+  description = "Global allowlist"
+  paths = [
+    '''node_modules''',
+    '''\.venv''',
+    '''__pycache__''',
+    '''\.pytest_cache''',
+    '''dist''',
+    '''build''',
+    '''\.next''',
+    '''docs-site/build''',
+    '''frontend/public/assets''',
+  ]

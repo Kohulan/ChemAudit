@@ -27,6 +27,8 @@ interface TaxonomyTabProps {
   onCategoryFilter?: (category: string | null) => void;
   /** Navigate to a molecule in the Detailed Results table */
   onNavigateToMolecule?: (moleculeIndex: number) => void;
+  /** Propagate selected molecule indices to parent */
+  onSelectionChange?: (indices: Set<number>) => void;
 }
 
 export function TaxonomyTab({
@@ -35,6 +37,7 @@ export function TaxonomyTab({
   onRetrigger,
   onCategoryFilter,
   onNavigateToMolecule,
+  onSelectionChange,
 }: TaxonomyTabProps) {
   // Build index→name lookup from batch results for molecule name tooltips
   const nameMap = useMemo(() => {
@@ -76,8 +79,21 @@ export function TaxonomyTab({
       const newCategory = activeCategory === category ? null : category;
       setActiveCategory(newCategory);
       onCategoryFilter?.(newCategory);
+      if (onSelectionChange && taxonomyResult) {
+        if (newCategory === null) {
+          onSelectionChange(new Set());
+        } else {
+          const indices = new Set<number>();
+          for (const mol of taxonomyResult.per_molecule) {
+            if (mol.categories.some((c) => c.category === newCategory)) {
+              indices.add(mol.index);
+            }
+          }
+          onSelectionChange(indices);
+        }
+      }
     },
-    [activeCategory, onCategoryFilter],
+    [activeCategory, onCategoryFilter, onSelectionChange, taxonomyResult],
   );
 
   // Summary stats

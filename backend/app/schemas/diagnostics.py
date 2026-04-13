@@ -228,7 +228,8 @@ class FileIssue(BaseModel):
     issue_type: str = Field(
         description=(
             "Issue type: missing_m_end, malformed_count_line, encoding_fallback, "
-            "encoding_error, suspicious_content, missing_smiles_column, empty_rows, empty_file"
+            "encoding_error, suspicious_content, missing_smiles_column, empty_rows, empty_file, "
+            "duplicate_columns"
         )
     )
     severity: str = Field(description="Severity level: error, warning, or info")

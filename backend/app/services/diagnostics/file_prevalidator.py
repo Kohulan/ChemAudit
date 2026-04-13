@@ -245,6 +245,28 @@ def prevalidate_csv(content: bytes) -> dict:
     # Detect delimiter from header
     delimiter = "\t" if header_line.count("\t") >= header_line.count(",") else ","
     header_columns = [col.strip() for col in header_line.split(delimiter)]
+
+    # --- Duplicate column detection (case-insensitive) ---
+    seen_columns: dict[str, list[int]] = {}
+    for pos, col_name in enumerate(header_columns, start=1):
+        key = col_name.strip().lower()
+        if key:
+            seen_columns.setdefault(key, []).append(pos)
+
+    for col_key, positions in seen_columns.items():
+        if len(positions) > 1:
+            issues.append({
+                "block": None,
+                "line": 1,
+                "issue_type": "duplicate_columns",
+                "severity": "warning",
+                "description": (
+                    f"Column '{col_key}' appears {len(positions)} times "
+                    f"(positions {', '.join(str(p) for p in positions)}). "
+                    f"Duplicate headers may cause data loss during processing."
+                ),
+            })
+
     header_lower = {col.lower() for col in header_columns}
 
     if not (_SMILES_COLUMN_NAMES & header_lower):

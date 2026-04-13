@@ -19,14 +19,15 @@
 
 <br />
 
-**Validate • Standardize • Score • Analyze**
+**Validate &bull; Standardize &bull; Score &bull; Profile &bull; Curate &bull; Analyze**
 
-*A powerful web platform for cheminformatics workflows, drug discovery, and ML dataset curation*
+*A comprehensive web platform for cheminformatics workflows, drug discovery, ML dataset curation, and generative chemistry evaluation*
 
-[Features](#-features) •
-[Quick Start](#-quick-start) •
-[Documentation](https://www.kohulanr.com/ChemAudit/) •
-[API](#-api-reference) •
+[Features](#-features) &bull;
+[Quick Start](#-quick-start) &bull;
+[Documentation](https://www.kohulanr.com/ChemAudit/) &bull;
+[API](#-api-reference) &bull;
+[CLI](#-command-line-interface) &bull;
 [Contributing](#-contributing)
 
 <br />
@@ -37,86 +38,175 @@
 
 ---
 
-## ✨ Features
+## Features
 
 <table>
 <tr>
 <td width="50%">
 
-### 🔬 Structure Validation
+### Structure Validation
 Comprehensive chemical structure analysis with 15+ validation checks
 
-- Valence & connectivity errors
-- Aromaticity & kekulization
-- Stereochemistry validation
-- Ring system analysis
+- Valence, connectivity & aromaticity errors
+- Stereochemistry & ring system analysis
 - Atom & bond type verification
+- Configurable validation profiles with 8 presets
 
 </td>
 <td width="50%">
 
-### ⚠️ Structural Alerts
+### Structural Alerts
 Screen compounds against known problematic substructures
 
 - **PAINS** - Pan-Assay Interference detection
 - **BRENK** - Unwanted group filters
-- **Custom Catalogs** - Define your own rules
-- Severity scoring & recommendations
+- **Kazius & NIBR** - Additional alert catalogs
+- Concern-group deduplication across catalogs
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 📊 ML-Readiness Scoring
+### ML-Readiness Scoring
 Evaluate compound suitability for machine learning
 
-- Descriptor calculability assessment
-- Fingerprint generation validation
+- 4-dimension scientific assessment
+- Descriptor calculability & fingerprint validation
 - Molecular complexity scoring
-- Dataset quality metrics
+- Profile-based scoring with custom presets
 
 </td>
 <td width="50%">
 
-### 🌿 Natural Product Analysis
-Assess natural product-likeness characteristics
-
-- NP-Likeness scoring algorithm
-- Scaffold extraction & classification
-- Structural similarity to known NPs
-- Biosynthetic pathway hints
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🧹 Standardization Pipeline
+### Standardization Pipeline
 ChEMBL-compatible molecular standardization
 
 - Salt stripping & neutralization
 - Tautomer canonicalization
 - Stereochemistry normalization
-- Configurable pipeline steps
-
-</td>
-<td width="50%">
-
-### 🗄️ Database Integrations
-Cross-reference against major chemical databases
-
-- **PubChem** - Compound properties & synonyms
-- **ChEMBL** - Bioactivity & target data
-- **COCONUT** - Natural products database
+- Cross-pipeline comparison (RDKit vs ChEMBL)
 
 </td>
 </tr>
 </table>
 
+### Data Preparation Suite
+
+<table>
+<tr>
+<td width="50%">
+
+#### QSAR-Ready Pipeline
+A 10-step curation pipeline producing ML-ready structures
+
+- Desalting, neutralisation, tautomer canonicalisation
+- InChIKey deduplication with change tracking per stage
+- Configurable steps with 3 presets (QSAR-2D, QSAR-3D, Minimal)
+- Batch processing via Celery with WebSocket progress
+
+</td>
+<td width="50%">
+
+#### Structure Filter
+Validation funnel for generative model output (REINVENT, etc.)
+
+- 6-stage funnel: parse, valence, alerts, property, SA, dedup
+- Optional novelty check via ChEMBL Tanimoto similarity
+- REINVENT-compatible scoring endpoint
+- Interactive funnel visualisation showing drop-out points
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+#### Dataset Audit
+Upload a dataset and get a comprehensive health score
+
+- Structural issues, standardisation inconsistencies, property distributions
+- Contradictory label detection (same InChIKey, opposite activity)
+- Full curation report generation
+- Dataset diff to compare before/after curation
+
+</td>
+<td width="50%">
+
+#### Diagnostics
+Debugging toolkit for chemical data issues
+
+- SMILES error annotation with exact break position
+- InChI layer-by-layer diff tables
+- SMILES-InChI-SMILES round-trip loss detection
+- Cross-pipeline comparison (RDKit vs ChEMBL vs Minimal)
+- File pre-validator: encoding, duplicate headers, malformed rows
+
+</td>
+</tr>
+</table>
+
+### Compound Profiler
+
+<table>
+<tr>
+<td width="50%">
+
+- **PFI** - Property Forecast Index (Young et al. 2011)
+- **Ligand Efficiency** - LE, LLE, LELP, BEI, SEI metrics
+- **SA Comparison** - Three independent scorers (SA Score, SCScore, SYBA)
+- **3D Shape Analysis** - PMI ternary plots via ETKDGv3/MMFF94
+
+</td>
+<td width="50%">
+
+- **Skin Permeation** - Potts-Guy 1992 model
+- **CNS MPO** - Wager 2010 multi-parameter optimisation
+- **Custom MPO Editor** - Define your own desirability functions with sigmoid/ramp/step shapes per property
+
+</td>
+</tr>
+</table>
+
+### Safety Assessment
+
+- **CYP Soft Spot Prediction** - 11 SMARTS-based metabolic liability patterns with atom-level highlighting
+- **hERG Liability Scoring** - 4-factor amphiphile risk model
+- **Beyond Rule of 5 (bRo5)** - Doak et al. 2014 thresholds for extended chemical space
+- **REOS Filtering** - Walters 1999 rapid elimination of swill
+- **Concern-Group Deduplication** - Same alert not flagged by multiple catalogs
+
+### Database Integrations & Identifier Resolution
+
+- **Universal Identifier Resolution** - Paste SMILES, InChI, InChIKey, CAS, common name, ChEMBL ID, PubChem CID, or more
+- **Cross-Reference** across PubChem, ChEMBL, COCONUT, Wikidata, ChEBI, and UniChem
+- **Side-by-side comparison** with stereochemistry-aware diffing
+- **SureChEMBL** patent presence lookups via UniChem cross-reference
+
+### Batch Analytics
+
+- **Butina Clustering** with configurable distance cutoff
+- **Murcko Scaffold Analysis** with interactive treemap visualisation
+- **Chemotype Taxonomy** - SMARTS-based classification with 50+ rules
+- **Registration Hash Collision Detection** - RDKit RegistrationHash v2 with tautomer support
+- **MCS Comparison** - Select any two molecules for side-by-side analysis with Tanimoto similarity, common substructure, and property delta table
+- **Click-to-filter drill-down** across all analytics charts
+- **Shareable Permalink Reports** with auto-snapshot persistence
+
+### Export System
+
+Full 78-column audit trail across 6 sections (Validation, Deep Validation, Scoring, Safety, Compound Profile, Standardization). One declarative registry drives all five exporters:
+
+| Format | Features |
+|--------|----------|
+| **CSV** | All 78 audit columns, always included |
+| **Excel** | Single-sheet or multi-sheet layout, optional 2D structure depictions, conditional score formatting |
+| **JSON** | Nested audit structure |
+| **SDF** | Optional full audit data toggle |
+| **PDF** | Batch report with optional full audit data toggle |
+
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Using Docker (Recommended)
 
@@ -132,11 +222,12 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-🌐 **Access Points:**
+**Access Points:**
 | Service | URL |
 |---------|-----|
 | Web UI | http://localhost:3002 |
 | API Docs | http://localhost:8001/docs |
+| MCP Server | http://localhost:8001/mcp |
 | Metrics | http://localhost:9090 |
 
 ### Production Deployment
@@ -170,8 +261,8 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for detailed configuration.
 
 ```bash
 cd backend
-poetry install
-poetry run uvicorn app.main:app --reload
+pip install -e ".[dev]"
+uvicorn app.main:app --reload --port 8000
 ```
 
 </details>
@@ -189,7 +280,66 @@ npm run dev
 
 ---
 
-## 📸 Screenshots
+## Command-Line Interface
+
+ChemAudit includes a CLI tool with 4 subcommands:
+
+```bash
+# Validate a molecule
+chemaudit validate --smiles "CCO" --format table
+
+# Score a molecule
+chemaudit score --smiles "CC(=O)Oc1ccccc1C(=O)O"
+
+# Standardize a molecule
+chemaudit standardize --smiles "CC(=O)[O-].[Na+]"
+
+# Profile a molecule
+chemaudit profile --smiles "c1ccccc1"
+
+# Process a file
+chemaudit validate --file molecules.csv --format json
+
+# Pipe from stdin
+echo "CCO" | chemaudit validate --format table
+```
+
+All commands support `--local` (offline mode), `--server` (remote API), and `--format json|table` output.
+
+---
+
+## Batch Processing
+
+Process large datasets with real-time progress tracking:
+
+| Feature | Specification |
+|---------|---------------|
+| **Max File Size** | Up to 1 GB (profile-dependent) |
+| **Max Molecules** | Up to 1,000,000 per batch (profile-dependent) |
+| **Supported Formats** | SDF, CSV |
+| **Progress Tracking** | Real-time WebSocket updates |
+| **Export Formats** | CSV, JSON, Excel, SDF, PDF Report |
+
+```python
+# Python client example
+from chemaudit import ChemAuditClient
+
+client = ChemAuditClient("http://localhost:8000")
+
+# Upload and process
+job = client.upload_batch("molecules.sdf")
+
+# Monitor progress
+for update in client.stream_progress(job.job_id):
+    print(f"Progress: {update.progress}%")
+
+# Get results
+results = client.get_results(job.job_id)
+```
+
+---
+
+## Screenshots
 
 <div align="center">
 <table>
@@ -214,41 +364,7 @@ npm run dev
 
 ---
 
-## 📦 Batch Processing
-
-Process large datasets with ease:
-
-| Feature | Specification |
-|---------|---------------|
-| **Max File Size** | Up to 1 GB (profile-dependent) |
-| **Max Molecules** | Up to 1,000,000 per batch (profile-dependent) |
-| **Supported Formats** | SDF, CSV |
-| **Progress Tracking** | Real-time WebSocket updates |
-| **Export Formats** | CSV, JSON, Excel, SDF, PDF Report |
-
-> **Note:** Batch limits are dynamically configured based on your deployment profile.
-> The frontend automatically displays the correct limits for your deployment.
-
-```python
-# Python client example
-from chemaudit import ChemAuditClient
-
-client = ChemAuditClient("http://localhost:8000")
-
-# Upload and process
-job = client.upload_batch("molecules.sdf")
-
-# Monitor progress
-for update in client.stream_progress(job.job_id):
-    print(f"Progress: {update.progress}%")
-
-# Get results
-results = client.get_results(job.job_id)
-```
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 <div align="center">
 
@@ -259,12 +375,13 @@ results = client.get_results(job.job_id)
 | **Database** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white) |
 | **Infrastructure** | ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white) |
 | **Monitoring** | ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white) |
+| **AI Integration** | MCP Server (Model Context Protocol) for AI-assisted workflows |
 
 </div>
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -278,7 +395,7 @@ results = client.get_results(job.job_id)
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 ### Validate a Molecule
 
@@ -288,94 +405,108 @@ curl -X POST http://localhost:8000/api/v1/validate \
   -d '{"molecule": "CC(=O)Oc1ccccc1C(=O)O", "format": "smiles"}'
 ```
 
-<details>
-<summary><b>Response</b></summary>
-
-```json
-{
-  "valid": true,
-  "validation_score": 92,
-  "checks": [
-    {"name": "valence", "passed": true, "severity": "critical"},
-    {"name": "aromaticity", "passed": true, "severity": "warning"},
-    {"name": "stereo", "passed": true, "severity": "info"}
-  ],
-  "standardized_smiles": "CC(=O)Oc1ccccc1C(=O)O",
-  "inchi": "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)",
-  "inchi_key": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
-}
-```
-
-</details>
-
-### Screen for Alerts
+### Resolve an Identifier
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/alerts \
+curl -X POST http://localhost:8000/api/v1/integrations/resolve \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "c1ccc2c(c1)nc(n2)Sc3nnnn3C", "catalogs": ["PAINS", "BRENK"]}'
+  -d '{"identifier": "aspirin"}'
 ```
 
-### Get ML-Readiness Score
+### Run Safety Assessment
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/score \
+curl -X POST http://localhost:8000/api/v1/safety/assess \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "include": ["ml_readiness", "np_likeness"]}'
+  -d '{"smiles": "c1ccc2c(c1)nc(n2)Sc3nnnn3C"}'
+```
+
+### Profile a Compound
+
+```bash
+curl -X POST http://localhost:8000/api/v1/profiler/full \
+  -H "Content-Type: application/json" \
+  -d '{"smiles": "CC(=O)Oc1ccccc1C(=O)O"}'
 ```
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 chemaudit/
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes/       # API endpoints
-│   │   ├── core/             # Config, security, metrics
-│   │   ├── schemas/          # Pydantic models
-│   │   ├── services/         # Business logic
-│   │   │   ├── validation/   # Validation checks
-│   │   │   ├── scoring/      # ML-readiness, NP-likeness
-│   │   │   ├── alerts/       # Structural alert screening
-│   │   │   └── integrations/ # External DB connectors
-│   │   └── templates/        # Report templates
+│   │   ├── api/routes/          # 22 API route modules
+│   │   ├── core/                # Config, security, rate limiting, sessions
+│   │   ├── schemas/             # Pydantic v2 models
+│   │   ├── services/            # Business logic
+│   │   │   ├── validation/      # 15+ validation checks
+│   │   │   ├── scoring/         # ML-readiness, NP-likeness
+│   │   │   ├── alerts/          # PAINS, BRENK, Kazius, NIBR
+│   │   │   ├── profiler/        # PFI, SA, MPO, ligand efficiency, 3D shape
+│   │   │   ├── safety/          # CYP, hERG, bRo5, REOS, unified screen
+│   │   │   ├── diagnostics/     # SMILES, InChI, round-trip, cross-pipeline
+│   │   │   ├── qsar_ready/      # 10-step curation pipeline
+│   │   │   ├── structure_filter/ # Generative model validation funnel
+│   │   │   ├── dataset_intelligence/ # Health audit, contradictory labels, diff
+│   │   │   ├── analytics/       # Clustering, scaffold, taxonomy, MCS, RegHash
+│   │   │   ├── integrations/    # PubChem, ChEMBL, COCONUT, Wikidata, SureChEMBL
+│   │   │   └── export/          # CSV, Excel, SDF, JSON, PDF (78-column audit)
+│   │   ├── cli.py               # CLI tool (4 subcommands)
+│   │   └── templates/           # PDF report templates
 │   └── tests/
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── pages/            # Route pages
-│   │   ├── services/         # API client
-│   │   ├── hooks/            # Custom hooks
-│   │   └── types/            # TypeScript definitions
+│   │   ├── components/          # React components
+│   │   ├── pages/               # 15 route pages
+│   │   ├── services/            # API client
+│   │   ├── hooks/               # Custom hooks
+│   │   └── types/               # TypeScript definitions
 │   └── tests/
-├── nginx/                    # Reverse proxy config
-├── docs/                     # Documentation
+├── client/                      # Python client library
+├── docs-site/                   # Docusaurus documentation site
+├── nginx/                       # Reverse proxy config
+├── .github/workflows/           # CI/CD (tests, lint, release, secret scanning)
+├── SECURITY.md                  # Security policy
 └── docker-compose.yml
 ```
 
 ---
 
-## 🧪 Running Tests
+## Security
+
+ChemAudit implements defense-in-depth security:
+
+- **API Key Authentication** with Redis-backed key management
+- **Rate Limiting** per-IP and per-API-key tiers with progressive IP banning
+- **Session Isolation** via HttpOnly cookies and PostgreSQL row-level security
+- **WebSocket Ownership Checks** preventing cross-session data access
+- **CSRF Protection** and Content Security Policy headers
+- **Secret Scanning** via Gitleaks in CI
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+---
+
+## Running Tests
 
 ```bash
 # Backend tests
 cd backend
-poetry run pytest
+pytest tests/ -v
 
 # Frontend tests
 cd frontend
 npm test
 
 # With coverage
-poetry run pytest --cov=app
-npm run test:coverage
+pytest tests/ --cov=app --cov-report=xml
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting a PR.
 
@@ -387,24 +518,28 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [RDKit](https://www.rdkit.org/) - Cheminformatics toolkit
 - [ChEMBL](https://www.ebi.ac.uk/chembl/) - Bioactivity database
 - [PubChem](https://pubchem.ncbi.nlm.nih.gov/) - Chemical database
 - [COCONUT](https://coconut.naturalproducts.net/) - Natural products database
+- [ChEBI](https://www.ebi.ac.uk/chebi/) - Chemical entities of biological interest
+- [UniChem](https://www.ebi.ac.uk/unichem/) - Cross-reference mapping service
+- [Wikidata](https://www.wikidata.org/) - Open knowledge base
+- [SureChEMBL](https://www.surechembl.org/) - Patent chemistry database
 
 ---
 
 <div align="center">
 
-**[⬆ Back to Top](#-chemaudit)**
+**[Back to Top](#-chemaudit)**
 
 Made with ☕ by [Kohulan.R](https://github.com/Kohulan) at [Friedrich Schiller University Jena](https://www.uni-jena.de/)
 
