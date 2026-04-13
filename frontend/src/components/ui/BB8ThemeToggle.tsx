@@ -74,7 +74,7 @@ export function BB8ThemeToggle({ className }: BB8ThemeToggleProps) {
 
 const StyledWrapper = styled.div`
   .bb8-toggle {
-    --toggle-size: 7px;
+    --toggle-size: 5.25px;
     --toggle-width: 10.625em;
     --toggle-height: 5.625em;
     --toggle-offset: calc((var(--toggle-height) - var(--bb8-diameter)) / 2);

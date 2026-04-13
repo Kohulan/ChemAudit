@@ -38,7 +38,7 @@
 
 ---
 
-## Features
+## ✨ Features
 
 <table>
 <tr>
@@ -206,7 +206,7 @@ Full 78-column audit trail across 6 sections (Validation, Deep Validation, Scori
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Using Docker (Recommended)
 
@@ -280,7 +280,7 @@ npm run dev
 
 ---
 
-## Command-Line Interface
+## 💻 Command-Line Interface
 
 ChemAudit includes a CLI tool with 4 subcommands:
 
@@ -308,7 +308,7 @@ All commands support `--local` (offline mode), `--server` (remote API), and `--f
 
 ---
 
-## Batch Processing
+## 📦 Batch Processing
 
 Process large datasets with real-time progress tracking:
 
@@ -339,7 +339,7 @@ results = client.get_results(job.job_id)
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 <div align="center">
 <table>
@@ -364,7 +364,7 @@ results = client.get_results(job.job_id)
 
 ---
 
-## Tech Stack
+## 🛠 Tech Stack
 
 <div align="center">
 
@@ -381,7 +381,7 @@ results = client.get_results(job.job_id)
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -395,7 +395,7 @@ results = client.get_results(job.job_id)
 
 ---
 
-## API Reference
+## 📡 API Reference
 
 ### Validate a Molecule
 
@@ -431,7 +431,7 @@ curl -X POST http://localhost:8000/api/v1/profiler/full \
 
 ---
 
-## Project Structure
+## 🏗 Project Structure
 
 ```
 chemaudit/
@@ -474,7 +474,7 @@ chemaudit/
 
 ---
 
-## Security
+## 🔒 Security
 
 ChemAudit implements defense-in-depth security:
 
@@ -489,7 +489,7 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ---
 
-## Running Tests
+## 🧪 Running Tests
 
 ```bash
 # Backend tests
@@ -506,7 +506,7 @@ pytest tests/ --cov=app --cov-report=xml
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting a PR.
 
@@ -518,29 +518,125 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 ---
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- [RDKit](https://www.rdkit.org/) - Cheminformatics toolkit
-- [ChEMBL](https://www.ebi.ac.uk/chembl/) - Bioactivity database
-- [PubChem](https://pubchem.ncbi.nlm.nih.gov/) - Chemical database
-- [COCONUT](https://coconut.naturalproducts.net/) - Natural products database
-- [ChEBI](https://www.ebi.ac.uk/chebi/) - Chemical entities of biological interest
-- [UniChem](https://www.ebi.ac.uk/unichem/) - Cross-reference mapping service
-- [Wikidata](https://www.wikidata.org/) - Open knowledge base
-- [SureChEMBL](https://www.surechembl.org/) - Patent chemistry database
+<div align="center">
+
+*Built on the shoulders of these outstanding open-source projects and databases*
+
+<br />
+
+<table>
+<tr>
+<td align="center" width="140">
+<br />
+<a href="https://www.rdkit.org/">
+<img src="https://img.shields.io/badge/RDKit-3776AB?style=for-the-badge&logoColor=white" alt="RDKit" />
+</a>
+<br /><br />
+<sub>Cheminformatics<br />Toolkit</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://www.ebi.ac.uk/chembl/">
+<img src="frontend/public/assets/logos/chembl.png" alt="ChEMBL" height="50" />
+</a>
+<br />
+<sub><b>ChEMBL</b></sub>
+<br />
+<sub>Bioactivity<br />Database</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://pubchem.ncbi.nlm.nih.gov/">
+<img src="frontend/public/assets/logos/pubchem.png" alt="PubChem" height="50" />
+</a>
+<br />
+<sub><b>PubChem</b></sub>
+<br />
+<sub>Chemical<br />Database</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://coconut.naturalproducts.net/">
+<img src="frontend/public/assets/logos/coconut.png" alt="COCONUT" height="50" />
+</a>
+<br />
+<sub><b>COCONUT</b></sub>
+<br />
+<sub>Natural Products<br />Database</sub>
+<br /><br />
+</td>
+</tr>
+<tr>
+<td align="center" width="140">
+<br />
+<a href="https://www.ebi.ac.uk/chebi/">
+<img src="https://img.shields.io/badge/ChEBI-5C2D91?style=for-the-badge&logoColor=white" alt="ChEBI" />
+</a>
+<br /><br />
+<sub>Chemical Entities of<br />Biological Interest</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://www.ebi.ac.uk/unichem/">
+<img src="https://img.shields.io/badge/UniChem-2E7D32?style=for-the-badge&logoColor=white" alt="UniChem" />
+</a>
+<br /><br />
+<sub>Cross-Reference<br />Mapping Service</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://www.wikidata.org/">
+<img src="frontend/public/assets/logos/wikidata.svg" alt="Wikidata" height="50" />
+</a>
+<br />
+<sub><b>Wikidata</b></sub>
+<br />
+<sub>Open<br />Knowledge Base</sub>
+<br /><br />
+</td>
+<td align="center" width="140">
+<br />
+<a href="https://www.surechembl.org/">
+<img src="frontend/public/assets/logos/surechembl.png" alt="SureChEMBL" height="50" />
+</a>
+<br />
+<sub><b>SureChEMBL</b></sub>
+<br />
+<sub>Patent Chemistry<br />Database</sub>
+<br /><br />
+</td>
+</tr>
+</table>
+
+</div>
 
 ---
 
 <div align="center">
 
-**[Back to Top](#-chemaudit)**
+<a href="https://www.uni-jena.de/">
+<img src="frontend/public/cheminf-logo.png" alt="Natural Products Cheminformatics - Friedrich Schiller University Jena" height="80" />
+</a>
 
-Made with ☕ by [Kohulan.R](https://github.com/Kohulan) at [Friedrich Schiller University Jena](https://www.uni-jena.de/)
+<br /><br />
+
+Made with ☕ by [Kohulan Rajan](https://github.com/Kohulan) at [Friedrich Schiller University Jena](https://www.uni-jena.de/)
+
+<br />
+
+**[Back to Top](#)**
 
 </div>
