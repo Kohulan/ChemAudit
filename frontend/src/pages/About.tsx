@@ -1852,32 +1852,4 @@ function Acknowledgments() {
 
 // ============================================================================
 // EXTERNAL LINK BUTTON
-// ============================================================================
-
-interface ExternalLinkButtonProps {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}
-
-function ExternalLinkButton({ href, icon, children }: ExternalLinkButtonProps) {
-  return (
-    <motion.a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        'inline-flex items-center gap-2 text-sm',
-        'text-[var(--color-primary)] hover:text-[var(--color-accent)]',
-        'transition-colors'
-      )}
-      whileHover={{ x: 4 }}
-    >
-      {icon}
-      {children}
-      <ExternalLink className="w-3 h-3" />
-    </motion.a>
-  );
-}
-
 export default AboutPage;
