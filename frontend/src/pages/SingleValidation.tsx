@@ -1451,6 +1451,10 @@ export function SingleValidationPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
                             <strong className="text-[var(--color-text-primary)]">Wikidata</strong> — Open knowledge base
                           </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">SureChEMBL</strong> — Patent literature presence
+                          </li>
                         </ul>
                       </div>
                     </div>
