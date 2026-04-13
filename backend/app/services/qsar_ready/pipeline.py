@@ -507,14 +507,14 @@ def qsar_ready_single(smiles: str, config: QSARReadyConfig) -> QSARReadyResult:
     # -------------------------------------------------------------------------
     try:
         curated_smiles = Chem.MolToSmiles(mol)
-    except Exception as e:
+    except Exception:
         result.steps.append(
             QSARStepResult(
                 step_name="canonical",
                 step_index=10,
                 enabled=True,
                 status="error",
-                detail=f"Failed to generate canonical SMILES: {e}",
+                detail="Failed to generate canonical SMILES",
             )
         )
         result.status = "error"

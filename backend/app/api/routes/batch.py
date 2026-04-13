@@ -177,8 +177,11 @@ async def upload_batch(
                 name_column=name_column,
                 max_file_size_mb=settings.MAX_FILE_SIZE_MB,
             )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file content. Please check the file format and column names.",
+        )
     except Exception:
         raise HTTPException(
             status_code=400,
@@ -739,12 +742,14 @@ async def compute_batch_mcs(
 
         result = compute_mcs_comparison(smiles_a, smiles_b)
         return MCSComparisonResult(**result)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid input for MCS comparison"
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"MCS computation failed: {str(exc)}",
+            detail=safe_error_detail(exc, "MCS computation failed"),
         )
 
 
@@ -789,8 +794,10 @@ async def detect_columns(
             row_count_estimate=result.get("row_count_estimate", 0),
             file_size_mb=result.get("file_size_mb", 0),
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid CSV file or column structure"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=400,
@@ -841,8 +848,8 @@ async def subset_revalidate(
 
     try:
         new_job_id = revalidate_subset(job_id, body.indices)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Job not found or invalid indices")
 
     return {
         "new_job_id": new_job_id,
@@ -897,8 +904,8 @@ async def subset_rescore(
         new_job_id = rescore_subset(
             job_id, body.indices, safety_options=safety_options
         )
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Job not found or invalid indices")
 
     return {
         "new_job_id": new_job_id,
@@ -930,8 +937,8 @@ async def subset_export(
 
     try:
         export_buffer = export_subset(job_id, body.indices, body.format)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Job not found or invalid indices")
     except Exception as e:
         raise HTTPException(
             status_code=500,

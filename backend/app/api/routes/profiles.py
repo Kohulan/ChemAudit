@@ -4,6 +4,7 @@ Scoring Profile API Routes
 CRUD endpoints for custom scoring profiles with 8 immutable presets.
 """
 
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -20,6 +21,8 @@ from app.schemas.profiles import (
     ScoringProfileUpdate,
 )
 from app.services.profiles.service import ProfileService, _profile_to_response_dict
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 profile_service = ProfileService()
@@ -85,7 +88,8 @@ async def update_profile(
         updates = body.model_dump(exclude_none=True)
         profile = await profile_service.update(db, profile_id, updates)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.debug("Profile update rejected: %s", e)
+        raise HTTPException(status_code=400, detail="Cannot modify preset profiles")
 
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -104,7 +108,8 @@ async def delete_profile(
     try:
         deleted = await profile_service.delete(db, profile_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.debug("Profile delete rejected: %s", e)
+        raise HTTPException(status_code=400, detail="Cannot delete preset profiles")
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Profile not found")
