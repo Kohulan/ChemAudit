@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 from rdkit import Chem
 
+from .audit_columns import extract_flat_row
 from .base import BaseExporter, ExporterFactory, ExportFormat, extract_alert_names
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,16 @@ logger = logging.getLogger(__name__)
 
 class SDFExporter(BaseExporter):
     """Export batch results to SDF format with properties."""
+
+    def __init__(self, include_audit: bool = False) -> None:
+        """
+        Initialise the SDF exporter.
+
+        Args:
+            include_audit: When True, attach all audit data as SDF properties
+                           (without the section-prefix, e.g. ``Parsability (Pass/Fail)``).
+        """
+        self._include_audit = include_audit
 
     def export(self, results: List[Dict[str, Any]]) -> BytesIO:
         """
@@ -89,6 +100,21 @@ class SDFExporter(BaseExporter):
             alert_names = extract_alert_names(result.get("alerts") or {})
             if alert_names:
                 mol.SetProp("alerts", ", ".join(alert_names))
+
+            # Add full audit properties when requested
+            if self._include_audit:
+                flat = extract_flat_row(result)
+                for prefixed_key, value in flat.items():
+                    # Strip the "[Section] " prefix to keep SDF property names short
+                    # e.g. "[Validation] Parsability (Pass/Fail)" -> "Parsability (Pass/Fail)"
+                    if "] " in prefixed_key:
+                        short_key = prefixed_key.split("] ", 1)[1]
+                    else:
+                        short_key = prefixed_key
+                    str_value = str(value)
+                    if str_value in ("N/A", ""):
+                        continue
+                    mol.SetProp(short_key, str_value)
 
             # Write molecule
             try:

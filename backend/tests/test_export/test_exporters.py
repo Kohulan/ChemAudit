@@ -422,6 +422,24 @@ class TestSDFExporter:
         content = buffer.read().decode("utf-8")
         assert len(content) == 0  # Empty SDF
 
+    def test_sdf_exporter_default_has_basic_props(self):
+        """SDF export without audit toggle should have basic properties only."""
+        exporter = SDFExporter()
+        result = exporter.export(SAMPLE_RESULTS)
+        content = result.getvalue().decode("utf-8")
+        # RDKit SDF format uses ">  <prop>" (two spaces before the angle bracket)
+        assert "<overall_score>" in content
+
+    def test_sdf_exporter_with_audit(self):
+        """SDF export with include_audit=True should have audit properties."""
+        exporter = SDFExporter(include_audit=True)
+        result = exporter.export(SAMPLE_RESULTS)
+        content = result.getvalue().decode("utf-8")
+        # Should still have basic properties
+        assert "<overall_score>" in content
+        # Should have at least some audit fields (without section prefix)
+        assert "<Parsability (Pass/Fail)>" in content or "<ML-Readiness Score (0-100)>" in content
+
 
 class TestJSONExporter:
     """Test JSON export functionality."""
