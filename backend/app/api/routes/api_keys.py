@@ -9,8 +9,9 @@ import secrets
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import (
     calculate_expiry_date,
     get_redis_client,
@@ -29,7 +30,8 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_admin_auth)],
 )
-async def create_api_key(request: APIKeyCreate):
+@limiter.limit("5/minute", key_func=get_rate_limit_key)
+async def create_api_key(request: Request, body: APIKeyCreate):
     """
     Create a new API key.
 
@@ -39,7 +41,7 @@ async def create_api_key(request: APIKeyCreate):
     Only the hash is stored in Redis, not the plain key.
 
     Args:
-        request: API key creation request
+        body: API key creation request
 
     Returns:
         APIKeyResponse with the full API key (shown only once)
@@ -50,15 +52,15 @@ async def create_api_key(request: APIKeyCreate):
     created_at = datetime.now(timezone.utc).isoformat()
 
     # Calculate expiry date
-    expires_at = calculate_expiry_date(request.expiry_days)
+    expires_at = calculate_expiry_date(body.expiry_days)
 
     # Store in Redis
     client = await get_redis_client()
     try:
         # Store key metadata
         mapping = {
-            "name": request.name,
-            "description": request.description or "",
+            "name": body.name,
+            "description": body.description or "",
             "created_at": created_at,
             "last_used": "",
             "request_count": "0",
@@ -74,7 +76,7 @@ async def create_api_key(request: APIKeyCreate):
 
     return APIKeyResponse(
         key=api_key,
-        name=request.name,
+        name=body.name,
         created_at=created_at,
         expires_at=expires_at,
     )
@@ -85,7 +87,8 @@ async def create_api_key(request: APIKeyCreate):
     response_model=List[APIKeyInfo],
     dependencies=[Depends(require_admin_auth)],
 )
-async def list_api_keys():
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def list_api_keys(request: Request):
     """
     List all API keys (metadata only, not the actual keys).
 
@@ -126,7 +129,8 @@ async def list_api_keys():
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_admin_auth)],
 )
-async def revoke_api_key(key_id: str):
+@limiter.limit("5/minute", key_func=get_rate_limit_key)
+async def revoke_api_key(request: Request, key_id: str):
     """
     Revoke an API key.
 
