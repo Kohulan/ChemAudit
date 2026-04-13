@@ -117,7 +117,8 @@ def _export_results(
         else:
             exporter = ExporterFactory.create(format)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        logger.debug("Export format error: %s", e)
+        raise HTTPException(status_code=422, detail="Unsupported export format")
 
     try:
         export_buffer = exporter.export(results)

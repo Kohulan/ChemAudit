@@ -59,9 +59,12 @@ async def full_profile(
             detail="Invalid SMILES",
         )
 
-    profile = compute_full_profile(mol)
-    sa_comparison = compute_sa_comparison(mol, body.smiles)
-    cns_mpo = compute_cns_mpo(mol)
+    try:
+        profile = compute_full_profile(mol)
+        sa_comparison = compute_sa_comparison(mol, body.smiles)
+        cns_mpo = compute_cns_mpo(mol)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Profiling computation failed")
 
     return {
         **profile,
@@ -144,7 +147,10 @@ async def sa_comparison(
             detail="Invalid SMILES",
         )
 
-    return compute_sa_comparison(mol, body.smiles)
+    try:
+        return compute_sa_comparison(mol, body.smiles)
+    except Exception:
+        raise HTTPException(status_code=500, detail="SA comparison computation failed")
 
 
 @router.post("/efficiency")

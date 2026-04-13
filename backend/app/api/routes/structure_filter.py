@@ -152,7 +152,7 @@ async def structure_filter_filter(
             logger.exception("Error in structure-filter filter_batch: %s", exc)
             raise HTTPException(
                 status_code=500,
-                detail={"error": "Filter pipeline failed", "detail": str(exc)},
+                detail={"error": "Filter pipeline failed"},
             ) from exc
 
         stages = [StageResultSchema(**dataclasses.asdict(s)) for s in result.stages]
@@ -327,7 +327,7 @@ async def structure_filter_batch_upload(
         except Exception as exc:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid config JSON: {exc}",
+                detail="Invalid config JSON",
             ) from exc
 
     filter_config = _resolve_config(preset, config_schema)
@@ -352,8 +352,11 @@ async def structure_filter_batch_upload(
                 name_column=None,
                 max_file_size_mb=settings.MAX_FILE_SIZE_MB,
             )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file content. Please check the file format and column names.",
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=400,
