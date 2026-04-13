@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.5.0](https://github.com/Kohulan/ChemAudit/compare/v1.4.0...v1.5.0) (2026-04-13)
+
+
+### Features
+
+* **about:** add developer profile card with claymorphism design ([861104a](https://github.com/Kohulan/ChemAudit/commit/861104a39e6617eccd02165141a489a48bc7937b))
+* add Wikidata lookup, BB-8 theme toggle, clustering/taxonomy info boxes, update About page ([7ea2957](https://github.com/Kohulan/ChemAudit/commit/7ea2957c20feb5c51c1d9767ca23866d4893d6e7))
+* **batch:** move Export All to top bar, Export Selected to results header ([194da7e](https://github.com/Kohulan/ChemAudit/commit/194da7e046a36e4022f9ea331aa0eec2b831ab10))
+* **batch:** widen results table, improve info icons, enrich collision groups ([4e1b912](https://github.com/Kohulan/ChemAudit/commit/4e1b912e98dce25e237b3d5c844d306b3bb83be1))
+* **export:** add declarative audit column registry with 6 sections ([a1cd1a8](https://github.com/Kohulan/ChemAudit/commit/a1cd1a8916da0b1539e5c896c8e95b79ff375f3b))
+* **export:** add Excel sheet layout and SDF/PDF audit toggle to ExportDialog ([d09cf61](https://github.com/Kohulan/ChemAudit/commit/d09cf617ad3c964f8b14473ade83ac9b14dfcf65))
+* **export:** add include_audit toggle to PDF report generator ([03ccdf3](https://github.com/Kohulan/ChemAudit/commit/03ccdf30eeb85133853f3e3a02f1b1dad67eac9f))
+* **export:** add include_audit toggle to SDF exporter ([ff385ec](https://github.com/Kohulan/ChemAudit/commit/ff385ecf1eb3f308b4859420f30eebed40204530))
+* **export:** add sheet_layout and include_audit params, update filename convention ([e98ca3f](https://github.com/Kohulan/ChemAudit/commit/e98ca3f5b19d25272816c6a5c2568fae36cfcc16))
+* **export:** rewrite CSV exporter to include full audit data ([4e8713e](https://github.com/Kohulan/ChemAudit/commit/4e8713e6d8e9fd02aed0e41a26d7cc41d5d40543))
+* **export:** rewrite Excel exporter with audit columns and multi-sheet mode ([498faae](https://github.com/Kohulan/ChemAudit/commit/498faae4f9bb7f8bf031ae47bd69bb9ca66f2840))
+* **export:** rewrite JSON exporter with structured audit sections ([2715c2a](https://github.com/Kohulan/ChemAudit/commit/2715c2ac23fa70e7977cf3d4c9c4655170aab066))
+* **export:** update ExporterFactory to forward constructor kwargs ([49e0eae](https://github.com/Kohulan/ChemAudit/commit/49e0eaec4a78bc9d3865e71c43faa0883b392e61))
+* **footer:** replace inline footer with cinematic GSAP scroll-reveal footer ([77527ba](https://github.com/Kohulan/ChemAudit/commit/77527ba49b5a94ac1bc4a02f0ee7f918e91ff575))
+
+
+### Bug Fixes
+
+* **about:** remove unused ExternalLinkButton to fix CI type check ([e4f38ab](https://github.com/Kohulan/ChemAudit/commit/e4f38abd9770d16efc37b66c1d3b2aef16036655))
+* **about:** remove unused ExternalLinkButton to fix CI type check ([285e3ee](https://github.com/Kohulan/ChemAudit/commit/285e3ee833c855ea3aa1064f60856eb79b4c307a))
+* **batch:** add scroll guard to prevent programmatic scroll into footer ([8b2cca2](https://github.com/Kohulan/ChemAudit/commit/8b2cca2f6085d2e2f0380cb2a3f823b3c1cc9ad7))
+* **deps:** resolve all npm security vulnerabilities ([17c793c](https://github.com/Kohulan/ChemAudit/commit/17c793c17311a35425645a3fa30ebcf939d9ca3a))
+* **export:** align audit extractors with batch data structure, fix image placement ([929760c](https://github.com/Kohulan/ChemAudit/commit/929760c3e9a05200af69377925bca3ff9bd53694))
+* resolve all ruff lint errors (unused imports, naming, sorting) ([037f627](https://github.com/Kohulan/ChemAudit/commit/037f627e473e3c34e892410e60395fa799aedd19))
+* resolve all ruff lint errors (unused imports, naming, sorting) ([315688a](https://github.com/Kohulan/ChemAudit/commit/315688a7e6643db4fc7c2a6e85f8de112778bb11))
+* **security:** add ownership checks to structure-filter and dataset WebSockets ([1f66b3b](https://github.com/Kohulan/ChemAudit/commit/1f66b3b294ec374faeffa97592ec50d362b3ac8d))
+* **security:** add rate limit to DELETE /me/data (5/min) ([536a74b](https://github.com/Kohulan/ChemAudit/commit/536a74be4cd90baff76d7c4db7cb89aacf0d5ead))
+* **security:** add rate limits to /api-keys CRUD (5-10/min) ([1cf1d17](https://github.com/Kohulan/ChemAudit/commit/1cf1d1718fcc38901a0af879602bf9e383bee550))
+* **security:** add rate limits to /bookmarks endpoints (5-30/min) ([72f8f9e](https://github.com/Kohulan/ChemAudit/commit/72f8f9e7d2ea25a5af2d67246d1972b990b1f476))
+* **security:** add rate limits to /config and /standardize/options (30/min) ([57aaa5d](https://github.com/Kohulan/ChemAudit/commit/57aaa5d873f15832772b3012423013966df43282))
+* **security:** add rate limits to /history endpoints (30/min) ([9a61708](https://github.com/Kohulan/ChemAudit/commit/9a61708b7d312b89abb2df9d02f92dfae069354e))
+* **security:** add rate limits to permalink resolve endpoints (30/min) ([fcf2b66](https://github.com/Kohulan/ChemAudit/commit/fcf2b66aefc3be07877f3d3fb65f98687a846b8e))
+* **security:** prevent exception details from leaking to API responses ([a8fba76](https://github.com/Kohulan/ChemAudit/commit/a8fba76f51d5f81b767ea2f711a1335230d4f0a5))
+* **security:** reduce file upload rate limit from 10/min to 3/min ([4b5f798](https://github.com/Kohulan/ChemAudit/commit/4b5f798a85aa92d579651902c577403e05b25fcc))
+* **security:** stop reflecting user input in profiler error responses ([bf13574](https://github.com/Kohulan/ChemAudit/commit/bf13574d6379f2be7ef411391e8419a630a3fd95))
+* **security:** stop reflecting user input in profiler error responses ([d6523ac](https://github.com/Kohulan/ChemAudit/commit/d6523ac22e99dd1a3cbd4fb55a9208bafa2bc869))
+* **security:** store session ownership for structure-filter and dataset jobs ([245ca4e](https://github.com/Kohulan/ChemAudit/commit/245ca4efd878b1951c137e2bab3dae6c376e8656))
+* **security:** wrap profiler service calls to prevent stack trace exposure ([8fdf39c](https://github.com/Kohulan/ChemAudit/commit/8fdf39c803793ad65f3c938b5648af49b8f3de95))
+* update tests for sanitized error messages, handle missing medche… ([8361e83](https://github.com/Kohulan/ChemAudit/commit/8361e83a8a50d42c295544b35334300dc16a4757))
+* update tests for sanitized error messages, handle missing medchem gracefully ([74aa273](https://github.com/Kohulan/ChemAudit/commit/74aa273ff6132c1b77faae14f1bc230ccee72d75))
+
+
+### Documentation
+
+* add SECURITY.md with vulnerability reporting policy ([abc564f](https://github.com/Kohulan/ChemAudit/commit/abc564fa8c766b39ee292feb6372c24d757a599b))
+* update documentation for all new features since initial release ([be70926](https://github.com/Kohulan/ChemAudit/commit/be70926a396c0d7fd88ae592ac8133eef2dcffaf))
+
 ## [1.3.0](https://github.com/Kohulan/ChemAudit/compare/v1.2.1...v1.3.0) (2026-03-05)
 
 
