@@ -50,10 +50,27 @@ from app.core.rate_limit import (
     rate_limit_exceeded_handler,
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
+from app.core.session import SESSION_COOKIE
 from app.websockets import manager
 from fastapi_mcp import FastApiMCP
 
 logger = logging.getLogger(__name__)
+
+
+async def _check_ws_ownership(
+    websocket: WebSocket, job_id: str, prefix: str
+) -> bool:
+    """Check WebSocket session owns the job. Returns False if access denied."""
+    session_cookie = websocket.cookies.get(SESSION_COOKIE)
+    if not session_cookie or not manager._redis:
+        return True
+    try:
+        owner = await manager._redis.get(f"{prefix}:owner:{job_id}")
+        if owner and owner != session_cookie:
+            return False
+    except Exception as exc:
+        logger.warning("Ownership check failed for %s: %s", job_id, exc)
+    return True
 
 # =============================================================================
 # Deep Validation Check Registration Assertion (ROADMAP success criteria #5)
@@ -443,18 +460,10 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
         return
 
     # Post-accept validation: session-based ownership check
-    session_cookie = websocket.cookies.get("chemaudit_sid")
-    if session_cookie:
-        try:
-            import redis as sync_redis
-            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
-            owner = r.get(f"batch:owner:{job_id}")
-            if owner and owner != session_cookie:
-                manager.disconnect(job_id, websocket)
-                await websocket.close(code=4003, reason="Access denied")
-                return
-        except Exception:
-            pass  # Degrade gracefully
+    if not await _check_ws_ownership(websocket, job_id, "batch"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
 
     _ws_connections[job_id] = current + 1
 
@@ -514,20 +523,11 @@ async def qsar_progress_websocket(websocket: WebSocket, job_id: str):
         await websocket.close(code=4029, reason="Too many connections for this job")
         return
 
-    # Post-accept validation: session-based ownership check (qsar:owner:{job_id})
-    session_cookie = websocket.cookies.get("chemaudit_sid")
-    if session_cookie:
-        try:
-            import redis as sync_redis
-
-            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
-            owner = r.get(f"qsar:owner:{job_id}")
-            if owner and owner != session_cookie:
-                manager.disconnect(job_id, websocket)
-                await websocket.close(code=4003, reason="Access denied")
-                return
-        except Exception:
-            pass  # Degrade gracefully
+    # Post-accept validation: session-based ownership check
+    if not await _check_ws_ownership(websocket, job_id, "qsar"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
 
     _ws_qsar_connections[job_id] = current + 1
 
@@ -587,18 +587,10 @@ async def structure_filter_progress_websocket(websocket: WebSocket, job_id: str)
         return
 
     # Post-accept validation: session-based ownership check
-    session_cookie = websocket.cookies.get("chemaudit_sid")
-    if session_cookie:
-        try:
-            import redis as sync_redis
-            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
-            owner = r.get(f"structure-filter:owner:{job_id}")
-            if owner and owner != session_cookie:
-                manager.disconnect(job_id, websocket)
-                await websocket.close(code=4003, reason="Access denied")
-                return
-        except Exception:
-            pass  # Degrade gracefully
+    if not await _check_ws_ownership(websocket, job_id, "structure-filter"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
 
     _ws_structure_filter_connections[job_id] = current + 1
 
@@ -660,18 +652,10 @@ async def dataset_progress_websocket(websocket: WebSocket, job_id: str):
         return
 
     # Post-accept validation: session-based ownership check
-    session_cookie = websocket.cookies.get("chemaudit_sid")
-    if session_cookie:
-        try:
-            import redis as sync_redis
-            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
-            owner = r.get(f"dataset:owner:{job_id}")
-            if owner and owner != session_cookie:
-                manager.disconnect(job_id, websocket)
-                await websocket.close(code=4003, reason="Access denied")
-                return
-        except Exception:
-            pass  # Degrade gracefully
+    if not await _check_ws_ownership(websocket, job_id, "dataset"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
 
     _ws_dataset_connections[job_id] = current + 1
 

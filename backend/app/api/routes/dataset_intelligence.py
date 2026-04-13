@@ -32,6 +32,7 @@ from fastapi.responses import Response
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.core.session import get_session_id
 from app.schemas.dataset_intelligence import (
     DatasetAuditResponse,
     DatasetAuditStatusResponse,
@@ -158,7 +159,6 @@ async def upload_dataset(
         })
         r.expire(f"dataset:meta:{job_id}", 3600)
         # Store session ownership for WebSocket access control
-        from app.core.session import get_session_id
         session_id = get_session_id(request)
         if session_id:
             r.set(f"dataset:owner:{job_id}", session_id, ex=3600)

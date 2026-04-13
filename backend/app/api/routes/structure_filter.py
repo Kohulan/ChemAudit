@@ -31,6 +31,7 @@ from fastapi.responses import StreamingResponse
 from app.core.config import settings
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.core.session import get_session_id
 from app.schemas.structure_filter import (
     FilterConfigSchema,
     FilterRequest,
@@ -376,7 +377,6 @@ async def structure_filter_batch_upload(
             ex=3600,
         )
         # Store session ownership for WebSocket access control
-        from app.core.session import get_session_id
         session_id = get_session_id(request)
         if session_id:
             r.set(f"structure-filter:owner:{job_id}", session_id, ex=3600)
