@@ -443,6 +443,7 @@ class TestJSONExporter:
         assert "export_date" in data["metadata"]
         assert "total_count" in data["metadata"]
         assert data["metadata"]["total_count"] == len(SAMPLE_RESULTS)
+        assert data["metadata"]["format_version"] == "2.0"
 
         # Check results
         assert len(data["results"]) == len(SAMPLE_RESULTS)
@@ -464,6 +465,26 @@ class TestJSONExporter:
 
         assert data["metadata"]["total_count"] == 0
         assert len(data["results"]) == 0
+
+    def test_json_structured_output(self):
+        """JSON export should have structured sections per result."""
+        exporter = JSONExporter()
+        result_buffer = exporter.export(SAMPLE_RESULTS)
+        data = json.loads(result_buffer.getvalue().decode("utf-8"))
+        assert data["metadata"]["format_version"] == "2.0"
+        first = data["results"][0]
+        # Has identity columns (1-based index)
+        assert first["index"] == 1
+        assert first["name"] == "Ethanol"
+        assert first["status"] == "success"
+        # Has structured sections
+        assert "validation" in first
+        assert "scoring" in first
+        assert "safety" in first
+        assert "compound_profile" in first
+        assert "standardization" in first
+        # Values are extracted (not raw dicts)
+        assert isinstance(first["validation"]["parsability_passed"], str)  # "Pass" not a dict
 
 
 class TestExporterFactory:
