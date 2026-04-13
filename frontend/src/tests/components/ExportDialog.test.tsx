@@ -98,9 +98,55 @@ describe('ExportDialog', () => {
     it('shows filename preview with job ID', () => {
       render(<ExportDialog {...defaultProps} />);
 
-      // Default format is CSV
-      const preview = screen.getByText(/chemaudit_csv_.*_test-job/);
+      // Format: chemaudit_batch_{jobId.slice(0,8)}_{date}.csv
+      const preview = screen.getByText(/chemaudit_batch_test-job/);
       expect(preview).toBeInTheDocument();
+    });
+  });
+
+  describe('Excel Sheet Layout', () => {
+    it('shows sheet layout radio when Excel format is selected', () => {
+      render(<ExportDialog {...defaultProps} />);
+
+      const excelLabel = screen.getByText('Excel');
+      fireEvent.click(excelLabel.closest('label')!);
+
+      expect(screen.getByText('Sheet Layout')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Single sheet/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Multiple sheets/)).toBeInTheDocument();
+    });
+
+    it('does not show sheet layout for non-Excel formats', () => {
+      render(<ExportDialog {...defaultProps} />);
+
+      // Default is CSV
+      expect(screen.queryByText('Sheet Layout')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('SDF/PDF Audit Toggle', () => {
+    it('shows audit toggle when SDF format is selected', () => {
+      render(<ExportDialog {...defaultProps} />);
+
+      const sdfLabel = screen.getByText('SDF');
+      fireEvent.click(sdfLabel.closest('label')!);
+
+      expect(screen.getByLabelText(/Include full audit data/)).toBeInTheDocument();
+    });
+
+    it('shows audit toggle when PDF format is selected', () => {
+      render(<ExportDialog {...defaultProps} />);
+
+      const pdfLabel = screen.getByText('PDF Report');
+      fireEvent.click(pdfLabel.closest('label')!);
+
+      expect(screen.getByLabelText(/Include full audit data/)).toBeInTheDocument();
+    });
+
+    it('does not show audit toggle for CSV format', () => {
+      render(<ExportDialog {...defaultProps} />);
+
+      expect(screen.queryByText('Include full audit data')).not.toBeInTheDocument();
     });
   });
 

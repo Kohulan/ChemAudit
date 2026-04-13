@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { Download } from 'lucide-react';
 import type { BatchStatistics } from '../../types/batch';
-import { ExportDialog } from './ExportDialog';
-import { ClayButton } from '../ui/ClayButton';
 
 interface BatchSummaryProps {
   jobId: string;
@@ -20,9 +16,7 @@ interface BatchSummaryProps {
 /**
  * Summary statistics display with cards and charts.
  */
-export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelection, onFilterByStatus, activeStatusFilter, onAlertClick, activeAlertFilter, onIssueClick, activeIssueFilter }: BatchSummaryProps) {
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [exportSelectedIndices, setExportSelectedIndices] = useState<Set<number> | undefined>(undefined);
+export function BatchSummary({ jobId: _jobId, statistics, selectedIndices: _selectedIndices, onClearSelection: _onClearSelection, onFilterByStatus, activeStatusFilter, onAlertClick, activeAlertFilter, onIssueClick, activeIssueFilter }: BatchSummaryProps) {
   const formatTime = (seconds: number | null): string => {
     if (seconds === null) return '-';
     if (seconds < 60) return `${seconds.toFixed(1)}s`;
@@ -302,56 +296,6 @@ export function BatchSummary({ jobId, statistics, selectedIndices, onClearSelect
         </div>
       )}
 
-      {/* Export buttons */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {selectedIndices && selectedIndices.size > 0 && (
-          <>
-            <div className="px-3 py-1.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-sm font-medium">
-              {selectedIndices.size} selected
-            </div>
-            <ClayButton
-              variant="primary"
-              onClick={() => {
-                setExportSelectedIndices(selectedIndices);
-                setIsExportDialogOpen(true);
-              }}
-              leftIcon={<Download className="w-4 h-4" />}
-            >
-              Export Selected ({selectedIndices.size})
-            </ClayButton>
-            {onClearSelection && (
-              <button
-                onClick={onClearSelection}
-                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
-              >
-                Clear
-              </button>
-            )}
-          </>
-        )}
-        <ClayButton
-          variant={selectedIndices && selectedIndices.size > 0 ? 'default' : 'primary'}
-          onClick={() => {
-            setExportSelectedIndices(undefined);
-            setIsExportDialogOpen(true);
-          }}
-          leftIcon={<Download className="w-4 h-4" />}
-          className="ml-auto"
-        >
-          Export All
-        </ClayButton>
-      </div>
-
-      {/* Export Dialog */}
-      <ExportDialog
-        jobId={jobId}
-        isOpen={isExportDialogOpen}
-        onClose={() => {
-          setIsExportDialogOpen(false);
-          setExportSelectedIndices(undefined);
-        }}
-        selectedIndices={exportSelectedIndices}
-      />
     </div>
   );
 }
