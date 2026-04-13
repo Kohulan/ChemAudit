@@ -15,7 +15,6 @@ from rdkit import Chem
 
 from app.services.alerts.unified_screen import unified_screen
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------

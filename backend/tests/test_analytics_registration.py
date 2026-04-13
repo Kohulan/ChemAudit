@@ -8,8 +8,6 @@ collision detection, and batch processing.
 
 from __future__ import annotations
 
-import pytest
-
 from rdkit import rdBase
 
 

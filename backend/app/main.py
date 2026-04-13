@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi_mcp import FastApiMCP
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -22,7 +23,6 @@ from app.api.routes import (
     dataset_intelligence,
     diagnostics,
     export,
-    structure_filter,
     health,
     history,
     integrations,
@@ -35,6 +35,7 @@ from app.api.routes import (
     scoring,
     session,
     standardization,
+    structure_filter,
     validation,
 )
 from app.core.config import settings
@@ -52,7 +53,6 @@ from app.core.rate_limit import (
 from app.core.security import generate_csrf_token, verify_csrf_token
 from app.core.session import SESSION_COOKIE
 from app.websockets import manager
-from fastapi_mcp import FastApiMCP
 
 logger = logging.getLogger(__name__)
 

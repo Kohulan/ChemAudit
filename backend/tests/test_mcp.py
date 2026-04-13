@@ -4,10 +4,8 @@ Validates the MCP tag allowlist, admin endpoint exclusion,
 startup safety assertion, and MCP endpoint mount.
 """
 
-import pytest
 
-from app.main import MCP_INCLUDE_TAGS, _MCP_EXCLUDED_TAGS
-
+from app.main import _MCP_EXCLUDED_TAGS, MCP_INCLUDE_TAGS
 
 # ---------------------------------------------------------------------------
 # Tag count and content

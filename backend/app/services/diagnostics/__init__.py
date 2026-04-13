@@ -9,11 +9,11 @@ Provides five diagnostic tools:
 - SDF/CSV file pre-validation (DIAG-05)
 """
 
-from .smiles_diagnostics import diagnose_smiles
-from .inchi_diff import diff_inchi_layers, parse_inchi_layers
+from .file_prevalidator import prevalidate_csv, prevalidate_sdf
 from .format_roundtrip import check_roundtrip
+from .inchi_diff import diff_inchi_layers, parse_inchi_layers
+from .smiles_diagnostics import diagnose_smiles
 from .std_comparison import compare_pipelines
-from .file_prevalidator import prevalidate_sdf, prevalidate_csv
 
 __all__ = [
     "diagnose_smiles",

@@ -247,16 +247,16 @@ def compute_health_score(
 
     agree_count = 0
     disagree_count = 0
-    _PIPELINE_KEYS = ["rdkit_molstandardize", "chembl_style", "minimal_sanitize"]
-    per_pipeline_agree = {k: 0 for k in _PIPELINE_KEYS}
-    per_pipeline_disagree = {k: 0 for k in _PIPELINE_KEYS}
+    pipeline_keys = ["rdkit_molstandardize", "chembl_style", "minimal_sanitize"]
+    per_pipeline_agree = {k: 0 for k in pipeline_keys}
+    per_pipeline_disagree = {k: 0 for k in pipeline_keys}
 
     for i, mol_dict in enumerate(sample):
         try:
             comp = compare_pipelines(mol_dict["smiles"])
             if comp.get("all_agree", False):
                 agree_count += 1
-                for k in _PIPELINE_KEYS:
+                for k in pipeline_keys:
                     per_pipeline_agree[k] += 1
             else:
                 disagree_count += 1
@@ -269,7 +269,7 @@ def compute_health_score(
                 })
                 pipelines = comp.get("pipelines", [])
                 smiles_vals = [p.get("smiles") for p in pipelines]
-                for idx, k in enumerate(_PIPELINE_KEYS):
+                for idx, k in enumerate(pipeline_keys):
                     smi = smiles_vals[idx] if idx < len(smiles_vals) else None
                     others = [
                         s for j, s in enumerate(smiles_vals)
@@ -281,7 +281,7 @@ def compute_health_score(
                         per_pipeline_disagree[k] += 1
         except Exception as exc:
             disagree_count += 1
-            for k in _PIPELINE_KEYS:
+            for k in pipeline_keys:
                 per_pipeline_disagree[k] += 1
             logger.warning(
                 "compare_pipelines failed for row %d: %s", mol_dict["index"], exc
@@ -298,7 +298,7 @@ def compute_health_score(
         "agree_count": agree_count,
         "disagree_count": disagree_count,
         **{k: {"agree": per_pipeline_agree[k], "disagree": per_pipeline_disagree[k]}
-           for k in _PIPELINE_KEYS},
+           for k in pipeline_keys},
     }
     _progress("std_consistency", 1.0)
 

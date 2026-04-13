@@ -1,10 +1,9 @@
 """Tests for the dataset diff service module."""
 
-import pytest
 
 from app.services.dataset_intelligence.dataset_diff import (
-    compute_dataset_diff,
     _compute_property_changes,
+    compute_dataset_diff,
 )
 
 

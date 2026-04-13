@@ -3,14 +3,14 @@
 from unittest.mock import patch
 
 import pytest
-
-from app.services.dataset_intelligence.health_audit import (
-    DatasetHealthResult,
-    DRUG_SPACE_REFERENCE,
-    compute_health_score,
-)
 from rdkit import Chem
 from rdkit.Chem import inchi as rdkit_inchi
+
+from app.services.dataset_intelligence.health_audit import (
+    DRUG_SPACE_REFERENCE,
+    DatasetHealthResult,
+    compute_health_score,
+)
 
 
 def _make_molecule(smiles: str, index: int, properties: dict | None = None) -> dict:

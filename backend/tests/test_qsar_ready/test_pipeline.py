@@ -9,12 +9,10 @@ Tests cover:
 - Batch processing with deduplication
 """
 
-import pytest
 
 from app.services.qsar_ready.pipeline import (
     QSARReadyConfig,
     QSARReadyResult,
-    QSARStepResult,
     qsar_ready_batch,
     qsar_ready_single,
 )

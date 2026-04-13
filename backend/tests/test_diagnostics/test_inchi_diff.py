@@ -9,10 +9,8 @@ Tests cover:
 - Non-standard InChI version prefix parsing
 """
 
-import pytest
 
 from app.services.diagnostics.inchi_diff import diff_inchi_layers, parse_inchi_layers
-
 
 # Standard test InChI strings
 ETHANOL_INCHI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3"
