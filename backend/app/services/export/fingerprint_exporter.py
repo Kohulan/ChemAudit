@@ -30,9 +30,7 @@ class FingerprintExporter(BaseExporter):
         "rdkit": {"bits": 2048},
     }
 
-    def _compute_fingerprint(
-        self, mol: Chem.Mol, fp_type: str
-    ) -> list[int] | None:
+    def _compute_fingerprint(self, mol: Chem.Mol, fp_type: str) -> list[int] | None:
         """Compute fingerprint for a molecule.
 
         Args:
@@ -103,7 +101,10 @@ class FingerprintExporter(BaseExporter):
                 # CSV with name column + bit columns
                 csv_buf = StringIO()
                 df = pd.DataFrame(
-                    arr, columns=[f"bit_{i}" for i in range(arr.shape[1] if arr.shape[0] > 0 else nbits)]
+                    arr,
+                    columns=[
+                        f"bit_{i}" for i in range(arr.shape[1] if arr.shape[0] > 0 else nbits)
+                    ],
                 )
                 df.insert(0, "name", names if names else [])
                 df.to_csv(csv_buf, index=False)

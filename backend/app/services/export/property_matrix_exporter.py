@@ -118,25 +118,47 @@ class PropertyMatrixExporter(BaseExporter):
             with pd.ExcelWriter(excel_buf, engine="xlsxwriter") as writer:
                 # Descriptors sheet
                 desc_cols = [
-                    "smiles", "name", "inchikey", "mw", "logp", "tpsa",
-                    "hbd", "hba", "rotatable_bonds", "aromatic_rings",
-                    "fsp3", "heavy_atom_count", "ring_count",
+                    "smiles",
+                    "name",
+                    "inchikey",
+                    "mw",
+                    "logp",
+                    "tpsa",
+                    "hbd",
+                    "hba",
+                    "rotatable_bonds",
+                    "aromatic_rings",
+                    "fsp3",
+                    "heavy_atom_count",
+                    "ring_count",
                 ]
                 desc_df = all_df[[c for c in desc_cols if c in all_df.columns]]
                 desc_df.to_excel(writer, sheet_name="Descriptors", index=False)
 
                 # Scores sheet
                 score_cols = [
-                    "smiles", "name", "overall_score", "ml_readiness_score",
-                    "qed_score", "sa_score", "np_likeness_score", "lipinski_passed",
+                    "smiles",
+                    "name",
+                    "overall_score",
+                    "ml_readiness_score",
+                    "qed_score",
+                    "sa_score",
+                    "np_likeness_score",
+                    "lipinski_passed",
                 ]
                 score_df = all_df[[c for c in score_cols if c in all_df.columns]]
                 score_df.to_excel(writer, sheet_name="Scores", index=False)
 
                 # Alerts sheet
                 alert_cols = [
-                    "smiles", "name", "alert_count", "alert_names",
-                    "pains_count", "brenk_count", "nih_count", "glaxo_count",
+                    "smiles",
+                    "name",
+                    "alert_count",
+                    "alert_names",
+                    "pains_count",
+                    "brenk_count",
+                    "nih_count",
+                    "glaxo_count",
                 ]
                 alert_df = all_df[[c for c in alert_cols if c in all_df.columns]]
                 alert_df.to_excel(writer, sheet_name="Alerts", index=False)

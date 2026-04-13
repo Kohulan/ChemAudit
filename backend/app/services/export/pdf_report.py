@@ -100,9 +100,7 @@ class PDFReportGenerator(BaseExporter):
         try:
             self.template = self.env.get_template("batch_report.html")
         except Exception as e:
-            raise FileNotFoundError(
-                f"PDF report template 'batch_report.html' not found: {e}"
-            )
+            raise FileNotFoundError(f"PDF report template 'batch_report.html' not found: {e}")
         # Default: include all sections
         self.sections = set(sections) if sections else set(self.AVAILABLE_SECTIONS)
         self._include_audit = include_audit
@@ -167,9 +165,7 @@ class PDFReportGenerator(BaseExporter):
         # Convert HTML to PDF
         pdf_buffer = BytesIO()
         html_class = _get_weasyprint_html()
-        html_class(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(
-            pdf_buffer
-        )
+        html_class(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(pdf_buffer)
         pdf_buffer.seek(0)
 
         return pdf_buffer
@@ -191,9 +187,7 @@ class PDFReportGenerator(BaseExporter):
         # Calculate average scores
         validation_scores = _extract_validation_scores(results)
         avg_validation_score = (
-            sum(validation_scores) / len(validation_scores)
-            if validation_scores
-            else None
+            sum(validation_scores) / len(validation_scores) if validation_scores else None
         )
 
         ml_scores = [
@@ -213,9 +207,7 @@ class PDFReportGenerator(BaseExporter):
             and r["scoring"].get("druglikeness")
             and r["scoring"]["druglikeness"].get("qed_score") is not None
         ]
-        avg_qed_score = (
-            round(sum(qed_scores) / len(qed_scores), 2) if qed_scores else None
-        )
+        avg_qed_score = round(sum(qed_scores) / len(qed_scores), 2) if qed_scores else None
 
         # SA scores
         sa_scores = [
@@ -243,9 +235,7 @@ class PDFReportGenerator(BaseExporter):
                         lipinski_passes += 1
 
         lipinski_pass_rate = (
-            round((lipinski_passes / lipinski_total) * 100, 1)
-            if lipinski_total > 0
-            else None
+            round((lipinski_passes / lipinski_total) * 100, 1) if lipinski_total > 0 else None
         )
 
         # Safety pass rate
@@ -369,7 +359,7 @@ class PDFReportGenerator(BaseExporter):
 
             # Draw count label on bar
             svg_parts.append(
-                f'<text x="{x + bar_width/2}" y="{bar_y - 10}" text-anchor="middle" '
+                f'<text x="{x + bar_width / 2}" y="{bar_y - 10}" text-anchor="middle" '
                 f'font-size="16" font-weight="bold" fill="{colors[category]}">{count}</text>'
             )
 
@@ -377,7 +367,7 @@ class PDFReportGenerator(BaseExporter):
             label_lines = label.split("\n")
             for j, line in enumerate(label_lines):
                 svg_parts.append(
-                    f'<text x="{x + bar_width/2}" y="{max_height + 55 + j*18}" '
+                    f'<text x="{x + bar_width / 2}" y="{max_height + 55 + j * 18}" '
                     f'text-anchor="middle" font-size="12" fill="#374151">{line}</text>'
                 )
 
@@ -480,9 +470,7 @@ class PDFReportGenerator(BaseExporter):
 
         return molecules
 
-    def _mol_to_base64_png(
-        self, smiles: str, width: int = 200, height: int = 200
-    ) -> Optional[str]:
+    def _mol_to_base64_png(self, smiles: str, width: int = 200, height: int = 200) -> Optional[str]:
         """
         Convert SMILES to base64-encoded PNG image.
 

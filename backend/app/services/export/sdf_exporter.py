@@ -65,15 +65,11 @@ class SDFExporter(BaseExporter):
             try:
                 mol = Chem.MolFromSmiles(smiles)
                 if mol is None:
-                    logger.warning(
-                        f"Skipping molecule at index {idx}: invalid SMILES '{smiles}'"
-                    )
+                    logger.warning(f"Skipping molecule at index {idx}: invalid SMILES '{smiles}'")
                     skipped_count += 1
                     continue
             except Exception as e:
-                logger.warning(
-                    f"Skipping molecule at index {idx}: error parsing SMILES: {e}"
-                )
+                logger.warning(f"Skipping molecule at index {idx}: error parsing SMILES: {e}")
                 skipped_count += 1
                 continue
 

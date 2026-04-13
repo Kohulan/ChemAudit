@@ -19,14 +19,12 @@ from .audit_columns import (
     AUDIT_SECTIONS,
     extract_by_section,
     extract_flat_row,
-    get_flat_headers,
     get_identity_row,
 )
 from .base import (
     BaseExporter,
     ExporterFactory,
     ExportFormat,
-    count_alerts,
     count_alerts_by_catalog,
 )
 
@@ -140,11 +138,17 @@ class ExcelExporter(BaseExporter):
             if not _is_score_column(str(header)):
                 continue
             worksheet.conditional_format(
-                1, col_idx, n_data_rows, col_idx,
+                1,
+                col_idx,
+                n_data_rows,
+                col_idx,
                 {"type": "cell", "criteria": ">=", "value": 80, "format": green_format},
             )
             worksheet.conditional_format(
-                1, col_idx, n_data_rows, col_idx,
+                1,
+                col_idx,
+                n_data_rows,
+                col_idx,
                 {
                     "type": "cell",
                     "criteria": "between",
@@ -154,7 +158,10 @@ class ExcelExporter(BaseExporter):
                 },
             )
             worksheet.conditional_format(
-                1, col_idx, n_data_rows, col_idx,
+                1,
+                col_idx,
+                n_data_rows,
+                col_idx,
                 {"type": "cell", "criteria": "<", "value": 50, "format": red_format},
             )
 
@@ -227,7 +234,9 @@ class ExcelExporter(BaseExporter):
                 admet = scoring.get("admet") or {}
                 if admet and "error" not in admet:
                     sa_sub = admet.get("synthetic_accessibility") or {}
-                    sa_score = sa_sub.get("score") if isinstance(sa_sub, dict) else admet.get("sa_score")
+                    sa_score = (
+                        sa_sub.get("score") if isinstance(sa_sub, dict) else admet.get("sa_score")
+                    )
                     if sa_score is not None:
                         sa_scores.append(sa_score)
 
@@ -405,9 +414,7 @@ class ExcelExporter(BaseExporter):
             worksheet.freeze_panes(1, 0)
 
             # Auto-fit columns
-            self._autofit_columns(
-                worksheet, df, self._include_images and first_sheet
-            )
+            self._autofit_columns(worksheet, df, self._include_images and first_sheet)
 
             # Embed structure images on the first sheet only
             if first_sheet and self._include_images:
