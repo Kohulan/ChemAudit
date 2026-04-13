@@ -13,6 +13,7 @@ from rdkit.Chem import inchi as rdkit_inchi
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import (
     ensure_session_cookie,
@@ -80,6 +81,7 @@ def _bookmark_to_response(bm: Bookmark) -> dict:
 
 
 @router.get("/bookmarks", response_model=BookmarkListResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def list_bookmarks(
     request: Request,
     page: int = Query(default=1, ge=1),
@@ -139,6 +141,7 @@ async def list_bookmarks(
 
 
 @router.get("/bookmarks/{bookmark_id}", response_model=BookmarkResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def get_bookmark(
     bookmark_id: int,
     request: Request,
@@ -159,6 +162,7 @@ async def get_bookmark(
 
 
 @router.post("/bookmarks", response_model=BookmarkResponse, status_code=201)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def create_bookmark(
     body: BookmarkCreate,
     request: Request,
@@ -196,6 +200,7 @@ async def create_bookmark(
 
 
 @router.put("/bookmarks/{bookmark_id}", response_model=BookmarkResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def update_bookmark(
     bookmark_id: int,
     body: BookmarkUpdate,
@@ -227,6 +232,7 @@ async def update_bookmark(
 
 
 @router.delete("/bookmarks/{bookmark_id}", status_code=204)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def delete_bookmark(
     bookmark_id: int,
     request: Request,
@@ -249,6 +255,7 @@ async def delete_bookmark(
 
 
 @router.post("/bookmarks/batch-submit")
+@limiter.limit("5/minute", key_func=get_rate_limit_key)
 async def bookmark_batch_submit(
     body: BookmarkBatchSubmit,
     request: Request,
@@ -296,6 +303,7 @@ async def bookmark_batch_submit(
 
 
 @router.delete("/bookmarks/bulk", status_code=204)
+@limiter.limit("5/minute", key_func=get_rate_limit_key)
 async def bulk_delete_bookmarks(
     request: Request,
     ids: List[int] = Query(..., description="Bookmark IDs to delete"),

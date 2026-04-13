@@ -1,5 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { logger } from '../lib/logger';
+import type {
+  DatasetUploadResponse,
+  DatasetAuditStatusResponse,
+  DatasetAuditResults,
+  DatasetDiffResults,
+} from '../types/dataset_intelligence';
 
 // Extend axios config type to support retry flag
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -103,6 +109,7 @@ import type {
   PubChemResult,
   ChEMBLResult,
   COCONUTResult,
+  WikidataResult,
   IntegrationError,
   ResolveRequest,
   ResolvedCompound,
@@ -111,7 +118,8 @@ import type {
 } from '../types/integrations';
 import type {
   BatchAnalyticsResponse,
-  AnalyticsTriggerResponse
+  AnalyticsTriggerResponse,
+  MCSComparisonResult
 } from '../types/analytics';
 import type {
   ScoringProfile,
@@ -129,6 +137,16 @@ import type {
   PermalinkResolveResponse,
   ExportFormat,
 } from '../types/workflow';
+import type {
+  FilterConfig,
+  FilterResult,
+  ScoreResponse,
+  REINVENTInput,
+  REINVENTResponse,
+  StructureFilterBatchUploadResponse,
+  StructureFilterBatchStatusResponse,
+  StructureFilterBatchResultsResponse,
+} from '../types/structure_filter';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -422,7 +440,7 @@ export const batchApi = {
     smilesColumn?: string,
     nameColumn?: string,
     onUploadProgress?: (progress: number) => void,
-    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean },
+    safetyOptions?: { includeExtended?: boolean; includeChembl?: boolean; includeStandardization?: boolean; includeProfiling?: boolean; includeSafetyAssessment?: boolean },
     profileId?: number | null
   ): Promise<BatchUploadResponse> => {
     const formData = new FormData();
@@ -441,6 +459,12 @@ export const batchApi = {
     }
     if (safetyOptions?.includeStandardization) {
       formData.append('include_standardization', 'true');
+    }
+    if (safetyOptions?.includeProfiling) {
+      formData.append('include_profiling', 'true');
+    }
+    if (safetyOptions?.includeSafetyAssessment) {
+      formData.append('include_safety_assessment', 'true');
     }
     if (profileId != null) {
       formData.append('profile_id', String(profileId));
@@ -731,6 +755,22 @@ export const batchApi = {
   },
 
   /**
+   * Compute MCS comparison between two molecules from a batch.
+   * Runs synchronously (timeout=10s max).
+   */
+  computeMCS: async (
+    jobId: string,
+    indexA: number,
+    indexB: number
+  ): Promise<MCSComparisonResult> => {
+    const response = await api.post<MCSComparisonResult>(
+      `/batch/${jobId}/mcs`,
+      { index_a: indexA, index_b: indexB }
+    );
+    return response.data;
+  },
+
+  /**
    * Detect columns in a CSV file for SMILES selection (server-side fallback).
    */
   detectColumns: async (file: File): Promise<CSVColumnsResponse> => {
@@ -780,22 +820,29 @@ export const integrationsApi = {
   lookupCOCONUT: (request: IntegrationRequest): Promise<COCONUTResult> =>
     integrationPost('/integrations/coconut/lookup', request, 'Network error'),
 
+  /** Look up molecule in Wikidata knowledge base. */
+  lookupWikidata: (request: IntegrationRequest): Promise<WikidataResult> =>
+    integrationPost('/integrations/wikidata/lookup', request, 'Network error'),
+
   /** Look up molecule in all databases in parallel. */
   lookupAll: async (request: IntegrationRequest): Promise<{
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
+    wikidata: WikidataResult | null;
   }> => {
-    const [pubchem, chembl, coconut] = await Promise.allSettled([
+    const [pubchem, chembl, coconut, wikidata] = await Promise.allSettled([
       integrationsApi.lookupPubChem(request),
       integrationsApi.lookupChEMBL(request),
       integrationsApi.lookupCOCONUT(request),
+      integrationsApi.lookupWikidata(request),
     ]);
 
     return {
       pubchem: pubchem.status === 'fulfilled' ? pubchem.value : null,
       chembl: chembl.status === 'fulfilled' ? chembl.value : null,
       coconut: coconut.status === 'fulfilled' ? coconut.value : null,
+      wikidata: wikidata.status === 'fulfilled' ? wikidata.value : null,
     };
   },
 
@@ -1066,6 +1113,493 @@ export interface InlineScoreResponse {
   molecules: InlineScoredMolecule[];
 }
 
+// ============================================================================
+// Safety API (Phase 08: Enhanced Structural Alerts & Safety)
+// ============================================================================
+
+import type {
+  AlertScreenResponse as SafetyAlertScreenResponse,
+  SafetyAssessResponse,
+  SafetySummaryResponse,
+} from '../types/safety';
+
+/**
+ * Safety screening API client.
+ *
+ * Covers the new Phase 08 endpoints:
+ * - POST /alerts/screen  — comprehensive alert screening with concern groups
+ * - POST /safety/assess  — CYP/hERG/bRo5/REOS/complexity assessment
+ * - POST /safety/summary — aggregated traffic-light summary strip
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const safetyApi = {
+  /**
+   * Screen a molecule against expanded alert libraries.
+   * Returns alerts grouped by functional-group concern, with deduplication.
+   */
+  screen: async (molecule: string): Promise<SafetyAlertScreenResponse> => {
+    try {
+      const response = await api.post<SafetyAlertScreenResponse>('/alerts/screen', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Alert screening failed' };
+      }
+      throw { error: 'Alert screening failed' };
+    }
+  },
+
+  /**
+   * Run rule-based safety assessments (CYP soft-spots, hERG, bRo5, REOS,
+   * complexity percentile filter).
+   */
+  assess: async (molecule: string): Promise<SafetyAssessResponse> => {
+    try {
+      const response = await api.post<SafetyAssessResponse>('/safety/assess', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety assessment failed' };
+      }
+      throw { error: 'Safety assessment failed' };
+    }
+  },
+
+  /**
+   * Retrieve aggregated summary flags for the summary strip (total alerts,
+   * has_critical, and traffic-light status for each safety check).
+   */
+  summary: async (molecule: string): Promise<SafetySummaryResponse> => {
+    try {
+      const response = await api.post<SafetySummaryResponse>('/safety/summary', { molecule });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Safety summary failed' };
+      }
+      throw { error: 'Safety summary failed' };
+    }
+  },
+};
+
+// ============================================================================
+// QSAR-Ready Pipeline API (Phase 10: QSAR-Ready Pipeline)
+// ============================================================================
+
+import type {
+  QSARReadyConfig,
+  QSARReadyResult,
+  QSARBatchUploadResponse,
+  QSARBatchStatusResponse,
+  QSARBatchResultsResponse,
+} from '../types/qsar_ready';
+
+/**
+ * QSAR-Ready Pipeline API client.
+ *
+ * Covers the Phase 10 endpoints:
+ * - POST /qsar-ready/single              — single molecule curation
+ * - POST /qsar-ready/batch/upload        — batch file/SMILES upload
+ * - GET  /qsar-ready/batch/{id}/status   — poll job status
+ * - GET  /qsar-ready/batch/{id}/results  — paginated results
+ * - GET  /qsar-ready/batch/{id}/download/{format} — download results
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const qsarReadyApi = {
+  /**
+   * Run the QSAR-ready curation pipeline on a single SMILES.
+   */
+  single: async (smiles: string, config: QSARReadyConfig): Promise<QSARReadyResult> => {
+    try {
+      const response = await api.post<QSARReadyResult>('/qsar-ready/single', { smiles, config });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'QSAR-ready curation failed' };
+      }
+      throw { error: 'QSAR-ready curation failed' };
+    }
+  },
+
+  /**
+   * Upload a file or SMILES text for batch QSAR-ready processing.
+   * Returns a job_id for WebSocket / polling status tracking.
+   */
+  batchUpload: async (
+    file: File | null,
+    smilesText: string | null,
+    config: QSARReadyConfig,
+  ): Promise<QSARBatchUploadResponse> => {
+    try {
+      const formData = new FormData();
+      if (file) formData.append('file', file);
+      if (smilesText) formData.append('smiles_text', smilesText);
+      formData.append('config', JSON.stringify(config));
+      const response = await api.post<QSARBatchUploadResponse>(
+        '/qsar-ready/batch/upload',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Batch upload failed' };
+      }
+      throw { error: 'Batch upload failed' };
+    }
+  },
+
+  /**
+   * Poll the processing status of a batch QSAR-ready job.
+   */
+  batchStatus: async (jobId: string): Promise<QSARBatchStatusResponse> => {
+    try {
+      const response = await api.get<QSARBatchStatusResponse>(`/qsar-ready/batch/${jobId}/status`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Status check failed' };
+      }
+      throw { error: 'Status check failed' };
+    }
+  },
+
+  /**
+   * Fetch paginated results for a completed batch job.
+   */
+  batchResults: async (
+    jobId: string,
+    page: number = 1,
+    perPage: number = 50,
+  ): Promise<QSARBatchResultsResponse> => {
+    try {
+      const response = await api.get<QSARBatchResultsResponse>(
+        `/qsar-ready/batch/${jobId}/results`,
+        { params: { page, per_page: perPage } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Results fetch failed' };
+      }
+      throw { error: 'Results fetch failed' };
+    }
+  },
+
+  /**
+   * Download batch results in the requested format (csv, sdf, or json).
+   * Returns a Blob for the caller to create a download URL.
+   */
+  batchDownload: async (jobId: string, format: 'csv' | 'sdf' | 'json'): Promise<Blob> => {
+    try {
+      const response = await api.get(`/qsar-ready/batch/${jobId}/download/${format}`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw { error: `Download failed (${format})` };
+      }
+      throw { error: `Download failed (${format})` };
+    }
+  },
+};
+
+// ============================================================================
+// Diagnostics API (Phase 09: Structure Quality Diagnostics)
+// ============================================================================
+
+import type {
+  SMILESDiagnosticsResponse,
+  InChIDiffResponse,
+  RoundTripResponse,
+  CrossPipelineResponse,
+  FilePreValidationResponse,
+} from '../types/diagnostics';
+
+/**
+ * Structure Quality Diagnostics API client.
+ *
+ * Covers the Phase 09 endpoints:
+ * - POST /diagnostics/smiles          — SMILES error diagnostics with position feedback
+ * - POST /diagnostics/inchi-diff      — InChI layer-by-layer comparison
+ * - POST /diagnostics/roundtrip       — Format round-trip lossiness check
+ * - POST /diagnostics/cross-pipeline  — Cross-pipeline standardization comparison
+ * - POST /diagnostics/file-prevalidate — SDF/CSV file pre-validation
+ *
+ * All methods use the shared `api` axios instance (with CSRF tokens, auth
+ * headers, and error interceptors) rather than raw axios.post().
+ */
+export const diagnosticsApi = {
+  /**
+   * Diagnose SMILES errors with position-specific feedback and fix suggestions.
+   */
+  smiles: async (smiles: string): Promise<SMILESDiagnosticsResponse> => {
+    try {
+      const response = await api.post<SMILESDiagnosticsResponse>('/diagnostics/smiles', { smiles });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'SMILES diagnostics failed' };
+      }
+      throw { error: 'SMILES diagnostics failed' };
+    }
+  },
+
+  /**
+   * Compare two InChI strings layer-by-layer.
+   */
+  inchiDiff: async (inchiA: string, inchiB: string): Promise<InChIDiffResponse> => {
+    try {
+      const response = await api.post<InChIDiffResponse>('/diagnostics/inchi-diff', {
+        inchi_a: inchiA,
+        inchi_b: inchiB,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'InChI comparison failed' };
+      }
+      throw { error: 'InChI comparison failed' };
+    }
+  },
+
+  /**
+   * Check format round-trip lossiness.
+   */
+  roundtrip: async (
+    smiles: string,
+    route: string = 'smiles_inchi_smiles',
+  ): Promise<RoundTripResponse> => {
+    try {
+      const response = await api.post<RoundTripResponse>('/diagnostics/roundtrip', {
+        smiles,
+        route,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Round-trip check failed' };
+      }
+      throw { error: 'Round-trip check failed' };
+    }
+  },
+
+  /**
+   * Compare standardization output across 3 pipelines.
+   */
+  crossPipeline: async (molecule: string): Promise<CrossPipelineResponse> => {
+    try {
+      const response = await api.post<CrossPipelineResponse>('/diagnostics/cross-pipeline', {
+        molecule,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'Pipeline comparison failed' };
+      }
+      throw { error: 'Pipeline comparison failed' };
+    }
+  },
+
+  /**
+   * Pre-validate an SDF or CSV file for structural issues.
+   */
+  filePrevalidate: async (file: File): Promise<FilePreValidationResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post<FilePreValidationResponse>(
+        '/diagnostics/file-prevalidate',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ error?: string; detail?: string }>;
+        throw axiosError.response?.data || { error: 'File pre-validation failed' };
+      }
+      throw { error: 'File pre-validation failed' };
+    }
+  },
+};
+
+// =============================================================================
+// Structure Filter API (Phase 11: Structure Filter)
+// Covers all endpoints under /api/v1/structure-filter/
+// =============================================================================
+
+/**
+ * Structure Filter API client.
+ *
+ * Endpoints:
+ * - POST /structure-filter/filter              — sync filter for <=1000 SMILES
+ * - POST /structure-filter/score               — score SMILES list as [0,1] floats
+ * - POST /structure-filter/reinvent-score      — REINVENT-compatible scoring API
+ * - POST /structure-filter/batch/upload        — async batch file upload
+ * - GET  /structure-filter/batch/{id}/status   — poll job status
+ * - GET  /structure-filter/batch/{id}/results  — fetch completed results
+ * - GET  /structure-filter/batch/{id}/download/{format} — download passed/full CSV
+ */
+export const structureFilterApi = {
+  /**
+   * Run the structure filter funnel on a list of SMILES.
+   * Use for <=1000 SMILES (sync path). Larger batches should use batchUpload.
+   */
+  filter: async (smilesList: string[], preset?: string, config?: FilterConfig): Promise<FilterResult> => {
+    const response = await api.post<FilterResult>('/structure-filter/filter', {
+      smiles_list: smilesList,
+      preset: preset || undefined,
+      config: config || undefined,
+    });
+    return response.data;
+  },
+
+  /**
+   * Score a list of SMILES as composite [0,1] values using the filter config.
+   */
+  score: async (smilesList: string[], preset?: string): Promise<ScoreResponse> => {
+    const response = await api.post<ScoreResponse>('/structure-filter/score', {
+      smiles_list: smilesList,
+      preset,
+    });
+    return response.data;
+  },
+
+  /**
+   * REINVENT-compatible scoring endpoint.
+   * Accepts items with input_string + query_id, returns output.successes_list.
+   */
+  reinventScore: async (items: REINVENTInput[], preset?: string): Promise<REINVENTResponse> => {
+    const response = await api.post<REINVENTResponse>(
+      `/structure-filter/reinvent-score${preset ? `?preset=${preset}` : ''}`,
+      items,
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload a file for async batch filtering.
+   * Returns job_id for WebSocket / polling progress tracking.
+   */
+  batchUpload: async (file: File, preset?: string, config?: FilterConfig): Promise<StructureFilterBatchUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (preset) formData.append('preset', preset);
+    if (config) formData.append('config', JSON.stringify(config));
+    const response = await api.post<StructureFilterBatchUploadResponse>(
+      '/structure-filter/batch/upload',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
+  },
+
+  /**
+   * Poll the status of a running batch filter job.
+   */
+  batchStatus: async (jobId: string): Promise<StructureFilterBatchStatusResponse> => {
+    const response = await api.get<StructureFilterBatchStatusResponse>(`/structure-filter/batch/${jobId}/status`);
+    return response.data;
+  },
+
+  /**
+   * Fetch the results of a completed batch filter job.
+   */
+  batchResults: async (jobId: string): Promise<StructureFilterBatchResultsResponse> => {
+    const response = await api.get<StructureFilterBatchResultsResponse>(`/structure-filter/batch/${jobId}/results`);
+    return response.data;
+  },
+
+  /** URL for downloading passed SMILES as a .txt file. */
+  downloadPassedTxt: (jobId: string): string =>
+    `${api.defaults.baseURL}/structure-filter/batch/${jobId}/download/passed_txt`,
+
+  /** URL for downloading full results as a CSV file. */
+  downloadFullCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/structure-filter/batch/${jobId}/download/full_csv`,
+};
+
+export type { QSARReadyConfig, QSARReadyResult, QSARBatchUploadResponse, QSARBatchStatusResponse, QSARBatchResultsResponse };
+
+// =============================================================================
+// Dataset Intelligence API (Phase 12)
+// =============================================================================
+
+/**
+ * Dataset intelligence API methods.
+ * Endpoints under /api/v1/dataset/ for dataset health audit, contradictory
+ * label detection, dataset diff, and curation reports.
+ */
+export const datasetApi = {
+  /**
+   * Upload a CSV or SDF file for dataset audit.
+   * Returns a job_id for WebSocket / polling progress tracking.
+   */
+  upload: async (
+    file: File,
+    smilesColumn?: string,
+    activityColumn?: string,
+  ): Promise<DatasetUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (smilesColumn) formData.append('smiles_column', smilesColumn);
+    if (activityColumn) formData.append('activity_column', activityColumn);
+    const { data } = await api.post<DatasetUploadResponse>('/dataset/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** Poll the status of a running dataset audit job. */
+  getStatus: async (jobId: string): Promise<DatasetAuditStatusResponse> => {
+    const { data } = await api.get<DatasetAuditStatusResponse>(`/dataset/${jobId}/status`);
+    return data;
+  },
+
+  /** Fetch the full results of a completed dataset audit job. */
+  getResults: async (jobId: string): Promise<DatasetAuditResults> => {
+    const { data } = await api.get<DatasetAuditResults>(`/dataset/${jobId}/results`);
+    return data;
+  },
+
+  /**
+   * Upload a comparison file for dataset diff against an existing audit job.
+   * Returns the diff results inline (synchronous).
+   */
+  uploadDiff: async (jobId: string, file: File): Promise<DatasetDiffResults> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<DatasetDiffResults>(`/dataset/${jobId}/diff`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** URL for downloading the JSON curation report. */
+  downloadReport: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/report`,
+
+  /** URL for downloading the curated CSV. */
+  downloadCsv: (jobId: string): string =>
+    `${api.defaults.baseURL}/dataset/${jobId}/download/csv`,
+};
 export type { ValidationRequest, ValidationResponse, ValidationError, ChecksResponse };
 export type { AlertScreenRequest, AlertScreenResponse, AlertError, CatalogListResponse };
 export type { ScoringRequest, ScoringResponse, ScoringError, ScoringType, RadarComparison };
@@ -1080,3 +1614,5 @@ export type {
   PermalinkResponse, PermalinkResolveResponse,
   ExportFormat as WorkflowExportFormat,
 };
+
+export type { DatasetUploadResponse, DatasetAuditStatusResponse, DatasetAuditResults, DatasetDiffResults };

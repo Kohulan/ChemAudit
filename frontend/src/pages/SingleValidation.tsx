@@ -39,7 +39,7 @@ import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
-import { InfoTooltip } from '../components/ui/Tooltip';
+import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -51,9 +51,14 @@ import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
 import type { ScoringResponse, ScoringError } from '../types/scoring';
 import type { StandardizeResponse, StandardizeError } from '../types/standardization';
-import type { PubChemResult, ChEMBLResult, COCONUTResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
+import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
+import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
+import { SafetyAccordion } from '../components/safety/SafetyAccordion';
+import { FlaskConical, Shield } from 'lucide-react';
+import { useProfiler } from '../hooks/useProfiler';
+import { useSafety } from '../hooks/useSafety';
 
 const EXAMPLE_MOLECULES = [
   { name: 'Aspirin', smiles: 'CC(=O)Oc1ccccc1C(=O)O' },
@@ -187,19 +192,25 @@ const TABS: TabConfig[] = [
     id: 'scoring-profiles',
     label: 'Scoring Profiles',
     icon: <BarChart3 className="w-4 h-4" />,
-    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar, and BOILED-Egg',
+    description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
+  },
+  {
+    id: 'alerts',
+    label: 'Safety',
+    icon: <Shield className="w-4 h-4" />,
+    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
+  },
+  {
+    id: 'compound-profile',
+    label: 'Compound Profile',
+    icon: <FlaskConical className="w-4 h-4" />,
+    description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
   },
   {
     id: 'database',
     label: 'Database Lookup',
     icon: <Database className="w-4 h-4" />,
     description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
-  },
-  {
-    id: 'alerts',
-    label: 'Alerts Screening',
-    icon: <AlertTriangle className="w-4 h-4" />,
-    description: 'Screen for problematic structural patterns using PAINS, BRENK, NIH, and ZINC filters',
   },
   {
     id: 'standardize',
@@ -280,6 +291,31 @@ export function SingleValidationPage() {
   const { validate, result, error, isLoading, reset, restore } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
+
+  // Enrichment: Profiler hook
+  const {
+    profile: profileResult,
+    isLoading: profileLoading,
+    error: profileError,
+    profileCompound,
+  } = useProfiler();
+
+  // Enrichment: Safety hook
+  const {
+    alertResult: safetyAlertResult,
+    safetyResult: safetyAssessResult,
+    isLoading: safetyLoading,
+    alertError: safetyAlertError,
+    safetyError: safetyAssessError,
+    screenMolecule: screenSafety,
+  } = useSafety();
+
+  // URL deep-link: ?section= param maps to a tab
+  const sectionParam = searchParams.get('section');
+  useEffect(() => {
+    if (sectionParam === 'profile') setActiveTab('compound-profile');
+    else if (sectionParam === 'safety') setActiveTab('alerts');
+  }, [sectionParam]);
 
   // Load molecule from URL on mount
   useEffect(() => {
@@ -380,6 +416,7 @@ export function SingleValidationPage() {
     pubchem: PubChemResult | null;
     chembl: ChEMBLResult | null;
     coconut: COCONUTResult | null;
+    wikidata: WikidataResult | null;
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
 
@@ -566,7 +603,7 @@ export function SingleValidationPage() {
           if (snapshot.alertResult) setAlertResult(snapshot.alertResult);
           if (snapshot.scoringResult) setScoringResult(snapshot.scoringResult);
           if (snapshot.standardizationResult) setStandardizationResult(snapshot.standardizationResult);
-          if (snapshot.databaseResults) setDatabaseResults(snapshot.databaseResults);
+          if (snapshot.databaseResults) setDatabaseResults({ wikidata: null, ...snapshot.databaseResults });
         } else if (locState.smiles) {
           // No snapshot (different device / cleared) — auto-validate
           setMolecule(locState.smiles);
@@ -593,7 +630,7 @@ export function SingleValidationPage() {
       if (cached.alertResult) setAlertResult(cached.alertResult);
       if (cached.scoringResult) setScoringResult(cached.scoringResult);
       if (cached.standardizationResult) setStandardizationResult(cached.standardizationResult);
-      if (cached.databaseResults) setDatabaseResults(cached.databaseResults);
+      if (cached.databaseResults) setDatabaseResults({ wikidata: null, ...cached.databaseResults });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -709,6 +746,17 @@ export function SingleValidationPage() {
     a.click();
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
+
+  // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
+  useEffect(() => {
+    if (activeTab === 'compound-profile' && !profileResult && !profileLoading && canonicalSmiles) {
+      profileCompound(canonicalSmiles);
+    }
+    if (activeTab === 'alerts' && !safetyAssessResult && !safetyLoading && canonicalSmiles) {
+      screenSafety(canonicalSmiles);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, canonicalSmiles]);
 
   function getLoadingText(): string {
     if (isLoading) return 'Running validation checks...';
@@ -942,6 +990,18 @@ export function SingleValidationPage() {
                   source="single_validation"
                   onAfterBookmark={handleAfterBookmark}
                 />
+              )}
+              {/* View Full Profile cross-link — per D-24 */}
+              {result && resolvedSmiles && (
+                <ClayButton
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Microscope className="w-4 h-4" />}
+                  onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
+                  className="text-[var(--color-primary)]"
+                >
+                  View Full Profile
+                </ClayButton>
               )}
             </div>
 
@@ -1248,32 +1308,47 @@ export function SingleValidationPage() {
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
             {/* Tab Bar */}
-            <div className="flex flex-wrap gap-1 p-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]/50">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all',
-                    activeTab === tab.id
-                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]/50 hover:text-[var(--color-text-primary)]'
-                  )}
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    title={tab.description}
+                    className={cn(
+                      'group flex items-center gap-2',
+                      'px-3.5 py-2 text-[13px] font-medium whitespace-nowrap',
+                      'rounded-xl transition-all duration-200 cursor-pointer',
+                      'font-[Outfit,system-ui,sans-serif]',
+                      isActive
+                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/50',
+                    )}
+                  >
+                    <span className={cn(
+                      'shrink-0 transition-colors duration-200',
+                      isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]',
+                    )}>
+                      {tab.icon}
+                    </span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Accent line below tab bar */}
+            <div className="h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent" />
 
             {/* Tab Content */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="p-5 sm:p-6"
               >
                 {/* Validate & Score Tab */}
@@ -1372,6 +1447,10 @@ export function SingleValidationPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             <strong className="text-[var(--color-text-primary)]">COCONUT</strong> — Natural products database
                           </li>
+                          <li className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                            <strong className="text-[var(--color-text-primary)]">Wikidata</strong> — Open knowledge base
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -1414,17 +1493,122 @@ export function SingleValidationPage() {
                   </div>
                 )}
 
-                {/* Alerts Screening Tab */}
+                {/* Compound Profile Tab */}
+                {activeTab === 'compound-profile' && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                        <FlaskConical className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5">
+                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
+                            Comprehensive molecular profiling with physicochemical properties, drug-likeness assessment,
+                            synthesizability comparison, and 3D shape analysis.
+                          </p>
+                          <InfoTooltip
+                            title="Profiling Metrics"
+                            position="bottom"
+                            content={
+                              <div className="text-xs space-y-2">
+                                <div>
+                                  <p className="font-semibold text-white">PFI (Property Forecast Index)</p>
+                                  <p className="text-white/70">cLogP + aromatic ring count. &lt;5 low, 5-7 moderate, &gt;7 high risk.</p>
+                                  <p className="text-white/50 italic">Young et al. Drug Discov Today (2011)</p>
+                                  <DoiLink doi="10.1016/j.drudis.2011.06.001" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">#Stars (Outlier Count)</p>
+                                  <p className="text-white/70">Properties outside 95th-percentile drug-like ranges. 0 = drug-like, 3+ = outlier.</p>
+                                  <p className="text-white/50 italic">Jorgensen &amp; Duffy. Adv Drug Deliv Rev (2002)</p>
+                                  <DoiLink doi="10.1016/S0169-409X(02)00008-X" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Abbott Bioavailability Score</p>
+                                  <p className="text-white/70">4-class oral bioavailability probability (11%, 17%, 56%, 85%).</p>
+                                  <p className="text-white/50 italic">Martin. J Med Chem (2005)</p>
+                                  <DoiLink doi="10.1021/jm0492002" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Drug-likeness Rules</p>
+                                  <p className="text-white/70">Lipinski, Veber, Egan, Muegge, Ghose filter evaluation.</p>
+                                  <p className="text-white/50 italic">Lipinski et al. Adv Drug Deliv Rev (2001)</p>
+                                  <DoiLink doi="10.1016/S0169-409X(00)00129-0" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">SA Comparison</p>
+                                  <p className="text-white/70">Synthetic accessibility: SA Score + SCScore + SYBA side-by-side.</p>
+                                  <p className="text-white/50 italic">Ertl &amp; Schuffenhauer. J Cheminform (2009)</p>
+                                  <DoiLink doi="10.1186/1758-2946-1-8" />
+                                </div>
+                              </div>
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <ProfilerAccordion
+                      smiles={canonicalSmiles || ''}
+                      profile={profileResult}
+                      isLoading={profileLoading}
+                      error={profileError}
+                    />
+                  </div>
+                )}
+
+                {/* Safety Tab (alerts screening + safety assessment) */}
                 {activeTab === 'alerts' && (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
                         <Info className="w-4 h-4" />
                       </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm">
-                        Screen for problematic structural patterns that may cause issues
-                        in assays or drug development.
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5">
+                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
+                            Screen for problematic structural patterns that may cause issues
+                            in assays or drug development.
+                          </p>
+                          <InfoTooltip
+                            title="Safety Assessment Metrics"
+                            position="bottom"
+                            content={
+                              <div className="text-xs space-y-2">
+                                <div>
+                                  <p className="font-semibold text-white">CYP Soft-Spots</p>
+                                  <p className="text-white/70">SMARTS-based cytochrome P450 metabolism site prediction with atom highlighting.</p>
+                                  <p className="text-white/50 italic">Rydberg et al. ACS Med Chem Lett (2010)</p>
+                                  <DoiLink doi="10.1021/ml100016x" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">hERG Risk</p>
+                                  <p className="text-white/70">Rule-based hERG channel liability assessment using amphiphilic properties.</p>
+                                  <p className="text-white/50 italic">Aronov. Drug Discov Today (2005)</p>
+                                  <DoiLink doi="10.1016/S1359-6446(04)03278-7" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">bRo5 (Beyond Rule of 5)</p>
+                                  <p className="text-white/70">Relaxed thresholds for macrocycles, PROTACs, and natural products (MW &gt; 500).</p>
+                                  <p className="text-white/50 italic">Doak et al. Chem Biol (2014)</p>
+                                  <DoiLink doi="10.1016/j.chembiol.2014.08.013" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">REOS Filter</p>
+                                  <p className="text-white/70">Rapid Elimination of Swill — 7 physicochemical property range filters.</p>
+                                  <p className="text-white/50 italic">Walters &amp; Murcko. Curr Opin Chem Biol (1999)</p>
+                                  <DoiLink doi="10.1016/S1367-5931(99)80058-1" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">Complexity Analysis</p>
+                                  <p className="text-white/70">Bertz complexity index percentile vs commercial compound distributions.</p>
+                                  <p className="text-white/50 italic">Bertz. J Am Chem Soc (1981)</p>
+                                  <DoiLink doi="10.1021/ja00402a071" />
+                                </div>
+                              </div>
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Catalog selector */}
@@ -1502,6 +1686,15 @@ export function SingleValidationPage() {
                     >
                       Screen Alerts
                     </ClayButton>
+
+                    {/* Safety Assessment (merged into this tab) */}
+                    <SafetyAccordion
+                      smiles={canonicalSmiles || ''}
+                      alertResult={safetyAlertResult}
+                      safetyResult={safetyAssessResult}
+                      isLoading={safetyLoading}
+                      error={safetyAlertError || safetyAssessError}
+                    />
                   </div>
                 )}
 
@@ -1582,7 +1775,7 @@ export function SingleValidationPage() {
                     <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
                       Database Results
                     </h4>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT details</p>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT, Wikidata details</p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
                 </button>
@@ -2059,6 +2252,7 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
 
       {/* Cross-Database Comparison - Full Width Below Grid */}
       <AnimatePresence>

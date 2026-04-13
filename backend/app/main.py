@@ -19,13 +19,19 @@ from app.api.routes import (
     batch,
     bookmarks,
     config,
+    dataset_intelligence,
+    diagnostics,
     export,
+    structure_filter,
     health,
     history,
     integrations,
     permalinks,
+    profiler,
     profiles,
+    qsar_ready,
     resolve,
+    safety,
     scoring,
     session,
     standardization,
@@ -44,9 +50,27 @@ from app.core.rate_limit import (
     rate_limit_exceeded_handler,
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
+from app.core.session import SESSION_COOKIE
 from app.websockets import manager
+from fastapi_mcp import FastApiMCP
 
 logger = logging.getLogger(__name__)
+
+
+async def _check_ws_ownership(
+    websocket: WebSocket, job_id: str, prefix: str
+) -> bool:
+    """Check WebSocket session owns the job. Returns False if access denied."""
+    session_cookie = websocket.cookies.get(SESSION_COOKIE)
+    if not session_cookie or not manager._redis:
+        return True
+    try:
+        owner = await manager._redis.get(f"{prefix}:owner:{job_id}")
+        if owner and owner != session_cookie:
+            return False
+    except Exception as exc:
+        logger.warning("Ownership check failed for %s: %s", job_id, exc)
+    return True
 
 # =============================================================================
 # Deep Validation Check Registration Assertion (ROADMAP success criteria #5)
@@ -75,6 +99,33 @@ EXPECTED_DEEP_VALIDATION_CHECKS = {
     "charged_species",  # DVAL-16
     "explicit_hydrogen_audit",  # DVAL-17
 }
+
+# =============================================================================
+# MCP Server Configuration (D-01/D-02 from Phase 14)
+# =============================================================================
+# Tags exposed via MCP -- allowlist approach (D-01).
+# Excluded tags (D-02): api-keys, config, session, bookmarks, permalinks, history
+MCP_INCLUDE_TAGS = [
+    "health",
+    "validation",
+    "alerts",
+    "standardization",
+    "scoring",
+    "batch",
+    "export",
+    "integrations",
+    "resolve",
+    "profiles",
+    "profiler",
+    "safety",
+    "diagnostics",
+    "qsar-ready",
+    "structure-filter",
+    "dataset-intelligence",
+]
+
+# Tags that must NEVER appear in MCP_INCLUDE_TAGS (D-03 safety check)
+_MCP_EXCLUDED_TAGS = {"api-keys", "config", "session", "bookmarks", "permalinks", "history"}
 
 # Conditional Prometheus imports
 if settings.ENABLE_METRICS:
@@ -107,6 +158,17 @@ async def lifespan(app: FastAPI):
             "Startup check passed: all %d deep validation checks registered.",
             len(EXPECTED_DEEP_VALIDATION_CHECKS),
         )
+
+    # MCP safety assertion (D-03): verify no admin tags leaked into MCP include list
+    leaked_tags = set(MCP_INCLUDE_TAGS) & _MCP_EXCLUDED_TAGS
+    if leaked_tags:
+        raise RuntimeError(
+            f"MCP SECURITY: admin tags leaked into include list: {leaked_tags}"
+        )
+    logger.info(
+        "MCP startup assertion passed: %d tags exposed, admin excluded",
+        len(MCP_INCLUDE_TAGS),
+    )
 
     # Initialize database tables and stamp Alembic for fresh databases
     try:
@@ -142,6 +204,18 @@ async def lifespan(app: FastAPI):
             await ProfileService().seed_presets(db)
     except Exception as e:
         logger.warning("Database initialization failed: %s — DB features unavailable", e)
+
+    # Pre-warm NIBR catalog (avoid 5-10s first-request spike)
+    try:
+        from app.services.alerts.nibr_filters import get_nibr_catalog
+
+        get_nibr_catalog()
+        logger.info("NIBR catalog pre-warmed at startup")
+    except Exception as e:
+        logger.warning(
+            "NIBR catalog pre-warming failed: %s -- NIBR screening may be slow on first request",
+            e,
+        )
 
     # Initialize OPSIN for IUPAC name conversion (graceful fallback)
     try:
@@ -283,6 +357,27 @@ app.include_router(session.router, prefix="/api/v1", tags=["session"])
 app.include_router(bookmarks.router, prefix="/api/v1", tags=["bookmarks"])
 app.include_router(permalinks.router, prefix="/api/v1", tags=["permalinks"])
 app.include_router(history.router, prefix="/api/v1", tags=["history"])
+app.include_router(profiler.router, prefix="/api/v1", tags=["profiler"])
+app.include_router(safety.router, prefix="/api/v1", tags=["safety"])
+app.include_router(diagnostics.router, prefix="/api/v1", tags=["diagnostics"])
+app.include_router(qsar_ready.router, prefix="/api/v1", tags=["qsar-ready"])
+app.include_router(structure_filter.router, prefix="/api/v1", tags=["structure-filter"])
+app.include_router(
+    dataset_intelligence.router, prefix="/api/v1", tags=["dataset-intelligence"]
+)
+
+# =============================================================================
+# MCP Server Mount (Phase 14 -- ECO-01)
+# =============================================================================
+mcp = FastApiMCP(
+    app,
+    name="ChemAudit MCP",
+    description="Chemical structure validation, scoring, standardization, and curation tools",
+    include_tags=MCP_INCLUDE_TAGS,
+    describe_all_responses=True,
+    describe_full_response_schema=True,
+)
+mcp.mount()  # Exposes at /mcp
 
 # Set up Prometheus metrics if enabled
 if settings.ENABLE_METRICS:
@@ -365,18 +460,10 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
         return
 
     # Post-accept validation: session-based ownership check
-    session_cookie = websocket.cookies.get("chemaudit_sid")
-    if session_cookie:
-        try:
-            import redis as sync_redis
-            r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
-            owner = r.get(f"batch:owner:{job_id}")
-            if owner and owner != session_cookie:
-                manager.disconnect(job_id, websocket)
-                await websocket.close(code=4003, reason="Access denied")
-                return
-        except Exception:
-            pass  # Degrade gracefully
+    if not await _check_ws_ownership(websocket, job_id, "batch"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
 
     _ws_connections[job_id] = current + 1
 
@@ -397,6 +484,198 @@ async def batch_progress_websocket(websocket: WebSocket, job_id: str):
     finally:
         manager.disconnect(job_id, websocket)
         _ws_connections[job_id] = max(0, _ws_connections.get(job_id, 1) - 1)
+
+
+_ws_qsar_connections: dict[str, int] = {}
+
+
+@app.websocket("/ws/qsar/{job_id}")
+async def qsar_progress_websocket(websocket: WebSocket, job_id: str):
+    """
+    WebSocket endpoint for real-time QSAR batch progress updates.
+
+    Connect to /ws/qsar/{job_id} after uploading a batch file to receive
+    progress updates in real-time from the `qsar:{job_id}` Redis channel.
+
+    Message format:
+    {
+        "job_id": "...",
+        "status": "processing|complete|failed|cancelled",
+        "progress": 0-100,
+        "processed": int,
+        "total": int,
+        "eta_seconds": int|null
+    }
+    """
+    # Validate job_id format before accepting
+    if not _UUID_RE.match(job_id):
+        await websocket.close(code=1008, reason="Invalid job ID format")
+        return
+
+    # Connect (calls websocket.accept()) and subscribe to Redis channel
+    connected = await manager.connect(job_id, websocket)
+    if not connected:
+        return
+
+    # Post-accept validation: enforce per-job connection limit
+    current = _ws_qsar_connections.get(job_id, 0)
+    if current >= _WS_MAX_PER_JOB:
+        await websocket.close(code=4029, reason="Too many connections for this job")
+        return
+
+    # Post-accept validation: session-based ownership check
+    if not await _check_ws_ownership(websocket, job_id, "qsar"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
+
+    _ws_qsar_connections[job_id] = current + 1
+
+    # Send initial status after subscription is ready
+    await manager.send_initial_status(job_id, websocket)
+
+    try:
+        # Keep connection alive, waiting for close
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                break
+    finally:
+        manager.disconnect(job_id, websocket)
+        _ws_qsar_connections[job_id] = max(0, _ws_qsar_connections.get(job_id, 1) - 1)
+
+
+_ws_structure_filter_connections: dict[str, int] = {}
+
+
+@app.websocket("/ws/structure-filter/{job_id}")
+async def structure_filter_progress_websocket(websocket: WebSocket, job_id: str):
+    """
+    WebSocket endpoint for real-time structure filter async batch progress updates.
+
+    Connect to /ws/structure-filter/{job_id} after uploading a batch file to receive
+    progress updates in real-time from the `structure-filter:{job_id}` Redis channel.
+
+    Uses the `structure-filter:{job_id}` channel prefix to avoid collision with
+    `batch:{job_id}` and `qsar:{job_id}` channels (Pitfall 5 from RESEARCH.md).
+
+    Message format:
+    {
+        "job_id": "...",
+        "status": "processing|complete|failed",
+        "progress": 0-100,
+        "current_stage": "stage_name|null"
+    }
+    """
+    # Validate job_id format before accepting
+    if not _UUID_RE.match(job_id):
+        await websocket.close(code=1008, reason="Invalid job ID format")
+        return
+
+    # Connect (calls websocket.accept()) and subscribe to Redis channel
+    connected = await manager.connect(job_id, websocket)
+    if not connected:
+        return
+
+    # Post-accept validation: enforce per-job connection limit
+    current = _ws_structure_filter_connections.get(job_id, 0)
+    if current >= _WS_MAX_PER_JOB:
+        await websocket.close(code=4029, reason="Too many connections for this job")
+        return
+
+    # Post-accept validation: session-based ownership check
+    if not await _check_ws_ownership(websocket, job_id, "structure-filter"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
+
+    _ws_structure_filter_connections[job_id] = current + 1
+
+    # Send initial status after subscription is ready
+    await manager.send_initial_status(job_id, websocket)
+
+    try:
+        # Keep connection alive, waiting for close
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                break
+    finally:
+        manager.disconnect(job_id, websocket)
+        _ws_structure_filter_connections[job_id] = max(
+            0, _ws_structure_filter_connections.get(job_id, 1) - 1
+        )
+
+
+_ws_dataset_connections: dict[str, int] = {}
+
+
+@app.websocket("/ws/dataset/{job_id}")
+async def dataset_progress_websocket(websocket: WebSocket, job_id: str):
+    """
+    WebSocket endpoint for real-time dataset audit progress updates.
+
+    Connect to /ws/dataset/{job_id} after uploading a file to receive
+    progress updates in real-time from the ``dataset:{job_id}`` Redis channel.
+
+    Uses the ``dataset:{job_id}`` channel prefix to avoid collision with
+    ``batch:{job_id}``, ``qsar:{job_id}``, and ``structure-filter:{job_id}`` channels.
+
+    Message format:
+    {
+        "job_id": "...",
+        "status": "processing|complete|error",
+        "progress": 0-100,
+        "current_stage": "stage_name|null"
+    }
+    """
+    # Validate job_id format before accepting
+    if not _UUID_RE.match(job_id):
+        await websocket.close(code=1008, reason="Invalid job ID format")
+        return
+
+    # Connect (calls websocket.accept()) and subscribe to Redis channel
+    connected = await manager.connect(job_id, websocket)
+    if not connected:
+        return
+
+    # Post-accept validation: enforce per-job connection limit
+    current = _ws_dataset_connections.get(job_id, 0)
+    if current >= _WS_MAX_PER_JOB:
+        await websocket.close(code=4029, reason="Too many connections for this job")
+        return
+
+    # Post-accept validation: session-based ownership check
+    if not await _check_ws_ownership(websocket, job_id, "dataset"):
+        manager.disconnect(job_id, websocket)
+        await websocket.close(code=4003, reason="Access denied")
+        return
+
+    _ws_dataset_connections[job_id] = current + 1
+
+    # Send initial status after subscription is ready
+    await manager.send_initial_status(job_id, websocket)
+
+    try:
+        # Keep connection alive, waiting for close
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                break
+    finally:
+        manager.disconnect(job_id, websocket)
+        _ws_dataset_connections[job_id] = max(
+            0, _ws_dataset_connections.get(job_id, 1) - 1
+        )
 
 
 @app.get("/")

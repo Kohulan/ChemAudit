@@ -11,8 +11,8 @@ interface MoleculeViewerProps {
   showCIP?: boolean;
 }
 
-const PLACEHOLDER_CLASS =
-  'flex items-center justify-center rounded-lg w-full min-h-[200px]';
+const PLACEHOLDER_BASE =
+  'flex items-center justify-center rounded-lg w-full';
 
 /**
  * Strip the fixed width/height attributes and the opaque background rect that
@@ -41,9 +41,14 @@ export function MoleculeViewer({
     showCIP,
   });
 
+  // Placeholder sizing matches the expected render height so it doesn't
+  // overflow small containers (e.g. 60px cluster thumbnails) or collapse
+  // in large containers (e.g. 200px SingleValidation viewer).
+  const placeholderStyle = { minHeight: height };
+
   if (!smiles) {
     return (
-      <div className={`${PLACEHOLDER_CLASS} bg-gray-100 dark:bg-gray-800 ${className}`}>
+      <div className={`${PLACEHOLDER_BASE} bg-gray-100 dark:bg-gray-800 ${className}`} style={placeholderStyle}>
         <span className="text-gray-400 text-sm">Enter a molecule</span>
       </div>
     );
@@ -51,7 +56,7 @@ export function MoleculeViewer({
 
   if (isLoading) {
     return (
-      <div className={`${PLACEHOLDER_CLASS} bg-gray-100 dark:bg-gray-800 ${className}`}>
+      <div className={`${PLACEHOLDER_BASE} bg-gray-100 dark:bg-gray-800 ${className}`} style={placeholderStyle}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -59,7 +64,7 @@ export function MoleculeViewer({
 
   if (error || !isValid) {
     return (
-      <div className={`${PLACEHOLDER_CLASS} bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 ${className}`}>
+      <div className={`${PLACEHOLDER_BASE} bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 ${className}`} style={placeholderStyle}>
         <span className="text-red-500 text-sm px-4 text-center">{error || 'Invalid molecule'}</span>
       </div>
     );

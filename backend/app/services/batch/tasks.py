@@ -243,6 +243,8 @@ def _process_single_molecule(
         "alerts": None,
         "scoring": None,
         "standardization": None,
+        "profiling": None,
+        "safety_assessment": None,
     }
 
     # Check for pre-existing parse error from file parsing
@@ -262,8 +264,10 @@ def _process_single_molecule(
             result["error"] = "Failed to parse SMILES"
             return result
 
-        # Run standardization if enabled
+        # Options dict used throughout (assigned once)
         opts = safety_options or {}
+
+        # Run standardization if enabled
         if opts.get("include_standardization"):
             try:
                 std_result = standardize_molecule(mol)
@@ -316,7 +320,6 @@ def _process_single_molecule(
 
         # Run structural alerts screening
         try:
-            opts = safety_options or {}
             catalogs = ["PAINS", "BRENK"]
             if opts.get("include_extended"):
                 catalogs.extend(["NIH", "ZINC"])
@@ -393,7 +396,6 @@ def _process_single_molecule(
 
         # Calculate safety filters
         try:
-            opts = safety_options or {}
             sf_result = calculate_safety_filters(
                 mol,
                 include_extended=opts.get("include_extended", False),
@@ -432,7 +434,6 @@ def _process_single_molecule(
             result["scoring"]["admet"] = {"error": str(e)}
 
         # Calculate profile score (if profile was selected at upload)
-        opts = safety_options or {}
         if opts.get("profile_id") is not None:
             try:
                 dl = result.get("scoring", {}).get("druglikeness", {})
@@ -458,6 +459,36 @@ def _process_single_molecule(
                 if "scoring" not in result or result["scoring"] is None:
                     result["scoring"] = {}
                 result["scoring"]["profile"] = {"error": str(e)}
+
+        # Compound profiling enrichment (PFI, stars, bioavailability, etc.)
+        if opts.get("include_profiling"):
+            try:
+                from app.services.profiler.compound_profile import compute_full_profile
+
+                profile_data = compute_full_profile(mol)
+                result["profiling"] = profile_data
+            except Exception as e:
+                result["profiling"] = {"error": str(e)}
+
+        # Safety assessment enrichment (CYP, hERG, bRo5, REOS, complexity)
+        if opts.get("include_safety_assessment"):
+            try:
+                from app.services.alerts.complexity_filter import compute_complexity_percentile
+                from app.services.safety.bro5 import compute_bro5
+                from app.services.safety.cyp_softspots import screen_cyp_softspots
+                from app.services.safety.herg_risk import compute_herg_risk
+                from app.services.safety.reos import compute_reos
+
+                safety_data = {
+                    "cyp_softspots": screen_cyp_softspots(mol),
+                    "herg": compute_herg_risk(mol),
+                    "bro5": compute_bro5(mol),
+                    "reos": compute_reos(mol),
+                    "complexity": compute_complexity_percentile(mol),
+                }
+                result["safety_assessment"] = safety_data
+            except Exception as e:
+                result["safety_assessment"] = {"error": str(e)}
 
         # If we got this far with validation, mark as success
         result["status"] = "success"

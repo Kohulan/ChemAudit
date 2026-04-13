@@ -20,6 +20,9 @@ ChemAudit provides comprehensive molecular scoring across multiple dimensions to
 | **[Scaffold Analysis](/docs/user-guide/scoring/scaffold-analysis)** | Murcko scaffold extraction (standard + generic) | N/A | SAR analysis, scaffold hopping |
 | **[Aggregator Likelihood](/docs/user-guide/scoring/aggregator-likelihood)** | 6 risk indicators + 10 known SMARTS patterns | 0–1 | Assay design, hit validation |
 | **[Bioavailability & Permeation](/docs/user-guide/scoring/bioavailability-permeation)** | 6-axis radar (LIPO, SIZE, POLAR, INSOLU, INSATU, FLEX) + BOILED-Egg GI/BBB | Radar: 0–6 in range; Egg: yolk/white/grey | Oral bioavailability, CNS drug design |
+| **[Ligand Efficiency](/docs/user-guide/scoring/ligand-efficiency)** | LE (potency per heavy atom) and LLE (potency minus lipophilicity) | LE: ~0–0.5; LLE: ~0–10 | Lead optimization, compound prioritization |
+| **Salt Inventory** | Detects salt forms, inventories fragments, identifies parent molecule | Boolean + list | Compound registration, curation |
+| **Property Breakdown** | Per-atom TPSA and LogP contributions with functional group summaries | Per-atom values | Medicinal chemistry optimization |
 
 ## How to Use Scoring
 

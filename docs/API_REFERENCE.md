@@ -28,6 +28,9 @@
   - [Standardization](#standardization)
   - [Batch Processing](#batch-processing)
   - [Export](#export)
+  - [QSAR-Ready Pipeline](#qsar-ready-pipeline)
+  - [Structure Filter](#structure-filter)
+  - [Dataset Audit](#dataset-audit)
   - [Database Integrations](#database-integrations)
   - [API Key Management](#api-key-management)
 - [WebSocket](#websocket)
@@ -353,6 +356,14 @@ Calculate comprehensive molecular scores.
 | `safety_filters` | Safety alerts (PAINS, Brenk, NIH, ZINC, ChEMBL pharma filters) |
 | `admet` | ADMET predictions (SAscore, ESOL, Fsp3, CNS MPO, Pfizer/GSK rules, Golden Triangle) |
 | `aggregator` | Aggregator likelihood prediction |
+| `consensus` | Consensus drug-likeness score (0-5) |
+| `lead_likeness` | Lead-likeness assessment (MW 200-350, LogP -1 to 3, RotB ≤7) |
+| `salt_inventory` | Salt detection and fragment inventory |
+| `ligand_efficiency` | LE and LLE metrics |
+| `bioavailability_radar` | 6-axis oral bioavailability radar (LIPO, SIZE, POLAR, INSOLU, INSATU, FLEX) |
+| `boiled_egg` | BOILED-Egg GI absorption and BBB permeation prediction |
+| `tpsa_breakdown` | Per-atom TPSA contributions |
+| `logp_breakdown` | Per-atom LogP contributions |
 
 <details>
 <summary><b>Example Response</b></summary>
@@ -778,6 +789,337 @@ Query parameters same as GET version.
 
 ---
 
+### QSAR-Ready Pipeline
+
+#### `POST /qsar-ready/single`
+
+Process a single molecule through the QSAR-ready curation pipeline. Rate limit: **30/minute**.
+
+**Request:**
+```json
+{
+  "smiles": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+  "config": {}
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `smiles` | string | Yes | SMILES string to process |
+| `config` | object | No | Pipeline configuration options |
+
+**Response:**
+```json
+{
+  "original_smiles": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+  "original_inchikey": "...",
+  "curated_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "standardized_inchikey": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+  "inchikey_changed": true,
+  "status": "ok",
+  "rejection_reason": null,
+  "steps": [
+    { "step_name": "standardization", "applied": true, "changes": [...] }
+  ]
+}
+```
+
+Status values: `ok`, `rejected`, `duplicate`, `error`
+
+---
+
+#### `POST /qsar-ready/batch/upload`
+
+Upload a file for batch QSAR-ready processing. Rate limit: **3/minute**.
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file | No | CSV or SDF file |
+| `smiles_text` | string | No | Pasted SMILES, one per line (alternative to file) |
+| `config` | string | No | JSON-encoded pipeline configuration |
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "total_molecules": 500,
+  "status": "pending",
+  "message": "QSAR-ready job submitted"
+}
+```
+
+---
+
+#### `GET /qsar-ready/batch/{job_id}/status`
+
+Check batch job status. Rate limit: **60/minute**.
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "status": "processing",
+  "progress": 45.0,
+  "processed": 225,
+  "total": 500,
+  "eta_seconds": 30
+}
+```
+
+---
+
+#### `GET /qsar-ready/batch/{job_id}/results`
+
+Get paginated results. Rate limit: **30/minute**.
+
+**Query Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `page` | int | Page number (default: 1) |
+| `per_page` | int | Results per page (1-500, default: 50) |
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "status": "complete",
+  "config": {},
+  "summary": {
+    "total": 500,
+    "ok": 420,
+    "rejected": 50,
+    "duplicate": 25,
+    "error": 5
+  },
+  "results": [...],
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 10,
+  "total_results": 500
+}
+```
+
+---
+
+#### `GET /qsar-ready/batch/{job_id}/download/{format}`
+
+Download curated results. Rate limit: **10/minute**.
+
+| Param | Values | Description |
+|-------|--------|-------------|
+| `format` | `csv`, `sdf`, `json` | Output format |
+
+**Response:** File download (StreamingResponse).
+
+---
+
+### Structure Filter
+
+#### `POST /structure-filter/filter`
+
+Filter molecules through a multi-stage property/substructure funnel. Rate limit: **20/minute**.
+
+For ≤1,000 molecules, returns results synchronously. For >1,000, returns a job_id for async processing.
+
+**Request:**
+```json
+{
+  "smiles_list": ["CCO", "c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],
+  "preset": "drug_like",
+  "config": null
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `smiles_list` | array | Yes | List of SMILES strings |
+| `preset` | string | No | `drug_like`, `lead_like`, `fragment_like`, `permissive` |
+| `config` | object | No | Custom filter stage configuration (overrides preset) |
+
+**Response (sync):**
+```json
+{
+  "input_count": 3,
+  "output_count": 2,
+  "stages": [
+    {
+      "stage_name": "validity",
+      "stage_index": 0,
+      "input_count": 3,
+      "passed_count": 3,
+      "rejected_count": 0,
+      "enabled": true
+    }
+  ],
+  "molecules": [
+    { "smiles": "CCO", "status": "passed", "failed_at": null, "rejection_reason": null }
+  ]
+}
+```
+
+---
+
+#### `POST /structure-filter/score`
+
+Score molecules against filter criteria (0-1). Rate limit: **30/minute**.
+
+**Request:**
+```json
+{
+  "smiles_list": ["CCO", "c1ccccc1"],
+  "preset": "drug_like"
+}
+```
+
+**Response:**
+```json
+{
+  "scores": [0.85, 0.92]
+}
+```
+
+---
+
+#### `POST /structure-filter/batch/upload`
+
+Upload file for batch filtering. Rate limit: **3/minute**.
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file | Yes | CSV or SDF file |
+| `preset` | string | No | Filter preset |
+| `config` | string | No | JSON-encoded custom configuration |
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "total_molecules": 5000,
+  "status": "pending"
+}
+```
+
+---
+
+#### `GET /structure-filter/batch/{job_id}/status`
+
+Check filter job status. Rate limit: **60/minute**.
+
+#### `GET /structure-filter/batch/{job_id}/results`
+
+Get filter results. Rate limit: **30/minute**.
+
+#### `GET /structure-filter/batch/{job_id}/download/{format}`
+
+Download results. Rate limit: **10/minute**. Formats: `passed_txt` (passing SMILES only), `full_csv` (all molecules with status).
+
+---
+
+### Dataset Audit
+
+#### `POST /dataset/upload`
+
+Upload a dataset for health auditing. Rate limit: **3/minute**.
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file | Yes | CSV or SDF file |
+| `smiles_column` | string | No | Column containing SMILES (auto-detected if omitted) |
+| `activity_column` | string | No | Column containing activity labels (for contradiction detection) |
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "filename": "dataset.csv",
+  "file_type": "csv",
+  "status": "pending",
+  "message": "Dataset audit submitted"
+}
+```
+
+---
+
+#### `GET /dataset/{job_id}/status`
+
+Check audit status. Rate limit: **60/minute**.
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "status": "processing",
+  "progress": 60.0,
+  "current_stage": "health_audit",
+  "eta_seconds": 15.0
+}
+```
+
+---
+
+#### `GET /dataset/{job_id}/results`
+
+Get audit results. Returns 202 if still processing. Rate limit: **30/minute**.
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-...",
+  "status": "complete",
+  "health_audit": {
+    "overall_score": 78.5,
+    "sub_scores": [...],
+    "molecule_count": 1000,
+    "issues": [...],
+    "property_distributions": {}
+  },
+  "contradictions": [...],
+  "numeric_columns": [...],
+  "curation_report": {},
+  "curated_csv_available": true
+}
+```
+
+---
+
+#### `POST /dataset/{job_id}/diff`
+
+Compare with another dataset version. Rate limit: **10/minute**.
+
+**Request:** `multipart/form-data` with `file` field (comparison CSV or SDF).
+
+**Response:**
+```json
+{
+  "added": [...],
+  "removed": [...],
+  "modified": [...],
+  "added_count": 50,
+  "removed_count": 10,
+  "modified_count": 25,
+  "unchanged_count": 915
+}
+```
+
+---
+
+#### `GET /dataset/{job_id}/download/report`
+
+Download curation report as JSON. Rate limit: **10/minute**.
+
+#### `GET /dataset/{job_id}/download/csv`
+
+Download curated CSV with appended audit columns. Rate limit: **10/minute**.
+
+---
+
 ### Database Integrations
 
 #### `POST /integrations/pubchem/lookup`
@@ -996,6 +1338,16 @@ Revoke an API key. Returns 204 No Content on success.
 
 Real-time batch processing progress updates via WebSocket.
 
+### `WS /ws/structure-filter/{job_id}`
+
+Real-time structure filter job progress. Same message format and keep-alive protocol as batch WebSocket. Connect after `POST /structure-filter/batch/upload` returns a job_id.
+
+### `WS /ws/dataset/{job_id}`
+
+Real-time dataset audit progress. Same message format and keep-alive protocol as batch WebSocket. Connect after `POST /dataset/upload` returns a job_id.
+
+### Batch WebSocket Details
+
 **Connect after uploading a file:**
 ```javascript
 const ws = new WebSocket('ws://localhost:8001/ws/batch/' + jobId);
@@ -1073,6 +1425,7 @@ Default rate limits (anonymous / unauthenticated):
 | `POST /alerts/quick-check` | 10 req/min |
 | `GET /alerts/catalogs` | 10 req/min |
 | `POST /score` | 10 req/min |
+| `POST /score/compare` | 10 req/min |
 | `POST /standardize` | 10 req/min |
 | `POST /batch/upload` | 10 req/min |
 | `GET /batch/{job_id}` | 60 req/min |
@@ -1080,7 +1433,25 @@ Default rate limits (anonymous / unauthenticated):
 | `GET /batch/{job_id}/stats` | 10 req/min |
 | `DELETE /batch/{job_id}` | 10 req/min |
 | `POST /batch/detect-columns` | 10 req/min |
+| `POST /qsar-ready/single` | 30 req/min |
+| `POST /qsar-ready/batch/upload` | 3 req/min |
+| `GET /qsar-ready/batch/*/status` | 60 req/min |
+| `GET /qsar-ready/batch/*/results` | 30 req/min |
+| `GET /qsar-ready/batch/*/download/*` | 10 req/min |
+| `POST /structure-filter/filter` | 20 req/min |
+| `POST /structure-filter/score` | 30 req/min |
+| `POST /structure-filter/batch/upload` | 3 req/min |
+| `GET /structure-filter/batch/*/status` | 60 req/min |
+| `GET /structure-filter/batch/*/results` | 30 req/min |
+| `GET /structure-filter/batch/*/download/*` | 10 req/min |
+| `POST /dataset/upload` | 3 req/min |
+| `GET /dataset/*/status` | 60 req/min |
+| `GET /dataset/*/results` | 30 req/min |
+| `POST /dataset/*/diff` | 10 req/min |
+| `GET /dataset/*/download/*` | 10 req/min |
 | `POST /integrations/*` | 30 req/min |
+| `POST /integrations/compare` | 10 req/min |
+| `POST /integrations/resolve` | 30 req/min |
 
 API key authenticated requests: **300 req/min** for all endpoints.
 

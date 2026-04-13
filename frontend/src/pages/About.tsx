@@ -27,6 +27,11 @@ import {
   Target,
   Brain,
   BookOpen,
+  Workflow,
+  Microscope,
+  Search,
+  Filter,
+  Layers,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -144,6 +149,11 @@ export function AboutPage() {
         {/* Advanced Scoring Section - Full width */}
         <AnimatedCard delay={0.4} className="mb-6">
           <AdvancedScoring />
+        </AnimatedCard>
+
+        {/* Platform Capabilities - Full width */}
+        <AnimatedCard delay={0.43} className="mb-6">
+          <PlatformCapabilities />
         </AnimatedCard>
 
         {/* Scientific References - Full width */}
@@ -430,10 +440,10 @@ function SectionHeader({ icon, title, isChemAudit }: { icon: React.ReactNode; ti
 
 function WhatIsChemAudit() {
   const features = [
-    { icon: <Shield className="w-4 h-4" />, title: '15+ Validation Checks', desc: 'Comprehensive analysis' },
+    { icon: <Shield className="w-4 h-4" />, title: '27 Validation Checks', desc: 'Comprehensive analysis' },
     { icon: <Zap className="w-4 h-4" />, title: 'ChEMBL Standardization', desc: 'Trusted pipeline' },
-    { icon: <BarChart3 className="w-4 h-4" />, title: 'ML-Readiness Scoring', desc: 'Dataset quality' },
-    { icon: <Pill className="w-4 h-4" />, title: 'Drug-Likeness Analysis', desc: 'Lipinski, QED & more' },
+    { icon: <BarChart3 className="w-4 h-4" />, title: '10+ Scoring Modules', desc: 'Drug-likeness, ADMET & more' },
+    { icon: <Pill className="w-4 h-4" />, title: '1,500+ Safety Filters', desc: 'PAINS, Brenk, NIH, ChEMBL' },
     { icon: <Activity className="w-4 h-4" />, title: 'ADMET Predictions', desc: 'Pharmacokinetics' },
     { icon: <Sparkles className="w-4 h-4" />, title: 'Batch Processing', desc: 'Millions of molecules' },
   ];
@@ -573,19 +583,19 @@ function TechStack() {
     {
       icon: <Layout className="w-5 h-5" />,
       title: 'Frontend',
-      items: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'Framer Motion'],
+      items: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'Framer Motion', 'Recharts', 'RDKit.js'],
       color: 'from-blue-500/20 to-cyan-500/10',
     },
     {
       icon: <Server className="w-5 h-5" />,
       title: 'Backend',
-      items: ['Python 3.11+', 'FastAPI', 'Celery', 'Redis'],
+      items: ['Python 3.11+', 'FastAPI', 'Celery', 'Redis', 'Pandas', 'asyncpg'],
       color: 'from-amber-500/20 to-yellow-500/10',
     },
     {
       icon: <TestTube className="w-5 h-5" />,
       title: 'Chemistry',
-      items: ['RDKit', 'RDKit.js', 'MolVS', 'ChEMBL Pipeline'],
+      items: ['RDKit', 'RDKit.js', 'MolVS', 'ChEMBL Pipeline', 'openTSNE'],
       color: 'from-purple-500/20 to-pink-500/10',
     },
     {
@@ -750,14 +760,14 @@ function QuickStats() {
   const stats = [
     {
       label: 'Validation Checks',
-      value: '15+',
+      value: '27',
       icon: <Shield className="w-4 h-4" />,
       color: 'from-blue-500 to-cyan-500',
       bgColor: 'from-blue-500/10 to-cyan-500/10',
     },
     {
       label: 'Scoring Modules',
-      value: '6',
+      value: '10+',
       icon: <FlaskConical className="w-4 h-4" />,
       color: 'from-purple-500 to-pink-500',
       bgColor: 'from-purple-500/10 to-pink-500/10',
@@ -1009,6 +1019,117 @@ function AdvancedScoring() {
 }
 
 // ============================================================================
+// PLATFORM CAPABILITIES
+// ============================================================================
+
+function PlatformCapabilities() {
+  const capabilities = [
+    {
+      icon: <Workflow className="w-5 h-5" />,
+      title: 'QSAR-Ready Pipeline',
+      description: 'Multi-step pipeline to prepare molecules for quantitative structure-activity relationship modeling. Configurable standardization, salt stripping, neutralization, and tautomer canonicalization.',
+      features: ['Standardization Pipeline', 'Salt Stripping', 'Charge Neutralization', 'Tautomer Canonicalization', 'Duplicate Removal', 'Batch Export'],
+      color: 'from-violet-500/20 to-purple-500/10',
+    },
+    {
+      icon: <Filter className="w-5 h-5" />,
+      title: 'Structure Filter',
+      description: 'Multi-stage funnel filtering for generative chemistry outputs. Apply sequential property and substructure filters to narrow large compound sets down to drug-like candidates.',
+      features: ['Property Filters', 'Substructure Matching', 'Funnel Visualization', 'Stage-by-Stage Results', 'Export Survivors', 'Custom SMARTS'],
+      color: 'from-cyan-500/20 to-blue-500/10',
+    },
+    {
+      icon: <Microscope className="w-5 h-5" />,
+      title: 'Dataset Intelligence',
+      description: 'Comprehensive dataset health auditing with quality scoring, contradictory label detection, dataset comparison, and curation reports for ML-ready datasets.',
+      features: ['Health Score', 'Contradictory Labels', 'Dataset Diff', 'Curation Reports', 'Treemap Drill-down', 'Quality Metrics'],
+      color: 'from-amber-500/20 to-orange-500/10',
+    },
+    {
+      icon: <Search className="w-5 h-5" />,
+      title: 'Identifier Resolution',
+      description: 'Universal chemical identifier resolver supporting SMILES, InChI, InChIKey, PubChem CID, ChEMBL ID, CAS, ChEBI, UNII, and compound names with cross-database linking via UniChem.',
+      features: ['10+ Identifier Types', 'Auto-Detection', 'UniChem Cross-refs', 'PubChem Integration', 'Resolution Chain', 'Batch Resolve'],
+      color: 'from-teal-500/20 to-emerald-500/10',
+    },
+    {
+      icon: <Layers className="w-5 h-5" />,
+      title: 'Batch Analytics',
+      description: 'Interactive analytics for batch results including Butina clustering with configurable Tanimoto cutoff, SMARTS-based chemotype taxonomy, chemical space visualization, and scaffold analysis.',
+      features: ['Butina Clustering', 'Chemotype Taxonomy', 't-SNE Chemical Space', 'Scaffold Analysis', 'Registration Hashing', 'Outlier Detection'],
+      color: 'from-rose-500/20 to-pink-500/10',
+    },
+    {
+      icon: <Zap className="w-5 h-5" />,
+      title: 'Diagnostics & Provenance',
+      description: 'Deep SMILES diagnostics, InChI layer analysis, round-trip validation, and full standardization provenance tracking showing every transformation applied to a molecule.',
+      features: ['SMILES Diagnostics', 'InChI Layer Diff', 'Round-trip Validation', 'Provenance Timeline', 'File Pre-validation', 'Coordinate Analysis'],
+      color: 'from-sky-500/20 to-indigo-500/10',
+    },
+  ];
+
+  return (
+    <>
+      <SectionHeader icon={<Sparkles className="w-5 h-5" />} title="Platform Capabilities" />
+      <p className="text-[var(--color-text-secondary)] mb-6">
+        Beyond validation and scoring, ChemAudit provides a full suite of cheminformatics
+        tools for dataset curation, generative chemistry post-processing, and cross-database integration.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {capabilities.map((cap, i) => (
+          <motion.div
+            key={cap.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
+            className={cn(
+              'p-5 rounded-2xl',
+              'bg-gradient-to-br',
+              cap.color,
+              'border border-[var(--color-border)]/20',
+              'hover:border-[var(--color-primary)]/30',
+              'transition-all duration-300',
+              'group'
+            )}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={cn(
+                'p-2 rounded-xl',
+                'bg-[var(--color-surface-elevated)]',
+                'text-[var(--color-primary)]',
+                'group-hover:scale-110 transition-transform'
+              )}>
+                {cap.icon}
+              </div>
+              <h3 className="font-semibold text-[var(--color-text-primary)]">{cap.title}</h3>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-3 leading-relaxed">
+              {cap.description}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {cap.features.map((feature) => (
+                <span
+                  key={feature}
+                  className={cn(
+                    'inline-flex items-center px-2 py-0.5 rounded-md text-xs',
+                    'bg-[var(--color-surface-elevated)]/80',
+                    'text-[var(--color-text-muted)]',
+                    'border border-[var(--color-border)]/30'
+                  )}
+                >
+                  {feature}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ============================================================================
 // SCIENTIFIC REFERENCES
 // ============================================================================
 
@@ -1204,6 +1325,12 @@ function ScientificReferences() {
           doi: '10.1021/jm010533y',
           tooltip: 'McGovern et al. J Med Chem (2002)',
         },
+        {
+          method: 'Ligand Efficiency (LE)',
+          citation: 'Hopkins AL, Keserü GM, Leeson PD, Rees DC, Reynolds CH. The role of ligand efficiency metrics in drug discovery. Nat Rev Drug Discov. 2014;13(2):105-121.',
+          doi: '10.1038/nrd4163',
+          tooltip: 'Hopkins et al. Nat Rev Drug Discov (2014)',
+        },
       ],
     },
     {
@@ -1232,6 +1359,37 @@ function ScientificReferences() {
       ],
     },
     {
+      title: 'Clustering & Analytics',
+      icon: <Layers className="w-4 h-4" />,
+      color: 'from-rose-500/20 to-pink-500/10',
+      references: [
+        {
+          method: 'Butina Clustering',
+          citation: 'Butina D. Unsupervised data base clustering based on Daylight\'s fingerprint and Tanimoto similarity: a fast and automated way to cluster small and large data sets. J Chem Inf Comput Sci. 1999;39(4):747-750.',
+          doi: '10.1021/ci9803381',
+          tooltip: 'Butina. J Chem Inf Comput Sci (1999)',
+        },
+        {
+          method: 'Morgan Fingerprints (ECFP)',
+          citation: 'Rogers D, Hahn M. Extended-connectivity fingerprints. J Chem Inf Model. 2010;50(5):742-754.',
+          doi: '10.1021/ci100050t',
+          tooltip: 'Rogers & Hahn. J Chem Inf Model (2010)',
+        },
+        {
+          method: 'Tanimoto Similarity',
+          citation: 'Bajusz D, Rácz A, Héberger K. Why is Tanimoto index an appropriate choice for fingerprint-based similarity calculations? J Cheminform. 2015;7:20.',
+          doi: '10.1186/s13321-015-0069-3',
+          tooltip: 'Bajusz et al. J Cheminform (2015)',
+        },
+        {
+          method: 't-SNE Visualization',
+          citation: 'van der Maaten L, Hinton G. Visualizing data using t-SNE. J Mach Learn Res. 2008;9:2579-2605.',
+          doi: undefined,
+          tooltip: 'van der Maaten & Hinton. JMLR (2008)',
+        },
+      ],
+    },
+    {
       title: 'Software & Pipelines',
       icon: <Code2 className="w-4 h-4" />,
       color: 'from-blue-500/20 to-indigo-500/10',
@@ -1247,6 +1405,12 @@ function ScientificReferences() {
           citation: 'Bento AP, Hersey A, Félix E, et al. An open source chemical structure curation pipeline using RDKit. J Cheminform. 2020;12:51.',
           doi: '10.1186/s13321-020-00456-1',
           tooltip: 'Bento et al. J Cheminform (2020)',
+        },
+        {
+          method: 'MolVS Standardizer',
+          citation: 'Swain M. MolVS: Molecule Validation and Standardization.',
+          doi: undefined,
+          tooltip: 'MolVS (Swain) - github.com/mcs07/MolVS',
         },
       ],
     },
@@ -1422,6 +1586,27 @@ function Acknowledgments() {
       logo: 'https://raw.githubusercontent.com/Steinbeck-Lab/coconut/main/public/img/logo.svg',
       color: 'from-green-600 to-emerald-700',
     },
+    {
+      name: 'ChEBI',
+      description: 'Chemical Entities of Biological Interest ontology from EMBL-EBI',
+      href: 'https://www.ebi.ac.uk/chebi/',
+      logo: 'https://www.ebi.ac.uk/chebi/chebi_logo.svg',
+      color: 'from-indigo-600 to-blue-700',
+    },
+    {
+      name: 'UniChem',
+      description: 'Cross-reference mapping between chemistry databases from EMBL-EBI',
+      href: 'https://www.ebi.ac.uk/unichem/',
+      logo: 'https://www.ebi.ac.uk/unichem/_nuxt/img/unichem_logo.de3b448.png',
+      color: 'from-sky-600 to-cyan-700',
+    },
+    {
+      name: 'Wikidata',
+      description: 'Free and open knowledge base for structured chemical data',
+      href: 'https://www.wikidata.org/',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Wikidata-logo-en.svg/1920px-Wikidata-logo-en.svg.png',
+      color: 'from-red-600 to-rose-700',
+    },
   ];
 
   const additionalThanks = [
@@ -1431,6 +1616,10 @@ function Acknowledgments() {
     { name: 'Framer Motion', href: 'https://www.framer.com/motion/' },
     { name: 'MolVS', href: 'https://github.com/mcs07/MolVS' },
     { name: 'Celery', href: 'https://docs.celeryq.dev/' },
+    { name: 'Recharts', href: 'https://recharts.org/' },
+    { name: 'openTSNE', href: 'https://opentsne.readthedocs.io/' },
+    { name: 'Pandas', href: 'https://pandas.pydata.org/' },
+    { name: 'asyncpg', href: 'https://github.com/MagicStack/asyncpg' },
   ];
 
   return (
@@ -1442,7 +1631,7 @@ function Acknowledgments() {
       </p>
 
       {/* Main acknowledgments with logos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-5">
         {acknowledgments.map((ack, i) => (
           <motion.a
             key={ack.name}

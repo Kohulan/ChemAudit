@@ -118,7 +118,8 @@ async def standardize_molecule(
 
 
 @router.get("/standardize/options")
-async def get_standardization_options():
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def get_standardization_options(request: Request):
     """
     Get available standardization options with descriptions.
 

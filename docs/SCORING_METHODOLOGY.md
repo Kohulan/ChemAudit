@@ -47,6 +47,14 @@
 - [NP-Likeness](#np-likeness)
 - [Aggregator Likelihood](#aggregator-likelihood)
 - [Safety Filters](#safety-filters)
+- [Ligand Efficiency](#ligand-efficiency)
+- [Bioavailability Radar](#bioavailability-radar)
+- [Property Breakdown](#property-breakdown)
+- [Salt Inventory](#salt-inventory)
+- [Batch Analytics](#batch-analytics)
+  - [Butina Clustering](#butina-clustering)
+  - [Chemical Taxonomy](#chemical-taxonomy)
+  - [Registration Hashing](#registration-hashing)
 - [Standardization Pipeline](#standardization-pipeline)
 - [References](#references)
 
@@ -56,10 +64,10 @@
 
 ChemAudit evaluates chemical structures through a multi-layered pipeline:
 
-1. **Validation** — Structural integrity checks (basic + deep)
-2. **Scoring** — Quantitative assessment across 7 dimensions (ML-Readiness, Drug-Likeness, ADMET, NP-Likeness, Aggregator, Safety, Scaffold)
+1. **Validation** — 27 structural integrity checks (5 basic + 22 deep)
+2. **Scoring** — Quantitative assessment across 10+ dimensions (ML-Readiness, Drug-Likeness, ADMET, NP-Likeness, Aggregator, Safety, Scaffold, Ligand Efficiency, Bioavailability Radar, Property Breakdown, Salt Inventory)
 3. **Standardization** — Structure normalization using a ChEMBL-compatible pipeline
-4. **Database Lookup** — Cross-referencing with PubChem, ChEMBL, and COCONUT
+4. **Database Lookup** — Cross-referencing with PubChem, ChEMBL, COCONUT, and Wikidata
 
 All molecular property calculations use RDKit (2025.9.5). Scoring modules are deterministic — the same input always produces the same output.
 
@@ -715,6 +723,164 @@ All pattern matching uses RDKit's `FilterCatalog` module, which performs SMARTS 
 
 ---
 
+## Ligand Efficiency
+
+Ligand efficiency metrics quantify how effectively a molecule uses its size to achieve binding potency. These metrics are central to lead optimization.
+
+### Ligand Efficiency (LE)
+
+$$LE = \frac{pActivity}{N_{HA}}$$
+
+Where:
+- **pActivity** = −log₁₀(IC₅₀ or Kd in molar) — when no experimental activity is available, ChemAudit uses QED as a proxy pIC50
+- **N_HA** = number of heavy (non-hydrogen) atoms
+
+| LE Value | Interpretation |
+|----------|----------------|
+| ≥ 0.3 | Efficient — acceptable for drug-like leads |
+| 0.2–0.3 | Moderate — may benefit from optimization |
+| < 0.2 | Inefficient — consider fragment-based starting points |
+
+### Lipophilic Ligand Efficiency (LLE)
+
+$$LLE = pActivity - LogP$$
+
+LLE separates potency from lipophilicity. A high LLE indicates that potency is driven by specific molecular interactions rather than non-specific hydrophobic binding.
+
+| LLE Value | Interpretation |
+|-----------|----------------|
+| ≥ 5 | Excellent — potency not driven by lipophilicity |
+| 3–5 | Good |
+| < 3 | Potency may be driven by lipophilicity |
+
+**Reference:** Hopkins et al. (2004). Ligand efficiency: a useful metric for lead selection. *Drug Discovery Today*, 9(10), 430–431.
+
+---
+
+## Bioavailability Radar
+
+The bioavailability radar provides a 6-axis visualization of whether a molecule falls within optimal ranges for oral bioavailability. Each axis is normalized to 0–1.
+
+### Axes
+
+| Axis | Property | Property Name | Optimal Range | Unit |
+|------|----------|---------------|---------------|------|
+| **LIPO** | Lipophilicity | Wildman-Crippen LogP | −0.7 to 5.0 | — |
+| **SIZE** | Size | Molecular Weight | 150 to 500 | Da |
+| **POLAR** | Polarity | TPSA | 20 to 130 | A² |
+| **INSOLU** | Insolubility | LogS (ESOL) | −6 to 0 | — |
+| **INSATU** | Insaturation | Fsp3 | ≥ 0.25 | — |
+| **FLEX** | Flexibility | Rotatable Bonds | ≤ 9 | — |
+
+### Scoring
+
+- **in_range** = `true` if the actual value falls within the optimal range
+- **normalized** = value mapped to 0–1 where 1.0 is in the center of the optimal range
+- **overall_in_range_count** = count of axes where value is in range (0–6)
+
+| In-Range Count | Interpretation |
+|----------------|----------------|
+| 6/6 | Excellent oral bioavailability predicted |
+| 4–5/6 | Good — most parameters favorable |
+| 2–3/6 | Moderate — several parameters out of range |
+| 0–1/6 | Poor oral bioavailability predicted |
+
+**Reference:** Daina et al. (2017). SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemistry friendliness of small molecules. *Scientific Reports*, 7, 42717.
+
+---
+
+## Property Breakdown
+
+Per-atom contribution analysis for key molecular properties, useful for understanding which structural features drive a property value.
+
+### TPSA Breakdown
+
+Decomposes the total TPSA into per-atom contributions using the Ertl method:
+
+- **total** — Total TPSA value (A²)
+- **atom_contributions** — Per-atom TPSA values for all polar atoms (N, O, S, P)
+- **functional_group_summary** — Aggregated contributions by functional group type (amines, hydroxyls, carbonyls, etc.)
+
+### LogP Breakdown
+
+Decomposes Wildman-Crippen LogP into per-atom contributions:
+
+- **total** — Total LogP value
+- **atom_contributions** — Per-atom LogP increments for all atoms
+- **functional_group_summary** — Aggregated contributions by functional group type
+
+These breakdowns support medicinal chemistry optimization by revealing which atoms and groups are the largest contributors to polarity and lipophilicity.
+
+---
+
+## Salt Inventory
+
+Detects salt forms and inventories all fragments in a molecular input.
+
+### Logic
+
+1. Parse the molecule and identify disconnected fragments
+2. Classify each fragment (drug, salt, solvent, unknown) using MolVS patterns
+3. Report the parent molecule (largest organic fragment) and all salt/counterion fragments
+
+### Output
+
+| Field | Description |
+|-------|-------------|
+| **has_salts** | Whether the molecule contains salt/counterion fragments |
+| **parent_smiles** | SMILES of the parent (desalted) molecule |
+| **fragments** | List of all fragments with SMILES and classification |
+| **total_fragments** | Total number of disconnected fragments |
+
+---
+
+## Batch Analytics
+
+### Butina Clustering
+
+Sphere-exclusion clustering using the Butina algorithm (Taylor, 1995). Molecules are clustered based on Morgan fingerprint similarity.
+
+**Parameters:**
+- **Fingerprint**: Morgan/ECFP4 (radius=2, 2048 bits)
+- **Distance metric**: 1 − Tanimoto similarity
+- **Distance cutoff**: Configurable, 0.2–0.6 (default: 0.35)
+- **Max molecules**: 1,000
+
+**Algorithm:**
+1. Compute all pairwise Tanimoto distances using Morgan fingerprints
+2. Apply Butina sphere-exclusion clustering at the given distance cutoff
+3. The molecule with the most neighbors within the cutoff becomes the cluster centroid
+4. Remaining molecules are assigned to the nearest centroid within cutoff
+5. Unassigned molecules become singletons
+
+**Output:** clusters, cluster_count, singleton_count, largest_cluster_size, distance_cutoff, smiles_map
+
+**References:**
+- Butina, D. (1999). Unsupervised data base clustering based on daylight's fingerprint and Tanimoto similarity. *Journal of Chemical Information and Computer Sciences*, 39(4), 747–750.
+- Rogers, D. & Hahn, M. (2010). Extended-connectivity fingerprints. *Journal of Chemical Information and Modeling*, 50(5), 742–754.
+
+### Chemical Taxonomy
+
+Classifies molecules into chemical categories using ~50 curated SMARTS rules organized into three groups:
+
+| Group | Examples |
+|-------|---------|
+| **Ring Systems** | Benzene, pyridine, pyrimidine, indole, quinoline, furan, thiophene, etc. |
+| **Functional Groups** | Amide, ester, carboxylic acid, sulfonamide, nitro, halide, etc. |
+| **Pharmacophoric / Drug-class** | Beta-lactam, benzodiazepine, statin-like, kinase inhibitor-like, etc. |
+
+Each molecule can match multiple categories (multi-label classification). The output includes per-molecule classifications and aggregate category counts across the dataset.
+
+### Registration Hashing
+
+Computes canonical registration hashes for deduplication using RDKit's `RegistrationHash` with `HashLayer.TAUTOMER_HASH` (v2):
+
+- Tautomer-invariant hashing ensures that tautomeric forms of the same molecule receive the same hash
+- Identifies collision groups (sets of molecules that hash identically)
+- Reports unique count, total count, and all collision groups
+
+---
+
 ## Standardization Pipeline
 
 Normalizes molecular representations using a ChEMBL-compatible pipeline powered by the `chembl_structure_pipeline` and MolVS libraries.
@@ -784,6 +950,14 @@ The standardization response includes:
 17. Veber, D. F. et al. (2002). Molecular properties that influence the oral bioavailability of drug candidates. *Journal of Medicinal Chemistry*, 45(12), 2615–2623.
 
 18. Wager, T. T. et al. (2010). Moving beyond rules: the development of a central nervous system multiparameter optimization (CNS MPO) approach to enable alignment of druglike properties. *ACS Chemical Neuroscience*, 1(6), 435–449.
+
+19. Hopkins, A. L., Groom, C. R. & Alex, A. (2004). Ligand efficiency: a useful metric for lead selection. *Drug Discovery Today*, 9(10), 430–431.
+
+20. Daina, A., Michielin, O. & Zoete, V. (2017). SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemistry friendliness of small molecules. *Scientific Reports*, 7, 42717.
+
+21. Butina, D. (1999). Unsupervised data base clustering based on daylight's fingerprint and Tanimoto similarity. *Journal of Chemical Information and Computer Sciences*, 39(4), 747–750.
+
+22. Rogers, D. & Hahn, M. (2010). Extended-connectivity fingerprints. *Journal of Chemical Information and Modeling*, 50(5), 742–754.
 
 ---
 

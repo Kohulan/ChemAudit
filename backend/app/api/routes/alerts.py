@@ -12,6 +12,7 @@ import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from rdkit import Chem
 
 from app.api.routes.validation import extract_molecule_info
 from app.core.rate_limit import get_rate_limit_key, limiter
@@ -23,12 +24,58 @@ from app.schemas.alerts import (
     AlertSeverity,
     CatalogInfoSchema,
     CatalogListResponse,
+    ConcernGroupSchema,
+    UnifiedScreenRequest,
+    UnifiedScreenResponse,
 )
-from app.services.alerts.alert_manager import alert_manager
+from app.services.alerts.alert_manager import AlertResult, alert_manager
 from app.services.alerts.filter_catalog import AVAILABLE_CATALOGS
+from app.services.alerts.unified_screen import unified_screen
 from app.services.parser.molecule_parser import MoleculeFormat, parse_molecule
 
 router = APIRouter()
+
+_FORMAT_MAP = {
+    "smiles": MoleculeFormat.SMILES,
+    "inchi": MoleculeFormat.INCHI,
+    "mol": MoleculeFormat.MOL,
+    "auto": None,
+}
+
+
+def _parse_or_raise(molecule: str, fmt: str) -> Chem.Mol:
+    """Parse molecule string or raise HTTP 400 with error details."""
+    input_format = _FORMAT_MAP.get(fmt)
+    parse_result = parse_molecule(molecule, input_format)
+    if not parse_result.success or parse_result.mol is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Failed to parse molecule",
+                "errors": parse_result.errors,
+                "warnings": parse_result.warnings,
+                "format_detected": parse_result.format_detected.value,
+            },
+        )
+    return parse_result.mol
+
+
+def _alert_to_schema(alert: AlertResult) -> AlertResultSchema:
+    """Convert an AlertResult dataclass to AlertResultSchema."""
+    return AlertResultSchema(
+        pattern_name=alert.pattern_name,
+        description=alert.description,
+        severity=AlertSeverity(alert.severity.value),
+        matched_atoms=alert.matched_atoms,
+        catalog_source=alert.catalog_source,
+        smarts=alert.smarts,
+        reference=alert.reference,
+        scope=alert.scope,
+        filter_set=alert.filter_set,
+        catalog_description=alert.catalog_description,
+        category=alert.category,
+        concern_group=getattr(alert, "concern_group", None),
+    )
 
 
 @router.post("/alerts", response_model=AlertScreenResponse)
@@ -56,53 +103,11 @@ async def screen_alerts(
     """
     start_time = time.time()
 
-    # Parse molecule
-    format_map = {
-        "smiles": MoleculeFormat.SMILES,
-        "inchi": MoleculeFormat.INCHI,
-        "mol": MoleculeFormat.MOL,
-        "auto": None,
-    }
-    input_format = format_map.get(body.format)
-
-    parse_result = parse_molecule(body.molecule, input_format)
-
-    if not parse_result.success or parse_result.mol is None:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "Failed to parse molecule",
-                "errors": parse_result.errors,
-                "warnings": parse_result.warnings,
-                "format_detected": parse_result.format_detected.value,
-            },
-        )
-
-    mol = parse_result.mol
-
-    # Extract molecule info
+    mol = _parse_or_raise(body.molecule, body.format)
     mol_info = extract_molecule_info(mol, body.molecule)
 
-    # Screen for alerts
     screening_result = alert_manager.screen(mol, catalogs=body.catalogs)
-
-    # Convert to schema
-    alerts = [
-        AlertResultSchema(
-            pattern_name=alert.pattern_name,
-            description=alert.description,
-            severity=AlertSeverity(alert.severity.value),
-            matched_atoms=alert.matched_atoms,
-            catalog_source=alert.catalog_source,
-            smarts=alert.smarts,
-            reference=alert.reference,
-            scope=alert.scope,
-            filter_set=alert.filter_set,
-            catalog_description=alert.catalog_description,
-            category=alert.category,
-        )
-        for alert in screening_result.alerts
-    ]
+    alerts = [_alert_to_schema(a) for a in screening_result.alerts]
 
     execution_time = int((time.time() - start_time) * 1000)
 
@@ -171,27 +176,8 @@ async def quick_check_alerts(
     Returns:
         Dictionary with has_alerts boolean and checked catalogs
     """
-    # Parse molecule
-    format_map = {
-        "smiles": MoleculeFormat.SMILES,
-        "inchi": MoleculeFormat.INCHI,
-        "mol": MoleculeFormat.MOL,
-        "auto": None,
-    }
-    input_format = format_map.get(body.format)
-
-    parse_result = parse_molecule(body.molecule, input_format)
-
-    if not parse_result.success or parse_result.mol is None:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "Failed to parse molecule",
-                "errors": parse_result.errors,
-            },
-        )
-
-    has_alerts = alert_manager.has_alerts(parse_result.mol, catalogs=body.catalogs)
+    mol = _parse_or_raise(body.molecule, body.format)
+    has_alerts = alert_manager.has_alerts(mol, catalogs=body.catalogs)
 
     return {
         "has_alerts": has_alerts,
@@ -199,3 +185,60 @@ async def quick_check_alerts(
     }
 
 
+@router.post("/alerts/screen", response_model=UnifiedScreenResponse)
+@limiter.limit("10/minute", key_func=get_rate_limit_key)
+async def unified_screen_endpoint(
+    request: Request,
+    body: UnifiedScreenRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Unified structural alert screening across ALL catalogs.
+
+    Screens the input molecule against all available alert sources:
+    PAINS, BRENK, NIH, ZINC, ChEMBL sub-catalogs, custom SMARTS (21 patterns),
+    Kazius toxicophores (29 patterns), and NIBR Novartis filters.
+
+    Returns both a flat raw-alert list and a deduplicated concern-group view.
+
+    Args:
+        body: Request with molecule string and format hint
+
+    Returns:
+        UnifiedScreenResponse with alerts, concern_groups, and summary flags
+
+    Raises:
+        HTTPException: If molecule cannot be parsed
+    """
+    start_time = time.time()
+
+    mol = _parse_or_raise(body.molecule, body.format)
+    mol_info = extract_molecule_info(mol, body.molecule)
+
+    result = unified_screen(mol)
+
+    alerts_schema = [_alert_to_schema(a) for a in result["alerts"]]
+
+    concern_groups_schema: dict[str, ConcernGroupSchema] = {}
+    for group_name, group_data in result["concern_groups"].items():
+        concern_groups_schema[group_name] = ConcernGroupSchema(
+            name=group_name,
+            count=group_data["count"],
+            severity=group_data["severity"],
+            alerts=[_alert_to_schema(a) for a in group_data["alerts"]],
+        )
+
+    execution_time = int((time.time() - start_time) * 1000)
+
+    return UnifiedScreenResponse(
+        status="completed",
+        molecule_info=mol_info,
+        alerts=alerts_schema,
+        concern_groups=concern_groups_schema,
+        total_raw=result["total_raw"],
+        total_deduped=result["total_deduped"],
+        screened_catalogs=result["screened_catalogs"],
+        has_critical=result["has_critical"],
+        has_warning=result["has_warning"],
+        execution_time_ms=execution_time,
+    )

@@ -5,7 +5,7 @@ import type { StandardizeResponse } from '../types/standardization';
 import type { ValidationResponse } from '../types/validation';
 import type { PubChemResult, ChEMBLResult, COCONUTResult } from '../types/integrations';
 
-export type TabType = 'validate' | 'deep-validation' | 'scoring-profiles' | 'database' | 'alerts' | 'standardize';
+export type TabType = 'validate' | 'deep-validation' | 'scoring-profiles' | 'compound-profile' | 'database' | 'alerts' | 'standardize';
 
 export interface ValidationCache {
   molecule: string;

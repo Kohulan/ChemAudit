@@ -1,7 +1,8 @@
 """
 External Integrations API Routes
 
-Endpoints for COCONUT, PubChem, and ChEMBL integrations.
+Endpoints for COCONUT, PubChem, ChEMBL, Wikidata, and SureChEMBL integrations,
+plus cross-database comparison.
 """
 
 from typing import Optional
@@ -19,13 +20,19 @@ from app.schemas.integrations import (
     ConsistencyResult,
     PubChemRequest,
     PubChemResult,
+    SureChEMBLRequest,
+    SureChEMBLResult,
+    WikidataRequest,
+    WikidataResult,
 )
 from app.services.integrations import (
     get_bioactivity,
     get_compound_info,
     lookup_natural_product,
+    lookup_wikidata,
 )
 from app.services.integrations.comparator import compare_across_databases
+from app.services.integrations.surechembl import lookup_surechembl
 
 router = APIRouter()
 
@@ -162,6 +169,33 @@ async def lookup_chembl_bioactivity(
     return await get_bioactivity(body)
 
 
+@router.post("/integrations/wikidata/lookup", response_model=WikidataResult)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def lookup_wikidata_endpoint(
+    request: Request,
+    body: WikidataRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Look up molecule in Wikidata via SPARQL.
+
+    Wikidata stores structured chemical data (SMILES, InChIKey, CAS,
+    molecular formula) linked to Wikipedia articles and other knowledge bases.
+
+    Rate limits:
+    - This endpoint: 30 requests/minute (specific limit)
+
+    Args:
+        request: FastAPI request (required for rate limiting)
+        body: Wikidata lookup request with SMILES or InChIKey
+        api_key: Optional API key for higher rate limits
+
+    Returns:
+        Compound information if found in Wikidata
+    """
+    return await lookup_wikidata(body)
+
+
 class CompareRequest(BaseModel):
     """Request body for cross-database comparison."""
 
@@ -184,3 +218,22 @@ async def compare_databases(
 ):
     """Compare molecule representation across PubChem, ChEMBL, and COCONUT."""
     return await compare_across_databases(smiles=body.smiles, inchikey=body.inchikey)
+
+
+@router.post("/integrations/surechembl/lookup", response_model=SureChEMBLResult)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def lookup_surechembl_patents(
+    request: Request,
+    body: SureChEMBLRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Look up molecule in SureChEMBL patent database.
+
+    Checks patent literature presence via UniChem cross-reference to SureChEMBL,
+    with optional enrichment from SureChEMBL direct API for patent count data.
+
+    Returns binary present/absent result with a direct link to the SureChEMBL
+    entry when found.
+    """
+    return await lookup_surechembl(body)

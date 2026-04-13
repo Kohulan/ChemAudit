@@ -633,6 +633,142 @@ GDPR erasure — permanently deletes all bookmarks and history for the current s
 }
 ```
 
+## QSAR-Ready Pipeline
+
+### POST /qsar-ready/single
+
+Process a single molecule through the QSAR-ready curation pipeline (standardize, strip salts, neutralize, canonicalize tautomers, check duplicates). Rate limit: 30/min.
+
+**Request:**
+
+```json
+{
+  "smiles": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+  "config": {}
+}
+```
+
+**Response:**
+
+```json
+{
+  "original_smiles": "CC(=O)Oc1ccccc1C(=O)[O-].[Na+]",
+  "curated_smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "status": "ok",
+  "inchikey_changed": true,
+  "steps": [...]
+}
+```
+
+### POST /qsar-ready/batch/upload
+
+Upload file for batch QSAR-ready processing (3/min). Accepts CSV, SDF, or pasted SMILES text.
+
+### GET /qsar-ready/batch/\{job_id\}/status
+
+Check batch status (60/min). Returns job_id, status, progress, processed, total, eta_seconds.
+
+### GET /qsar-ready/batch/\{job_id\}/results
+
+Get paginated results (30/min). Query params: `page` (default 1), `per_page` (1-500, default 50).
+
+### GET /qsar-ready/batch/\{job_id\}/download/\{format\}
+
+Download curated results (10/min). Formats: `csv`, `sdf`, `json`.
+
+## Structure Filter
+
+### POST /structure-filter/filter
+
+Filter molecules through multi-stage property/substructure funnel (20/min). Returns synchronously for ≤1,000 molecules; returns job_id for larger sets.
+
+**Request:**
+
+```json
+{
+  "smiles_list": ["CCO", "c1ccccc1"],
+  "preset": "drug_like"
+}
+```
+
+**Response:**
+
+```json
+{
+  "input_count": 2,
+  "output_count": 2,
+  "stages": [...],
+  "molecules": [
+    { "smiles": "CCO", "status": "passed", "failed_at": null }
+  ]
+}
+```
+
+Presets: `drug_like`, `lead_like`, `fragment_like`, `permissive`.
+
+### POST /structure-filter/score
+
+Score molecules 0–1 against filter criteria (30/min). Returns `{"scores": [0.85, 0.92]}`.
+
+### POST /structure-filter/reinvent-score
+
+REINVENT-compatible scoring endpoint (30/min). Accepts array of `{input_string, query_id}`.
+
+### POST /structure-filter/batch/upload
+
+Upload file for batch filtering (3/min).
+
+### GET /structure-filter/batch/\{job_id\}/status
+
+Check filter job status (60/min).
+
+### GET /structure-filter/batch/\{job_id\}/results
+
+Get filter results (30/min).
+
+### GET /structure-filter/batch/\{job_id\}/download/\{format\}
+
+Download results (10/min). Formats: `passed_txt` (passing SMILES only), `full_csv` (all with status).
+
+## Dataset Audit
+
+### POST /dataset/upload
+
+Upload a dataset for health auditing (3/min).
+
+**Request:** `multipart/form-data` with `file`, optional `smiles_column`, optional `activity_column`.
+
+**Response:**
+
+```json
+{
+  "job_id": "550e8400-...",
+  "filename": "dataset.csv",
+  "file_type": "csv",
+  "status": "pending"
+}
+```
+
+### GET /dataset/\{job_id\}/status
+
+Check audit status (60/min). Returns status, progress, current_stage, eta_seconds.
+
+### GET /dataset/\{job_id\}/results
+
+Get audit results (30/min). Returns 202 if still processing. Includes health_audit (overall_score, sub_scores, issues), contradictions, curation_report.
+
+### POST /dataset/\{job_id\}/diff
+
+Compare with another dataset version (10/min). Upload comparison file as `multipart/form-data`. Returns added, removed, modified, unchanged counts.
+
+### GET /dataset/\{job_id\}/download/report
+
+Download curation report as JSON (10/min).
+
+### GET /dataset/\{job_id\}/download/csv
+
+Download curated CSV with appended audit columns (10/min).
+
 ## Next Steps
 
 - **[Authentication](/docs/api/authentication)** - API key setup

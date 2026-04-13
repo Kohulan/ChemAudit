@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import get_data_scope, set_rls_context
 from app.db import get_db
@@ -22,6 +23,7 @@ router = APIRouter()
 
 
 @router.get("/history", response_model=AuditHistoryResponse)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def get_history(
     request: Request,
     page: int = Query(default=1, ge=1),
@@ -113,6 +115,7 @@ async def get_history(
 
 
 @router.get("/history/stats")
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
 async def get_history_stats(
     request: Request,
     api_key: Optional[str] = Depends(get_api_key),

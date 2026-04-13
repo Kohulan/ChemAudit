@@ -1,0 +1,225 @@
+import { useState, useCallback, useRef } from 'react';
+import { Upload, AlertCircle } from 'lucide-react';
+import type { DatasetDiffResults } from '../../types/dataset_intelligence';
+import { DiffSummary } from './DiffSummary';
+import { DiffMoleculeTable } from './DiffMoleculeTable';
+import { InfoTooltip } from '../ui/Tooltip';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface DatasetDiffTabProps {
+  /** Diff results, null before comparison file uploaded. */
+  diffResults: DatasetDiffResults | null;
+  /** Whether a diff upload is in progress. */
+  diffLoading: boolean;
+  /** Error message for diff upload. */
+  diffError: string | null;
+  /** Callback when a comparison file is selected. */
+  onUploadDiffFile: (file: File) => void;
+  /** Primary job ID (null if no primary dataset loaded). */
+  primaryJobId: string | null;
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+const VALID_EXTENSIONS = ['.csv', '.sdf'];
+
+function isValidExtension(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return VALID_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+/**
+ * Dataset Diff tab content for the Dataset Audit page.
+ *
+ * Per UI-SPEC D-12, D-13:
+ * - Second upload zone for comparison file (reuses DatasetUploadZone visual pattern)
+ * - Before upload: prompt message
+ * - During processing: loading spinner
+ * - After results: DiffSummary + DiffMoleculeTable
+ * - Disabled if no primary dataset loaded
+ */
+export function DatasetDiffTab({
+  diffResults,
+  diffLoading,
+  diffError,
+  onUploadDiffFile,
+  primaryJobId,
+}: DatasetDiffTabProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isDisabled = !primaryJobId;
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && isValidExtension(file.name)) {
+        onUploadDiffFile(file);
+      }
+      // Reset input so the same file can be re-selected
+      e.target.value = '';
+    },
+    [onUploadDiffFile],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      if (isDisabled || diffLoading) return;
+      const file = e.dataTransfer.files[0];
+      if (file && isValidExtension(file.name)) {
+        onUploadDiffFile(file);
+      }
+    },
+    [isDisabled, diffLoading, onUploadDiffFile],
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!isDisabled && !diffLoading) {
+        setIsDragOver(true);
+      }
+    },
+    [isDisabled, diffLoading],
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  return (
+    <div className="min-h-[200px] space-y-6">
+      {/* Info header */}
+      <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)]">
+        <InfoTooltip
+          title="Dataset Version Comparison"
+          content={
+            <div className="text-xs space-y-1">
+              <p>Compare two versions of the same dataset to track what changed between curation rounds, pipeline updates, or database releases.</p>
+              <p className="mt-1"><strong>How it works:</strong></p>
+              <ul className="text-white/70 space-y-0.5">
+                <li>1. Matches molecules by InChIKey across both files</li>
+                <li>2. Categorizes each molecule as Added, Removed, Modified, or Unchanged</li>
+                <li>3. For modified molecules, shows exactly which properties changed</li>
+              </ul>
+              <p className="mt-1 text-white/60">Upload a second version of the same dataset (CSV or SDF). Both files should contain SMILES that can be resolved to InChIKeys for matching.</p>
+            </div>
+          }
+          size="small"
+        />
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          Compare different versions of the same dataset to see what was added, removed, or modified between curation rounds.
+        </p>
+      </div>
+
+      {/* Second upload zone for comparison file */}
+      <div
+        className={[
+          'relative border-2 border-dashed rounded-xl p-8 text-center transition-colors duration-200',
+          isDisabled
+            ? 'border-[var(--color-border)]/50 opacity-50 cursor-not-allowed'
+            : isDragOver
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+              : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/50 cursor-pointer',
+        ].join(' ')}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => {
+          if (!isDisabled && !diffLoading) {
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={isDisabled ? -1 : 0}
+        aria-label="Upload comparison dataset"
+        aria-disabled={isDisabled}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.sdf"
+          onChange={handleFileChange}
+          className="hidden"
+          disabled={isDisabled || diffLoading}
+        />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-[var(--color-surface-sunken)] flex items-center justify-center">
+            <Upload className="w-6 h-6 text-[var(--color-text-muted)]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              Upload a different version of this dataset
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              Drop a second CSV or SDF file to see what changed between versions (added, removed, modified molecules)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Error display */}
+      {diffError && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-600 dark:text-red-400">{diffError}</p>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {diffLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              Comparing datasets...
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-comparison prompt */}
+      {!diffResults && !diffLoading && !diffError && (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Upload a different version of this dataset above to see what was added, removed, or modified between versions.
+          </p>
+        </div>
+      )}
+
+      {/* Diff results */}
+      {diffResults && !diffLoading && (
+        <>
+          {/* Summary badges */}
+          <DiffSummary
+            addedCount={diffResults.added_count}
+            removedCount={diffResults.removed_count}
+            modifiedCount={diffResults.modified_count}
+            unchangedCount={diffResults.unchanged_count}
+          />
+
+          {/* Molecule table with category filters */}
+          <DiffMoleculeTable
+            molecules={[
+              ...diffResults.added,
+              ...diffResults.removed,
+              ...diffResults.modified,
+            ]}
+            category="all"
+            diffResults={diffResults}
+          />
+        </>
+      )}
+    </div>
+  );
+}

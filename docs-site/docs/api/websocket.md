@@ -10,20 +10,30 @@ ChemAudit provides real-time batch processing progress updates via WebSocket, al
 
 ## Connection
 
-### Endpoint
+### Endpoints
 
-```
-ws://localhost:8001/ws/batch/{job_id}
-```
+ChemAudit provides WebSocket endpoints for three types of background jobs:
 
-Replace `{job_id}` with the job ID returned from POST /batch/upload.
+| WebSocket | Endpoint | Triggered By |
+|-----------|----------|-------------|
+| **Batch Processing** | `ws://localhost:8001/ws/batch/{job_id}` | POST /batch/upload |
+| **Structure Filter** | `ws://localhost:8001/ws/structure-filter/{job_id}` | POST /structure-filter/batch/upload |
+| **Dataset Audit** | `ws://localhost:8001/ws/dataset/{job_id}` | POST /dataset/upload |
+
+All three WebSocket endpoints use the same message format, keep-alive protocol, and reconnection strategy described below.
+
+Replace `{job_id}` with the job ID returned from the upload endpoint.
+
+:::info Ownership Checks
+WebSocket connections include session-scoped ownership verification. Only the session that created a job can connect to its WebSocket — other sessions receive a connection rejection.
+:::
 
 ### When to Connect
 
-Connect to the WebSocket immediately after uploading a batch file:
+Connect to the WebSocket immediately after uploading a file:
 
-1. POST /batch/upload → receive `job_id`
-2. Open WebSocket connection to `ws://.../batch/{job_id}`
+1. POST the upload endpoint → receive `job_id`
+2. Open WebSocket connection to the appropriate endpoint
 3. Listen for progress messages
 4. Close connection when status is `complete`, `failed`, or `cancelled`
 

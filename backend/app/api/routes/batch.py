@@ -33,6 +33,8 @@ from app.schemas.analytics import (
     AnalysisStatus,
     AnalyticsTriggerResponse,
     BatchAnalyticsResponse,
+    MCSCompareRequest,
+    MCSComparisonResult,
 )
 from app.schemas.batch import (
     BatchJobStatus,
@@ -70,7 +72,7 @@ def _parse_json_field(value: Any) -> Any:
 
 
 @router.post("/batch/upload", response_model=BatchUploadResponse)
-@limiter.limit("10/minute", key_func=get_rate_limit_key)
+@limiter.limit("3/minute", key_func=get_rate_limit_key)
 async def upload_batch(
     request: Request,
     file: UploadFile = File(..., description="SDF or CSV file to process"),
@@ -101,6 +103,14 @@ async def upload_batch(
     profile_id: Optional[int] = Form(
         default=None,
         description="Scoring profile ID for profile-based desirability scoring",
+    ),
+    include_profiling: bool = Form(
+        default=False,
+        description="Compute compound profiling (PFI, stars, bioavailability, etc.) for each molecule",
+    ),
+    include_safety_assessment: bool = Form(
+        default=False,
+        description="Run safety assessment (CYP, hERG, bRo5, REOS, complexity) for each molecule",
     ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
@@ -212,6 +222,8 @@ async def upload_batch(
         "include_extended": include_extended_safety,
         "include_chembl": include_chembl_alerts,
         "include_standardization": include_standardization,
+        "include_profiling": include_profiling,
+        "include_safety_assessment": include_safety_assessment,
     }
 
     # If profile selected, fetch thresholds and attach to safety_options
@@ -360,6 +372,8 @@ async def get_batch_results(
             alerts=r.get("alerts"),
             scoring=r.get("scoring"),
             standardization=r.get("standardization"),
+            profiling=r.get("profiling"),
+            safety_assessment=r.get("safety_assessment"),
         )
         for r in result_data.get("results", [])
     ]
@@ -516,6 +530,9 @@ async def get_batch_analytics(
         "similarity_search": "similarity_matrix",
         "mmp": "mmp",
         "statistics": "statistics",
+        "clustering": "clustering",
+        "taxonomy": "taxonomy",
+        "registration": "registration",
     }
 
     result_kwargs: dict[str, Any] = {}
@@ -525,6 +542,21 @@ async def get_batch_analytics(
             raw = analytics_storage.get_result(job_id, analysis_type)
             if raw is not None:
                 result_kwargs[field_name] = raw
+
+    # Backfill smiles_map for clustering results that predate the field
+    clustering_data = result_kwargs.get("clustering")
+    if clustering_data and not clustering_data.get("smiles_map"):
+        all_results = result_storage.get_all_results(job_id)
+        if all_results:
+            smap: dict[str, str] = {}
+            for r in all_results:
+                idx = r.get("index", 0)
+                std = r.get("standardization")
+                std_smi = std.get("standardized_smiles") if isinstance(std, dict) else None
+                smi = std_smi or r.get("smiles", "")
+                if smi:
+                    smap[str(idx)] = smi
+            clustering_data["smiles_map"] = smap
 
     return BatchAnalyticsResponse(
         job_id=job_id,
@@ -539,6 +571,8 @@ _ALLOWED_EXPENSIVE_ANALYSES = {
     "mmp",
     "similarity_search",
     "rgroup",
+    "clustering",
+    "taxonomy",
 }
 
 
@@ -563,6 +597,8 @@ async def trigger_batch_analytics(
     - **mmp**: Matched molecular pair analysis (requires activity_column param).
     - **similarity_search**: Nearest-neighbor similarity search.
     - **rgroup**: R-group decomposition (requires core_smarts param).
+    - **clustering**: Butina sphere-exclusion clustering (optional cutoff param).
+    - **taxonomy**: SMARTS-based chemotype classification.
 
     Optional params body (JSON object):
     - `method`: "pca" or "tsne" (for chemical_space)
@@ -571,6 +607,7 @@ async def trigger_batch_analytics(
     - `query_index`: query molecule index for similarity_search
     - `top_k`: number of neighbors to return (similarity_search)
     - `core_smarts`: SMARTS pattern for R-group core
+    - `cutoff`: Tanimoto distance threshold for clustering (default 0.35)
     """
     verify_job_access(request, job_id)
 
@@ -602,12 +639,17 @@ async def trigger_batch_analytics(
             )
 
         if current_status_val == "complete":
-            # For chemical_space: allow re-computation when a *different*
-            # method is requested (e.g. PCA stored, user wants t-SNE).
+            # Allow re-computation when params differ from stored result.
             needs_recompute = False
             if analysis_type == "chemical_space" and params and params.get("method"):
                 stored = analytics_storage.get_result(job_id, "chemical_space")
                 if stored and stored.get("method") != params["method"]:
+                    needs_recompute = True
+            elif analysis_type == "clustering" and params and params.get("cutoff"):
+                stored = analytics_storage.get_result(job_id, "clustering")
+                stored_cutoff = stored.get("distance_cutoff") if stored else None
+                new_cutoff = float(params["cutoff"])
+                if stored_cutoff is None or abs(stored_cutoff - new_cutoff) > 1e-9:
                     needs_recompute = True
 
             if not needs_recompute:
@@ -616,6 +658,17 @@ async def trigger_batch_analytics(
                     analysis_type=analysis_type,
                     status="already_complete",
                 )
+
+    # --- Clustering cap check (D-06: hard cap at 1,000 molecules) ---
+    if analysis_type == "clustering":
+        results = result_storage.get_all_results(job_id)
+        if results and len(results) > 1000:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Clustering is limited to 1,000 molecules. "
+                f"This batch has {len(results)} molecules. "
+                "Filter or subsample before clustering.",
+            )
 
     # Set status to "computing" immediately so frontend polling sees the
     # transition before the Celery worker picks up the task.
@@ -628,6 +681,71 @@ async def trigger_batch_analytics(
         analysis_type=analysis_type,
         status="queued",
     )
+
+
+@router.post("/batch/{job_id}/mcs", response_model=MCSComparisonResult)
+@limiter.limit("30/minute", key_func=get_rate_limit_key)
+async def compute_batch_mcs(
+    request: Request,
+    job_id: str,
+    body: MCSCompareRequest,
+    api_key: Optional[str] = Depends(get_api_key),
+):
+    """
+    Compute Maximum Common Substructure between two molecules from a batch.
+
+    Runs synchronously (timeout=10s max). Returns MCS SMARTS, matched
+    atom/bond counts, Tanimoto similarity, and property deltas.
+
+    - **job_id**: Batch job identifier.
+    - **body.index_a**: Index of the first molecule.
+    - **body.index_b**: Index of the second molecule.
+    """
+    verify_job_access(request, job_id)
+
+    results = result_storage.get_all_results(job_id)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Batch results not found for job {job_id}. Results may have expired.",
+        )
+
+    # Find molecules by index
+    mol_a = next((r for r in results if r.get("index") == body.index_a), None)
+    mol_b = next((r for r in results if r.get("index") == body.index_b), None)
+
+    if mol_a is None or mol_b is None:
+        missing = []
+        if mol_a is None:
+            missing.append(str(body.index_a))
+        if mol_b is None:
+            missing.append(str(body.index_b))
+        raise HTTPException(
+            status_code=404,
+            detail=f"Molecule(s) at index {', '.join(missing)} not found in batch.",
+        )
+
+    smiles_a = mol_a.get("smiles", "")
+    smiles_b = mol_b.get("smiles", "")
+
+    if not smiles_a or not smiles_b:
+        raise HTTPException(
+            status_code=400,
+            detail="Both molecules must have valid SMILES.",
+        )
+
+    try:
+        from app.services.analytics.mcs_comparison import compute_mcs_comparison
+
+        result = compute_mcs_comparison(smiles_a, smiles_b)
+        return MCSComparisonResult(**result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"MCS computation failed: {str(exc)}",
+        )
 
 
 @router.post("/batch/detect-columns", response_model=CSVColumnsResponse)

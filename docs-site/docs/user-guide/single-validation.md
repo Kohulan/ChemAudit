@@ -35,8 +35,10 @@ Simply paste your molecule in any format — including IUPAC names like "aspirin
    - **Alerts**: PAINS, BRENK, NIH, ZINC, ChEMBL screening
    - **Scoring**: ML-readiness, drug-likeness, ADMET, NP-likeness
    - **Scoring Profiles**: Consensus score, lead/fragment-likeness, property breakdowns, bioavailability radar
+   - **Profiler**: 3D shape, ligand efficiency (LE/LLE), per-atom property breakdown (TPSA, LogP), bioavailability radar
+   - **Safety**: Comprehensive safety screening across all alert catalogs with matched atoms highlighting
    - **Standardization**: ChEMBL-compatible cleanup with provenance timeline
-   - **Database Lookup**: PubChem, ChEMBL, COCONUT cross-references
+   - **Database Lookup**: PubChem, ChEMBL, COCONUT, Wikidata cross-references, identifier resolution, cross-database comparison
 
 ### Using the API
 

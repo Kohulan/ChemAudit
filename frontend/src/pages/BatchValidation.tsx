@@ -9,6 +9,7 @@ import { BatchSummary } from '../components/batch/BatchSummary';
 import { BatchResultsTable } from '../components/batch/BatchResultsTable';
 import { BatchAnalyticsPanel } from '../components/batch/BatchAnalyticsPanel';
 import { MoleculeComparisonPanel } from '../components/batch/MoleculeComparisonPanel';
+import { MCSComparisonPanel } from '../components/batch/MCSComparisonPanel';
 import { SubsetActionPanel } from '../components/batch/SubsetActionPanel';
 import { BatchTimeline } from '../components/batch/BatchTimeline';
 import { ProfileSidebar } from '../components/batch/ProfileSidebar';
@@ -28,6 +29,7 @@ import type {
   BatchStatistics,
   SortField,
 } from '../types/batch';
+import type { MCSComparisonResult } from '../types/analytics';
 
 /**
  * Premium batch validation page with state machine:
@@ -55,6 +57,9 @@ export function BatchValidationPage() {
   const [compareMode, setCompareMode] = useState(false);
   const [comparisonResults, setComparisonResults] = useState<import('../types/batch').BatchResult[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
+  const [mcsResult, setMcsResult] = useState<MCSComparisonResult | null>(null);
+  const [mcsLoading, setMcsLoading] = useState(false);
+  const [mcsError, setMcsError] = useState<string | null>(null);
   const [includeAnalytics, setIncludeAnalytics] = useState(true);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [subsetPanelOpen, setSubsetPanelOpen] = useState(false);
@@ -272,10 +277,8 @@ export function BatchValidationPage() {
       setSortBy('index');
       setSortDir('asc');
       setFocusedMoleculeIndex(moleculeIndex);
-      // Scroll to results section
-      scrollToResults();
     } catch {
-      // Fall back to just scrolling
+      // Fall back to scrolling to results section
       scrollToResults();
     } finally {
       setResultsLoading(false);
@@ -302,6 +305,20 @@ export function BatchValidationPage() {
       }
       setComparisonResults(results);
       setCompareMode(true);
+
+      // Trigger MCS computation for 2-molecule comparison
+      if (results.length === 2 && jobId) {
+        setMcsLoading(true);
+        setMcsError(null);
+        try {
+          const mcs = await batchApi.computeMCS(jobId, results[0].index, results[1].index);
+          setMcsResult(mcs);
+        } catch (e: any) {
+          setMcsError(e?.response?.data?.detail || e.message || 'MCS computation failed');
+        } finally {
+          setMcsLoading(false);
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to fetch molecules for comparison');
     } finally {
@@ -313,6 +330,9 @@ export function BatchValidationPage() {
   const handleCloseCompare = useCallback(() => {
     setCompareMode(false);
     setComparisonResults([]);
+    setMcsResult(null);
+    setMcsLoading(false);
+    setMcsError(null);
   }, []);
 
   // Handle removing a molecule from comparison
@@ -453,7 +473,7 @@ export function BatchValidationPage() {
   return (
     <div className={cn(
       "mx-auto space-y-8 px-4 sm:px-6",
-      pageState === 'results' ? 'max-w-[1600px]' : 'max-w-7xl'
+      pageState === 'results' ? 'max-w-[1800px]' : 'max-w-7xl'
     )}>
       {/* Hero Header */}
       <motion.div
@@ -603,7 +623,7 @@ export function BatchValidationPage() {
             className="space-y-6"
           >
             {/* Top bar: quick-nav + Start New Batch */}
-            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
+            <div className="sticky top-14 sm:top-16 z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
               <div className="flex items-center justify-between gap-4">
                 {/* Quick-nav clay pills */}
                 <nav className="flex gap-2.5" aria-label="Jump to section">
@@ -684,7 +704,7 @@ export function BatchValidationPage() {
 
             {/* Analytics & Visualizations (overview first) */}
             {jobId && includeAnalytics && (
-              <div id="section-analytics" className="card p-6 scroll-mt-20">
+              <div id="section-analytics" className="card p-6 scroll-mt-32">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
                     <BarChart3 className="w-5 h-5" />
@@ -731,12 +751,13 @@ export function BatchValidationPage() {
                   onScoreRangeClick={handleChartScoreRangeFilter}
                   activeAlertFilter={filters.alert_filter ?? null}
                   onAlertClick={handleChartAlertFilter}
+                  onNavigateToMolecule={handleNavigateToMolecule}
                 />
               </div>
             )}
 
             {/* Detailed Results table (drill-down) */}
-            <div id="section-results" className="card p-6 scroll-mt-20">
+            <div id="section-results" className="card p-6 scroll-mt-32">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
                   <FileSpreadsheet className="w-5 h-5" />
@@ -768,6 +789,7 @@ export function BatchValidationPage() {
                 onSelectionChange={handleSelectionChange}
                 focusedMoleculeIndex={focusedMoleculeIndex}
                 onFocusHandled={() => setFocusedMoleculeIndex(null)}
+                registrationData={analyticsData?.registration}
               />
             </div>
 
@@ -779,12 +801,24 @@ export function BatchValidationPage() {
               </div>
             )}
             {compareMode && comparisonResults.length > 0 && (
-              <MoleculeComparisonPanel
-                molecules={comparisonResults}
-                datasetStats={analyticsData?.statistics?.property_stats ?? null}
-                onClose={handleCloseCompare}
-                onRemoveMolecule={handleRemoveFromCompare}
-              />
+              comparisonResults.length === 2 ? (
+                <MCSComparisonPanel
+                  molecules={comparisonResults}
+                  mcsResult={mcsResult}
+                  mcsLoading={mcsLoading}
+                  mcsError={mcsError}
+                  onClose={handleCloseCompare}
+                  onRemoveMolecule={handleRemoveFromCompare}
+                  datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                />
+              ) : (
+                <MoleculeComparisonPanel
+                  molecules={comparisonResults}
+                  datasetStats={analyticsData?.statistics?.property_stats ?? null}
+                  onClose={handleCloseCompare}
+                  onRemoveMolecule={handleRemoveFromCompare}
+                />
+              )
             )}
 
             {/* Subset Action Panel */}
