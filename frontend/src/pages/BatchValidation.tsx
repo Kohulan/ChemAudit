@@ -214,10 +214,20 @@ export function BatchValidationPage() {
     selectionDispatch(clearSelection());
   }, [selectionDispatch]);
 
-  // Scroll to the results table after applying a chart filter
-  const scrollToResults = useCallback(() => {
+  // Guarded scroll: cap programmatic scrolls so footer stays off-screen
+  const guardedScrollTo = useCallback((elementId: string) => {
     setTimeout(() => {
-      document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const el = document.getElementById(elementId);
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - 128; // 128px = scroll-mt-32 offset
+
+      // Prevent scrolling into the footer zone (last viewport height)
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight * 2;
+      const clampedY = Math.min(targetY, Math.max(0, maxScroll));
+
+      window.scrollTo({ top: clampedY, behavior: 'smooth' });
     }, 100);
   }, []);
 
@@ -230,8 +240,8 @@ export function BatchValidationPage() {
       delete newFilters.issue_filter;
     }
     handleFiltersChange(newFilters);
-    scrollToResults();
-  }, [filters, handleFiltersChange, scrollToResults]);
+    guardedScrollTo('section-results');
+  }, [filters, handleFiltersChange, guardedScrollTo]);
 
   // Chart filter: score range from ScoreHistogram
   const handleChartScoreRangeFilter = useCallback((min: number, max: number) => {
@@ -244,8 +254,8 @@ export function BatchValidationPage() {
       newFilters.max_score = max;
     }
     handleFiltersChange(newFilters);
-    scrollToResults();
-  }, [filters, handleFiltersChange, scrollToResults]);
+    guardedScrollTo('section-results');
+  }, [filters, handleFiltersChange, guardedScrollTo]);
 
   // Chart filter: alert catalog from AlertFrequencyChart
   const handleChartAlertFilter = useCallback((catalogName: string) => {
@@ -256,8 +266,8 @@ export function BatchValidationPage() {
       delete newFilters.alert_filter;
     }
     handleFiltersChange(newFilters);
-    scrollToResults();
-  }, [filters, handleFiltersChange, scrollToResults]);
+    guardedScrollTo('section-results');
+  }, [filters, handleFiltersChange, guardedScrollTo]);
 
   // Navigate from subset panel to a specific molecule in the results table
   const handleNavigateToMolecule = useCallback(async (moleculeIndex: number) => {
@@ -279,11 +289,11 @@ export function BatchValidationPage() {
       setFocusedMoleculeIndex(moleculeIndex);
     } catch {
       // Fall back to scrolling to results section
-      scrollToResults();
+      guardedScrollTo('section-results');
     } finally {
       setResultsLoading(false);
     }
-  }, [jobId, pageSize, scrollToResults]);
+  }, [jobId, pageSize, guardedScrollTo]);
 
   // Handle compare button click — fetch molecules from API (not paginated local data)
   const handleCompare = useCallback(async () => {
@@ -631,7 +641,7 @@ export function BatchValidationPage() {
                     <ClayButton
                       variant="accent"
                       size="sm"
-                      onClick={() => document.getElementById('section-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      onClick={() => guardedScrollTo('section-analytics')}
                       leftIcon={<BarChart3 className="w-3.5 h-3.5" />}
                     >
                       Analytics
@@ -640,7 +650,7 @@ export function BatchValidationPage() {
                   <ClayButton
                     variant="stone"
                     size="sm"
-                    onClick={() => document.getElementById('section-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onClick={() => guardedScrollTo('section-results')}
                     leftIcon={<FileSpreadsheet className="w-3.5 h-3.5" />}
                   >
                     Detailed Results
@@ -692,7 +702,7 @@ export function BatchValidationPage() {
                     const newFilters: BatchResultsFilters = { ...filters, status_filter: status ?? undefined };
                     if (!status) delete newFilters.status_filter;
                     handleFiltersChange(newFilters);
-                    scrollToResults();
+                    guardedScrollTo('section-results');
                   }}
                   activeAlertFilter={filters.alert_filter ?? null}
                   onAlertClick={handleChartAlertFilter}
