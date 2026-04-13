@@ -3,7 +3,6 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 from typer.testing import CliRunner
 
 from app.cli import app

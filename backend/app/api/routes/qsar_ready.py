@@ -45,7 +45,6 @@ from app.schemas.qsar_ready import (
     QSARReadyConfigSchema,
     QSARReadyResultSchema,
     QSARSingleRequest,
-    QSARStepResultSchema,
 )
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.qsar_ready.pipeline import QSARReadyConfig, qsar_ready_single
@@ -636,10 +635,10 @@ def _validate_uuid(job_id: str) -> None:
     """Validate UUID format; raises HTTPException 400 if invalid."""
     import re
 
-    _UUID_RE = re.compile(
+    uuid_re = re.compile(
         r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
     )
-    if not _UUID_RE.match(job_id):
+    if not uuid_re.match(job_id):
         raise HTTPException(
             status_code=400,
             detail="Invalid job ID format — must be a UUID",

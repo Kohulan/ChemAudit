@@ -10,7 +10,6 @@ Tests cover:
 - Empty SMILES graceful handling
 """
 
-import pytest
 
 from app.services.diagnostics.smiles_diagnostics import diagnose_smiles
 

@@ -6,12 +6,9 @@ Aspirin SMILES: CC(=O)Oc1ccccc1C(=O)O
 Reference values verified independently with RDKit.
 """
 
-import math
-from typing import Optional
 
 import pytest
 from rdkit import Chem
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -48,8 +45,7 @@ def high_tpsa_mol():
     # Metformin: high TPSA ~100, but we need >150; use a more polar molecule
     # Kanamycin-like: but let's use a simpler known-TPSA molecule
     # Acarbose fragment won't work well; use a poly-hydroxy compound
-    mol = Chem.MolFromSmiles("OC1OC(O)C(O)C(O)C1O")  # glucitol-like ring ~125 TPSA approx
-    # Actually let's build something with definitely >150 TPSA
+    # Build something with definitely >150 TPSA
     mol2 = Chem.MolFromSmiles("NC(=O)c1cc(NC(=O)c2cccc(NC(=O)c3ccccc3)c2)ccc1O")
     if mol2 is not None:
         from rdkit.Chem import Descriptors
@@ -109,8 +105,8 @@ class TestPFI:
 
     def test_pfi_high_risk(self, high_pfi_mol):
         """High risk classification when PFI >= 7."""
+
         from app.services.profiler.compound_profile import compute_pfi
-        from rdkit.Chem import Descriptors
 
         result = compute_pfi(high_pfi_mol)
         # Check: if PFI >= 7, risk must be high
@@ -228,8 +224,9 @@ class TestAbbott:
 
     def test_abbott_high_tpsa(self):
         """Molecule with TPSA > 150 should return score 0.11."""
-        from app.services.profiler.compound_profile import compute_abbott_score
         from rdkit.Chem import Descriptors
+
+        from app.services.profiler.compound_profile import compute_abbott_score
 
         # Build a molecule that definitely has TPSA > 150
         # Doxorubicin would work but complex. Use a synthetically accessible high-TPSA molecule.
@@ -345,8 +342,9 @@ class TestSkinPermeation:
 
     def test_aspirin_potts_guy_formula(self, aspirin):
         """Verify Potts-Guy formula: log_kp = -2.71 + 0.71*logP - 0.0061*MW."""
-        from app.services.profiler.compound_profile import compute_skin_permeation
         from rdkit.Chem import Descriptors
+
+        from app.services.profiler.compound_profile import compute_skin_permeation
 
         logp = Descriptors.MolLogP(aspirin)
         mw = Descriptors.MolWt(aspirin)
@@ -589,7 +587,7 @@ class TestMPO:
 class TestLigandEfficiency:
     """Tests for compute_ligand_efficiency."""
 
-    def test_aspirin_ic50_100nM(self, aspirin):
+    def test_aspirin_ic50_100nm(self, aspirin):
         """Aspirin at IC50=100nM: LE=0.754, LLE=5.69, LELP=1.74, BEI=38.85, SEI=11.01."""
         from app.services.profiler.ligand_efficiency import compute_ligand_efficiency
 

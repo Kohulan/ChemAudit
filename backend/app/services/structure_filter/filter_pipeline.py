@@ -29,8 +29,8 @@ from rdkit.Chem import inchi as rdkit_inchi
 
 from app.services.alerts.kazius_rules import screen_kazius
 from app.services.alerts.nibr_filters import screen_nibr
-from app.services.structure_filter.filter_config import FilterConfig
 from app.services.scoring.safety_filters import _scorer
+from app.services.structure_filter.filter_config import FilterConfig
 
 # SA Score via RDKit Contrib (Phase 7 pattern)
 sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))

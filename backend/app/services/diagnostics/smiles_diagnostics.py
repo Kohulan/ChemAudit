@@ -12,7 +12,6 @@ from typing import Optional
 
 from rdkit import Chem, rdBase
 
-
 # Module logger for capturing RDKit error messages
 _rdkit_log_capture_logger = logging.getLogger("rdkit.log_capture")
 

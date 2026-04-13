@@ -336,8 +336,8 @@ def process_dataset_audit(
         publish_progress("building_report", 85.0)
 
         from app.services.dataset_intelligence.curation_report import (
-            build_curation_report,
             build_curated_csv_rows,
+            build_curation_report,
         )
 
         file_metadata = {

@@ -7,8 +7,6 @@ batch classification, and SMARTS rule compilation.
 
 from __future__ import annotations
 
-import pytest
-
 from rdkit import Chem
 
 

@@ -8,7 +8,6 @@ Tests cover:
 - Invalid SMILES returns error string without raising exception
 """
 
-import pytest
 
 from app.services.diagnostics.format_roundtrip import check_roundtrip
 

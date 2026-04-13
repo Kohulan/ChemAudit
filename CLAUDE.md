@@ -41,6 +41,9 @@ docker-compose logs -f      # View logs
 ./deploy.sh medium          # Deploy with profile (small/medium/large/xl/coconut)
 ```
 
+## Git
+- Do NOT add "Co-Authored-By" lines to commit messages
+
 ## Code Style
 - Python: Ruff (lint + format, line-length=100), type hints required
 - TypeScript: ESLint + strict mode
