@@ -313,6 +313,60 @@ class TestPDFReportGenerator:
         assert "Successful" in text or "3" in text
 
 
+class TestPDFAuditSections:
+    """Tests for include_audit=True PDF rendering."""
+
+    def test_audit_sections_built_when_enabled(self):
+        """Verify audit_sections dict is populated when include_audit=True."""
+        from app.services.export.audit_columns import extract_by_section
+
+        sections = extract_by_section(SAMPLE_RESULTS[0])
+        assert "Validation" in sections
+        assert "Deep Validation" in sections
+        assert "Scoring" in sections
+        assert "Safety" in sections
+        assert "Compound Profile" in sections
+        assert "Standardization" in sections
+        assert len(sections) == 6
+
+    @requires_weasyprint
+    def test_pdf_contains_audit_tables(self):
+        """Verify rendered PDF contains audit section headings when include_audit=True."""
+        gen = PDFReportGenerator(include_audit=True)
+        pdf_bytes = gen.export(SAMPLE_RESULTS)
+        assert pdf_bytes.read(5) == b"%PDF-"
+
+        import io
+
+        import PyPDF2
+
+        pdf_bytes.seek(0)
+        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes.read()))
+        full_text = ""
+        for page in reader.pages:
+            full_text += page.extract_text() or ""
+
+        assert "Detailed Audit Data" in full_text
+
+    @requires_weasyprint
+    def test_pdf_no_audit_when_disabled(self):
+        """Verify audit tables do NOT appear when include_audit=False."""
+        gen = PDFReportGenerator(include_audit=False)
+        pdf_bytes = gen.export(SAMPLE_RESULTS)
+
+        import io
+
+        import PyPDF2
+
+        pdf_bytes.seek(0)
+        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes.read()))
+        full_text = ""
+        for page in reader.pages:
+            full_text += page.extract_text() or ""
+
+        assert "Detailed Audit Data" not in full_text
+
+
 class TestPDFExportEndpoint:
     """Test PDF export via API endpoint (integration test)."""
 
