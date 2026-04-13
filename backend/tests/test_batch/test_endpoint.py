@@ -157,7 +157,7 @@ $$$$
             )
 
         assert response.status_code == 400
-        assert "not found" in response.json()["detail"]
+        assert "Invalid file content" in response.json()["detail"]
 
     async def test_upload_empty_file_rejected(self, mock_celery):
         """Test that empty files are rejected."""
