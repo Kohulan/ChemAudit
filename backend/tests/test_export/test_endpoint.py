@@ -309,7 +309,7 @@ class TestExportEndpoint:
 
             assert response.status_code == 200
 
-            # Verify filename format: batch_{job_id[:8]}_{timestamp}.csv
+            # Verify filename format: chemaudit_batch_{job_id[:8]}_{date}.csv
             disposition = response.headers["content-disposition"]
-            assert 'attachment; filename="batch_test-job' in disposition
+            assert 'attachment; filename="chemaudit_batch_test-job' in disposition
             assert ".csv" in disposition

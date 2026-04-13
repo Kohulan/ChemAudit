@@ -64,6 +64,8 @@ def _export_results(
     indices_list: Optional[List[int]],
     sections_list: Optional[List[str]] = None,
     include_images: bool = False,
+    sheet_layout: str = "single",
+    include_audit: bool = False,
 ) -> StreamingResponse:
     """
     Shared logic for exporting batch results with optional filters.
@@ -77,6 +79,8 @@ def _export_results(
         indices_list: List of molecule indices to include, or None for all
         sections_list: PDF report sections to include, or None for all
         include_images: Embed 2D structure images (Excel only)
+        sheet_layout: Excel sheet layout ('single' or 'multi')
+        include_audit: Include full audit data (SDF and PDF only)
 
     Returns:
         StreamingResponse with exported file
@@ -106,16 +110,20 @@ def _export_results(
             detail="No results found matching the specified filters and indices",
         )
 
-    # Create exporter with format-specific options when needed
+    # Build format-specific kwargs and create exporter via factory
+    kwargs = {}
+    if format == ExportFormat.EXCEL:
+        kwargs["include_images"] = include_images
+        kwargs["sheet_layout"] = sheet_layout
+    elif format == ExportFormat.PDF:
+        kwargs["include_audit"] = include_audit
+        if sections_list:
+            kwargs["sections"] = sections_list
+    elif format == ExportFormat.SDF:
+        kwargs["include_audit"] = include_audit
+
     try:
-        if format == ExportFormat.PDF and sections_list:
-            from app.services.export.pdf_report import PDFReportGenerator
-            exporter = PDFReportGenerator(sections=sections_list)
-        elif format == ExportFormat.EXCEL and include_images:
-            from app.services.export.excel_exporter import ExcelExporter
-            exporter = ExcelExporter(include_images=True)
-        else:
-            exporter = ExporterFactory.create(format)
+        exporter = ExporterFactory.create(format, **kwargs)
     except ValueError as e:
         logger.debug("Export format error: %s", e)
         raise HTTPException(status_code=422, detail="Unsupported export format")
@@ -129,8 +137,8 @@ def _export_results(
             detail="Failed to export results",
         )
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"batch_{job_id[:8]}_{timestamp}.{exporter.file_extension}"
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"chemaudit_batch_{job_id[:8]}_{date_str}.{exporter.file_extension}"
 
     def iterfile():
         """Stream file in chunks."""
@@ -174,6 +182,14 @@ async def export_batch_results(
         False,
         description="Include 2D structure images in Excel export. Only used with Excel format.",
     ),
+    sheet_layout: str = Query(
+        "single",
+        description="Excel sheet layout: 'single' (all columns on one sheet) or 'multi' (one sheet per section). Only used with Excel format.",
+    ),
+    include_audit: bool = Query(
+        False,
+        description="Include full audit data in export. Only used with SDF and PDF formats.",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -186,6 +202,8 @@ async def export_batch_results(
     - **status**: Filter results by status
     - **indices**: Comma-separated molecule indices to export (optional)
     - **include_images**: Include 2D structure images (Excel only)
+    - **sheet_layout**: Excel sheet layout ('single' or 'multi')
+    - **include_audit**: Include full audit data (SDF and PDF only)
 
     Returns file download with appropriate Content-Disposition header.
 
@@ -214,6 +232,7 @@ async def export_batch_results(
     return _export_results(
         job_id, format, score_min, score_max, status,
         indices_list, sections_list, include_images,
+        sheet_layout, include_audit,
     )
 
 
@@ -237,6 +256,14 @@ async def export_batch_results_post(
         False,
         description="Include 2D structure images in Excel export. Only used with Excel format.",
     ),
+    sheet_layout: str = Query(
+        "single",
+        description="Excel sheet layout: 'single' (all columns on one sheet) or 'multi' (one sheet per section). Only used with Excel format.",
+    ),
+    include_audit: bool = Query(
+        False,
+        description="Include full audit data in export. Only used with SDF and PDF formats.",
+    ),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """
@@ -252,6 +279,8 @@ async def export_batch_results_post(
     - **score_max**: Filter results by maximum score
     - **status**: Filter results by status
     - **include_images**: Include 2D structure images (Excel only)
+    - **sheet_layout**: Excel sheet layout ('single' or 'multi')
+    - **include_audit**: Include full audit data (SDF and PDF only)
 
     Returns file download with appropriate Content-Disposition header.
 
@@ -270,4 +299,5 @@ async def export_batch_results_post(
     return _export_results(
         job_id, format, score_min, score_max, status,
         body.indices, include_images=include_images,
+        sheet_layout=sheet_layout, include_audit=include_audit,
     )

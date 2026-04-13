@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 
 from rdkit import Chem
 
+from .audit_columns import extract_flat_row
 from .base import BaseExporter, ExporterFactory, ExportFormat, extract_alert_names
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,16 @@ logger = logging.getLogger(__name__)
 
 class SDFExporter(BaseExporter):
     """Export batch results to SDF format with properties."""
+
+    def __init__(self, include_audit: bool = False) -> None:
+        """
+        Initialise the SDF exporter.
+
+        Args:
+            include_audit: When True, attach all audit data as SDF properties
+                           (without the section-prefix, e.g. ``Parsability (Pass/Fail)``).
+        """
+        self._include_audit = include_audit
 
     def export(self, results: List[Dict[str, Any]]) -> BytesIO:
         """
@@ -37,71 +48,64 @@ class SDFExporter(BaseExporter):
         skipped_count = 0
 
         for idx, result in enumerate(results):
-            # Get SMILES - prefer standardized, fallback to canonical, then original
+            # Prefer standardized SMILES, fall back to canonical, then original input
             validation = result.get("validation") or {}
             smiles = (
                 result.get("standardized_smiles")
                 or validation.get("canonical_smiles")
-                or result.get("smiles")  # Fallback to original input SMILES
+                or result.get("smiles")
             )
 
             if not smiles:
-                logger.warning(f"Skipping molecule at index {idx}: no valid SMILES")
+                logger.warning("Skipping molecule at index %d: no valid SMILES", idx)
                 skipped_count += 1
                 continue
 
-            # Create mol object
-            try:
-                mol = Chem.MolFromSmiles(smiles)
-                if mol is None:
-                    logger.warning(
-                        f"Skipping molecule at index {idx}: invalid SMILES '{smiles}'"
-                    )
-                    skipped_count += 1
-                    continue
-            except Exception as e:
-                logger.warning(
-                    f"Skipping molecule at index {idx}: error parsing SMILES: {e}"
-                )
+            mol = Chem.MolFromSmiles(smiles)
+            if mol is None:
+                logger.warning("Skipping molecule at index %d: invalid SMILES '%s'", idx, smiles)
                 skipped_count += 1
                 continue
 
-            # Set molecule properties
             mol.SetProp("_Name", result.get("name", f"mol_{idx + 1}"))
 
-            # Add scores
             overall_score = validation.get("overall_score", 0)
             mol.SetProp("overall_score", str(overall_score))
 
             scoring = result.get("scoring") or {}
-            if scoring:
-                ml_score = scoring.get("ml_readiness_score", 0)
-                np_score = scoring.get("np_likeness_score", 0)
-                mol.SetProp("ml_readiness_score", str(ml_score))
-                mol.SetProp("np_likeness_score", f"{np_score:.2f}")
+            ml_readiness = scoring.get("ml_readiness") or {}
+            ml_score = ml_readiness.get("score", 0) if isinstance(ml_readiness, dict) else 0
+            mol.SetProp("ml_readiness_score", str(ml_score))
 
-            # Add InChIKey
             inchikey = validation.get("inchikey", "")
             if inchikey:
                 mol.SetProp("inchikey", inchikey)
 
-            # Add alerts (comma-separated)
             alert_names = extract_alert_names(result.get("alerts") or {})
             if alert_names:
                 mol.SetProp("alerts", ", ".join(alert_names))
 
-            # Write molecule
+            if self._include_audit:
+                flat = extract_flat_row(result)
+                for prefixed_key, value in flat.items():
+                    # Strip "[Section] " prefix: "[Validation] Parsability" -> "Parsability"
+                    short_key = (
+                        prefixed_key.split("] ", 1)[1] if "] " in prefixed_key else prefixed_key
+                    )
+                    str_value = str(value)
+                    if str_value not in ("N/A", ""):
+                        mol.SetProp(short_key, str_value)
+
             try:
                 writer.write(mol)
             except Exception as e:
-                logger.warning(f"Failed to write molecule at index {idx}: {e}")
+                logger.warning("Failed to write molecule at index %d: %s", idx, e)
                 skipped_count += 1
 
-        # Close writer
         writer.close()
 
         if skipped_count > 0:
-            logger.info(f"Skipped {skipped_count} molecules with invalid SMILES")
+            logger.info("Skipped %d molecules with invalid SMILES", skipped_count)
 
         # Convert to BytesIO
         bytes_buffer = BytesIO()

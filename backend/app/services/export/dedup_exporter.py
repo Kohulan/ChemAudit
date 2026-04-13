@@ -70,14 +70,18 @@ class DedupExporter(BaseExporter):
             representative_result = results[representative_idx]
             representative_smiles = representative_result.get("smiles", "")
 
-            summary_rows.append({
-                "group_id": group_id_map[canonical],
-                "representative_smiles": representative_smiles,
-                "canonical_smiles": canonical if not canonical.startswith("__unparseable") else "",
-                "group_size": len(indices),
-                "duplicate_indices": ",".join(str(i) for i in indices),
-                "dedup_level": "exact",
-            })
+            summary_rows.append(
+                {
+                    "group_id": group_id_map[canonical],
+                    "representative_smiles": representative_smiles,
+                    "canonical_smiles": canonical
+                    if not canonical.startswith("__unparseable")
+                    else "",
+                    "group_size": len(indices),
+                    "duplicate_indices": ",".join(str(i) for i in indices),
+                    "dedup_level": "exact",
+                }
+            )
 
         # Build annotated rows
         annotated_rows = []
