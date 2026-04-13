@@ -1,5 +1,5 @@
 /**
- * Types for external database integrations (PubChem, ChEMBL, COCONUT, Wikidata)
+ * Types for external database integrations (PubChem, ChEMBL, COCONUT, Wikidata, SureChEMBL)
  */
 
 // Request types

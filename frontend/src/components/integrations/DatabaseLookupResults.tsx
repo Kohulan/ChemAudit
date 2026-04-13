@@ -413,7 +413,7 @@ function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
             {result.source && (
               <div>
                 <span className="text-gray-500">Source:</span>{' '}
-                <span className="text-gray-700 dark:text-gray-300">{result.source === 'surechembl_api' ? 'SureChEMBL API' : 'UniChem'}</span>
+                <span className="text-gray-700 dark:text-gray-300">{result.source === 'surechembl_api' ? 'SureChEMBL API' : result.source ?? 'UniChem'}</span>
               </div>
             )}
           </div>
