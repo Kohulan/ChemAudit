@@ -251,3 +251,29 @@ class TestCSVDuplicateHeaders:
         result = prevalidate_csv(valid_csv)
         dup_issues = [i for i in result["issues"] if i["issue_type"] == "duplicate_columns"]
         assert len(dup_issues) == 0
+
+
+class TestPrevalidationGateContract:
+    """Verify the return dict contract used by batch upload routes (qsar_ready.py:187)."""
+
+    def test_valid_csv_has_valid_key_true(self):
+        result = prevalidate_csv(b"smiles,name\nCCO,ethanol\n")
+        assert "valid" in result
+        assert result["valid"] is True
+
+    def test_invalid_csv_has_valid_key_false(self):
+        # Empty file triggers error-severity issue -> valid=False
+        result = prevalidate_csv(b"")
+        assert "valid" in result
+        assert result["valid"] is False
+
+    def test_valid_sdf_has_valid_key_true(self):
+        sdf = b"\n  RDKit\n\n  1  0  0  0  0  0  0  0  0  0  1 V2000\n    0.0    0.0    0.0 C   0  0\nM  END\n$$$$\n"
+        result = prevalidate_sdf(sdf)
+        assert "valid" in result
+        assert result["valid"] is True
+
+    def test_no_critical_issues_found_key(self):
+        """Ensure 'critical_issues_found' key does NOT exist — the gate must use 'valid'."""
+        result = prevalidate_csv(b"smiles,name\nCCO,ethanol\n")
+        assert "critical_issues_found" not in result
