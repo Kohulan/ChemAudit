@@ -41,13 +41,15 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   const [pdfSections, setPdfSections] = useState<Set<string>>(
     new Set(PDF_SECTION_OPTIONS.filter((s) => s.defaultChecked).map((s) => s.id))
   );
+  const [sheetLayout, setSheetLayout] = useState<'single' | 'multi'>('single');
+  const [includeAudit, setIncludeAudit] = useState(false);
 
   if (!isOpen) return null;
 
   const isSelectedMode = selectedIndices && selectedIndices.size > 0;
   const selectedFormatInfo = EXPORT_FORMATS.find((f) => f.value === selectedFormat);
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const filePreview = `chemaudit_${selectedFormat}_${dateStr}_${jobId.slice(0, 8)}.${selectedFormatInfo?.extension ?? 'dat'}`;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const filePreview = `chemaudit_batch_${jobId.slice(0, 8)}_${dateStr}.${selectedFormatInfo?.extension ?? 'dat'}`;
 
   const togglePdfSection = (id: string) => {
     setPdfSections((prev) => {
@@ -68,11 +70,15 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
     try {
       const params = new URLSearchParams({ format: selectedFormat });
 
+      if (selectedFormat === 'excel') {
+        if (includeImages) params.set('include_images', 'true');
+        if (sheetLayout === 'multi') params.set('sheet_layout', 'multi');
+      }
       if (selectedFormat === 'pdf' && pdfSections.size > 0) {
         params.set('sections', Array.from(pdfSections).join(','));
       }
-      if (selectedFormat === 'excel' && includeImages) {
-        params.set('include_images', 'true');
+      if ((selectedFormat === 'sdf' || selectedFormat === 'pdf') && includeAudit) {
+        params.set('include_audit', 'true');
       }
 
       const indicesArray = isSelectedMode
@@ -242,6 +248,47 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                   </AnimatePresence>
                 )}
 
+                {/* Excel sheet layout — inline, after the images option */}
+                {format.value === 'excel' && selectedFormat === 'excel' && (
+                  <AnimatePresence>
+                    <motion.div
+                      key="excel-sheet-layout"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/30">
+                        <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">Sheet Layout</p>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                            <input
+                              type="radio"
+                              name="sheetLayout"
+                              value="single"
+                              checked={sheetLayout === 'single'}
+                              onChange={() => setSheetLayout('single')}
+                              className="accent-[var(--color-primary)]"
+                            />
+                            Single sheet (all columns)
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                            <input
+                              type="radio"
+                              name="sheetLayout"
+                              value="multi"
+                              checked={sheetLayout === 'multi'}
+                              onChange={() => setSheetLayout('multi')}
+                              className="accent-[var(--color-primary)]"
+                            />
+                            Multiple sheets (one per section)
+                          </label>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+
                 {/* PDF Section Selection — inline, immediately after the PDF format card */}
                 {format.value === 'pdf' && selectedFormat === 'pdf' && (
                   <AnimatePresence>
@@ -287,6 +334,35 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
                             </label>
                           ))}
                         </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+                {/* SDF/PDF audit toggle — inline, after PDF sections or after SDF card */}
+                {(format.value === 'sdf' || format.value === 'pdf') &&
+                  (selectedFormat === 'sdf' || selectedFormat === 'pdf') &&
+                  format.value === selectedFormat && (
+                  <AnimatePresence>
+                    <motion.div
+                      key="audit-toggle"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="mt-3 p-3 rounded-lg bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/30">
+                        <label className="flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={includeAudit}
+                            onChange={(e) => setIncludeAudit(e.target.checked)}
+                            className="accent-[var(--color-primary)] w-4 h-4"
+                          />
+                          Include full audit data
+                        </label>
+                        <p className="text-xs text-[var(--color-text-muted)] mt-1 ml-6">
+                          Adds all validation, scoring, safety, and profile data
+                        </p>
                       </div>
                     </motion.div>
                   </AnimatePresence>
