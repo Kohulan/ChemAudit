@@ -23,13 +23,12 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Optional
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import inchi as rdkit_inchi
 from rdkit.Chem.MolStandardize import rdMolStandardize
-
 
 # ---------------------------------------------------------------------------
 # Data model

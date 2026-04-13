@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdkit import Chem
 
-
 ASPIRIN_SMILES = "CC(=O)Oc1ccccc1C(=O)O"
 SA_COMPARISON_MODULE = Path(__file__).parent.parent.parent / "app" / "services" / "profiler" / "sa_comparison.py"
 

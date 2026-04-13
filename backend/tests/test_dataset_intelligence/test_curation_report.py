@@ -2,12 +2,10 @@
 
 import json
 
-import pytest
-
 from app.services.dataset_intelligence.curation_report import (
     CurationReport,
-    build_curation_report,
     build_curated_csv_rows,
+    build_curation_report,
 )
 from app.services.dataset_intelligence.health_audit import DatasetHealthResult
 

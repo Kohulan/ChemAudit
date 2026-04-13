@@ -11,7 +11,7 @@ regular batch pipeline's `batch:{job_id}` channel (Pitfall 5 from RESEARCH.md).
 
 import logging
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.services.batch.progress_tracker import progress_tracker
 from app.services.qsar_ready.pipeline import QSARReadyConfig, QSARReadyResult, qsar_ready_single

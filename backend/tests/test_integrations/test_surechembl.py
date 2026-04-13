@@ -16,7 +16,6 @@ import pytest
 from app.schemas.integrations import SureChEMBLRequest, SureChEMBLResult
 from app.services.integrations.surechembl import SureChEMBLClient, lookup_surechembl
 
-
 # =============================================================================
 # SureChEMBLClient Tests
 # =============================================================================

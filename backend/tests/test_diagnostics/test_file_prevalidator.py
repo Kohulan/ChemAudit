@@ -10,10 +10,8 @@ Tests cover:
 - CSV missing SMILES column: header without SMILES/smi/canonical_smiles
 """
 
-import pytest
 
 from app.services.diagnostics.file_prevalidator import prevalidate_csv, prevalidate_sdf
-
 
 # Minimal valid SDF block — includes header, blank, comment, counts line, atoms, bonds, M END, $$$$
 VALID_SDF_BLOCK = (

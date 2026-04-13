@@ -9,7 +9,6 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Import SDF_MARKERS and SUSPICIOUS_PATTERNS directly from file_parser module.
 # Using importlib bypasses app.services.batch.__init__.py which imports Celery tasks
@@ -21,8 +20,7 @@ if _fp_path.exists() and "app.services.batch.file_parser" not in sys.modules:
     sys.modules["app.services.batch.file_parser"] = _fp_mod
     _fp_spec.loader.exec_module(_fp_mod)
 
-from app.services.batch.file_parser import SDF_MARKERS, SUSPICIOUS_PATTERNS
-
+from app.services.batch.file_parser import SUSPICIOUS_PATTERNS  # noqa: E402
 
 # Common SMILES column name variants (case-sensitive check against normalized header)
 _SMILES_COLUMN_NAMES = {"smiles", "canonical_smiles", "smi"}
@@ -98,12 +96,9 @@ def prevalidate_sdf(content: bytes) -> dict:
 
     # Count the separator lines to track absolute line offsets per block
     # We re-split on newlines for per-block offset tracking
-    lines_all = text.split("\n")
-
     # Build a map from block index to starting line offset (1-indexed)
     block_start_lines: list[int] = []
     cumulative_line = 1
-    temp_text = text
     for block_text in raw_blocks[:-1]:  # Exclude trailing empty element
         block_start_lines.append(cumulative_line)
         # Number of lines this block occupies plus the $$$$ separator line

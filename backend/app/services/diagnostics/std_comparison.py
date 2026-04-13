@@ -9,9 +9,9 @@ Compares standardization output across three pipelines:
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors, FindMolChiralCenters
+from rdkit.Chem.inchi import MolToInchiKey
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula
-from rdkit.Chem.inchi import MolToInchiKey
 
 from app.services.standardization.chembl_pipeline import StandardizationPipeline
 

@@ -7,8 +7,6 @@ invalid SMILES handling, single molecule edge case, and identical molecules.
 
 from __future__ import annotations
 
-import pytest
-
 
 def _make_result(smiles: str, index: int) -> dict:
     """Create a minimal result dict for clustering input."""
