@@ -289,3 +289,14 @@ class TestExporterFactory:
         # Note: This test would require passing an invalid enum value
         # which is type-checked, so we skip this test
         pass
+
+    def test_factory_passes_kwargs_to_excel(self):
+        """Factory should pass include_images kwarg to ExcelExporter."""
+        exporter = ExporterFactory.create(ExportFormat.EXCEL, include_images=True)
+        assert isinstance(exporter, ExcelExporter)
+        assert exporter._include_images is True
+
+    def test_factory_ignores_unknown_kwargs(self):
+        """Factory should ignore kwargs not in constructor signature."""
+        exporter = ExporterFactory.create(ExportFormat.CSV, unknown_param=True)
+        assert isinstance(exporter, CSVExporter)

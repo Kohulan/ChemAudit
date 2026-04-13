@@ -120,12 +120,14 @@ class ExporterFactory:
         cls._exporters[format] = exporter_class
 
     @classmethod
-    def create(cls, format: ExportFormat) -> BaseExporter:
+    def create(cls, format: ExportFormat, **kwargs) -> BaseExporter:
         """
-        Create exporter instance for specified format.
+        Create exporter instance for specified format, forwarding valid kwargs.
 
         Args:
             format: ExportFormat enum value
+            **kwargs: Optional constructor arguments forwarded to the exporter class.
+                      Unknown kwargs are silently ignored.
 
         Returns:
             BaseExporter instance
@@ -133,7 +135,11 @@ class ExporterFactory:
         Raises:
             ValueError: If format not supported
         """
+        import inspect
+
         exporter_class = cls._exporters.get(format)
         if not exporter_class:
             raise ValueError(f"Unsupported export format: {format}")
-        return exporter_class()
+        sig = inspect.signature(exporter_class.__init__)
+        valid_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        return exporter_class(**valid_kwargs)
