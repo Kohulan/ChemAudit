@@ -178,8 +178,11 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
                 kazius_hits = screen_kazius(mol)
                 alert_names.extend(hit.pattern_name for hit in kazius_hits)
             if config.use_nibr:
-                nibr_hits = screen_nibr(mol)
-                alert_names.extend(hit.pattern_name for hit in nibr_hits)
+                try:
+                    nibr_hits = screen_nibr(mol)
+                    alert_names.extend(hit.pattern_name for hit in nibr_hits)
+                except ImportError:
+                    pass  # medchem not installed; skip NIBR screening
 
             if alert_names:
                 first = alert_names[0]
