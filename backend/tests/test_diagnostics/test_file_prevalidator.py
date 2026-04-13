@@ -62,6 +62,12 @@ LATIN1_CSV = b"smiles,name\nCCO,caf\xe9\n"
 # CSV without SMILES header
 NO_SMILES_COLUMN_CSV = b"compound_id,formula\n1,C2H6O\n2,C2H7N\n"
 
+# CSV with exact duplicate header columns
+DUPLICATE_HEADER_CSV = b"smiles,name,smiles,weight\nCCO,ethanol,CCO,46.07\n"
+
+# CSV with case-variant duplicate header columns
+DUPLICATE_HEADER_CASE_CSV = b"smiles,Name,SMILES,name\nCCO,ethanol,CCO,ethanol\n"
+
 
 class TestValidSDF:
     """Tests for well-formed SDF content."""
@@ -203,3 +209,45 @@ class TestCSVMissingSmiles:
         smiles_issues = [i for i in result["issues"] if i["issue_type"] == "missing_smiles_column"]
         assert len(smiles_issues) > 0
         assert smiles_issues[0]["severity"] == "warning"
+
+
+class TestCSVDuplicateHeaders:
+    """Tests for CSV files with duplicate column headers."""
+
+    def test_detects_exact_duplicate_columns(self) -> None:
+        """CSV with exact duplicate headers produces duplicate_columns issue."""
+        result = prevalidate_csv(DUPLICATE_HEADER_CSV)
+        types = [i["issue_type"] for i in result["issues"]]
+        assert "duplicate_columns" in types
+
+    def test_duplicate_is_warning_severity(self) -> None:
+        """duplicate_columns issue has severity=warning."""
+        result = prevalidate_csv(DUPLICATE_HEADER_CSV)
+        dup_issues = [i for i in result["issues"] if i["issue_type"] == "duplicate_columns"]
+        assert all(i["severity"] == "warning" for i in dup_issues)
+
+    def test_duplicate_description_names_column(self) -> None:
+        """duplicate_columns description mentions the offending column name."""
+        result = prevalidate_csv(DUPLICATE_HEADER_CSV)
+        dup_issues = [i for i in result["issues"] if i["issue_type"] == "duplicate_columns"]
+        assert len(dup_issues) >= 1
+        assert "smiles" in dup_issues[0]["description"].lower()
+
+    def test_case_insensitive_duplicate_detection(self) -> None:
+        """CSV with case-variant duplicate headers (smiles/SMILES, Name/name) flags both."""
+        result = prevalidate_csv(DUPLICATE_HEADER_CASE_CSV)
+        dup_issues = [i for i in result["issues"] if i["issue_type"] == "duplicate_columns"]
+        # "smiles"/"SMILES" and "Name"/"name" should both be flagged
+        assert len(dup_issues) >= 2
+
+    def test_duplicate_does_not_make_invalid(self) -> None:
+        """CSV with duplicate headers remains valid=True (warning, not error)."""
+        result = prevalidate_csv(DUPLICATE_HEADER_CSV)
+        assert result["valid"] is True
+
+    def test_no_false_positive_on_unique_headers(self) -> None:
+        """CSV with all-unique headers produces no duplicate_columns issues."""
+        valid_csv = b"smiles,name\nCCO,ethanol\nCCN,ethylamine\n"
+        result = prevalidate_csv(valid_csv)
+        dup_issues = [i for i in result["issues"] if i["issue_type"] == "duplicate_columns"]
+        assert len(dup_issues) == 0
