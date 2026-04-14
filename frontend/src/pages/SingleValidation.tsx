@@ -1420,7 +1420,31 @@ export function SingleValidationPage() {
 
                 {/* Scoring Profiles Tab */}
                 {activeTab === 'scoring-profiles' && (
-                  <ScoringProfilesTab smiles={resolvedSmiles} />
+                  <div className="space-y-4">
+                    {!result && (
+                      <>
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
+                            <Info className="w-4 h-4" />
+                          </div>
+                          <p className="text-[var(--color-text-secondary)] text-sm">
+                            Consensus drug-likeness scoring, lead-likeness evaluation, property breakdowns,
+                            and bioavailability radar across multiple scoring profiles.
+                          </p>
+                        </div>
+                        <ClayButton
+                          variant="primary"
+                          onClick={handleValidate}
+                          disabled={!molecule.trim() || isAnyLoading}
+                          loading={isLoading}
+                          leftIcon={<Play className="w-4 h-4" />}
+                        >
+                          Validate
+                        </ClayButton>
+                      </>
+                    )}
+                    <ScoringProfilesTab smiles={result ? resolvedSmiles : ''} />
+                  </div>
                 )}
 
                 {/* Database Lookup Tab */}
@@ -1551,6 +1575,17 @@ export function SingleValidationPage() {
                         </div>
                       </div>
                     </div>
+                    {!result && (
+                      <ClayButton
+                        variant="primary"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim() || isAnyLoading}
+                        loading={isLoading}
+                        leftIcon={<Play className="w-4 h-4" />}
+                      >
+                        Validate
+                      </ClayButton>
+                    )}
                     <ProfilerAccordion
                       smiles={canonicalSmiles || ''}
                       profile={profileResult}
