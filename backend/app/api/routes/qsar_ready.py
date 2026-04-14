@@ -183,8 +183,8 @@ async def qsar_batch_upload(
                 prevalidation_result = prevalidator.prevalidate_sdf(content)
             else:
                 prevalidation_result = prevalidator.prevalidate_csv(content)
-            # If critical issues found — return 422 with pre-validation results
-            if prevalidation_result.get("critical_issues_found", False):
+            # If file has critical issues (valid=False) — return 422
+            if not prevalidation_result.get("valid", True):
                 raise HTTPException(
                     status_code=422,
                     detail={

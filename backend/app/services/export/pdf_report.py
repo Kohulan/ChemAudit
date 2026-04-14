@@ -158,8 +158,6 @@ class PDFReportGenerator(BaseExporter):
             sections=self.sections,
             include_audit=self._include_audit,
             audit_sections=audit_sections,
-            # TODO: update batch_report.html template to render per-molecule
-            # audit_sections tables when include_audit is True.
         )
 
         # Convert HTML to PDF

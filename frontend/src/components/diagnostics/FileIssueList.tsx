@@ -26,6 +26,8 @@ function formatIssueType(issueType: string): string {
       return 'Encoding issue';
     case 'missing_smiles_column':
       return 'Missing SMILES column';
+    case 'duplicate_columns':
+      return 'Duplicate column headers';
     default:
       // Capitalize words, replace underscores with spaces
       return issueType

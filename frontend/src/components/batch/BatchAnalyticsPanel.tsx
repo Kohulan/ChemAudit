@@ -739,6 +739,7 @@ export const BatchAnalyticsPanel = React.memo(function BatchAnalyticsPanel({
               results={results}
               onRetrigger={onRetrigger}
               onNavigateToMolecule={onNavigateToMolecule}
+              onSelectionChange={onSelectionChange}
             />
           </motion.div>
         )}

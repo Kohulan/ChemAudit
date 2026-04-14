@@ -1738,6 +1738,13 @@ function Acknowledgments() {
       logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Wikidata-logo-en.svg/1920px-Wikidata-logo-en.svg.png',
       color: 'from-red-600 to-rose-700',
     },
+    {
+      name: 'SureChEMBL',
+      description: 'Patent chemistry database for compound-patent literature linkage',
+      href: 'https://www.surechembl.org/',
+      logo: 'https://www.surechembl.org/img/icons/chembl_logo_pink.png',
+      color: 'from-rose-600 to-pink-700',
+    },
   ];
 
   const additionalThanks = [
