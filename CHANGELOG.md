@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.6.0](https://github.com/Kohulan/ChemAudit/compare/v1.5.0...v1.6.0) (2026-04-14)
+
+
+### Features
+
+* **analytics:** wire taxonomy bar chart click-to-filter with molecule indices ([c9231ee](https://github.com/Kohulan/ChemAudit/commit/c9231ee556f0d81765701ac1a0a5d7e61f57ca93))
+* **diagnostics:** add duplicate column header detection to CSV pre-validator ([97b82ef](https://github.com/Kohulan/ChemAudit/commit/97b82efd04a32a425f7818dfd998b85753addb0e))
+* **export:** implement PDF audit section rendering in batch report template ([3da093e](https://github.com/Kohulan/ChemAudit/commit/3da093e66f8d5759a67fdcdf6229005df228d46d))
+* **integrations:** add SureChEMBL logo and About page acknowledgment ([613b60f](https://github.com/Kohulan/ChemAudit/commit/613b60fdf883e71b2b392b5b182c87b0cc75a501))
+* **integrations:** add SureChEMBL to database lookup description list ([6c3e26c](https://github.com/Kohulan/ChemAudit/commit/6c3e26c6bd9f71d588aaa8bfbbd1ea46acdc3e43))
+* **integrations:** wire SureChEMBL patent lookup into database results UI ([6bd4a46](https://github.com/Kohulan/ChemAudit/commit/6bd4a46ce07eeaf7639b5e084ae42b6421907b08))
+
+
+### Bug Fixes
+
+* **integrations:** update SureChEMBL source fallback and type comment ([3fd5862](https://github.com/Kohulan/ChemAudit/commit/3fd586205069b4a26e17270e6e6ced4d0a3be5ff))
+* **qsar:** use correct prevalidation gate key in batch upload ([3d446e5](https://github.com/Kohulan/ChemAudit/commit/3d446e518b87d5ade1e69fe058cca5178e91c04d))
+* sticky header and code cleanup ([8a28371](https://github.com/Kohulan/ChemAudit/commit/8a283717a9cbf5f9d0d95c5f3c62e27f981942c2))
+* sticky header and code cleanup ([ae66b3f](https://github.com/Kohulan/ChemAudit/commit/ae66b3f2392bd8a2df5173679acba73797c95900))
+
+
+### Documentation
+
+* **mcp:** add MCP server documentation and fix nginx proxy for /mcp ([f2347b1](https://github.com/Kohulan/ChemAudit/commit/f2347b1f0ece5c0977ac43ecc87a182d843a08d1))
+* **mcp:** add MCP server documentation and fix nginx proxy for /mcp ([977e386](https://github.com/Kohulan/ChemAudit/commit/977e38664072c4e94b5f1d5439d5a445c62e8832))
+* rewrite README for v1.5.0 with complete feature coverage ([3575bda](https://github.com/Kohulan/ChemAudit/commit/3575bdae9820a62f5e9c3e10bba655eec27365af))
+
 ## [1.5.0](https://github.com/Kohulan/ChemAudit/compare/v1.4.0...v1.5.0) (2026-04-13)
 
 
