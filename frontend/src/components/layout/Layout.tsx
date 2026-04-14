@@ -42,12 +42,12 @@ const orbConfigs = [
 ];
 
 /**
- * Premium layout wrapper with ambient gradient background and refined footer
+ * Layout wrapper with ambient gradient background and cinematic footer.
+ * The inner content div sits above the fixed footer via z-index stacking.
  */
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="relative w-full bg-[var(--color-surface)] min-h-screen overflow-x-hidden">
-      {/* Main content sits above the fixed cinematic footer */}
+    <div className="relative w-full bg-[var(--color-surface)] min-h-screen">
       <div className="relative z-10 w-full bg-[var(--color-surface)]">
         {/* Ambient gradient orbs */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -61,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
           ))}
         </div>
 
-        {/* Premium grid pattern overlay */}
+        {/* Grid pattern overlay */}
         <div
           className="fixed inset-0 pointer-events-none opacity-[0.015] dark:opacity-[0.025] z-0"
           style={{
@@ -73,10 +73,8 @@ export function Layout({ children }: LayoutProps) {
           }}
         />
 
-        {/* Header - sticky at top */}
         <Header />
 
-        {/* Main content */}
         <motion.main
           className="relative flex-1 py-10 z-0"
           initial={{ opacity: 0, y: 12 }}
@@ -87,7 +85,6 @@ export function Layout({ children }: LayoutProps) {
         </motion.main>
       </div>
 
-      {/* Cinematic Footer - revealed as user scrolls past content */}
       <CinematicFooter />
     </div>
   );
