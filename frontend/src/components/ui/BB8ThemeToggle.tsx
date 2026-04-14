@@ -24,11 +24,7 @@ export function BB8ThemeToggle({ className }: BB8ThemeToggleProps) {
 
   return (
     <StyledWrapper
-      className={cn(
-        'overflow-visible',
-        'transition-all duration-300',
-        className,
-      )}
+      className={cn('overflow-visible transition-all duration-300', className)}
     >
       <label className="bb8-toggle" aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}>
         <input
