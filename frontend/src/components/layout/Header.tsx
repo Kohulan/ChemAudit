@@ -23,7 +23,7 @@ import {
 
 import { cn } from '../../lib/utils';
 import { API_DOCS_URL } from '../../services/api';
-import { BB8ThemeToggle } from '../ui/BB8ThemeToggle';
+import { ChemThemeToggle } from '../ui/ChemThemeToggle';
 
 /* ─── Nav item types ─── */
 
@@ -594,12 +594,12 @@ export function Header() {
             {/* Divider */}
             <div className="w-px h-5 bg-[var(--color-border-strong)] mx-2.5" />
 
-            <BB8ThemeToggle />
+            <ChemThemeToggle />
           </div>
 
           {/* ── Mobile controls ── */}
           <div className="flex lg:hidden items-center gap-1.5">
-            <BB8ThemeToggle />
+            <ChemThemeToggle />
             <motion.button
               onClick={() => setMobileOpen(v => !v)}
               className={cn(
