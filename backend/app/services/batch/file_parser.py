@@ -9,13 +9,29 @@ Includes security validations for production use.
 import io
 import logging
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import pandas as pd
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _silence_rdkit() -> Iterator[None]:
+    """Suppress RDKit log output for the duration of the block.
+
+    Used when probing whether a string parses as SMILES — failures are
+    expected here and the noisy default logging is not useful.
+    """
+    RDLogger.DisableLog("rdApp.*")
+    try:
+        yield
+    finally:
+        RDLogger.EnableLog("rdApp.*")
+
 
 # =============================================================================
 # File Content Type Validation
@@ -80,9 +96,7 @@ def validate_file_content_type(
 
     for pattern in SUSPICIOUS_PATTERNS:
         if re.search(pattern, sample, re.IGNORECASE):
-            logger.warning(
-                f"Suspicious pattern detected in file '{filename}': {pattern}"
-            )
+            logger.warning(f"Suspicious pattern detected in file '{filename}': {pattern}")
             return False, "File contains potentially malicious content"
 
     # Check file magic bytes / signatures
@@ -154,7 +168,12 @@ def _validate_sdf_content(content: bytes, filename: str) -> Tuple[bool, Optional
 
 def _validate_csv_content(content: bytes, filename: str) -> Tuple[bool, Optional[str]]:
     """
-    Validate that content looks like a valid CSV file.
+    Validate that content looks like a valid delimited text file.
+
+    Accepts CSV, TSV, and plain-text files — including single-column files
+    that contain no explicit delimiters in the header (e.g. a TSV with one
+    SMILES per line). Rejects binary files, unreadable encodings, and
+    content too small to be usable.
 
     Args:
         content: Raw file bytes
@@ -188,15 +207,11 @@ def _validate_csv_content(content: bytes, filename: str) -> Tuple[bool, Optional
                 "File is not valid text (could not decode as UTF-8 or Latin-1)",
             )
 
-    # Check for common CSV structure (has lines and delimiters)
-    lines = text.split("\n")
-    if len(lines) < 2:
-        return False, "CSV file must have at least a header row and one data row"
-
-    # Check that first line (header) has comma or tab delimiters
-    header = lines[0]
-    if "," not in header and "\t" not in header:
-        return False, "CSV file must use comma or tab delimiters"
+    # Require at least one non-empty line. splitlines() handles all common
+    # line endings (LF, CRLF, CR) so old-Mac-style files are not rejected here.
+    non_empty_lines = [line for line in text.splitlines() if line.strip()]
+    if not non_empty_lines:
+        return False, "File appears to be empty"
 
     return True, None
 
@@ -280,8 +295,10 @@ def _detect_delimiter(content: bytes) -> str:
     """
     Detect the delimiter used in a delimited text file.
 
-    Examines the first line (header) to determine if the file uses
-    tabs or commas as delimiters.
+    Examines the first non-empty line to determine if the file uses
+    tabs or commas as delimiters. Single-column files (no delimiter in
+    the first line) fall through to the comma default; the parser
+    treats them as a one-column file either way.
 
     Args:
         content: Raw file bytes
@@ -289,9 +306,8 @@ def _detect_delimiter(content: bytes) -> str:
     Returns:
         Delimiter character ('\\t' for tab, ',' for comma)
     """
-    # Get the first line
+    # Get the first line (decode robustly, splitlines handles LF/CRLF/CR)
     try:
-        # Try UTF-8 first
         text = content.decode("utf-8")
     except UnicodeDecodeError:
         try:
@@ -299,17 +315,260 @@ def _detect_delimiter(content: bytes) -> str:
         except UnicodeDecodeError:
             return ","  # Default to comma
 
-    first_line = text.split("\n")[0] if "\n" in text else text
+    first_line = ""
+    for line in text.splitlines():
+        if line.strip():
+            first_line = line
+            break
 
-    # Count delimiters in the first line
     tab_count = first_line.count("\t")
     comma_count = first_line.count(",")
 
-    # Use the more common delimiter, preferring tab if equal
-    # (since tabs are less likely to appear in data)
+    # Prefer tab when at least as common as comma — tabs rarely appear in SMILES
+    # or chemical names, so a tab in the header is a strong signal for TSV.
     if tab_count > 0 and tab_count >= comma_count:
         return "\t"
     return ","
+
+
+# Column-name keywords that must never be treated as SMILES data, even when
+# RDKit would technically parse them (e.g. "mol", "N", "I", "S"). Used by
+# the headerless-file detector to avoid misclassifying common headers.
+_HEADER_KEYWORDS = frozenset(
+    {
+        "smiles",
+        "smi",
+        "canonical_smiles",
+        "isomeric_smiles",
+        "input_smiles",
+        "mol_smiles",
+        "structure",
+        "mol",
+        "molecule",
+        "name",
+        "id",
+        "compound",
+        "compound_id",
+        "compound_name",
+        "title",
+        "label",
+        "identifier",
+        "inchi",
+        "inchikey",
+        "inchi_key",
+        "cas",
+        "cas_number",
+        "cas_rn",
+        "activity",
+        "value",
+        "target",
+        "assay",
+        "ic50",
+        "ki",
+        "mw",
+        "molweight",
+        "logp",
+        "tpsa",
+    }
+)
+
+
+def _looks_like_smiles_value(value: str) -> bool:
+    """Return True if ``value`` parses as a valid SMILES via RDKit.
+
+    Used to detect whether the first row of a delimited file is data
+    (headerless) or a column header. A value is considered SMILES-like
+    only when:
+
+    - It is non-empty, bounded, and contains no whitespace
+      (SMILES strings never contain whitespace).
+    - It is not a common column-name keyword (see ``_HEADER_KEYWORDS``) —
+      even if RDKit would parse it (e.g. ``N`` as nitrogen).
+    - RDKit produces a sanitized molecule with at least one atom.
+    """
+    if not value or not isinstance(value, str):
+        return False
+    cleaned = value.strip()
+    if not cleaned or len(cleaned) > MAX_SMILES_LENGTH:
+        return False
+    if any(ch.isspace() for ch in cleaned):
+        return False
+    if cleaned.lower() in _HEADER_KEYWORDS:
+        return False
+    try:
+        with _silence_rdkit():
+            mol = Chem.MolFromSmiles(cleaned)
+    except Exception:
+        return False
+    return mol is not None and mol.GetNumAtoms() > 0
+
+
+def _is_headerless_delimited_file(content: bytes, delimiter: str) -> bool:
+    """Detect whether a delimited text file has no header row.
+
+    Returns True only when the file's first data column is unambiguously
+    SMILES data rather than a column name. To avoid misclassifying a
+    chemistry-like header (e.g. a single row named ``CO``), both the first
+    AND second non-empty lines' leading cells must parse as valid SMILES.
+    Files with a single non-empty line fall back to the first-line check.
+
+    Args:
+        content: Raw file bytes.
+        delimiter: Detected column delimiter.
+
+    Returns:
+        True if the file should be read with ``header=None``.
+    """
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = content.decode("latin-1")
+        except UnicodeDecodeError:
+            return False
+
+    non_empty = [line for line in text.splitlines() if line.strip()]
+    if not non_empty:
+        return False
+
+    first_cell = non_empty[0].split(delimiter)[0].strip()
+    if not _looks_like_smiles_value(first_cell):
+        return False
+
+    if len(non_empty) == 1:
+        return True
+
+    second_cell = non_empty[1].split(delimiter)[0].strip()
+    return _looks_like_smiles_value(second_cell)
+
+
+@dataclass
+class _DelimitedFileInfo:
+    """Shape information about a delimited text file used by the parser helpers."""
+
+    delimiter: str
+    is_headerless: bool
+    columns: List[str]
+    read_kwargs: Dict[str, Any]
+
+
+def _inspect_delimited_file(content: bytes) -> _DelimitedFileInfo:
+    """Inspect a delimited text file to determine delimiter, header mode, columns.
+
+    Produces the ``read_kwargs`` a subsequent ``pandas.read_csv`` call must use
+    to parse the file consistently with the detected shape. For headerless
+    files, column names are synthesized so downstream consumers always see a
+    ``SMILES`` column in position 0.
+    """
+    delimiter = _detect_delimiter(content)
+    is_headerless = _is_headerless_delimited_file(content, delimiter)
+
+    base_kwargs: Dict[str, Any] = {
+        "sep": delimiter,
+        "dtype": str,
+        "na_filter": False,
+    }
+
+    if is_headerless:
+        probe = pd.read_csv(
+            io.BytesIO(content),
+            nrows=1,
+            header=None,
+            **base_kwargs,
+        )
+        n_cols = len(probe.columns)
+        synthetic = ["SMILES"] + [f"col_{i}" for i in range(1, n_cols)]
+        read_kwargs = {**base_kwargs, "header": None, "names": synthetic}
+        return _DelimitedFileInfo(
+            delimiter=delimiter,
+            is_headerless=True,
+            columns=synthetic,
+            read_kwargs=read_kwargs,
+        )
+
+    header_probe = pd.read_csv(io.BytesIO(content), nrows=0, **base_kwargs)
+    return _DelimitedFileInfo(
+        delimiter=delimiter,
+        is_headerless=False,
+        columns=header_probe.columns.tolist(),
+        read_kwargs=base_kwargs,
+    )
+
+
+def _match_column_case_insensitive(columns: List[str], target: str) -> Optional[str]:
+    """Find a column by case-insensitive exact-name match, or None."""
+    lowered = target.lower()
+    for col in columns:
+        if str(col).lower() == lowered:
+            return col
+    return None
+
+
+_NAME_COLUMN_CANDIDATES: Tuple[str, ...] = (
+    "Name",
+    "name",
+    "NAME",
+    "ID",
+    "id",
+    "Compound",
+    "compound",
+    "Molecule",
+    "molecule",
+    "Title",
+    "title",
+)
+
+
+def _auto_detect_name_column(columns: List[str]) -> Optional[str]:
+    """Pick a likely name/ID column from a list of columns, or None."""
+    for candidate in _NAME_COLUMN_CANDIDATES:
+        if candidate in columns:
+            return candidate
+    return None
+
+
+def _peek_first_row_cells(content: bytes, delimiter: str) -> List[str]:
+    """Return the cells of the first non-empty line, split by ``delimiter``.
+
+    Used to map user-supplied column selections (which the frontend derives
+    from the first row of a headerless file) to synthesized column positions.
+    """
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = content.decode("latin-1")
+        except UnicodeDecodeError:
+            return []
+
+    for line in text.splitlines():
+        if line.strip():
+            return [cell.strip() for cell in line.split(delimiter)]
+    return []
+
+
+def _resolve_column_for_headerless(
+    requested: str,
+    synthesized_columns: List[str],
+    first_row_cells: List[str],
+) -> Optional[str]:
+    """Map a user-supplied column name to a synthesized column for headerless files.
+
+    The frontend's local column detector treats the first data row as
+    column headers, so it shows the user cells like ``CCO`` or ``ethanol``
+    as column names. The backend synthesizes ``SMILES`` / ``col_N``. When
+    the file is headerless, we accept the user's selection if it matches
+    either the synthesized name or the first-row cell at that same position.
+    """
+    if not requested:
+        return None
+    req = requested.strip().lower()
+    for idx, synth in enumerate(synthesized_columns):
+        if req == synth.lower():
+            return synth
+        if idx < len(first_row_cells) and req == first_row_cells[idx].lower():
+            return synth
+    return None
 
 
 def _validate_smiles_format(smiles: str) -> Tuple[bool, Optional[str]]:
@@ -392,9 +651,7 @@ def parse_sdf(file_content: bytes, max_file_size_mb: int = 500) -> List[Molecule
                     try:
                         prop_value = mol.GetProp(prop_name)
                         # Sanitize property name and value
-                        safe_name = _sanitize_string(
-                            prop_name, max_length=MAX_COLUMN_NAME_LENGTH
-                        )
+                        safe_name = _sanitize_string(prop_name, max_length=MAX_COLUMN_NAME_LENGTH)
                         if _validate_column_name(safe_name):
                             properties[safe_name] = _sanitize_string(prop_value)
                     except Exception:
@@ -430,7 +687,11 @@ def parse_csv(
     """
     Parse a CSV/TSV/TXT file into a list of molecule data.
 
-    Automatically detects whether the file uses comma or tab delimiters.
+    Automatically detects:
+    - Whether the file uses comma or tab delimiters.
+    - Whether the file has a header row, by probing the first two rows with
+      RDKit. Headerless files have a ``SMILES`` column name synthesized
+      so downstream callers need no special handling.
 
     Args:
         file_content: Raw bytes of the delimited text file
@@ -454,57 +715,47 @@ def parse_csv(
             f"File too large: {file_size_mb:.1f}MB exceeds limit of {max_file_size_mb}MB"
         )
 
-    # Detect delimiter (comma or tab)
-    delimiter = _detect_delimiter(file_content)
-
-    # First, read just the header to find column names
     try:
-        df_header = pd.read_csv(io.BytesIO(file_content), nrows=0, sep=delimiter)
-        all_columns = df_header.columns.tolist()
-    except Exception as e:
-        raise ValueError(f"Failed to parse CSV file: {str(e)[:200]}")
+        info = _inspect_delimited_file(file_content)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse CSV file: {str(exc)[:200]}")
+
+    all_columns = info.columns
 
     # Security: Validate column count
     if len(all_columns) > 1000:
         raise ValueError("Too many columns in CSV (maximum 1000)")
 
-    # Check for SMILES column (case-insensitive search)
-    smiles_col_actual = None
-    for col in all_columns:
-        if col.lower() == smiles_column.lower():
-            smiles_col_actual = col
-            break
-
+    smiles_col_actual = _match_column_case_insensitive(all_columns, smiles_column)
+    if smiles_col_actual is None and info.is_headerless:
+        # The frontend's local column detector reads the first data row of a
+        # headerless file as column names, so the user's ``smiles_column`` can
+        # arrive as e.g. ``"CCO"`` instead of the synthesized ``"SMILES"``.
+        # Map the user's selection to the synthesized column at the same
+        # position in the first data row.
+        first_row_cells = _peek_first_row_cells(file_content, info.delimiter)
+        smiles_col_actual = _resolve_column_for_headerless(
+            smiles_column, all_columns, first_row_cells
+        )
     if smiles_col_actual is None:
         raise ValueError(f"SMILES column '{smiles_column}' not found in CSV")
 
-    # Determine name column
-    name_col_actual = None
+    # Determine name column. Honour the user's explicit ``name_column`` first;
+    # accept first-row-cell aliasing for headerless files the same way we do
+    # for the SMILES column. For headered files without an explicit selection,
+    # fall back to the keyword-based auto-detection.
+    name_col_actual: Optional[str] = None
     if name_column:
-        for col in all_columns:
-            if col.lower() == name_column.lower():
-                name_col_actual = col
-                break
-    else:
-        # Try to auto-detect name column
-        for candidate in [
-            "Name",
-            "name",
-            "NAME",
-            "ID",
-            "id",
-            "Compound",
-            "compound",
-            "Molecule",
-            "molecule",
-            "Title",
-            "title",
-        ]:
-            if candidate in all_columns:
-                name_col_actual = candidate
-                break
+        name_col_actual = _match_column_case_insensitive(all_columns, name_column)
+        if name_col_actual is None and info.is_headerless:
+            first_row_cells = _peek_first_row_cells(file_content, info.delimiter)
+            name_col_actual = _resolve_column_for_headerless(
+                name_column, all_columns, first_row_cells
+            )
+    elif not info.is_headerless:
+        name_col_actual = _auto_detect_name_column(all_columns)
 
-    # Only read the columns we need (much faster for files with many columns)
+    # Read only the columns we need (much faster for wide files)
     cols_to_read = [smiles_col_actual]
     if name_col_actual:
         cols_to_read.append(name_col_actual)
@@ -513,18 +764,15 @@ def parse_csv(
         df = pd.read_csv(
             io.BytesIO(file_content),
             usecols=cols_to_read,
-            dtype=str,
-            na_filter=False,
-            sep=delimiter,
+            **info.read_kwargs,
         )
-    except Exception as e:
-        raise ValueError(f"Failed to parse CSV file: {str(e)[:200]}")
+    except Exception as exc:
+        raise ValueError(f"Failed to parse CSV file: {str(exc)[:200]}")
 
-    molecules = []
+    molecules: List[MoleculeData] = []
     for idx, row in df.iterrows():
         smiles = str(row[smiles_col_actual]).strip()
 
-        # Validate SMILES format
         is_valid, error_msg = _validate_smiles_format(smiles)
         if not is_valid:
             molecules.append(
@@ -537,7 +785,6 @@ def parse_csv(
             )
             continue
 
-        # Get name with sanitization
         if name_col_actual and row[name_col_actual]:
             name = _sanitize_string(str(row[name_col_actual]).strip(), max_length=256)
         else:
@@ -548,11 +795,27 @@ def parse_csv(
                 smiles=smiles,
                 name=name,
                 index=idx,
-                properties={},  # No extra properties needed for batch processing
+                properties={},
             )
         )
 
     return molecules
+
+
+def _count_file_lines(content: bytes) -> int:
+    """Count physical lines in a byte buffer, tolerant of CRLF/LF/CR endings.
+
+    ``content.count(b"\\n")`` alone misses old-Mac CR-only files. Using the
+    larger of LF-count and CR-count gives the correct line total for all
+    three common line-ending styles.
+    """
+    lf = content.count(b"\n")
+    cr = content.count(b"\r")
+    total = max(lf, cr)
+    # Files that end without a trailing terminator still contain that last line
+    if content and not content.endswith((b"\n", b"\r")):
+        total += 1
+    return max(total, 0)
 
 
 def detect_csv_columns(
@@ -562,7 +825,10 @@ def detect_csv_columns(
     """
     Detect column names in a delimited text file for user selection.
 
-    Automatically detects whether the file uses comma or tab delimiters.
+    Automatically detects:
+    - Whether the file uses comma or tab delimiters.
+    - Whether the file has a header row. For headerless files a synthetic
+      ``SMILES`` column is surfaced so the user sees a consistent choice.
 
     Args:
         file_content: Raw bytes of the delimited text file
@@ -581,22 +847,35 @@ def detect_csv_columns(
             f"File too large: {file_size_mb:.1f}MB exceeds limit of {max_file_size_mb}MB"
         )
 
-    # Detect delimiter (comma or tab)
-    delimiter = _detect_delimiter(file_content)
+    try:
+        info = _inspect_delimited_file(file_content)
+    except ValueError:
+        raise
+    except Exception as exc:
+        logger.error(f"Error detecting CSV columns: {exc}")
+        raise ValueError(f"Failed to read CSV file: {str(exc)[:100]}")
 
     try:
-        # Read only first few rows for column detection
         df_preview = pd.read_csv(
-            io.BytesIO(file_content), nrows=5, dtype=str, sep=delimiter
+            io.BytesIO(file_content),
+            nrows=5,
+            **info.read_kwargs,
         )
-        columns = [
-            col for col in df_preview.columns.tolist() if _validate_column_name(col)
-        ]
+    except ValueError:
+        raise
+    except Exception as exc:
+        logger.error(f"Error reading CSV preview: {exc}")
+        raise ValueError(f"Failed to read CSV file: {str(exc)[:100]}")
 
-        if not columns:
-            raise ValueError("No valid columns found in CSV")
+    columns = [col for col in info.columns if _validate_column_name(col)]
+    if not columns:
+        raise ValueError("No valid columns found in CSV")
 
-        # Try to detect SMILES column
+    # Suggest SMILES column. For headerless files the synthesized ``SMILES``
+    # column is always position 0 and always the right answer.
+    if info.is_headerless:
+        suggested_smiles: Optional[str] = "SMILES" if "SMILES" in columns else None
+    else:
         suggested_smiles = None
         smiles_keywords = [
             "smiles",
@@ -606,7 +885,7 @@ def detect_csv_columns(
             "structure",
         ]
         for col in columns:
-            col_lower = col.lower()
+            col_lower = str(col).lower()
             for keyword in smiles_keywords:
                 if keyword in col_lower:
                     suggested_smiles = col
@@ -614,14 +893,15 @@ def detect_csv_columns(
             if suggested_smiles:
                 break
 
-        # Try to detect Name/ID column
-        suggested_name = None
+    # Suggest name/ID column only for headered files; synthesized ``col_N``
+    # labels from headerless parsing carry no semantic meaning.
+    suggested_name: Optional[str] = None
+    if not info.is_headerless:
         name_keywords = ["name", "id", "compound", "molecule", "title", "identifier"]
         for col in columns:
-            col_lower = col.lower()
-            # Skip if it's the SMILES column
             if col == suggested_smiles:
                 continue
+            col_lower = str(col).lower()
             for keyword in name_keywords:
                 if keyword in col_lower:
                     suggested_name = col
@@ -629,49 +909,37 @@ def detect_csv_columns(
             if suggested_name:
                 break
 
-        # Get sample values for each column (first non-empty value)
-        column_samples = {}
-        for col in columns[:20]:  # Limit to first 20 columns for preview
-            for val in df_preview[col]:
-                if val and str(val).strip():
-                    column_samples[col] = _sanitize_string(str(val), max_length=100)
-                    break
+    # First non-empty sample value per column (capped to first 20 columns)
+    column_samples: Dict[str, str] = {}
+    for col in columns[:20]:
+        for val in df_preview[col]:
+            if val and str(val).strip():
+                column_samples[col] = _sanitize_string(str(val), max_length=100)
+                break
 
-        # Estimate row count from file size (fast, no full file read)
-        # For column detection, an estimate is sufficient
-        # Average row size varies, but ~200 bytes per row is reasonable for CSV with SMILES
-        if file_size_mb < 1:
-            # For small files, do a quick count
-            try:
-                line_count = file_content.count(b"\n")
-                row_count = max(1, line_count - 1)  # Subtract header
-            except Exception:
+    # Row count estimate. Subtract the header row only when the file has one.
+    header_offset = 0 if info.is_headerless else 1
+    if file_size_mb < 1:
+        line_count = _count_file_lines(file_content)
+        row_count = max(1, line_count - header_offset)
+    else:
+        try:
+            sample_size = min(102400, len(file_content))
+            sample_bytes = file_content[:sample_size]
+            lines_in_sample = _count_file_lines(sample_bytes)
+            if lines_in_sample > 1:
+                avg_line_length = sample_size / lines_in_sample
+                row_count = max(1, int(len(file_content) / avg_line_length) - header_offset)
+            else:
                 row_count = max(1, int(file_size_mb * 5000))
-        else:
-            # For larger files, estimate based on sample
-            try:
-                # Sample first 100KB to estimate average line length
-                sample_size = min(102400, len(file_content))
-                sample = file_content[:sample_size]
-                lines_in_sample = sample.count(b"\n")
-                if lines_in_sample > 1:
-                    avg_line_length = sample_size / lines_in_sample
-                    row_count = max(1, int(len(file_content) / avg_line_length) - 1)
-                else:
-                    row_count = max(1, int(file_size_mb * 5000))
-            except Exception:
-                row_count = max(1, int(file_size_mb * 5000))
+        except Exception:
+            row_count = max(1, int(file_size_mb * 5000))
 
-        return {
-            "columns": columns,
-            "suggested_smiles": suggested_smiles,
-            "suggested_name": suggested_name,
-            "column_samples": column_samples,
-            "row_count_estimate": row_count,
-            "file_size_mb": round(file_size_mb, 2),
-        }
-    except ValueError:
-        raise
-    except Exception as e:
-        logger.error(f"Error detecting CSV columns: {e}")
-        raise ValueError(f"Failed to read CSV file: {str(e)[:100]}")
+    return {
+        "columns": columns,
+        "suggested_smiles": suggested_smiles,
+        "suggested_name": suggested_name,
+        "column_samples": column_samples,
+        "row_count_estimate": row_count,
+        "file_size_mb": round(file_size_mb, 2),
+    }

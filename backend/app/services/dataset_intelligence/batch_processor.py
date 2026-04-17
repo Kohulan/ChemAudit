@@ -35,8 +35,13 @@ logger = logging.getLogger(__name__)
 
 # Heuristic column names for SMILES detection (case-insensitive)
 _SMILES_COLUMN_NAMES = {
-    "smiles", "smi", "canonical_smiles", "isomeric_smiles",
-    "structure", "input_smiles", "mol_smiles",
+    "smiles",
+    "smi",
+    "canonical_smiles",
+    "isomeric_smiles",
+    "structure",
+    "input_smiles",
+    "mol_smiles",
 }
 
 
@@ -69,6 +74,10 @@ def _parse_csv_full(file_path: str, smiles_column: str | None) -> tuple[list[dic
     this reads ALL columns so property distributions and contradictory
     label detection have access to the full data (Pitfall 9).
 
+    Handles headerless files by delegating to the shared ``file_parser``
+    headerless-detection helpers, so a single-column TSV with just SMILES
+    per line parses the same way as a standard headered CSV.
+
     Args:
         file_path: Path to the CSV file on disk.
         smiles_column: Explicit SMILES column name, or None for auto-detect.
@@ -76,29 +85,25 @@ def _parse_csv_full(file_path: str, smiles_column: str | None) -> tuple[list[dic
     Returns:
         Tuple of (molecule list, column names).
     """
-    # Auto-detect delimiter (handles tab-separated files with .csv extension)
-    with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
-        sample = fh.read(8192)
-    import csv
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;|")
-        sep = dialect.delimiter
-    except csv.Error:
-        sep = ","
-    df = pd.read_csv(file_path, sep=sep, dtype=str, na_filter=False)
+    from app.services.batch.file_parser import _inspect_delimited_file
+
+    with open(file_path, "rb") as fh:
+        content = fh.read()
+
+    info = _inspect_delimited_file(content)
+    df = pd.read_csv(file_path, **info.read_kwargs)
     columns = df.columns.tolist()
 
-    # Determine SMILES column
+    # Determine SMILES column. For headerless files ``_inspect_delimited_file``
+    # has synthesized the name ``SMILES`` at position 0.
     smi_col = smiles_column
     if smi_col is None:
-        smi_col = _detect_smiles_column(columns)
+        smi_col = "SMILES" if info.is_headerless else _detect_smiles_column(columns)
     if smi_col is None:
         raise ValueError(
-            "Could not detect SMILES column. "
-            "Please specify the smiles_column parameter."
+            "Could not detect SMILES column. Please specify the smiles_column parameter."
         )
 
-    # Verify column exists (case-insensitive)
     actual_col = None
     for col in columns:
         if col.lower() == smi_col.lower():
@@ -124,13 +129,15 @@ def _parse_csv_full(file_path: str, smiles_column: str | None) -> tuple[list[dic
                     pass
 
         properties = {col: str(row[col]) for col in columns if col != actual_col}
-        molecules.append({
-            "index": int(idx),
-            "smiles": smiles,
-            "mol": mol,
-            "inchikey": ik,
-            "properties": properties,
-        })
+        molecules.append(
+            {
+                "index": int(idx),
+                "smiles": smiles,
+                "mol": mol,
+                "inchikey": ik,
+                "properties": properties,
+            }
+        )
 
     return molecules, columns
 
@@ -165,13 +172,15 @@ def _parse_sdf_full(file_path: str) -> tuple[list[dict], list[str]]:
 
         props = dict(mol_data.properties)
         all_prop_names.update(props.keys())
-        molecules.append({
-            "index": mol_data.index,
-            "smiles": smiles,
-            "mol": mol,
-            "inchikey": ik,
-            "properties": props,
-        })
+        molecules.append(
+            {
+                "index": mol_data.index,
+                "smiles": smiles,
+                "mol": mol,
+                "inchikey": ik,
+                "properties": props,
+            }
+        )
 
     columns = ["SMILES"] + sorted(all_prop_names)
     return molecules, columns
@@ -237,19 +246,24 @@ def process_dataset_audit(
         ConnectionManager subscribes to) AND stores metadata in
         ``dataset:meta:{job_id}`` for the polling status endpoint.
         """
-        msg = json.dumps({
-            "job_id": job_id,
-            "status": "processing",
-            "progress": round(pct, 1),
-            "current_stage": stage,
-        })
+        msg = json.dumps(
+            {
+                "job_id": job_id,
+                "status": "processing",
+                "progress": round(pct, 1),
+                "current_stage": stage,
+            }
+        )
         try:
             r.publish(f"batch:progress:{job_id}", msg)
-            r.hset(f"dataset:meta:{job_id}", mapping={
-                "status": "processing",
-                "progress": str(round(pct, 1)),
-                "current_stage": stage,
-            })
+            r.hset(
+                f"dataset:meta:{job_id}",
+                mapping={
+                    "status": "processing",
+                    "progress": str(round(pct, 1)),
+                    "current_stage": stage,
+                },
+            )
         except Exception:
             logger.warning("Failed to publish progress for dataset job %s", job_id)
 
@@ -326,9 +340,7 @@ def process_dataset_audit(
 
         contradictions: list[dict] = []
         if activity_column:
-            contradictions = detect_contradictory_labels(
-                molecules, activity_column
-            )
+            contradictions = detect_contradictory_labels(molecules, activity_column)
 
         publish_progress("contradictory_labels", 85.0)
 
@@ -348,9 +360,7 @@ def process_dataset_audit(
             "sha256_hash": sha256_hash,
         }
 
-        curation_report = build_curation_report(
-            health_result, file_metadata, contradictions
-        )
+        curation_report = build_curation_report(health_result, file_metadata, contradictions)
         curated_rows = build_curated_csv_rows(molecules, health_result)
 
         publish_progress("building_report", 95.0)
@@ -437,27 +447,34 @@ def process_dataset_audit(
         )
 
         # Update metadata to complete
-        r.hset(f"dataset:meta:{job_id}", mapping={
-            "status": "complete",
-            "progress": "100",
-            "current_stage": "",
-        })
+        r.hset(
+            f"dataset:meta:{job_id}",
+            mapping={
+                "status": "complete",
+                "progress": "100",
+                "current_stage": "",
+            },
+        )
         r.expire(f"dataset:meta:{job_id}", settings.BATCH_RESULT_TTL)
 
         # Publish final progress to the shared ConnectionManager channel
         r.publish(
             f"batch:progress:{job_id}",
-            json.dumps({
-                "job_id": job_id,
-                "status": "complete",
-                "progress": 100,
-                "current_stage": None,
-            }),
+            json.dumps(
+                {
+                    "job_id": job_id,
+                    "status": "complete",
+                    "progress": 100,
+                    "current_stage": None,
+                }
+            ),
         )
 
         logger.info(
             "Dataset audit complete for job %s: %d molecules, score=%.1f",
-            job_id, health_result.molecule_count, health_result.overall_score,
+            job_id,
+            health_result.molecule_count,
+            health_result.overall_score,
         )
 
         return {"job_id": job_id, "status": "complete"}
@@ -467,20 +484,25 @@ def process_dataset_audit(
 
         # Update metadata to error
         try:
-            r.hset(f"dataset:meta:{job_id}", mapping={
-                "status": "error",
-                "progress": "0",
-                "current_stage": "",
-                "error": str(exc)[:500],
-            })
+            r.hset(
+                f"dataset:meta:{job_id}",
+                mapping={
+                    "status": "error",
+                    "progress": "0",
+                    "current_stage": "",
+                    "error": str(exc)[:500],
+                },
+            )
             r.expire(f"dataset:meta:{job_id}", 3600)
             r.publish(
                 f"batch:progress:{job_id}",
-                json.dumps({
-                    "job_id": job_id,
-                    "status": "error",
-                    "error": str(exc)[:500],
-                }),
+                json.dumps(
+                    {
+                        "job_id": job_id,
+                        "status": "error",
+                        "error": str(exc)[:500],
+                    }
+                ),
             )
         except Exception:
             logger.warning("Failed to publish error status for dataset job %s", job_id)
