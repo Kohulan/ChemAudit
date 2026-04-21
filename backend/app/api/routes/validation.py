@@ -106,7 +106,16 @@ async def validate_molecule(
         else:
             detected = detect_input_type(molecule_input)
 
-        if detected == "iupac" or (detected == "ambiguous" and effective_input_type == "auto"):
+        # For ambiguous inputs that parse as valid SMILES (e.g. "CCO", "CO", "O"),
+        # keep the SMILES interpretation. Without this guard the name resolver
+        # rewrites them to unrelated PubChem hits (CO→[Co], O→O=O, CCO→a thiadiazol).
+        should_resolve_name = detected == "iupac" or (
+            detected == "ambiguous"
+            and effective_input_type == "auto"
+            and Chem.MolFromSmiles(molecule_input) is None
+        )
+
+        if should_resolve_name:
             converted, source = name_to_smiles(molecule_input)
             if converted:
                 input_interpretation = InputInterpretation(
