@@ -24,6 +24,20 @@ CONFIG_DIR="${SCRIPT_DIR}/config"
 # Available profiles
 PROFILES=("small" "medium" "large" "xl" "coconut")
 
+COMPOSE_CMD=()
+
+detect_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker compose)
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker-compose)
+    else
+        print_error "Neither 'docker compose' nor 'docker-compose' is available on PATH."
+        echo -e "Install Docker Desktop or the Compose plugin: https://docs.docker.com/compose/install/"
+        exit 1
+    fi
+}
+
 # Function to print colored output
 print_header() {
     echo -e "\n${BLUE}${BOLD}╔════════════════════════════════════════════════════╗${NC}"
@@ -102,6 +116,12 @@ parse_and_export_yaml() {
         # Skip comments and empty lines
         [[ "$key" =~ ^[[:space:]]*# ]] && continue
         [[ -z "$key" ]] && continue
+
+        # Strip inline comments (everything from ` #` or leading `#` onward).
+        # Without this, a line like `CELERY_WORKERS: 4  # Workers for ...`
+        # would export the comment text as part of the value, which then
+        # corrupts Compose's ${VAR} interpolation into container commands.
+        value="${value%%#*}"
 
         # Trim whitespace
         key=$(echo "$key" | xargs)
@@ -239,7 +259,7 @@ update_env_file() {
     print_success "Updated .env with profile settings"
 }
 
-# Function to run docker-compose
+# Function to run compose
 run_docker_compose() {
     echo -e "\n${BOLD}Starting Docker deployment...${NC}\n"
 
@@ -249,18 +269,24 @@ run_docker_compose() {
         exit 1
     fi
 
-    # Pull latest images and start services
-    docker-compose -f docker-compose.prod.yml pull
-    docker-compose -f docker-compose.prod.yml up -d --build
+    echo -e "Using compose command: ${CYAN}${COMPOSE_CMD[*]}${NC}"
+
+    # Pull upstream registry images. `frontend-builder` sets `pull_policy: build`
+    # so Compose skips it; `--ignore-pull-failures` is a safety net for older
+    # Compose releases that predate pull_policy: build.
+    "${COMPOSE_CMD[@]}" -f docker-compose.prod.yml pull --ignore-pull-failures
+    "${COMPOSE_CMD[@]}" -f docker-compose.prod.yml up -d --build
 
     print_success "Deployment started successfully!"
     echo -e "\n${BOLD}Service Status:${NC}"
-    docker-compose -f docker-compose.prod.yml ps
+    "${COMPOSE_CMD[@]}" -f docker-compose.prod.yml ps
 }
 
 # Main execution
 main() {
     print_header
+
+    detect_compose_cmd
 
     # Get profile from argument or interactive menu
     if [[ -n "$1" ]]; then

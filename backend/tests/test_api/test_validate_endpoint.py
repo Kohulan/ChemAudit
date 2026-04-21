@@ -4,6 +4,8 @@ Tests for /api/v1/validate endpoint.
 Tests single molecule validation API.
 """
 
+from unittest.mock import patch
+
 import pytest
 
 # Uses shared 'client' fixture from conftest.py
@@ -52,6 +54,42 @@ class TestValidateEndpoint:
         # Use preserve_aromatic=True for aromatic notation
         assert data["molecule_info"]["canonical_smiles"] == "C1=CC=CC=C1"
         assert data["overall_score"] >= 80
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "smiles,expected_canonical,expected_formula",
+        [
+            ("CCO", "CCO", "C2H6O"),
+            ("CO", "CO", "CH4O"),
+            ("O", "O", "H2O"),
+        ],
+    )
+    async def test_short_ambiguous_smiles_not_resolved_as_name(
+        self, client, smiles, expected_canonical, expected_formula
+    ):
+        """Short SMILES that parse as valid molecules must not be sent to the
+        name resolver. Regression: CCO, CO, O were being rewritten to unrelated
+        PubChem hits (a thiadiazol, [Co], O=O) because detect_input_type returns
+        "ambiguous" for them and the route unconditionally consulted the name
+        resolver for ambiguous inputs in auto mode.
+        """
+        # Patch name_to_smiles to return a wrong molecule if called at all —
+        # the test passes only if the route skips the name resolver entirely
+        # because the input already parses as SMILES.
+        wrong_smiles = "O=C(O)CSC1=NC(C2=CC(Cl)=CC=C2)=NO1"
+        with patch(
+            "app.services.iupac.converter.name_to_smiles",
+            return_value=(wrong_smiles, "pubchem"),
+        ) as mock_resolve:
+            response = await client.post(
+                "/api/v1/validate", json={"molecule": smiles}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["molecule_info"]["canonical_smiles"] == expected_canonical
+            assert data["molecule_info"]["molecular_formula"] == expected_formula
+            assert data.get("input_interpretation") is None
+            mock_resolve.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_validate_invalid_smiles(self, client):

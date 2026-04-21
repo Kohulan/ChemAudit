@@ -20,6 +20,8 @@ from typing import Any, Dict, Optional
 
 from rdkit import Chem, RDConfig
 
+from app.core.error_sanitizer import safe_error_detail
+
 sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
 import sascorer  # type: ignore  # noqa: E402
 
@@ -153,9 +155,8 @@ def _compute_scscore(smiles: str) -> Dict[str, Any]:
             "available": True,
         }
     except Exception as err:
-        logger.debug("SCScore apply() failed for SMILES %r: %s", smiles, err)
         return {
-            "error": f"SCScore computation failed: {err}",
+            "error": safe_error_detail(err, "SCScore computation failed"),
             "available": False,
         }
 
