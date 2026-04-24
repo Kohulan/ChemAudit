@@ -209,7 +209,6 @@ class ResultStorage:
 
     RESULT_EXPIRY = settings.BATCH_RESULT_TTL  # 24h to support analytics (INFRA-01)
     VIEW_CACHE_EXPIRY = 300  # 5 minutes for sorted/filtered views
-    PAGE_SIZE = 50  # Default page size
 
     def __init__(self, redis_url: str = None):
         self._redis_url = redis_url or settings.REDIS_URL
