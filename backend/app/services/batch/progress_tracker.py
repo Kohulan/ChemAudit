@@ -226,10 +226,6 @@ class ProgressTracker:
         """Mark a job as complete."""
         self._mark_terminal(job_id, {"status": "complete", "progress": 100, "eta_seconds": 0})
 
-    def mark_failed(self, job_id: str, error_message: str) -> None:
-        """Mark a job as failed."""
-        self._mark_terminal(job_id, {"status": "failed", "error_message": error_message})
-
     def mark_cancelled(self, job_id: str) -> None:
         """Mark a job as cancelled."""
         self._mark_terminal(job_id, {"status": "cancelled"})

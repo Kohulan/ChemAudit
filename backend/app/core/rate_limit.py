@@ -20,12 +20,6 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Rate limit tiers
-RATE_LIMITS = {
-    "anonymous": "10/minute",
-    "api_key": "300/minute",
-}
-
 # Redis key prefixes for banning
 BAN_KEY_PREFIX = "ratelimit:ban:"
 VIOLATION_KEY_PREFIX = "ratelimit:violations:"
@@ -157,32 +151,6 @@ def _ban_ip(ip_address: str, violations: int):
 
     except Exception as e:
         logger.error(f"Error banning IP: {e}")
-
-
-def unban_ip(ip_address: str) -> bool:
-    """
-    Manually unban an IP address.
-
-    Args:
-        ip_address: The IP to unban
-
-    Returns:
-        True if successfully unbanned, False otherwise
-    """
-    try:
-        client = get_sync_redis_client()
-        ban_key = f"{BAN_KEY_PREFIX}{ip_address}"
-        violation_key = f"{VIOLATION_KEY_PREFIX}{ip_address}"
-
-        client.delete(ban_key)
-        client.delete(violation_key)
-
-        logger.info(f"IP {ip_address} manually unbanned")
-        return True
-
-    except Exception as e:
-        logger.error(f"Error unbanning IP: {e}")
-        return False
 
 
 def get_rate_limit_key(request: Request) -> str:

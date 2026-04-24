@@ -67,16 +67,6 @@ class ScreeningResult:
         return len(self.alerts) > 0
 
 
-# Known patterns that appear in approved drugs (for educational context)
-APPROVED_DRUG_PATTERNS = {
-    "rhodanine": ["Methotrexate"],
-    "catechol": ["Dopamine", "Epinephrine", "Norepinephrine", "Levodopa"],
-    "quinone": ["Doxorubicin", "Mitomycin C"],
-    "michael_acceptor": ["Acrylamide drugs", "Ibrutinib", "Afatinib"],
-    "thiocarbonyl": ["Methimazole", "Thiouracil"],
-}
-
-
 def _get_severity_for_pattern(pattern_name: str, catalog_source: str) -> AlertSeverity:
     """
     Determine severity based on pattern name and catalog source.

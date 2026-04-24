@@ -59,12 +59,6 @@ SDF_MARKERS = [
     b"V3000",  # V3000 molfile format
 ]
 
-# CSV-like content patterns
-CSV_PATTERNS = [
-    rb"^[^,\t]+[,\t][^,\t]+",  # Has delimiters
-]
-
-
 def validate_file_content_type(
     content: bytes,
     expected_type: str,
