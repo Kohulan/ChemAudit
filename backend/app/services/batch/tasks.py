@@ -176,10 +176,10 @@ def validate_single_molecule(
 def process_molecule_chunk(
     self,
     job_id: str,
-    chunk_idx: int,
+    chunk_idx: int,  # noqa: ARG001 -- accepted for signature compat; see note below
     molecules: List[Dict[str, Any]],
     total_molecules: int,
-    total_chunks: int,
+    total_chunks: int,  # noqa: ARG001 -- accepted for signature compat; see note below
     safety_options: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -187,10 +187,16 @@ def process_molecule_chunk(
 
     Args:
         job_id: Job identifier for progress tracking
-        chunk_idx: Index of this chunk (for progress calculation)
+        chunk_idx: Index of this chunk. Currently unused inside the task body
+            (progress is tracked via an atomic counter in progress_tracker,
+            not the chunk index). Retained in the signature so new workers
+            accept tasks enqueued by coordinators still running the prior
+            version. Remove in a future release with a coordinated worker
+            redeploy.
         molecules: List of molecule data dicts (smiles, name, index, properties)
         total_molecules: Total molecules in the entire batch
-        total_chunks: Total number of chunks
+        total_chunks: Total number of chunks. Currently unused inside the
+            task body for the same reason as chunk_idx. Remove alongside it.
         safety_options: Optional safety screening options
 
     Returns:
@@ -663,10 +669,10 @@ def aggregate_batch_results(
 def process_molecule_chunk_priority(
     self,
     job_id: str,
-    chunk_idx: int,
+    chunk_idx: int,  # noqa: ARG001 -- signature-compat only; see process_molecule_chunk
     molecules: List[Dict[str, Any]],
     total_molecules: int,
-    total_chunks: int,
+    total_chunks: int,  # noqa: ARG001 -- signature-compat only; see process_molecule_chunk
     safety_options: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Priority queue version of process_molecule_chunk for small jobs."""
