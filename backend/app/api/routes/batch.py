@@ -157,21 +157,10 @@ async def upload_batch(
             detail=f"File too large: {file_size_mb:.1f}MB exceeds limit of {settings.MAX_FILE_SIZE_MB}MB",
         )
 
-    # Security: Validate file content matches extension
-    # .csv, .tsv, and .txt are all treated as delimited text files
-    expected_type = "sdf" if filename_lower.endswith(".sdf") else "csv"
-    is_valid, error_msg = validate_file_content_type(content, expected_type, filename)
-    if not is_valid:
-        raise HTTPException(
-            status_code=400,
-            detail=error_msg or "Invalid file content",
-        )
-
-    # Security: Audit-log suspicious patterns in uploaded content.
-    # Non-blocking per detect_suspicious_content's contract — DOMPurify-style
-    # blocking is not appropriate here because legitimate chemistry data may
-    # contain sequences that resemble HTML tokens. Findings feed the audit
-    # trail for post-hoc investigation.
+    # Security: Audit-log ALL suspicious patterns before strict validation.
+    # validate_file_content_type below will block on the first pattern match
+    # with a 400 response, but the audit log should capture every finding so
+    # post-hoc investigation has the full picture for rejected uploads too.
     suspicious_findings = detect_suspicious_content(content)
     if suspicious_findings:
         client_ip = request.client.host if request.client else "unknown"
@@ -182,6 +171,16 @@ async def upload_batch(
             client_ip,
             len(content),
             suspicious_findings,
+        )
+
+    # Security: Validate file content matches extension and block on malicious
+    # patterns. .csv, .tsv, and .txt are all treated as delimited text files.
+    expected_type = "sdf" if filename_lower.endswith(".sdf") else "csv"
+    is_valid, error_msg = validate_file_content_type(content, expected_type, filename)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=error_msg or "Invalid file content",
         )
 
     # Parse file
