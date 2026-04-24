@@ -21,7 +21,7 @@ from typing import Optional
 import redis.asyncio as redis
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
-from fastapi import Header, HTTPException, Request, Security, status
+from fastapi import HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
@@ -352,37 +352,3 @@ def verify_csrf_token(token: str, max_age_seconds: int = 3600) -> bool:
 
     except (ValueError, TypeError):
         return False
-
-
-async def verify_csrf_header(
-    request: Request,
-    x_csrf_token: Optional[str] = Header(None, alias="X-CSRF-Token"),
-) -> bool:
-    """
-    Verify CSRF token from request header.
-
-    Args:
-        request: The FastAPI request
-        x_csrf_token: The CSRF token from header
-
-    Returns:
-        True if valid
-
-    Raises:
-        HTTPException: 403 if token is invalid
-    """
-    # Skip CSRF for safe methods
-    if request.method in ("GET", "HEAD", "OPTIONS"):
-        return True
-
-    # Skip CSRF if API key is present (API clients don't need CSRF)
-    if request.headers.get("X-API-Key"):
-        return True
-
-    if not x_csrf_token or not verify_csrf_token(x_csrf_token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid or missing CSRF token",
-        )
-
-    return True
