@@ -152,7 +152,6 @@ import type {
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || '/docs';
-export const DEBUG_MODE = import.meta.env.VITE_DEBUG === 'true';
 
 // Debug logging in development
 logger.info('[ChemAudit API] Configuration:', {
