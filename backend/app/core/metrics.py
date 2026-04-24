@@ -13,15 +13,14 @@ Usage:
     from app.core.metrics import (
         VALIDATION_DURATION,
         MOLECULES_PROCESSED,
-        record_validation,
     )
 
     # Record validation timing
     with VALIDATION_DURATION.time():
         result = validate(mol)
 
-    # Or use convenience function
-    record_validation(duration=0.5, status="success", batch_size=100)
+    # Increment molecules processed counter
+    MOLECULES_PROCESSED.labels(status="success").inc()
 """
 
 from prometheus_client import Counter, Gauge, Histogram, Info
@@ -108,88 +107,3 @@ EXTERNAL_API_DURATION = Histogram(
     ["api"],
     buckets=(0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0),
 )
-
-
-# Convenience functions for recording metrics
-def record_validation(
-    duration: float,
-    status: str = "success",
-    validation_type: str = "single",
-    batch_size: int = 1,
-) -> None:
-    """
-    Record a validation operation in metrics.
-
-    Args:
-        duration: Time taken in seconds
-        status: Result status (success, error, invalid)
-        validation_type: Type of validation (single, batch)
-        batch_size: Number of molecules in batch (default 1)
-    """
-    VALIDATION_DURATION.labels(validation_type=validation_type).observe(duration)
-    MOLECULES_PROCESSED.labels(status=status).inc(batch_size)
-
-    if batch_size > 1:
-        BATCH_SIZE.observe(batch_size)
-
-
-def record_cache_access(hit: bool) -> None:
-    """
-    Record a cache access (hit or miss).
-
-    Args:
-        hit: True if cache hit, False if miss
-    """
-    if hit:
-        CACHE_HITS.inc()
-    else:
-        CACHE_MISSES.inc()
-
-
-def record_batch_job_start() -> None:
-    """Record start of a batch job."""
-    ACTIVE_BATCH_JOBS.inc()
-
-
-def record_batch_job_end() -> None:
-    """Record end of a batch job."""
-    ACTIVE_BATCH_JOBS.dec()
-
-
-def record_alert_match(alert_type: str, count: int = 1) -> None:
-    """
-    Record structural alert matches.
-
-    Args:
-        alert_type: Type of alert (PAINS, BRENK, NIH, ZINC)
-        count: Number of matches to record
-    """
-    ALERT_MATCHES.labels(alert_type=alert_type).inc(count)
-
-
-def record_standardization(status: str = "success") -> None:
-    """
-    Record a standardization operation.
-
-    Args:
-        status: Result status (success, error)
-    """
-    STANDARDIZATIONS_PERFORMED.labels(status=status).inc()
-
-
-def record_external_api_call(
-    api: str,
-    status: str,
-    duration: float | None = None,
-) -> None:
-    """
-    Record an external API call.
-
-    Args:
-        api: API name (pubchem, chembl, coconut)
-        status: Result status (success, error)
-        duration: Request duration in seconds (optional)
-    """
-    EXTERNAL_API_CALLS.labels(api=api, status=status).inc()
-    if duration is not None:
-        EXTERNAL_API_DURATION.labels(api=api).observe(duration)

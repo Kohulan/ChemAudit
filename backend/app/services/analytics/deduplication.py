@@ -214,10 +214,10 @@ def compute_saltform_dedup(results: list[dict[str, Any]]) -> list[dict]:
 
     pairs: list[tuple[str, int]] = []
     for idx, mol in _iter_valid(results):
-        # Fast path: use already-standardized SMILES if present.
-        std_data = (results[idx].get("standardization") or {}) if False else {}
-        # Resolve actual result dict by index since _iter_valid yields the
-        # original index value, not list position.
+        # Resolve the result dict by matching ``index`` value, since ``idx``
+        # is the original index value yielded by ``_iter_valid``, not a list
+        # position. Use already-standardized SMILES as a fast path when present.
+        std_data: dict[str, Any] = {}
         for r in results:
             if r.get("index") == idx and r.get("status") == "success":
                 std_data = r.get("standardization") or {}

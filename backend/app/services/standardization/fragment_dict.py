@@ -7,8 +7,6 @@ for identifying and categorizing removed fragments in the parent extraction stag
 All dictionary keys are RDKit-canonical SMILES strings.
 """
 
-from typing import Optional
-
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 
@@ -127,15 +125,3 @@ def classify_fragment(smiles: str) -> dict:
     return {"smiles": canonical_smiles, "name": None, "role": "unknown", "mw": mw}
 
 
-def get_fragment_name(smiles: str) -> Optional[str]:
-    """
-    Get the human-readable name for a known fragment.
-
-    Args:
-        smiles: SMILES string of the fragment.
-
-    Returns:
-        Name string if found, None otherwise.
-    """
-    result = classify_fragment(smiles)
-    return result.get("name")

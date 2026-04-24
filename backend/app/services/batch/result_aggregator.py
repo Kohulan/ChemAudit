@@ -209,7 +209,6 @@ class ResultStorage:
 
     RESULT_EXPIRY = settings.BATCH_RESULT_TTL  # 24h to support analytics (INFRA-01)
     VIEW_CACHE_EXPIRY = 300  # 5 minutes for sorted/filtered views
-    PAGE_SIZE = 50  # Default page size
 
     def __init__(self, redis_url: str = None):
         self._redis_url = redis_url or settings.REDIS_URL
@@ -453,15 +452,6 @@ class ResultStorage:
             ]
 
         return filtered
-
-    def delete_results(self, job_id: str) -> None:
-        """Delete stored results and any cached views for a job."""
-        r = self._get_redis()
-        r.delete(f"batch:results:{job_id}")
-        r.delete(f"batch:stats:{job_id}")
-        # Clean up any cached sorted/filtered views
-        for key in r.scan_iter(f"batch:view:{job_id}:*"):
-            r.delete(key)
 
 
 # Singleton instance

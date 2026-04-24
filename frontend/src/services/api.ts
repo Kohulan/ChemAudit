@@ -152,7 +152,6 @@ import type {
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || '/docs';
-export const DEBUG_MODE = import.meta.env.VITE_DEBUG === 'true';
 
 // Debug logging in development
 logger.info('[ChemAudit API] Configuration:', {
@@ -178,7 +177,16 @@ async function fetchCsrfToken(): Promise<string> {
   }
 }
 
-// Export for manual refresh if needed
+/**
+ * Public escape hatch for manually refreshing the CSRF token.
+ *
+ * Intentionally exported even though there is currently no internal caller.
+ * The interceptor below handles CSRF acquisition transparently, but this
+ * export is retained for API consumers (embedding apps, tests, or future
+ * flows) that need to force a new token after a known invalidation event.
+ *
+ * Do not remove without auditing downstream consumers of the api module.
+ */
 export const refreshCsrfToken = async (): Promise<void> => {
   csrfToken = null;
   await fetchCsrfToken();
