@@ -18,7 +18,7 @@ interface ConfigProviderProps {
 
 /**
  * Provider that fetches deployment configuration from the API.
- * Makes limits available throughout the application via useConfig/useLimits hooks.
+ * Makes limits available throughout the application via the useLimits hook.
  */
 export function ConfigProvider({ children }: ConfigProviderProps) {
   const [config, setConfig] = useState<ConfigResponse>(DEFAULT_CONFIG);
@@ -62,17 +62,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 }
 
 /**
- * Hook to access the full configuration.
- */
-export function useConfig(): ConfigResponse {
-  const context = useContext(ConfigContext);
-  if (context === undefined) {
-    throw new Error('useConfig must be used within a ConfigProvider');
-  }
-  return context.config;
-}
-
-/**
  * Hook to access deployment limits.
  * Returns default limits if config hasn't loaded yet.
  */
@@ -83,12 +72,4 @@ export function useLimits(): DeploymentLimits {
     return DEFAULT_LIMITS;
   }
   return context.limits;
-}
-
-/**
- * Hook to check if config is still loading.
- */
-export function useConfigLoading(): boolean {
-  const context = useContext(ConfigContext);
-  return context?.isLoading ?? true;
 }
