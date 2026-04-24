@@ -48,6 +48,7 @@ from app.services.analytics.storage import analytics_storage
 from app.services.batch.analytics_tasks import run_expensive_analytics
 from app.services.batch.file_parser import (
     detect_csv_columns,
+    detect_suspicious_content,
     parse_csv,
     parse_sdf,
     validate_file_content_type,
@@ -164,6 +165,23 @@ async def upload_batch(
         raise HTTPException(
             status_code=400,
             detail=error_msg or "Invalid file content",
+        )
+
+    # Security: Audit-log suspicious patterns in uploaded content.
+    # Non-blocking per detect_suspicious_content's contract — DOMPurify-style
+    # blocking is not appropriate here because legitimate chemistry data may
+    # contain sequences that resemble HTML tokens. Findings feed the audit
+    # trail for post-hoc investigation.
+    suspicious_findings = detect_suspicious_content(content)
+    if suspicious_findings:
+        client_ip = request.client.host if request.client else "unknown"
+        logger.warning(
+            "Suspicious patterns detected in batch upload: filename=%s "
+            "client_ip=%s size_bytes=%d findings=%s",
+            filename,
+            client_ip,
+            len(content),
+            suspicious_findings,
         )
 
     # Parse file

@@ -8,6 +8,7 @@ from app.services.batch.file_parser import (
     _is_headerless_delimited_file,
     _looks_like_smiles_value,
     detect_csv_columns,
+    detect_suspicious_content,
     parse_csv,
     parse_sdf,
     validate_file_content_type,
@@ -452,3 +453,35 @@ class TestValidateFileContentType:
             b"SMILES\n<script>alert(1)</script>\n", "csv", "xss.csv"
         )
         assert not is_valid
+
+
+class TestDetectSuspiciousContent:
+    """Audit scanner returns pattern names for suspicious bytes; never blocks."""
+
+    def test_clean_csv_returns_no_findings(self):
+        content = b"SMILES,Name\nCCO,Ethanol\nc1ccccc1,Benzene\n"
+        assert detect_suspicious_content(content) == []
+
+    def test_script_tag_is_flagged(self):
+        findings = detect_suspicious_content(b"SMILES\n<script>alert(1)</script>\n")
+        assert "JavaScript tag" in findings
+
+    def test_javascript_protocol_is_flagged(self):
+        findings = detect_suspicious_content(b"SMILES,Link\nCCO,javascript:alert(1)\n")
+        assert "JavaScript protocol" in findings
+
+    def test_event_handlers_are_flagged(self):
+        findings = detect_suspicious_content(b"<svg onerror=x onclick=y onload=z>")
+        assert "onerror event handler" in findings
+        assert "onclick event handler" in findings
+        assert "onload event handler" in findings
+
+    def test_null_byte_is_flagged(self):
+        findings = detect_suspicious_content(b"SMILES\nCCO\x00malicious\n")
+        assert "Null byte" in findings
+
+    def test_scans_only_first_100kb(self):
+        # Suspicious content past the 100KB window should not be flagged.
+        content = (b"CCO\n" * 30_000) + b"<script>"
+        assert len(content) > 102_400
+        assert detect_suspicious_content(content) == []
