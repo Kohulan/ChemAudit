@@ -93,6 +93,11 @@ interface UseMoleculeOptions {
   width?: number;
   height?: number;
   highlightAtoms?: number[];
+  highlightBonds?: number[];
+  /** RGB triple in 0..1 range passed to RDKit. Defaults to the orange used for SMILES diagnostics. */
+  highlightColor?: [number, number, number];
+  /** When false, suppress the atom-index number labels drawn near each highlight. */
+  showAtomLabels?: boolean;
   showCIP?: boolean;  // Show R/S and E/Z stereochemistry labels
 }
 
@@ -100,7 +105,15 @@ export function useMolecule(
   smiles: string | null,
   options: UseMoleculeOptions = {}
 ): UseMoleculeResult {
-  const { width = 300, height = 200, highlightAtoms = [], showCIP = false } = options;
+  const {
+    width = 300,
+    height = 200,
+    highlightAtoms = [],
+    highlightBonds = [],
+    highlightColor = [1, 0.3, 0],
+    showAtomLabels = true,
+    showCIP = false,
+  } = options;
 
   const [svg, setSvg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,8 +125,10 @@ export function useMolecule(
   // Counter that increments when a new mol is created, triggering SVG re-render
   const [molVersion, setMolVersion] = useState(0);
 
-  // Serialize highlightAtoms for stable dependency comparison
+  // Serialize highlight inputs for stable dependency comparison
   const highlightAtomsKey = JSON.stringify(highlightAtoms);
+  const highlightBondsKey = JSON.stringify(highlightBonds);
+  const highlightColorKey = JSON.stringify(highlightColor);
 
   // Effect 1: Create/destroy molecule when SMILES changes (async, shows loading)
   useEffect(() => {
@@ -193,19 +208,24 @@ export function useMolecule(
         drawingOptions.addStereoAnnotation = true;
       }
 
-      if (highlightAtoms.length > 0) {
+      if (highlightAtoms.length > 0 || highlightBonds.length > 0) {
         const highlightDetails = JSON.stringify({
           atoms: highlightAtoms,
-          highlightColour: [1, 0.3, 0],  // Bright orange for better visibility
-          highlightRadius: 0.4,          // Slightly larger highlight radius
+          bonds: highlightBonds,
+          highlightColour: highlightColor,
+          highlightRadius: 0.4,
           ...drawingOptions,
         });
 
         // Render with highlights
         svgContent = mol.get_svg_with_highlights(highlightDetails);
 
-        // Add atom index labels to highlighted atoms via post-processing
-        svgContent = addAtomLabelsToSvg(svgContent, highlightAtoms);
+        // Atom-index numbers are only useful when the caller wants to map
+        // highlights back to a specific atom (e.g. SMILES diagnostics).
+        // Cross-pipeline diff cards turn this off to avoid visual noise.
+        if (showAtomLabels && highlightAtoms.length > 0) {
+          svgContent = addAtomLabelsToSvg(svgContent, highlightAtoms);
+        }
       } else if (showCIP) {
         try {
           svgContent = mol.get_svg_with_highlights(JSON.stringify(drawingOptions));
@@ -225,9 +245,9 @@ export function useMolecule(
       setError(e instanceof Error ? e.message : 'Unknown error');
       setSvg(null);
     }
-    // Use highlightAtomsKey (stable string) instead of highlightAtoms (unstable reference)
+    // Use serialized keys (stable strings) instead of array references (unstable)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [molVersion, width, height, highlightAtomsKey, showCIP]);
+  }, [molVersion, width, height, highlightAtomsKey, highlightBondsKey, highlightColorKey, showAtomLabels, showCIP]);
 
   return {
     svg,

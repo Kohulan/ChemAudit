@@ -79,6 +79,12 @@ export interface PipelineResult {
   formula: string;
   charge: number;
   stereo_count: number;
+  /** Present only when this pipeline failed. Other fields may be empty/zero in that case. */
+  error?: string | null;
+  /** Atom indices (in `smiles`) not in the cross-pipeline MCS. Empty when pipelines agree. */
+  highlight_atoms: number[];
+  /** Bond indices (in `smiles`) that touch a non-MCS atom. Empty when pipelines agree. */
+  highlight_bonds: number[];
 }
 
 export interface PropertyComparison {

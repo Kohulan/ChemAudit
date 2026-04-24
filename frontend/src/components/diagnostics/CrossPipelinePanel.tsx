@@ -20,6 +20,13 @@ interface CrossPipelinePanelProps {
 
 const PIPELINE_LABELS = ['RDKit MolStandardize', 'ChEMBL-style', 'Minimal Sanitize'];
 
+/**
+ * Highlight color for atoms/bonds that differ from the cross-pipeline MCS.
+ * Values are 0..1 RGB (RDKit.js convention). This is the status-error red
+ * from the theme, chosen to match the "structural disagreement" badge.
+ */
+const DIFF_HIGHLIGHT_COLOR: [number, number, number] = [0.937, 0.267, 0.267];
+
 /** Get row highlight classes based on disagreement type. */
 function getRowHighlightClass(row: PropertyComparison): string {
   if (row.agrees) return '';
@@ -105,11 +112,11 @@ export function CrossPipelinePanel({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {/* 3 skeleton MoleculeViewer placeholders */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {/* 3 skeleton MoleculeViewer placeholders — match actual card size */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => (
             <div key={i}>
-              <Skeleton variant="rounded" height={160} className="w-full mb-2" />
+              <Skeleton variant="rounded" height={180} className="w-full mb-2" />
               <Skeleton variant="text" height={14} className="w-3/4 mx-auto" />
             </div>
           ))}
@@ -133,9 +140,6 @@ export function CrossPipelinePanel({
 
   if (!result) return null;
 
-  // Extract SMILES for the 3 pipelines (in order)
-  const pipelineSmiles = result.pipelines.map((p) => p.smiles);
-
   return (
     <AnimatePresence>
       <motion.div
@@ -144,26 +148,55 @@ export function CrossPipelinePanel({
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="space-y-4"
       >
-        {/* 3 MoleculeViewer thumbnails */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {PIPELINE_LABELS.map((label, i) => (
-            <div key={label} className="flex flex-col items-center gap-2">
-              <div
-                className="w-full"
-                style={{ height: '160px' }}
+        {/* 3 pipeline thumbnails — fixed-height letterboxed box + caption below.
+            Each thumbnail's atoms/bonds that diverge from the cross-pipeline MCS
+            are highlighted in status-error red. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {PIPELINE_LABELS.map((label, i) => {
+            const pipeline = result.pipelines[i];
+            const hasError = Boolean(pipeline?.error);
+            const diverges =
+              !hasError && (pipeline?.highlight_atoms?.length ?? 0) > 0;
+            return (
+              <figure
+                key={label}
+                className="flex flex-col gap-2"
                 aria-label={`${label} — canonical structure rendering`}
               >
-                <MoleculeViewer
-                  smiles={pipelineSmiles[i] ?? null}
-                  height={160}
-                  className="h-[160px]"
-                />
-              </div>
-              <span className="text-xs font-semibold text-[var(--color-text-muted)] text-center">
-                {label}
-              </span>
-            </div>
-          ))}
+                <div
+                  className={`relative h-[180px] w-full rounded-xl border bg-[var(--color-surface)] overflow-hidden flex items-center justify-center p-3 ${
+                    diverges
+                      ? 'border-status-error'
+                      : 'border-[var(--color-border)]'
+                  }`}
+                >
+                  {hasError ? (
+                    <span className="text-xs text-status-error text-center px-4">
+                      {pipeline?.error ?? 'Pipeline failed'}
+                    </span>
+                  ) : (
+                    <MoleculeViewer
+                      smiles={pipeline?.smiles ?? null}
+                      highlightAtoms={pipeline?.highlight_atoms ?? []}
+                      highlightBonds={pipeline?.highlight_bonds ?? []}
+                      highlightColor={DIFF_HIGHLIGHT_COLOR}
+                      showAtomLabels={false}
+                      width={320}
+                      height={180}
+                      fit="contain"
+                      className="h-full"
+                    />
+                  )}
+                </div>
+                <figcaption className="text-xs font-semibold text-[var(--color-text-secondary)] text-center">
+                  {label}
+                  {diverges && (
+                    <span className="ml-1 text-status-error">•</span>
+                  )}
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
 
         {/* Comparison table */}
@@ -188,8 +221,6 @@ export function CrossPipelinePanel({
               <tbody>
                 {result.property_comparison.map((row, rowIdx) => {
                   const highlightClass = getRowHighlightClass(row);
-                  const isMonoProperty =
-                    row.property === 'SMILES' || row.property === 'InChIKey';
                   return (
                     <tr
                       key={rowIdx}
@@ -207,9 +238,9 @@ export function CrossPipelinePanel({
                       {row.values.map((val, colIdx) => (
                         <td
                           key={colIdx}
-                          className={`px-4 py-2.5 ${isMonoProperty ? 'font-mono text-xs' : 'text-sm'} text-[var(--color-text-primary)]`}
+                          className={`px-4 py-2.5 ${row.structural ? 'font-mono text-xs' : 'text-sm'} text-[var(--color-text-primary)]`}
                         >
-                          {isMonoProperty ? (
+                          {row.structural ? (
                             <Tooltip content={String(val)}>
                               <span>{truncate(formatValue(val, row.property))}</span>
                             </Tooltip>
