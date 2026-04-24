@@ -42,7 +42,6 @@ class StructureComparison:
 
     # Flags
     is_identical: bool = False
-    significant_change: bool = False
     diff_summary: List[str] = field(default_factory=list)
 
     @property
@@ -136,13 +135,6 @@ def compare_structures(
         comparison.original_inchikey is not None
         and comparison.standardized_inchikey is not None
         and comparison.original_inchikey == comparison.standardized_inchikey
-    )
-
-    # Determine if change is significant (different InChIKey = different compound)
-    comparison.significant_change = (
-        comparison.original_inchikey is not None
-        and comparison.standardized_inchikey is not None
-        and comparison.original_inchikey != comparison.standardized_inchikey
     )
 
     # Generate diff summary
