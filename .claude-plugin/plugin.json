@@ -1,0 +1,27 @@
+{
+  "name": "chemaudit",
+  "version": "1.0.0",
+  "description": "Chemical structure validation, QSAR-ready curation, structure filtering, dataset auditing, and cross-database integration tools for cheminformatics workflows. Bundles 8 skills that coordinate ChemAudit's REST API, MCP server, and CLI for single-molecule validation, batch processing, generative-chemistry filtering (REINVENT 4-compatible), dataset health auditing with contradictory-label detection, ChEMBL-compatible standardization with provenance, SMILES/InChI diagnostics, and lookups across PubChem, ChEMBL, COCONUT, Wikidata, and SureChEMBL.",
+  "author": {
+    "name": "Kohulan Rajan",
+    "email": "krajan@beilstein-institut.de"
+  },
+  "homepage": "https://github.com/Kohulan/ChemAudit",
+  "repository": "https://github.com/Kohulan/ChemAudit",
+  "license": "MIT",
+  "keywords": [
+    "chemistry",
+    "cheminformatics",
+    "drug-discovery",
+    "SMILES",
+    "validation",
+    "QSAR",
+    "machine-learning",
+    "REINVENT",
+    "PubChem",
+    "ChEMBL",
+    "claude-skill",
+    "claude-code",
+    "model-invoked"
+  ]
+}
