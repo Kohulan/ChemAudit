@@ -498,6 +498,50 @@ Once connected, you can ask your AI assistant:
 
 ---
 
+## 🧠 Agent Skills
+
+ChemAudit ships as a **Claude Code plugin** with 8 domain skills that coordinate the API, MCP server, and CLI into workflow-aware guidance. Skills activate automatically when a user's request matches their trigger phrases — no manual invocation required.
+
+### Skills
+
+| Skill | Use when the user asks about… |
+|---|---|
+| **chemaudit-molecule-validation** | single-molecule validation, drug-likeness, deep checks, PAINS, ML-readiness |
+| **chemaudit-batch-validation** | CSV/SDF bulk processing, clustering, scaffold analysis, 9 export formats |
+| **chemaudit-qsar-ready** | ML-dataset curation, 10-step pipeline, InChIKey deduplication, QSAR-2D vs 3D |
+| **chemaudit-structure-filter** | generative-model output filtering, REINVENT 4 scoring, drug-like / lead-like / fragment-like funnel |
+| **chemaudit-dataset-intelligence** | dataset health scoring, contradictory bioactivity labels, dataset-version diffs |
+| **chemaudit-standardization** | ChEMBL-compatible standardization with per-stage provenance |
+| **chemaudit-diagnostics** | SMILES parse errors, InChI layer diff, round-trip lossiness, file pre-validation |
+| **chemaudit-database-integrations** | PubChem / ChEMBL / COCONUT / Wikidata / SureChEMBL lookups, identifier resolution (CAS, ChEMBL ID, names) |
+
+### Installation
+
+The repo includes a `.claude-plugin/plugin.json` and a root `.mcp.json` for zero-config MCP auto-discovery:
+
+```bash
+# Clone the repo
+git clone https://github.com/Kohulan/ChemAudit.git && cd ChemAudit
+
+# Start the stack — MCP server becomes available at :8001/mcp
+docker compose up -d
+
+# Open the directory in Claude Code — skills and MCP server auto-connect
+claude .
+```
+
+Skills live in [`skills/chemaudit-*/SKILL.md`](skills/) and are distributed via the plugin manifest. Each skill is under 5,000 words and uses Anthropic's [progressive disclosure](https://docs.claude.com/en/docs/claude-code/plugins) pattern — YAML frontmatter loaded into context, SKILL.md loaded on trigger, `references/` files loaded only when needed.
+
+### Example AI workflow
+
+With skills installed, users can say:
+
+> "Upload this CSV through QSAR-ready with tautomer canonicalization on, show me how many molecules changed InChIKey, and export the curated CSV"
+
+Claude recognizes the `chemaudit-qsar-ready` skill, calls `/qsar-ready/batch/upload` with the right config, polls via WebSocket, counts `inchikey_changed=true` entries, and downloads the curated CSV — all without the user specifying any endpoint names.
+
+---
+
 ## 🏗 Project Structure
 
 ```
