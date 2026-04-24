@@ -33,7 +33,7 @@ interface ProfilerAccordionProps {
  * panel suitable for rendering inside a DrillDownSection accordion on
  * SingleValidation.
  *
- * Layout mirrors CompoundProfiler page:
+ * Layout:
  * 1. HeroSection (2D structure + radar)
  * 2. Core metrics grid (PFI, Stars, Bioavailability, ConsensusLogP, SkinPermeation)
  * 3. DrugLikenessGrid (5-card rule pass/fail)
