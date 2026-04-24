@@ -175,22 +175,6 @@ def test_validate_api_key_failure(client):
         assert "Invalid" in data["detail"] and "API key" in data["detail"]
 
 
-def test_hash_api_key():
-    """Test API key hashing function uses Argon2."""
-    from app.core.security import hash_api_key, verify_api_key_hash
-
-    key1 = "test_key_123"
-    key2 = "different_key"
-
-    # Hash should be Argon2 format (starts with $argon2)
-    hash1 = hash_api_key(key1)
-    assert hash1.startswith("$argon2")
-
-    # Verify function should work
-    assert verify_api_key_hash(key1, hash1) is True
-    assert verify_api_key_hash(key2, hash1) is False
-
-
 def test_hash_api_key_for_lookup():
     """Test API key lookup hash uses PBKDF2 (deterministic KDF)."""
     from app.core.security import hash_api_key_for_lookup

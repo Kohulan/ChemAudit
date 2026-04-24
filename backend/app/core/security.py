@@ -2,7 +2,7 @@
 API Key authentication, validation, and security utilities.
 
 Provides:
-- Argon2 password hashing for API keys
+- PBKDF2-HMAC-SHA256 key-derived lookup hashing for API keys
 - Admin authentication for key management
 - CSRF token generation and verification
 - API key expiration checking
@@ -19,23 +19,12 @@ from functools import lru_cache
 from typing import Optional
 
 import redis.asyncio as redis
-from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from fastapi import HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
-
-# Argon2 hasher configuration (secure defaults)
-ph = PasswordHasher(
-    time_cost=3,  # Number of iterations
-    memory_cost=65536,  # 64MB memory
-    parallelism=4,  # 4 parallel threads
-    hash_len=32,  # Output hash length
-    salt_len=16,  # Salt length
-)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 admin_secret_header = APIKeyHeader(name="X-Admin-Secret", auto_error=False)
@@ -46,29 +35,14 @@ async def get_redis_client():
     return redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
-def hash_api_key(key: str) -> str:
-    """
-    Hash API key using Argon2 for secure storage.
-
-    Args:
-        key: The plain API key to hash
-
-    Returns:
-        Argon2 hash string
-    """
-    return ph.hash(key)
-
-
 @lru_cache(maxsize=512)
 def hash_api_key_for_lookup(api_key_plain: str) -> str:
     """
-    Create a deterministic key-derived hash for API key lookup (not for storage).
+    Create a deterministic key-derived hash for API key lookup.
 
     Uses PBKDF2-HMAC-SHA256 with SECRET_KEY as a fixed salt so the output is
     deterministic (same key always produces the same hash). Results are cached
     in-process so the KDF cost is paid only once per key per worker.
-
-    The actual key verification for storage uses Argon2 (see hash_api_key).
 
     Args:
         api_key_plain: The plain API key
@@ -84,24 +58,6 @@ def hash_api_key_for_lookup(api_key_plain: str) -> str:
         dklen=32,
     )
     return dk.hex()
-
-
-def verify_api_key_hash(key: str, stored_hash: str) -> bool:
-    """
-    Verify an API key against its Argon2 hash.
-
-    Args:
-        key: The plain API key to verify
-        stored_hash: The stored Argon2 hash
-
-    Returns:
-        True if the key matches, False otherwise
-    """
-    try:
-        ph.verify(stored_hash, key)
-        return True
-    except (VerifyMismatchError, InvalidHashError):
-        return False
 
 
 async def validate_api_key(api_key: str) -> Optional[dict]:
