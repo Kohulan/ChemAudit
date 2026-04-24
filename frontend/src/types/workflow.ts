@@ -138,17 +138,6 @@ export interface PermalinkResolveResponse {
 }
 
 // =============================================================================
-// IUPAC Input Detection
-// =============================================================================
-
-export interface InputInterpretation {
-  detected_as: 'smiles' | 'iupac';
-  original_input: string;
-  converted_smiles: string | null;
-  conversion_source: string | null;
-}
-
-// =============================================================================
 // Export Formats
 // =============================================================================
 
