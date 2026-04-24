@@ -192,13 +192,29 @@ class PipelineResult(BaseModel):
     name: str = Field(description="Pipeline name (e.g., RDKit MolStandardize, ChEMBL Pipeline)")
     smiles: Optional[str] = Field(default=None, description="Canonical SMILES output")
     inchikey: Optional[str] = Field(default=None, description="InChIKey of standardized molecule")
-    mw: Optional[float] = Field(default=None, description="Exact molecular weight (4 decimal places)")
+    mw: Optional[float] = Field(
+        default=None, description="Exact molecular weight (4 decimal places)"
+    )
     formula: Optional[str] = Field(default=None, description="Molecular formula")
     charge: Optional[int] = Field(default=None, description="Net formal charge")
     stereo_count: Optional[int] = Field(default=None, description="Number of stereo centers")
     error: Optional[str] = Field(
         default=None,
         description="Error message if this pipeline failed",
+    )
+    highlight_atoms: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Zero-indexed atom indices (relative to the canonical SMILES in `smiles`) "
+            "that are not part of the cross-pipeline MCS. Empty when pipelines agree."
+        ),
+    )
+    highlight_bonds: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Zero-indexed bond indices that touch at least one non-MCS atom. "
+            "Empty when pipelines agree."
+        ),
     )
 
 

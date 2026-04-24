@@ -5,10 +5,24 @@ import { sanitizeSvg } from '../../lib/sanitize';
 interface MoleculeViewerProps {
   smiles: string | null;
   highlightAtoms?: number[];
+  highlightBonds?: number[];
+  /** RGB triple in 0..1 range for highlight fill. Defaults to orange. */
+  highlightColor?: [number, number, number];
+  /** When false, suppress atom-index number labels around highlighted atoms. */
+  showAtomLabels?: boolean;
   width?: number;
   height?: number;
   className?: string;
   showCIP?: boolean;
+  /**
+   * How the SVG sizes itself inside its container.
+   * - 'width'   (default): SVG fills container width, height computed from viewBox.
+   *                        Can overflow if the parent has a fixed height.
+   * - 'contain': SVG fills container both width and height, letterboxed via
+   *              preserveAspectRatio (xMidYMid meet). Use when the parent
+   *              is a fixed-size box.
+   */
+  fit?: 'width' | 'contain';
 }
 
 const PLACEHOLDER_BASE =
@@ -29,15 +43,22 @@ function makeSvgResponsive(svgStr: string): string {
 export function MoleculeViewer({
   smiles,
   highlightAtoms = [],
+  highlightBonds = [],
+  highlightColor,
+  showAtomLabels = true,
   width = 300,
   height = 200,
   className = '',
   showCIP = false,
+  fit = 'width',
 }: MoleculeViewerProps): ReactElement {
   const { svg, isLoading, error, isValid } = useMolecule(smiles, {
     width,
     height,
     highlightAtoms,
+    highlightBonds,
+    highlightColor,
+    showAtomLabels,
     showCIP,
   });
 
@@ -72,9 +93,18 @@ export function MoleculeViewer({
 
   const responsiveSvg = makeSvgResponsive(sanitizeSvg(svg));
 
+  // 'contain' letterboxes the SVG inside the parent's box (both w/h 100%,
+  // SVG preserveAspectRatio handles centering). 'width' keeps the original
+  // width-driven behavior where height scales to aspect ratio — fine for
+  // containers with no fixed height, but overflows fixed-height parents.
+  const fitClasses =
+    fit === 'contain'
+      ? '[&>svg]:block [&>svg]:w-full [&>svg]:h-full'
+      : '[&>svg]:block [&>svg]:w-full [&>svg]:h-auto';
+
   return (
     <div
-      className={`rounded-lg w-full [&>svg]:block [&>svg]:w-full [&>svg]:h-auto ${className}`}
+      className={`rounded-lg w-full ${fitClasses} ${className}`}
       dangerouslySetInnerHTML={{ __html: responsiveSvg }}
     />
   );

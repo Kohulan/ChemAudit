@@ -25,7 +25,13 @@ class TestAllAgree:
     def test_all_agree_result_structure(self) -> None:
         """Result contains all required keys."""
         result = compare_pipelines("CCO")
-        for key in ["pipelines", "disagreements", "structural_disagreements", "all_agree", "property_comparison"]:
+        for key in [
+            "pipelines",
+            "disagreements",
+            "structural_disagreements",
+            "all_agree",
+            "property_comparison",
+        ]:
             assert key in result, f"Missing key: {key}"
 
 
@@ -109,3 +115,59 @@ class TestInvalidSmiles:
         """A clearly invalid SMILES string raises ValueError."""
         with pytest.raises(ValueError):
             compare_pipelines("not_a_smiles_XYZ")
+
+
+class TestMcsHighlights:
+    """MCS-based structural diff highlights on each pipeline result."""
+
+    def test_all_agree_highlights_empty(self) -> None:
+        """When pipelines agree, no atoms/bonds are flagged as divergent."""
+        result = compare_pipelines("CCO")
+        assert result["all_agree"] is True
+        for pipeline in result["pipelines"]:
+            assert pipeline["highlight_atoms"] == []
+            assert pipeline["highlight_bonds"] == []
+
+    def test_disagree_yields_highlights(self) -> None:
+        """Salt SMILES: RDKit strips the counterion; at least one pipeline
+        has non-empty highlights (atoms the others retained)."""
+        result = compare_pipelines("CC(=O)[O-].[Na+]")
+        assert result["structural_disagreements"] >= 1
+        any_highlighted = any(
+            len(p["highlight_atoms"]) > 0 or len(p["highlight_bonds"]) > 0
+            for p in result["pipelines"]
+            if "error" not in p
+        )
+        assert any_highlighted, "Expected at least one pipeline to flag divergent atoms"
+
+    def test_highlight_indices_in_range(self) -> None:
+        """Every highlighted index is a valid atom/bond index of the pipeline's SMILES."""
+        from rdkit import Chem
+
+        result = compare_pipelines("CC(=O)[O-].[Na+]")
+        for pipeline in result["pipelines"]:
+            if "error" in pipeline:
+                continue
+            mol = Chem.MolFromSmiles(pipeline["smiles"])
+            assert mol is not None
+            num_atoms = mol.GetNumAtoms()
+            num_bonds = mol.GetNumBonds()
+            for idx in pipeline["highlight_atoms"]:
+                assert 0 <= idx < num_atoms, (
+                    f"Atom index {idx} out of range (0, {num_atoms}) for "
+                    f"{pipeline['name']} SMILES {pipeline['smiles']!r}"
+                )
+            for idx in pipeline["highlight_bonds"]:
+                assert 0 <= idx < num_bonds, (
+                    f"Bond index {idx} out of range (0, {num_bonds}) for "
+                    f"{pipeline['name']} SMILES {pipeline['smiles']!r}"
+                )
+
+    def test_highlight_fields_always_present(self) -> None:
+        """Every pipeline result exposes highlight_atoms and highlight_bonds."""
+        result = compare_pipelines("CCO")
+        for pipeline in result["pipelines"]:
+            assert "highlight_atoms" in pipeline
+            assert "highlight_bonds" in pipeline
+            assert isinstance(pipeline["highlight_atoms"], list)
+            assert isinstance(pipeline["highlight_bonds"], list)
