@@ -37,21 +37,18 @@ import {
 import { cn } from '../lib/utils';
 
 // Floating molecule configurations for background
+// Reduced from 7 to 2 — DESIGN.md "Earn every flourish": background decoration
+// should support, not compete with, page content.
 const moleculeConfigs = [
   { x: '10%', y: '15%', size: 60, delay: 0, duration: 20, opacity: 0.15 },
-  { x: '85%', y: '25%', size: 80, delay: 2, duration: 25, opacity: 0.12 },
-  { x: '75%', y: '60%', size: 50, delay: 4, duration: 18, opacity: 0.18 },
-  { x: '15%', y: '70%', size: 70, delay: 1, duration: 22, opacity: 0.14 },
-  { x: '50%', y: '85%', size: 45, delay: 3, duration: 16, opacity: 0.16 },
-  { x: '90%', y: '80%', size: 55, delay: 5, duration: 19, opacity: 0.13 },
-  { x: '5%', y: '45%', size: 65, delay: 2.5, duration: 21, opacity: 0.15 },
+  { x: '85%', y: '70%', size: 55, delay: 2, duration: 22, opacity: 0.13 },
 ];
 
-// Glowing orb configurations
+// Glowing orb configurations — static (no perpetual scale/opacity animation).
+// Reduced from 3 to 2 to lower ambient motion on the page.
 const glowOrbConfigs = [
-  { x: '20%', y: '30%', size: 300, color: 'var(--color-primary)', opacity: 0.08, blur: 100, duration: 8 },
-  { x: '70%', y: '50%', size: 250, color: 'var(--color-accent)', opacity: 0.06, blur: 80, duration: 10 },
-  { x: '40%', y: '80%', size: 200, color: 'var(--color-primary)', opacity: 0.05, blur: 60, duration: 12 },
+  { x: '20%', y: '30%', size: 300, color: 'var(--color-primary)', opacity: 0.08, blur: 100 },
+  { x: '70%', y: '50%', size: 250, color: 'var(--color-accent)', opacity: 0.06, blur: 80 },
 ];
 
 /**
@@ -65,8 +62,8 @@ export function AboutPage() {
     <div className="relative min-h-screen overflow-hidden">
       {/* Animated gradient mesh background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Aurora gradient effect */}
-        <motion.div
+        {/* Aurora gradient — static, no perpetual breathing animation */}
+        <div
           className="absolute inset-0"
           style={{
             background: `
@@ -75,19 +72,11 @@ export function AboutPage() {
               radial-gradient(ellipse 50% 30% at 50% 90%, rgba(var(--color-primary-rgb, 220, 38, 38), 0.05) 0%, transparent 50%)
             `,
           }}
-          animate={{
-            opacity: [0.8, 1, 0.8],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
         />
 
-        {/* Animated glowing orbs */}
+        {/* Static glowing orbs */}
         {glowOrbConfigs.map((orb, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute rounded-full"
             style={{
@@ -99,15 +88,6 @@ export function AboutPage() {
               opacity: orb.opacity,
               filter: `blur(${orb.blur}px)`,
               transform: 'translate(-50%, -50%)',
-            }}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [orb.opacity, orb.opacity * 1.5, orb.opacity],
-            }}
-            transition={{
-              duration: orb.duration,
-              repeat: Infinity,
-              ease: 'easeInOut',
             }}
           />
         ))}
