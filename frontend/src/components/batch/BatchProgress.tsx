@@ -202,7 +202,7 @@ export function BatchProgress({
       {progress && progress.status === 'processing' && (
         <div className="grid grid-cols-3 gap-4 py-4 px-2 border-t border-b border-[var(--color-border)] bg-gradient-to-r from-transparent via-[var(--color-surface-sunken)]/50 to-transparent rounded-lg">
           <div className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50">
-            <p className="text-2xl font-bold bg-gradient-to-r from-[#c41e3a] to-[#d97706] bg-clip-text text-transparent">
+            <p className="text-2xl font-bold text-[var(--color-primary)]">
               {progress.processed.toLocaleString()}
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Processed</p>

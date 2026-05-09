@@ -815,7 +815,7 @@ export function SingleValidationPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
           Molecule Validation
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">

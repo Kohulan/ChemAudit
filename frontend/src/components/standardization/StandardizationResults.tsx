@@ -51,7 +51,7 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
     <div className="space-y-6">
       {/* Stereochemistry Warning Banner */}
       {hasStereoWarning && (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+        <div className="bg-amber-50 border border-amber-300 p-4 rounded-lg">
           <div className="flex items-start gap-3">
             <span className="text-amber-500 text-xl">!</span>
             <div>

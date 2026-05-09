@@ -135,7 +135,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-[var(--color-text-primary)]/50 flex items-center justify-center z-50" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}

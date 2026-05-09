@@ -837,11 +837,11 @@ export function BatchResultsTable({
                                         {result.scoring.ml_readiness && (
                                           <div className="rounded-lg bg-gradient-to-br from-[var(--color-primary)]/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">ML-Ready</p>
-                                            <p className="text-xl font-bold text-gradient">{result.scoring.ml_readiness.score}</p>
+                                            <p className="text-xl font-bold text-[var(--color-primary)]">{result.scoring.ml_readiness.score}</p>
                                           </div>
                                         )}
                                         {result.scoring.druglikeness && (
-                                          <div className="rounded-lg bg-gradient-to-br from-purple-500/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
+                                          <div className="rounded-lg bg-gradient-to-br from-chem-secondary-600/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">QED</p>
                                             <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
                                             <p className={cn("text-xs font-medium", result.scoring.druglikeness.lipinski_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>

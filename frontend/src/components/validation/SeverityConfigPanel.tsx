@@ -82,7 +82,7 @@ export function SeverityConfigPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-[var(--color-text-primary)]/40 backdrop-blur-sm"
             onClick={onClose}
           />
 

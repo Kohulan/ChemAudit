@@ -30,7 +30,7 @@ export function FilePreValidationWarning({
   return (
     <div
       role="alert"
-      className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r-lg"
+      className="bg-amber-50 border border-amber-300 p-3 rounded-lg"
     >
       <div className="flex items-start gap-2 mb-3">
         <span className="text-amber-500 font-bold flex-shrink-0 mt-0.5">!</span>

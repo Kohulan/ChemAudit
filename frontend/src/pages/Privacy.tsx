@@ -79,7 +79,7 @@ export function PrivacyPage() {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         {/* TL;DR Section */}
-        <div className="card-glass p-6 border-l-4 border-l-[var(--color-primary)]">
+        <div className="card-glass p-6 border-2 border-[var(--color-primary)]">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
             <Eye className="w-5 h-5 text-[var(--color-primary)]" />
             TL;DR - The Short Version

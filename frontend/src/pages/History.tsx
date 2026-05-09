@@ -125,7 +125,7 @@ export function HistoryPage() {
           <Clock className="w-4 h-4 text-[var(--color-primary)]" />
           <span className="text-sm font-medium text-[var(--color-primary)]">Audit Trail</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
           Validation History
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto">
