@@ -132,41 +132,61 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
         {/* Visual Scale */}
         <div className="mb-4">
           <div className="relative h-10">
-            {/* Scale track background */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3 rounded-full overflow-hidden bg-[var(--color-surface-sunken)]">
+            {/* Scale track — sunken claymorphic groove. Inset top-left shadow
+                + inset bottom-right highlight create the impression that the
+                track is recessed into the surrounding surface, not painted on top. */}
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3.5 rounded-full overflow-hidden"
+              style={{
+                backgroundColor: 'var(--color-surface-sunken)',
+                boxShadow: `
+                  inset 1.5px 1.5px 3px rgba(26, 24, 21, 0.12),
+                  inset -1px -1px 2px rgba(255, 255, 255, 0.55)
+                `,
+              }}
+            >
               {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural) */}
               <div
-                className="absolute inset-0 opacity-80"
+                className="absolute inset-0"
                 style={{
-                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)'
+                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)',
+                  opacity: 0.85,
                 }}
+              />
+              {/* Inner specular highlight — hairline of light along the top of the groove */}
+              <div
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent)' }}
               />
             </div>
 
             {/* Center line indicator */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--color-text-muted)]/30 rounded-full" />
 
-            {/* Animated marker */}
+            {/* Animated marker — puffy claymorphic bead.
+                Inset white highlight (top-left) + inset shadow (bottom-right)
+                create the 3D bead, plus a soft warm drop shadow so it floats
+                above the track. No hard white ring. */}
             <motion.div
               initial={{ left: '50%' }}
               animate={{ left: `${clampedPosition}%` }}
               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
             >
-              {/* Glow ring */}
-              <div className={cn(
-                'absolute inset-0 w-7 h-7 -m-0.5 rounded-full blur-sm opacity-60',
-                `bg-gradient-to-r ${category.gradient}`
-              )} />
-              {/* Marker dot */}
-              <div className={cn(
-                'relative w-6 h-6 rounded-full border-2 border-white',
-                `bg-gradient-to-br ${category.gradient}`,
-                `shadow-lg ${category.glow}`
-              )}>
-                {/* Inner shine */}
-                <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-white/40" />
-              </div>
+              <div
+                className={cn(
+                  'relative w-6 h-6 rounded-full',
+                  `bg-gradient-to-br ${category.gradient}`,
+                )}
+                style={{
+                  boxShadow: `
+                    inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.55),
+                    inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.18),
+                    0 3px 8px rgba(26, 24, 21, 0.18),
+                    0 1px 2px rgba(26, 24, 21, 0.10)
+                  `,
+                }}
+              />
             </motion.div>
           </div>
 
