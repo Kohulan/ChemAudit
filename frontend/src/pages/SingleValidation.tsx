@@ -139,6 +139,43 @@ function formatMolecularFormula(formula: string) {
   );
 }
 
+/**
+ * Classify a parse / processing error message into a sub-type so the user
+ * gets a heading + hint specific to the actual failure mode rather than a
+ * generic "Parse Error". String-matches the error against common chemistry
+ * failure keywords. Order matters — most specific match first.
+ */
+type ParseErrorType = 'atom' | 'ring' | 'valence' | 'parse-other' | 'database' | 'generic';
+
+function classifyError(message: string | null | undefined, isDatabase: boolean): ParseErrorType {
+  if (isDatabase) return 'database';
+  if (!message) return 'generic';
+  const lower = message.toLowerCase();
+  if (lower.includes('valence')) return 'valence';
+  if (lower.includes('ring') || lower.includes('closure')) return 'ring';
+  if (lower.includes('atom') || lower.includes('element') || lower.includes('symbol')) return 'atom';
+  if (lower.includes('parse') || lower.includes('parser')) return 'parse-other';
+  return 'generic';
+}
+
+const PARSE_ERROR_HEADINGS: Record<ParseErrorType, string> = {
+  atom: 'Unrecognised atom symbol',
+  ring: 'Ring closure mismatch',
+  valence: 'Invalid valence',
+  'parse-other': 'Structure could not be parsed',
+  database: 'Database Lookup Failed',
+  generic: 'Error',
+};
+
+const PARSE_ERROR_HINTS: Record<ParseErrorType, string> = {
+  atom: 'Check element symbols are spelled correctly. Two-letter symbols like Cl or Br must be capitalised exactly. Lowercase letters are reserved for aromatic atoms (c, n, o, s).',
+  ring: 'Each ring opening digit needs a matching closing digit. Two-digit ring labels use a percent sign (e.g. C1CC%10CC%10CC1).',
+  valence: 'Check that nitrogen has no more than 3 bonds unless charged ([N+]), and that sulfur oxidation state is consistent. Hypervalent atoms may need explicit brackets.',
+  'parse-other': 'Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file. Common causes are typos in atom symbols or unbalanced ring closures.',
+  database: 'PubChem, ChEMBL, and COCONUT may be temporarily unavailable. Check the SMILES is canonicalisable and try again in a moment.',
+  generic: 'Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file.',
+};
+
 /** Compact severity summary tags for the quality card */
 function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
   const counts = { critical: 0, error: 0, warning: 0 };
@@ -1994,16 +2031,23 @@ export function SingleValidationPage() {
                     <AlertTriangle className="w-5 h-5 text-red-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-red-500 mb-1 font-display">
-                      {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string)?.includes('parse') ? 'Parse Error' : databaseError ? 'Database Lookup Failed' : 'Error'}
-                    </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)] break-words">
-                      {error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError}
-                    </p>
-                    <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                      Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file.
-                      Most parse errors come from typos in atom symbols or unbalanced ring closures.
-                    </p>
+                    {(() => {
+                      const activeMessage = (error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string | undefined;
+                      const errorType = classifyError(activeMessage, !!databaseError);
+                      return (
+                        <>
+                          <h3 className="font-semibold text-red-500 mb-1 font-display">
+                            {PARSE_ERROR_HEADINGS[errorType]}
+                          </h3>
+                          <p className="text-sm text-[var(--color-text-secondary)] break-words">
+                            {activeMessage}
+                          </p>
+                          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                            {PARSE_ERROR_HINTS[errorType]}
+                          </p>
+                        </>
+                      );
+                    })()}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <ClayButton
                         variant="primary"
