@@ -169,13 +169,28 @@ function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string
   );
 }
 
-const TABS: ReadonlyArray<TabBarTab<TabType>> = [
+const PRIMARY_TABS: ReadonlyArray<TabBarTab<TabType>> = [
   {
     id: 'validate',
     label: 'Validate & Score',
     icon: CheckCircle2,
     description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
   },
+  {
+    id: 'alerts',
+    label: 'Safety',
+    icon: Shield,
+    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
+  },
+  {
+    id: 'standardize',
+    label: 'Standardize',
+    icon: Layers,
+    description: 'Normalize structure representation and remove salts/solvents',
+  },
+];
+
+const SECONDARY_TABS: ReadonlyArray<TabBarTab<TabType>> = [
   {
     id: 'deep-validation',
     label: 'Deep Validation',
@@ -189,12 +204,6 @@ const TABS: ReadonlyArray<TabBarTab<TabType>> = [
     description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
   },
   {
-    id: 'alerts',
-    label: 'Safety',
-    icon: Shield,
-    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
-  },
-  {
     id: 'compound-profile',
     label: 'Compound Profile',
     icon: FlaskConical,
@@ -206,13 +215,9 @@ const TABS: ReadonlyArray<TabBarTab<TabType>> = [
     icon: Database,
     description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
   },
-  {
-    id: 'standardize',
-    label: 'Standardize',
-    icon: Layers,
-    description: 'Normalize structure representation and remove salts/solvents',
-  },
 ];
+
+const SECONDARY_TAB_IDS = new Set<TabType>(SECONDARY_TABS.map((t) => t.id));
 
 /** Shape of `location.state` when navigating to SingleValidation */
 interface LocationState {
@@ -282,6 +287,9 @@ export function SingleValidationPage() {
   const [highlightedAtoms, setHighlightedAtoms] = useState<number[]>([]);
   const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
+  const [moreAnalysisOpen, setMoreAnalysisOpen] = useState(false);
+  const isSecondaryActive = SECONDARY_TAB_IDS.has(activeTab);
+  const isMoreAnalysisOpen = moreAnalysisOpen || isSecondaryActive;
   const { validate, result, error, isLoading, reset, restore } = useValidation();
   const [_shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
@@ -1301,14 +1309,61 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            <div className="p-3">
+            <div className="p-3 space-y-3">
               <TabBar
-                tabs={TABS}
+                tabs={PRIMARY_TABS}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 ariaLabel="Validation analyses"
-                layout="auto"
               />
+
+              {(result !== null || isSecondaryActive) && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setMoreAnalysisOpen((prev) => !prev)}
+                    aria-expanded={isMoreAnalysisOpen}
+                    aria-controls="more-analysis-panel"
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg',
+                      'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
+                      'transition-colors duration-150',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+                    )}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        'w-3.5 h-3.5 transition-transform duration-300',
+                        isMoreAnalysisOpen && 'rotate-180',
+                      )}
+                    />
+                    More analysis
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isMoreAnalysisOpen && (
+                      <motion.div
+                        id="more-analysis-panel"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2">
+                          <TabBar
+                            tabs={SECONDARY_TABS}
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                            ariaLabel="Additional analysis tabs"
+                            idPrefix="more"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
 
             {/* Accent line below tab bar */}
