@@ -75,7 +75,7 @@ export function BatchProgress({
       return `${progress.processed.toLocaleString()} of ${progress.total.toLocaleString()} molecules analyzed`;
     }
     if (progress?.status === 'complete') {
-      return `Successfully processed ${progress.total.toLocaleString()} molecules`;
+      return `All ${progress.total.toLocaleString()} structures validated`;
     }
     if (progress?.status === 'pending') {
       return 'Initializing batch job...';
@@ -283,10 +283,10 @@ export function BatchProgress({
             </svg>
           </motion.div>
           <p className="text-amber-700 dark:text-yellow-400 font-semibold text-lg font-display">
-            Successfully processed {progress.total.toLocaleString()} molecules!
+            All {progress.total.toLocaleString()} structures validated
           </p>
           <p className="text-amber-600 dark:text-yellow-500 text-sm mt-2">
-            Loading results...
+            Preparing your report.
           </p>
         </motion.div>
       )}
