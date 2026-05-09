@@ -325,14 +325,13 @@ export function SingleValidationPage() {
     if (smilesFromUrl) {
       // searchParams.get() already decodes URI components — no need for decodeURIComponent
       setMolecule(smilesFromUrl);
-      // Auto-validate after loading from URL
-      setTimeout(() => {
-        validate({
-          molecule: smilesFromUrl,
-          format: 'auto',
-          preserve_aromatic: false,
-        });
-      }, 100);
+      // validate() takes the SMILES as an argument, so we don't need to wait
+      // for setMolecule to flush — pass the URL value directly.
+      validate({
+        molecule: smilesFromUrl,
+        format: 'auto',
+        preserve_aromatic: false,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
