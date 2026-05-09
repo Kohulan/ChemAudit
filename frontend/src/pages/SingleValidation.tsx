@@ -1142,8 +1142,8 @@ export function SingleValidationPage() {
               )}
             </AnimatePresence>
 
-            {/* IUPAC conversion result badge */}
-            <div className="mt-4 flex items-center gap-3">
+            {/* Action button row — uniform default ClayButtons */}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <ClayButton
                 onClick={handleReset}
                 disabled={!molecule && !result && !alertResult && !scoringResult && !standardizationResult && !databaseResults}
@@ -1169,11 +1169,9 @@ export function SingleValidationPage() {
               {/* View Full Profile cross-link — per D-24 */}
               {result && resolvedSmiles && (
                 <ClayButton
-                  variant="ghost"
-                  size="sm"
                   leftIcon={<Microscope className="w-4 h-4" />}
                   onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
-                  className="text-[var(--color-primary)]"
+                  title="Open the full Profiler page for this molecule"
                 >
                   View Full Profile
                 </ClayButton>
