@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -713,6 +713,24 @@ export function SingleValidationPage() {
   const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading || databaseLoading;
   const hasError = error || alertError || scoringError || standardizationError;
 
+  // Decorate the static tab rows with per-tab "has-result" indicators.
+  // The dot signals that an analysis has been run, even when the user is
+  // viewing a different tab — so they don't have to click each tab to find out.
+  const tabRowsWithResults = useMemo(() => {
+    const hasByTab: Partial<Record<TabType, boolean>> = {
+      'validate': !!result,
+      'deep-validation': !!result,
+      'scoring-profiles': !!scoringResult,
+      'alerts': !!(alertResult || safetyAssessResult),
+      'compound-profile': !!profileResult,
+      'database': !!databaseResults,
+      'standardize': !!standardizationResult,
+    };
+    const decorate = (row: ReadonlyArray<TabBarTab<TabType>>) =>
+      row.map((tab) => ({ ...tab, hasResult: !!hasByTab[tab.id] }));
+    return [decorate(TAB_ROW_1), decorate(TAB_ROW_2)];
+  }, [result, scoringResult, alertResult, safetyAssessResult, profileResult, databaseResults, standardizationResult]);
+
   // Calculate quality score
   const qualityScore = result?.overall_score ?? scoringResult?.ml_readiness?.score ?? null;
   // ML ready if score >= 70
@@ -1311,7 +1329,7 @@ export function SingleValidationPage() {
           <div className="card overflow-hidden">
             <div className="p-3">
               <TabBar
-                rows={[TAB_ROW_1, TAB_ROW_2]}
+                rows={tabRowsWithResults}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 ariaLabel="Validation analyses"

@@ -6,6 +6,8 @@ export interface TabBarTab<T extends string = string> {
   label: string;
   icon: ComponentType<{ className?: string }>;
   description?: string;
+  /** When true, render a small brand-primary dot on the inactive tab to signal it has results. */
+  hasResult?: boolean;
 }
 
 export interface TabBarProps<T extends string = string> {
@@ -95,6 +97,12 @@ export function TabBar<T extends string = string>({
                   )}
                 />
                 <span className="font-display">{tab.label}</span>
+                {tab.hasResult && !isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                  />
+                )}
               </button>
             );
           })}
