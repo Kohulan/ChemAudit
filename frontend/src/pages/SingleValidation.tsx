@@ -132,6 +132,13 @@ function detectInputType(value: string): InputType {
   return 'ambiguous';
 }
 
+/** Render a molecular formula like "C8H10N4O2" with the digits subscripted. */
+function formatMolecularFormula(formula: string) {
+  return formula.split(/(\d+)/).map((part, i) =>
+    /^\d+$/.test(part) ? <sub key={i}>{part}</sub> : <span key={i}>{part}</span>
+  );
+}
+
 /** Compact severity summary tags for the quality card */
 function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
   const counts = { critical: 0, error: 0, warning: 0 };
@@ -2044,7 +2051,26 @@ export function SingleValidationPage() {
                       Structure Preview
                     </h4>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                      {molecule ? 'Rendered with RDKit.js' : 'Enter a SMILES to preview'}
+                      {result?.molecule_info ? (
+                        <>
+                          {result.molecule_info.molecular_formula && (
+                            <span className="font-mono text-[var(--color-text-secondary)]">
+                              {formatMolecularFormula(result.molecule_info.molecular_formula)}
+                            </span>
+                          )}
+                          {result.molecule_info.molecular_formula && result.molecule_info.molecular_weight && (
+                            <span> · </span>
+                          )}
+                          {result.molecule_info.molecular_weight && (
+                            <span>MW {result.molecule_info.molecular_weight.toFixed(1)}</span>
+                          )}
+                          <span className="text-[var(--color-text-muted)]"> · rendered with RDKit.js</span>
+                        </>
+                      ) : molecule ? (
+                        'Rendered with RDKit.js'
+                      ) : (
+                        'Enter a SMILES to preview'
+                      )}
                     </p>
                   </div>
                   {/* CIP Labels Toggle - Show when molecule has stereochemistry */}
