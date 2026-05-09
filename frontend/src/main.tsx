@@ -10,7 +10,6 @@ import './index.css';
 // The citation is the original SMILES paper that defines every input this
 // tool accepts. Quoted line is verbatim from the paper.
 if (typeof window !== 'undefined' && import.meta.env.MODE !== 'test') {
-  // eslint-disable-next-line no-console
   console.log(
     '%cChemAudit%c — Chemical Structure Validation\n' +
       '%cWeininger, D. J. Chem. Inf. Comput. Sci. 1989, 29(2), 97-101\n' +
