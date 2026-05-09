@@ -1316,53 +1316,51 @@ export function SingleValidationPage() {
                 ariaLabel="Validation analyses"
               />
 
-              {(result !== null || isSecondaryActive) && (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setMoreAnalysisOpen((prev) => !prev)}
-                    aria-expanded={isMoreAnalysisOpen}
-                    aria-controls="more-analysis-panel"
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMoreAnalysisOpen((prev) => !prev)}
+                  aria-expanded={isMoreAnalysisOpen}
+                  aria-controls="more-analysis-panel"
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg',
+                    'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
+                    'transition-colors duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+                  )}
+                >
+                  <ChevronDown
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg',
-                      'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
-                      'transition-colors duration-150',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+                      'w-3.5 h-3.5 transition-transform duration-300',
+                      isMoreAnalysisOpen && 'rotate-180',
                     )}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        'w-3.5 h-3.5 transition-transform duration-300',
-                        isMoreAnalysisOpen && 'rotate-180',
-                      )}
-                    />
-                    More analysis
-                  </button>
+                  />
+                  More analysis
+                </button>
 
-                  <AnimatePresence initial={false}>
-                    {isMoreAnalysisOpen && (
-                      <motion.div
-                        id="more-analysis-panel"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pt-2">
-                          <TabBar
-                            tabs={SECONDARY_TABS}
-                            activeTab={activeTab}
-                            onTabChange={setActiveTab}
-                            ariaLabel="Additional analysis tabs"
-                            idPrefix="more"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+                <AnimatePresence initial={false}>
+                  {isMoreAnalysisOpen && (
+                    <motion.div
+                      id="more-analysis-panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2">
+                        <TabBar
+                          tabs={SECONDARY_TABS}
+                          activeTab={activeTab}
+                          onTabChange={setActiveTab}
+                          ariaLabel="Additional analysis tabs"
+                          idPrefix="more"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* Accent line below tab bar */}
