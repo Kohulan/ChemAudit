@@ -80,19 +80,19 @@ export function BatchProgress({
     if (progress?.status === 'pending') {
       return 'Initializing batch job...';
     }
-    return 'Connecting to server...';
+    return 'Reconnecting to the validation server';
   }, [progress?.status, progress?.processed, progress?.total]);
 
   const statusText = useMemo(() => {
     switch (progress?.status) {
       case 'pending':
-        return 'Waiting to start...';
+        return 'Queued. Validation will begin shortly.';
       case 'processing':
         return `Processing ${progress.processed} of ${progress.total} molecules...`;
       case 'complete':
         return 'Processing complete!';
       case 'failed':
-        return `Failed: ${progress.error_message || 'Unknown error'}`;
+        return `Failed: ${progress.error_message || 'no error detail returned. Check the validation logs for this job.'}`;
       case 'cancelled':
         return 'Cancelled';
       default:

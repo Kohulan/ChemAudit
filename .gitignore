@@ -13,6 +13,11 @@ CLAUDE.md
 **/CLAUDE*.md
 .claude/
 
+# Impeccable design artifacts (local only)
+/PRODUCT.md
+/DESIGN.md
+.impeccable/
+
 # Python
 __pycache__/
 *.py[cod]

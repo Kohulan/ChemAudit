@@ -124,9 +124,9 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { detail?: string } } };
         const detail = axiosErr.response?.data?.detail;
-        setError(detail || 'Export failed');
+        setError(detail || 'Export could not complete. Check that your browser allowed the download, then try again.');
       } else {
-        setError(err instanceof Error ? err.message : 'Export failed');
+        setError(err instanceof Error ? err.message : 'Export could not complete. Check that your browser allowed the download, then try again.');
       }
       logger.error('Export failed:', err);
     } finally {

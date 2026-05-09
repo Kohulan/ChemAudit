@@ -34,7 +34,7 @@ export function ReportPermalinkPage() {
       } else if (status === 404) {
         setError('Report not found. The link may be invalid or the report may have been removed.');
       } else {
-        setError('Failed to load report. Please try again later.');
+        setError('Could not load this report. The link may have expired, or the report may have been deleted. If the link was shared recently, ask the sender to regenerate it.');
       }
     });
 

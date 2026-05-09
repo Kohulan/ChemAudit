@@ -124,7 +124,7 @@ export const PropertyScatterPlot = React.memo(function PropertyScatterPlot({
           onPropertyChange={onPropertyChange}
         />
         <div className="flex items-center justify-center h-[280px] text-sm text-[var(--color-text-muted)]">
-          No data available for selected properties
+          No matching data points for these properties. Choose a different X or Y axis, or widen your molecule selection.
         </div>
       </div>
     );

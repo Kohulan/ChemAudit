@@ -90,7 +90,7 @@ function PropertyHistogram({ config, data }: { config: PropertyConfig; data: His
   if (barData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[200px] text-sm text-[var(--color-text-muted)]">
-        No data
+        No property data for this selection. Pick different molecules or properties.
       </div>
     );
   }

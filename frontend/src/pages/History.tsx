@@ -243,7 +243,7 @@ export function HistoryPage() {
                 type="text"
                 value={smilesSearch}
                 onChange={(e) => setSmilesSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder="Search by SMILES or job ID"
                 className={cn(
                   'w-full pl-8 pr-2.5 py-1.5 rounded-lg text-sm',
                   'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',

@@ -696,7 +696,7 @@ export function SubsetActionPanel({
 
                 {selectedResults.length === 0 && !loadingResults && (
                   <p className="text-xs text-[var(--color-text-muted)] text-center py-6">
-                    No results found for selected molecules.
+                    None of the selected molecules returned validation results. Adjust your selection or relax the filter criteria.
                   </p>
                 )}
 

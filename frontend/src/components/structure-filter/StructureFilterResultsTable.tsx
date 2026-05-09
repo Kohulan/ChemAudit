@@ -207,7 +207,7 @@ export function StructureFilterResultsTable({
                   >
                     {selectedStage
                       ? `No molecules rejected at stage "${selectedStage}".`
-                      : 'No results to display.'}
+                      : 'No structures match the current filter. Adjust your filter rules or load a different dataset.'}
                   </td>
                 </tr>
               )}

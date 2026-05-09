@@ -215,7 +215,7 @@ export function QSARReady() {
                 onChange={setSingleInput}
                 onSubmit={handleRunPipeline}
                 disabled={qsarState.singleLoading}
-                placeholder="Enter a SMILES, InChI, CAS number, or other identifier above, then click Run Pipeline."
+                placeholder="Paste a SMILES, InChI, or CAS identifier"
               />
               <div className="flex justify-end">
                 <ClayButton

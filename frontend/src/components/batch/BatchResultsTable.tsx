@@ -222,7 +222,7 @@ export function BatchResultsTable({
           <label className="text-sm text-[var(--color-text-secondary)]">Score:</label>
           <input
             type="number"
-            placeholder="Min"
+            placeholder="0"
             min="0"
             max="100"
             value={filters.min_score ?? ''}
@@ -237,7 +237,7 @@ export function BatchResultsTable({
           <span className="text-[var(--color-text-muted)]">-</span>
           <input
             type="number"
-            placeholder="Max"
+            placeholder="100"
             min="0"
             max="100"
             value={filters.max_score ?? ''}
