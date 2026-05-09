@@ -101,7 +101,7 @@ export function useBatchProgress(jobId: string | null) {
         };
 
         ws.onerror = () => {
-          setError('WebSocket connection error');
+          setError('Lost the live progress connection to the validation server. Your batch is still running; refresh the page to reconnect.');
         };
 
         ws.onmessage = (event) => {

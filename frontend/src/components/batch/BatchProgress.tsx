@@ -28,20 +28,15 @@ export function BatchProgress({
   // Track if we've already called onComplete to prevent multiple calls
   const hasCompletedRef = useRef(false);
 
-  // Call onComplete when status changes to complete (only once)
+  // Call onComplete exactly once when status becomes complete; reset flag on new jobs.
   useEffect(() => {
     if (progress?.status === 'complete' && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
       onComplete();
-    }
-  }, [progress?.status, onComplete]);
-
-  // Reset completion flag when job changes
-  useEffect(() => {
-    if (progress?.status === 'pending' || progress?.status === 'processing') {
+    } else if (progress?.status === 'pending' || progress?.status === 'processing') {
       hasCompletedRef.current = false;
     }
-  }, [progress?.status]);
+  }, [progress?.status, onComplete]);
 
   const formatETA = (seconds: number | null | undefined): string => {
     if (seconds === null || seconds === undefined || seconds <= 0) return 'Calculating...';
@@ -75,24 +70,24 @@ export function BatchProgress({
       return `${progress.processed.toLocaleString()} of ${progress.total.toLocaleString()} molecules analyzed`;
     }
     if (progress?.status === 'complete') {
-      return `Successfully processed ${progress.total.toLocaleString()} molecules`;
+      return `All ${progress.total.toLocaleString()} structures validated`;
     }
     if (progress?.status === 'pending') {
       return 'Initializing batch job...';
     }
-    return 'Connecting to server...';
+    return 'Reconnecting to the validation server';
   }, [progress?.status, progress?.processed, progress?.total]);
 
   const statusText = useMemo(() => {
     switch (progress?.status) {
       case 'pending':
-        return 'Waiting to start...';
+        return 'Queued. Validation will begin shortly.';
       case 'processing':
         return `Processing ${progress.processed} of ${progress.total} molecules...`;
       case 'complete':
         return 'Processing complete!';
       case 'failed':
-        return `Failed: ${progress.error_message || 'Unknown error'}`;
+        return `Failed: ${progress.error_message || 'no error detail returned. Check the validation logs for this job.'}`;
       case 'cancelled':
         return 'Cancelled';
       default:
@@ -100,18 +95,12 @@ export function BatchProgress({
     }
   }, [progress?.status, progress?.processed, progress?.total, progress?.error_message]);
 
-  // Progress bar style with gradient
-  const progressBarStyle = useMemo(() => {
-    let background: string;
-    if (progress?.status === 'complete') {
-      background = 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)';
-    } else if (progress?.status === 'failed') {
-      background = 'linear-gradient(90deg, #EF4444, #DC2626)';
-    } else {
-      background = 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)';
-    }
-    return { background };
-  }, [progress?.status]);
+  const progressBarBackground =
+    progress?.status === 'complete'
+      ? 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)'
+      : progress?.status === 'failed'
+        ? 'linear-gradient(90deg, #EF4444, #DC2626)'
+        : 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)';
 
   return (
     <motion.div
@@ -176,7 +165,7 @@ export function BatchProgress({
             className="h-full relative overflow-hidden transition-all duration-300 ease-out"
             style={{
               width: `${Math.max(0, Math.min(100, displayProgress))}%`,
-              ...progressBarStyle,
+              background: progressBarBackground,
             }}
           >
             {/* Shimmer overlay on progress */}
@@ -202,7 +191,7 @@ export function BatchProgress({
       {progress && progress.status === 'processing' && (
         <div className="grid grid-cols-3 gap-4 py-4 px-2 border-t border-b border-[var(--color-border)] bg-gradient-to-r from-transparent via-[var(--color-surface-sunken)]/50 to-transparent rounded-lg">
           <div className="text-center p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/50">
-            <p className="text-2xl font-bold bg-gradient-to-r from-[#c41e3a] to-[#d97706] bg-clip-text text-transparent">
+            <p className="text-2xl font-bold text-[var(--color-primary)]">
               {progress.processed.toLocaleString()}
             </p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Processed</p>
@@ -283,10 +272,10 @@ export function BatchProgress({
             </svg>
           </motion.div>
           <p className="text-amber-700 dark:text-yellow-400 font-semibold text-lg font-display">
-            Successfully processed {progress.total.toLocaleString()} molecules!
+            All {progress.total.toLocaleString()} structures validated
           </p>
           <p className="text-amber-600 dark:text-yellow-500 text-sm mt-2">
-            Loading results...
+            Preparing your report.
           </p>
         </motion.div>
       )}

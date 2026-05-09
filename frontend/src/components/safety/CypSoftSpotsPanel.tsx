@@ -48,7 +48,7 @@ export function CypSoftSpotsPanel({
               'w-full text-left px-3 py-2 rounded-lg border transition-colors',
               'hover:bg-[var(--color-surface-sunken)]',
               isActive
-                ? 'border-l-4 border-l-amber-400 border-[var(--color-border)] bg-amber-50/30 dark:bg-amber-900/10'
+                ? 'border-2 border-amber-400 bg-amber-50/40 dark:bg-amber-900/15'
                 : 'border border-[var(--color-border)]'
             )}
           >

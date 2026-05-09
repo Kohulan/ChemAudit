@@ -23,5 +23,9 @@ export { MoleculeLoader, Spinner, PageLoader } from './MoleculeLoader';
 // Accordion
 export { DrillDownSection } from './DrillDownSection';
 
+// Tabs
+export { TabBar } from './TabBar';
+export type { TabBarTab, TabBarProps } from './TabBar';
+
 // Re-export existing components
 export { InfoTooltip } from './Tooltip';

@@ -500,7 +500,7 @@ export function BatchValidationPage() {
           <FileSpreadsheet className="w-4 h-4 text-[var(--color-primary)]" />
           <span className="text-sm font-medium text-[var(--color-primary)]">High-throughput Processing</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
           Batch Validation
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto">
@@ -529,20 +529,45 @@ export function BatchValidationPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
             className="card p-5 border-red-500/30 bg-red-500/5"
+            role="alert"
+            aria-live="polite"
           >
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-500" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-red-600 dark:text-red-400 mb-1 font-display">
-                  Error Occurred
+                  Batch could not be processed
                 </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">{error}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] break-words">{error}</p>
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Expected: CSV, TSV, SDF, or SMI files with one structure per row.
+                  Most issues are resolved by checking the structure column header and
+                  removing rows with empty SMILES.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={handleStartNew}
+                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                  >
+                    Try again
+                  </ClayButton>
+                  <ClayButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setError(null)}
+                  >
+                    Dismiss
+                  </ClayButton>
+                </div>
               </div>
               <button
                 onClick={() => setError(null)}
                 className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
+                aria-label="Dismiss error"
               >
                 <X className="w-5 h-5 text-red-500" />
               </button>
@@ -637,7 +662,7 @@ export function BatchValidationPage() {
             className="space-y-6"
           >
             {/* Top bar: quick-nav + Start New Batch */}
-            <div className="sticky top-14 sm:top-16 z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
+            <div className="sticky top-[var(--header-height)] z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-[var(--color-bg)]/80 backdrop-blur-md border-b border-[var(--color-border)]/50">
               <div className="flex items-center justify-between gap-4">
                 {/* Quick-nav clay pills */}
                 <nav className="flex gap-2.5" aria-label="Jump to section">
@@ -676,7 +701,7 @@ export function BatchValidationPage() {
                       setIsExportDialogOpen(true);
                     }}
                     leftIcon={<Download className="w-3.5 h-3.5" />}
-                    style={{ backgroundColor: '#003049', color: 'white', borderColor: '#003049' }}
+                    variant="accent"
                   >
                     Export
                   </ClayButton>
@@ -805,7 +830,7 @@ export function BatchValidationPage() {
                       setIsExportDialogOpen(true);
                     }}
                     leftIcon={<Download className="w-3.5 h-3.5" />}
-                    style={{ backgroundColor: '#003049', color: 'white', borderColor: '#003049' }}
+                    variant="accent"
                   >
                     Export Selected ({selectedIndices.size})
                   </ClayButton>

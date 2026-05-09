@@ -171,7 +171,7 @@ export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
     <div className="fixed inset-x-0 bottom-0 top-[76px] z-40 flex justify-end">
       {/* Backdrop — fades in smoothly */}
       <motion.div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-[var(--color-text-primary)]/50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

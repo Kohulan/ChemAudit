@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +23,12 @@ import {
   BarChart3,
   ArrowLeft,
   GitCompareArrows,
+  Lock,
+  Hexagon,
+  GitMerge,
+  Scale,
+  FlaskConical,
+  Shield,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -40,6 +46,7 @@ import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
 import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
+import { TabBar, type TabBarTab, type TabBarResultState } from '../components/ui/TabBar';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -56,7 +63,6 @@ import { IdentifierResolverCard } from '../components/integrations/IdentifierRes
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
 import { SafetyAccordion } from '../components/safety/SafetyAccordion';
-import { FlaskConical, Shield } from 'lucide-react';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
 
@@ -75,6 +81,16 @@ const IDENTIFIER_EXAMPLES = [
   { name: 'CHEMBL25', label: 'CHEMBL25' },
   { name: '50-78-2', label: 'CAS 50-78-2' },
   { name: 'DB00945', label: 'DrugBank' },
+];
+
+const CHEMBL_CATALOGS = [
+  { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
+  { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
+  { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
+  { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
+  { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
+  { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
+  { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
 ];
 
 type InputType = 'smiles' | 'iupac' | 'identifier' | 'ambiguous';
@@ -130,6 +146,50 @@ function detectInputType(value: string): InputType {
   return 'ambiguous';
 }
 
+/** Render a molecular formula like "C8H10N4O2" with the digits subscripted. */
+function formatMolecularFormula(formula: string) {
+  return formula.split(/(\d+)/).map((part, i) =>
+    /^\d+$/.test(part) ? <sub key={i}>{part}</sub> : <span key={i}>{part}</span>
+  );
+}
+
+/**
+ * Classify a parse / processing error message into a sub-type so the user
+ * gets a heading + hint specific to the actual failure mode rather than a
+ * generic "Parse Error". String-matches the error against common chemistry
+ * failure keywords. Order matters — most specific match first.
+ */
+type ParseErrorType = 'atom' | 'ring' | 'valence' | 'parse-other' | 'database' | 'generic';
+
+function classifyError(message: string | null | undefined, isDatabase: boolean): ParseErrorType {
+  if (isDatabase) return 'database';
+  if (!message) return 'generic';
+  const lower = message.toLowerCase();
+  if (lower.includes('valence')) return 'valence';
+  if (lower.includes('ring') || lower.includes('closure')) return 'ring';
+  if (lower.includes('atom') || lower.includes('element') || lower.includes('symbol')) return 'atom';
+  if (lower.includes('parse') || lower.includes('parser')) return 'parse-other';
+  return 'generic';
+}
+
+const PARSE_ERROR_HEADINGS: Record<ParseErrorType, string> = {
+  atom: 'Unrecognised atom symbol',
+  ring: 'Ring closure mismatch',
+  valence: 'Invalid valence',
+  'parse-other': 'Structure could not be parsed',
+  database: 'Database Lookup Failed',
+  generic: 'Error',
+};
+
+const PARSE_ERROR_HINTS: Record<ParseErrorType, string> = {
+  atom: 'Check element symbols are spelled correctly. Two-letter symbols like Cl or Br must be capitalised exactly. Lowercase letters are reserved for aromatic atoms (c, n, o, s).',
+  ring: 'Each ring opening digit needs a matching closing digit. Two-digit ring labels use a percent sign (e.g. C1CC%10CC%10CC1).',
+  valence: 'Check that nitrogen has no more than 3 bonds unless charged ([N+]), and that sulfur oxidation state is consistent. Hypervalent atoms may need explicit brackets.',
+  'parse-other': 'Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file. Common causes are typos in atom symbols or unbalanced ring closures.',
+  database: 'PubChem, ChEMBL, and COCONUT may be temporarily unavailable. Check the SMILES is canonicalisable and try again in a moment.',
+  generic: 'Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file.',
+};
+
 /** Compact severity summary tags for the quality card */
 function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
   const counts = { critical: 0, error: 0, warning: 0 };
@@ -160,7 +220,7 @@ function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string
         ) : null
       )}
       {issues.length === 0 && totalChecks > 0 && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
           All clear
         </span>
       )}
@@ -168,55 +228,54 @@ function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string
   );
 }
 
-interface TabConfig {
-  id: TabType;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const TABS: TabConfig[] = [
+// Tabs split across two rows for visual breathing room.
+// Row 1: most-frequent core actions (validate, surface safety, normalize, lookup).
+// Row 2: deeper / power-user analyses.
+const TAB_ROW_1: ReadonlyArray<TabBarTab<TabType>> = [
   {
     id: 'validate',
     label: 'Validate & Score',
-    icon: <CheckCircle2 className="w-4 h-4" />,
+    icon: CheckCircle2,
     description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
   },
   {
+    id: 'alerts',
+    label: 'Safety',
+    icon: Shield,
+    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
+  },
+  {
+    id: 'standardize',
+    label: 'Standardize',
+    icon: Layers,
+    description: 'Normalize structure representation and remove salts/solvents',
+  },
+  {
+    id: 'database',
+    label: 'Database Lookup',
+    icon: Database,
+    description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
+  },
+];
+
+const TAB_ROW_2: ReadonlyArray<TabBarTab<TabType>> = [
+  {
     id: 'deep-validation',
     label: 'Deep Validation',
-    icon: <Microscope className="w-4 h-4" />,
+    icon: Microscope,
     description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
   },
   {
     id: 'scoring-profiles',
     label: 'Scoring Profiles',
-    icon: <BarChart3 className="w-4 h-4" />,
+    icon: BarChart3,
     description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
-  },
-  {
-    id: 'alerts',
-    label: 'Safety',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
   },
   {
     id: 'compound-profile',
     label: 'Compound Profile',
-    icon: <FlaskConical className="w-4 h-4" />,
+    icon: FlaskConical,
     description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
-  },
-  {
-    id: 'database',
-    label: 'Database Lookup',
-    icon: <Database className="w-4 h-4" />,
-    description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
-  },
-  {
-    id: 'standardize',
-    label: 'Standardize',
-    icon: <Layers className="w-4 h-4" />,
-    description: 'Normalize structure representation and remove salts/solvents',
   },
 ];
 
@@ -265,8 +324,11 @@ const CHECK_DESCRIPTIONS: Record<string, string> = {
   explicit_hydrogen_audit: 'Reports atoms with explicit hydrogen specifications and detects H atom objects from AddHs() processing.',
 };
 
+// Per DESIGN.md "Warm-Status Rule": pass / warning / error stay in the warm
+// spectrum (amber-gold → flame → fire). Differentiation comes from icon +
+// label first, with hue and saturation reinforcing the gradient.
 const CHECK_SEVERITY_STYLES: Record<string, string> = {
-  pass: 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
+  pass: 'bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)] text-[#b45309] dark:text-[#fcd34d]',
   critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
   error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
   warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -289,7 +351,7 @@ export function SingleValidationPage() {
   const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset, restore } = useValidation();
-  const [_shareToastVisible, setShareToastVisible] = useState(false);
+  const [shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
 
   // Enrichment: Profiler hook
@@ -323,14 +385,13 @@ export function SingleValidationPage() {
     if (smilesFromUrl) {
       // searchParams.get() already decodes URI components — no need for decodeURIComponent
       setMolecule(smilesFromUrl);
-      // Auto-validate after loading from URL
-      setTimeout(() => {
-        validate({
-          molecule: smilesFromUrl,
-          format: 'auto',
-          preserve_aromatic: false,
-        });
-      }, 100);
+      // validate() takes the SMILES as an argument, so we don't need to wait
+      // for setMolecule to flush — pass the URL value directly.
+      validate({
+        molecule: smilesFromUrl,
+        format: 'auto',
+        preserve_aromatic: false,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
@@ -357,16 +418,6 @@ export function SingleValidationPage() {
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(['PAINS', 'BRENK']);
   const [chemblExpanded, setChemblExpanded] = useState(false);
-
-  const CHEMBL_CATALOGS = [
-    { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
-    { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
-    { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
-    { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
-    { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
-    { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
-    { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
-  ];
 
   const toggleAllChembl = (enabled: boolean) => {
     const chemblIds = CHEMBL_CATALOGS.map((c) => c.id);
@@ -402,6 +453,8 @@ export function SingleValidationPage() {
 
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
+  const scoringAnchorRef = useRef<HTMLDivElement>(null);
+  const comparisonAnchorRef = useRef<HTMLDivElement>(null);
 
   // Input type auto-detection
   const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
@@ -419,6 +472,7 @@ export function SingleValidationPage() {
     wikidata: WikidataResult | null;
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
+  const [databaseError, setDatabaseError] = useState<string | null>(null);
 
   // Identifier resolution state
   const [resolverResult, setResolverResult] = useState<ResolvedCompound | null>(null);
@@ -538,6 +592,7 @@ export function SingleValidationPage() {
   const handleDatabaseLookup = async () => {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
+    setDatabaseError(null);
     setComparisonResult(null);
     try {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
@@ -548,6 +603,11 @@ export function SingleValidationPage() {
     } catch (err) {
       logger.error('Database lookup error:', err);
       setDatabaseResults(null);
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Database lookup failed. PubChem, ChEMBL, and COCONUT may be temporarily unavailable.';
+      setDatabaseError(message);
     } finally {
       setDatabaseLoading(false);
     }
@@ -572,6 +632,7 @@ export function SingleValidationPage() {
     setStandardizationResult(null);
     setStandardizationError(null);
     setDatabaseResults(null);
+    setDatabaseError(null);
     setResolverResult(null);
     setComparisonResult(null);
     setHighlightedAtoms([]);
@@ -709,7 +770,55 @@ export function SingleValidationPage() {
   };
 
   const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading || databaseLoading;
-  const hasError = error || alertError || scoringError || standardizationError;
+  const hasError = error || alertError || scoringError || standardizationError || databaseError;
+
+  // Decorate the static tab rows with per-tab "has-result" indicators and a
+  // qualified result state (clean / issues / warnings / complete) so a glance
+  // at the tab bar communicates not just that an analysis ran, but how it
+  // landed. Stays inside the warm-status spectrum per DESIGN.md.
+  const tabRowsWithResults = useMemo(() => {
+    const validationIssueCount = result?.issues?.length ?? 0;
+    const validationCriticalCount = result?.issues?.filter(
+      (i) => i.severity === 'critical' || i.severity === 'error',
+    ).length ?? 0;
+    const alertCount = alertResult?.alerts?.length ?? 0;
+
+    const stateByTab: Partial<Record<TabType, { hasResult: boolean; resultState?: TabBarResultState }>> = {
+      'validate': result
+        ? {
+            hasResult: true,
+            resultState:
+              validationCriticalCount > 0
+                ? 'issues'
+                : validationIssueCount > 0
+                ? 'warnings'
+                : 'clean',
+          }
+        : { hasResult: false },
+      'deep-validation': result ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'scoring-profiles': scoringResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'alerts': (alertResult || safetyAssessResult)
+        ? {
+            hasResult: true,
+            resultState: alertResult ? (alertCount > 0 ? 'issues' : 'clean') : 'complete',
+          }
+        : { hasResult: false },
+      'compound-profile': profileResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'database': databaseResults ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'standardize': standardizationResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+    };
+
+    const decorate = (row: ReadonlyArray<TabBarTab<TabType>>) =>
+      row.map((tab) => {
+        const state = stateByTab[tab.id];
+        return {
+          ...tab,
+          hasResult: !!state?.hasResult,
+          resultState: state?.resultState,
+        };
+      });
+    return [decorate(TAB_ROW_1), decorate(TAB_ROW_2)];
+  }, [result, scoringResult, alertResult, safetyAssessResult, profileResult, databaseResults, standardizationResult]);
 
   // Calculate quality score
   const qualityScore = result?.overall_score ?? scoringResult?.ml_readiness?.score ?? null;
@@ -747,8 +856,49 @@ export function SingleValidationPage() {
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
 
-  // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
+  // Auto-scroll to scoring results when they land. Without this the panel
+  // appears full-width below the grid and users miss it because their eye
+  // is still on the Score button in the left column. Only fires on the
+  // null -> set transition so re-renders don't keep triggering.
+  const prevScoringRef = useRef<typeof scoringResult>(null);
   useEffect(() => {
+    if (!prevScoringRef.current && scoringResult && activeTab === 'validate') {
+      scoringAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevScoringRef.current = scoringResult;
+  }, [scoringResult, activeTab]);
+
+  const prevComparisonRef = useRef<typeof comparisonResult>(null);
+  useEffect(() => {
+    if (!prevComparisonRef.current && comparisonResult && activeTab === 'database') {
+      comparisonAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevComparisonRef.current = comparisonResult;
+  }, [comparisonResult, activeTab]);
+
+  // Loading phrase cycling — name the actual chemistry being computed.
+  // Phrases rotate on a 1.5s interval while a loading flag is set, so a
+  // user looking at a multi-second wait sees what stage the tool is in,
+  // not just an opaque "Loading...".
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  useEffect(() => {
+    if (!isAnyLoading) {
+      setLoadingPhase(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setLoadingPhase((p) => p + 1);
+    }, 1500);
+    return () => clearInterval(id);
+  }, [isAnyLoading]);
+
+  // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
+  // Only auto-fires after validation has produced a result. Otherwise the
+  // user gets a CTA inside the tab (already rendered) and decides whether
+  // to spend the API call. Gating on `result` prevents unsolicited network
+  // requests while the user is just exploring the tab bar.
+  useEffect(() => {
+    if (!result) return;
     if (activeTab === 'compound-profile' && !profileResult && !profileLoading && canonicalSmiles) {
       profileCompound(canonicalSmiles);
     }
@@ -756,14 +906,78 @@ export function SingleValidationPage() {
       screenSafety(canonicalSmiles);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, canonicalSmiles]);
+  }, [activeTab, canonicalSmiles, result]);
 
   function getLoadingText(): string {
-    if (isLoading) return 'Running validation checks...';
-    if (databaseLoading) return 'Querying external databases...';
-    if (scoringLoading) return 'Calculating scores...';
-    if (standardizationLoading) return 'Running standardization pipeline...';
-    return 'Screening for structural alerts...';
+    let phrases: ReadonlyArray<string>;
+    if (isLoading) {
+      phrases = [
+        'Sanitizing molecular graph...',
+        'Enumerating stereocenters...',
+        'Computing InChI layer...',
+        'Evaluating valence model...',
+      ];
+    } else if (databaseLoading) {
+      phrases = [
+        'Querying PubChem by InChIKey...',
+        'Resolving ChEMBL bioactivity links...',
+        'Searching COCONUT natural products...',
+      ];
+    } else if (scoringLoading) {
+      phrases = [
+        'Computing Lipinski descriptors...',
+        'Evaluating ML-readiness criteria...',
+        'Calculating bioavailability radar...',
+      ];
+    } else if (standardizationLoading) {
+      phrases = [
+        'Applying ChEMBL structure pipeline...',
+        'Canonicalizing tautomers...',
+        'Removing salts and solvents...',
+      ];
+    } else {
+      phrases = [
+        'Screening for structural alerts...',
+        'Matching SMARTS patterns...',
+        'Checking PAINS and BRENK catalogs...',
+      ];
+    }
+    return phrases[loadingPhase % phrases.length];
+  }
+
+  function renderErrorDetail() {
+    const activeMessage = (error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string | undefined;
+    const errorType = classifyError(activeMessage, !!databaseError);
+    return (
+      <>
+        <h3 className="font-semibold text-red-500 mb-1 font-display">
+          {PARSE_ERROR_HEADINGS[errorType]}
+        </h3>
+        <p className="text-sm text-[var(--color-text-secondary)] break-words">
+          {activeMessage}
+        </p>
+        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+          {PARSE_ERROR_HINTS[errorType]}
+        </p>
+      </>
+    );
+  }
+
+  function renderAllChecksSummary(checks: NonNullable<typeof result>['all_checks']) {
+    const passed = checks.filter((c) => c.passed).length;
+    const flagged = checks.length - passed;
+    return (
+      <div className="flex items-center gap-1.5 ml-1">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
+          {passed} passed
+        </span>
+        {flagged > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">
+            {flagged} flagged
+          </span>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -815,7 +1029,7 @@ export function SingleValidationPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
           Molecule Validation
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
@@ -935,9 +1149,11 @@ export function SingleValidationPage() {
                 >
                   <div className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
-                    isIdentifierInput && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
-                    !isIdentifierInput && isIupacInput && 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20',
-                    !isIdentifierInput && !isIupacInput && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+                    // Brand warm-spectrum tints per detected input type. Replaces
+                    // the previous off-brand emerald/green/blue palettes.
+                    isIdentifierInput && 'bg-[rgba(225,29,72,0.10)] text-[#be123c] dark:text-[#fb7185] border border-[rgba(225,29,72,0.22)]',
+                    !isIdentifierInput && isIupacInput && 'bg-[rgba(217,119,6,0.10)] text-[#b45309] dark:text-[#fbbf24] border border-[rgba(217,119,6,0.22)]',
+                    !isIdentifierInput && !isIupacInput && 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary-dark)] dark:text-[var(--color-primary)] border border-[rgba(var(--color-primary-rgb),0.22)]',
                   )}>
                     {isIdentifierInput
                       ? 'Detected as database identifier \u2014 will resolve on validate'
@@ -967,19 +1183,23 @@ export function SingleValidationPage() {
               )}
             </AnimatePresence>
 
-            {/* IUPAC conversion result badge */}
-            <div className="mt-4 flex items-center gap-3">
+            {/* Action button row — uniform default ClayButtons; colour lives in the
+                leading icons so each action has a semantic hint while the chrome
+                stays grouped. Reset = muted (secondary, undo-style action),
+                Share + View Full Profile = primary (deliberate action / go deeper),
+                Bookmark = accent amber (warm 'save' positive). */}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <ClayButton
                 onClick={handleReset}
                 disabled={!molecule && !result && !alertResult && !scoringResult && !standardizationResult && !databaseResults}
-                leftIcon={<RotateCcw className="w-4 h-4" />}
+                leftIcon={<RotateCcw className="w-4 h-4 text-[var(--color-text-muted)]" />}
               >
                 Reset
               </ClayButton>
               <ClayButton
                 onClick={handleShare}
                 disabled={!molecule.trim()}
-                leftIcon={<Share2 className="w-4 h-4" />}
+                leftIcon={<Share2 className="w-4 h-4 text-[var(--color-primary)]" />}
               >
                 Share
               </ClayButton>
@@ -994,11 +1214,9 @@ export function SingleValidationPage() {
               {/* View Full Profile cross-link — per D-24 */}
               {result && resolvedSmiles && (
                 <ClayButton
-                  variant="ghost"
-                  size="sm"
-                  leftIcon={<Microscope className="w-4 h-4" />}
+                  leftIcon={<Microscope className="w-4 h-4 text-[var(--color-primary)]" />}
                   onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
-                  className="text-[var(--color-primary)]"
+                  title="Open the full Profiler page for this molecule"
                 >
                   View Full Profile
                 </ClayButton>
@@ -1073,36 +1291,43 @@ export function SingleValidationPage() {
                   {/* Show detailed info if validation result available, otherwise basic info */}
                   {result ? (
                     <div className="space-y-3">
-                      {/* Stats row — all from backend */}
+                      {/* Stats row — distinct icon + warm-spectrum tint per metric so the
+                          five tiles read as five different things at a glance, not one
+                          repeated card. Stays inside the brand palette per DESIGN.md. */}
                       <div className="grid grid-cols-5 gap-2 text-center">
                         {result.molecule_info.num_atoms != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_atoms}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
+                          <div className="rounded-lg p-2 bg-[rgba(var(--color-primary-rgb),0.06)] border border-[rgba(var(--color-primary-rgb),0.12)]">
+                            <Atom className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-primary)]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_atoms}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Atoms</div>
                           </div>
                         )}
                         {result.molecule_info.num_bonds != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_bonds}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Bonds</div>
+                          <div className="rounded-lg p-2 bg-[rgba(217,119,6,0.06)] border border-[rgba(217,119,6,0.14)]">
+                            <GitMerge className="w-3.5 h-3.5 mx-auto mb-1 text-[#d97706] dark:text-[#fbbf24]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_bonds}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Bonds</div>
                           </div>
                         )}
                         {result.molecule_info.num_rings != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_rings}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Rings</div>
+                          <div className="rounded-lg p-2 bg-[rgba(225,29,72,0.06)] border border-[rgba(225,29,72,0.14)]">
+                            <Hexagon className="w-3.5 h-3.5 mx-auto mb-1 text-[#e11d48] dark:text-[#fb7185]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_rings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Rings</div>
                           </div>
                         )}
                         {result.molecule_info.num_aromatic_rings != null && result.molecule_info.num_aromatic_rings > 0 && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_aromatic_rings}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Arom.</div>
+                          <div className="rounded-lg p-2 bg-[rgba(251,191,36,0.10)] border border-[rgba(251,191,36,0.22)]">
+                            <Sparkles className="w-3.5 h-3.5 mx-auto mb-1 text-[#b45309] dark:text-[#fbbf24]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_aromatic_rings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Arom.</div>
                           </div>
                         )}
                         {result.molecule_info.molecular_weight && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.molecular_weight.toFixed(1)}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">MW</div>
+                          <div className="rounded-lg p-2 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]">
+                            <Scale className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-text-secondary)]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.molecular_weight.toFixed(1)}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">MW</div>
                           </div>
                         )}
                       </div>
@@ -1307,35 +1532,13 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            {/* Tab Bar */}
-            <div className="flex flex-wrap gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    title={tab.description}
-                    className={cn(
-                      'group flex items-center gap-2',
-                      'px-3.5 py-2 text-[13px] font-medium whitespace-nowrap',
-                      'rounded-xl transition-all duration-200 cursor-pointer',
-                      'font-[Outfit,system-ui,sans-serif]',
-                      isActive
-                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
-                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/50',
-                    )}
-                  >
-                    <span className={cn(
-                      'shrink-0 transition-colors duration-200',
-                      isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]',
-                    )}>
-                      {tab.icon}
-                    </span>
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
+            <div className="p-3">
+              <TabBar
+                rows={tabRowsWithResults}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                ariaLabel="Validation analyses"
+              />
             </div>
 
             {/* Accent line below tab bar */}
@@ -1359,8 +1562,7 @@ export function SingleValidationPage() {
                         <Info className="w-4 h-4" />
                       </div>
                       <p className="text-[var(--color-text-secondary)] text-sm">
-                        Validate your chemical structure for correctness, standardize representations,
-                        and assess machine learning readiness scores to ensure your compounds are suitable for ML model training and prediction.
+                        Run Validate first. Score becomes available once the canonical SMILES is computed.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -1376,13 +1578,19 @@ export function SingleValidationPage() {
                       <ClayButton
                         variant="accent"
                         onClick={handleCalculateScores}
-                        disabled={!molecule.trim() || isAnyLoading}
+                        disabled={!molecule.trim() || isAnyLoading || !result}
                         loading={scoringLoading}
                         leftIcon={<Sparkles className="w-4 h-4" />}
+                        title={!result ? 'Run Validate first — Score uses the canonical SMILES from validation' : undefined}
                       >
                         Score
                       </ClayButton>
                     </div>
+                    {!result && molecule.trim() && (
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        Score becomes available after validation completes.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -1394,8 +1602,8 @@ export function SingleValidationPage() {
                         <Info className="w-4 h-4" />
                       </div>
                       <p className="text-[var(--color-text-secondary)] text-sm">
-                        Advanced structure analysis covering stereoisomer enumeration, tautomer detection,
-                        chemical composition guards, and structural complexity flags for comprehensive compound profiling.
+                        Stereoisomer enumeration, tautomer detection, composition guards, and complexity flags.
+                        Requires a successful basic validation first.
                       </p>
                     </div>
                     {!result && (
@@ -1428,8 +1636,8 @@ export function SingleValidationPage() {
                             <Info className="w-4 h-4" />
                           </div>
                           <p className="text-[var(--color-text-secondary)] text-sm">
-                            Consensus drug-likeness scoring, lead-likeness evaluation, property breakdowns,
-                            and bioavailability radar across multiple scoring profiles.
+                            Drug-likeness, lead-likeness, property breakdowns, and bioavailability radar
+                            across multiple consensus profiles. Run Validate first to populate.
                           </p>
                         </div>
                         <ClayButton
@@ -1456,7 +1664,7 @@ export function SingleValidationPage() {
                       </div>
                       <div>
                         <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Search compound databases for additional information:
+                          Click Look Up to query four databases for this molecule:
                         </p>
                         <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
                           <li className="flex items-center gap-2">
@@ -1605,8 +1813,7 @@ export function SingleValidationPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-1.5">
                           <p className="text-[var(--color-text-secondary)] text-sm flex-1">
-                            Screen for problematic structural patterns that may cause issues
-                            in assays or drug development.
+                            PAINS and BRENK preselected. Toggle additional catalogs (NIH, ZINC, ChEMBL filters) below.
                           </p>
                           <InfoTooltip
                             title="Safety Assessment Metrics"
@@ -1746,7 +1953,7 @@ export function SingleValidationPage() {
                       </div>
                       <div>
                         <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Standardize your structure using the ChEMBL pipeline. This includes:
+                          Click Standardize to apply the ChEMBL structure pipeline:
                         </p>
                         <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
                           <li className="flex items-center gap-2">
@@ -1864,18 +2071,39 @@ export function SingleValidationPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="card p-5 border-red-500/30"
+                role="alert"
+                aria-live="polite"
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
                     <AlertTriangle className="w-5 h-5 text-red-500" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-red-500 mb-1">
-                      {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error) as string)?.includes('parse') ? 'Parse Error' : 'Error'}
-                    </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                      {error?.error || alertError?.error || scoringError?.error || standardizationError?.error}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {renderErrorDetail()}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ClayButton
+                        variant="primary"
+                        size="sm"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim()}
+                        leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                      >
+                        Try again
+                      </ClayButton>
+                      <ClayButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          reset();
+                          setAlertError(null);
+                          setScoringError(null);
+                          setStandardizationError(null);
+                          setDatabaseError(null);
+                        }}
+                      >
+                        Dismiss
+                      </ClayButton>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1929,7 +2157,26 @@ export function SingleValidationPage() {
                       Structure Preview
                     </h4>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                      {molecule ? 'Rendered with RDKit.js' : 'Enter a SMILES to preview'}
+                      {result?.molecule_info ? (
+                        <>
+                          {result.molecule_info.molecular_formula && (
+                            <span className="font-mono text-[var(--color-text-secondary)]">
+                              {formatMolecularFormula(result.molecule_info.molecular_formula)}
+                            </span>
+                          )}
+                          {result.molecule_info.molecular_formula && result.molecule_info.molecular_weight && (
+                            <span> · </span>
+                          )}
+                          {result.molecule_info.molecular_weight && (
+                            <span>MW {result.molecule_info.molecular_weight.toFixed(1)}</span>
+                          )}
+                          <span className="text-[var(--color-text-muted)]"> · rendered with RDKit.js</span>
+                        </>
+                      ) : molecule ? (
+                        'Rendered with RDKit.js'
+                      ) : (
+                        'Enter a SMILES to preview'
+                      )}
                     </p>
                   </div>
                   {/* CIP Labels Toggle - Show when molecule has stereochemistry */}
@@ -1983,12 +2230,15 @@ export function SingleValidationPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={cn(
-                      'mt-3 text-xs text-center font-medium',
+                      'mt-3 text-xs text-center font-medium inline-flex items-center justify-center gap-1.5 w-full',
                       highlightLocked ? 'text-orange-500' : 'text-amber-500'
                     )}
                   >
-                    {highlightLocked ? '🔒 ' : ''}Highlighting atoms: {highlightedAtoms.join(', ')}
-                    {highlightLocked && ' (locked for download)'}
+                    {highlightLocked && <Lock className="w-3 h-3" />}
+                    <span>
+                      Highlighting atoms: {highlightedAtoms.join(', ')}
+                      {highlightLocked && ' (locked for download)'}
+                    </span>
                   </motion.p>
                 )}
                 {/* Stereochemistry info indicator */}
@@ -2017,9 +2267,9 @@ export function SingleValidationPage() {
                 )}
               </div>
 
-              {/* Validation Issues - Show right after molecule viewer */}
+              {/* Validation Issues - Show right after molecule viewer (validate tab only) */}
               <AnimatePresence>
-                {result && validationIssues.length > 0 && (
+                {activeTab === 'validate' && result && validationIssues.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2056,9 +2306,9 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
-              {/* Score Tiles - Only show after validation/scoring */}
+              {/* Score Tiles - Only show after validation/scoring (validate tab only) */}
               <AnimatePresence>
-                {hasScores && (
+                {activeTab === 'validate' && hasScores && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2141,21 +2391,21 @@ export function SingleValidationPage() {
               {/* Other results panels */}
               <AnimatePresence>
 
-                {/* Validation Success - no issues */}
-                {result && validationIssues.length === 0 && (
+                {/* Validation Success - no issues (validate tab only) */}
+                {activeTab === 'validate' && result && validationIssues.length === 0 && (
                   <motion.div
                     key="validation-success"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="rounded-xl p-5 text-center bg-yellow-500/10 border border-yellow-500/20"
+                    className="rounded-xl p-5 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]"
                   >
-                    <div className="text-4xl mb-2">✓</div>
-                    <h3 className="text-lg font-semibold text-amber-600 dark:text-yellow-400 mb-1">
-                      No Issues Found
+                    <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
+                    <h3 className="text-lg font-semibold text-[#b45309] dark:text-[#fcd34d] mb-1 font-display">
+                      All Clear
                     </h3>
-                    <p className="text-sm text-amber-600/80 dark:text-yellow-400/80">
-                      All validation checks passed successfully
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      All validation checks passed
                     </p>
                     <p className="mt-3 text-xs text-[var(--color-text-muted)]">
                       Completed in {result.execution_time_ms.toFixed(0)}ms
@@ -2163,80 +2413,6 @@ export function SingleValidationPage() {
                   </motion.div>
                 )}
 
-                {/* All Checks - Collapsible */}
-                {result && result.all_checks && result.all_checks.length > 0 && (
-                  <motion.div
-                    key="all-checks"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6 overflow-visible"
-                  >
-                    <button
-                      onClick={() => setShowAllChecks(!showAllChecks)}
-                      className="w-full flex items-center justify-between text-left"
-                    >
-                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                        All Checks ({result.all_checks.length})
-                      </h4>
-                      <ChevronDown
-                        className={cn(
-                          'w-5 h-5 text-[var(--color-text-muted)] transition-transform',
-                          showAllChecks && 'rotate-180'
-                        )}
-                      />
-                    </button>
-
-                    <AnimatePresence>
-                      {showAllChecks && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-4 space-y-2"
-                        >
-                          {result.all_checks.map((check, index) => (
-                            <div
-                              key={`${check.check_name}-${index}`}
-                              className="py-2.5 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
-                                    {check.passed ? '✓' : '✗'}
-                                  </span>
-                                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                                    {check.check_name.replace(/_/g, ' ')}
-                                  </span>
-                                  {CHECK_DESCRIPTIONS[check.check_name] && (
-                                    <InfoTooltip
-                                      content={CHECK_DESCRIPTIONS[check.check_name]}
-                                      position="right"
-                                    />
-                                  )}
-                                </div>
-                                <span
-                                  className={cn(
-                                    'text-xs px-2 py-1 rounded-md font-medium shrink-0',
-                                    CHECK_SEVERITY_STYLES[check.passed ? 'pass' : check.severity] ?? CHECK_SEVERITY_STYLES.info
-                                  )}
-                                >
-                                  {check.passed ? 'PASS' : check.severity.toUpperCase()}
-                                </span>
-                              </div>
-                              {check.message && (
-                                <p className="text-xs text-[var(--color-text-muted)] mt-1 ml-6">
-                                  {check.message}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
 
                 {/* Alert Screening Results */}
                 {alertResult && (
@@ -2272,9 +2448,9 @@ export function SingleValidationPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl p-4 text-center bg-yellow-500/10 border border-yellow-500/20">
-                        <div className="text-2xl mb-1">✓</div>
-                        <p className="text-sm text-amber-600 dark:text-yellow-400">
+                      <div className="rounded-xl p-4 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]">
+                        <CheckCircle2 className="w-7 h-7 mx-auto mb-1 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
+                        <p className="text-sm font-medium text-[#b45309] dark:text-[#fcd34d]">
                           No structural alerts detected
                         </p>
                       </div>
@@ -2292,11 +2468,124 @@ export function SingleValidationPage() {
         </motion.div>
       </div>
 
+      {/* All Checks — full-width below the grid. Collapsed = slim header bar.
+          Expanded = 4-up grid of mini cells (icon + name + severity badge),
+          tooltip on each cell reveals description + message. */}
+      <AnimatePresence>
+        {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+          <motion.div
+            key="all-checks"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="card overflow-hidden"
+          >
+            <button
+              onClick={() => setShowAllChecks(!showAllChecks)}
+              aria-expanded={showAllChecks}
+              aria-controls="all-checks-grid"
+              className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
+                  All Checks
+                </h4>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {result.all_checks.length} total
+                </span>
+                {result.all_checks.length > 0 && renderAllChecksSummary(result.all_checks)}
+              </div>
+              <ChevronDown
+                className={cn(
+                  'w-5 h-5 text-[var(--color-text-muted)] transition-transform duration-300',
+                  showAllChecks && 'rotate-180'
+                )}
+              />
+            </button>
 
-      {/* Cross-Database Comparison - Full Width Below Grid */}
+            <AnimatePresence initial={false}>
+              {showAllChecks && (
+                <motion.div
+                  id="all-checks-grid"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
+                      {result.all_checks.map((check, index) => {
+                        const severity = check.passed ? 'pass' : check.severity;
+                        const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
+                        const description = CHECK_DESCRIPTIONS[check.check_name];
+                        const tooltipContent = (
+                          <div className="text-xs space-y-1.5">
+                            {description && <p>{description}</p>}
+                            {check.message && (
+                              <p className="text-white/80">
+                                <span className="text-white/60 font-medium">Result:</span> {check.message}
+                              </p>
+                            )}
+                          </div>
+                        );
+                        return (
+                          <div
+                            key={`${check.check_name}-${index}`}
+                            className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {check.passed ? (
+                                <CheckCircle2
+                                  className="w-3.5 h-3.5 flex-shrink-0 text-[#d97706] dark:text-[#fbbf24]"
+                                  strokeWidth={2.25}
+                                />
+                              ) : (
+                                <AlertTriangle
+                                  className="w-3.5 h-3.5 flex-shrink-0 text-orange-500"
+                                  strokeWidth={2.25}
+                                />
+                              )}
+                              <span
+                                className="text-xs font-medium text-[var(--color-text-primary)] truncate"
+                                title={check.check_name.replace(/_/g, ' ')}
+                              >
+                                {check.check_name.replace(/_/g, ' ')}
+                              </span>
+                              {(description || check.message) && (
+                                <span className="ml-auto flex-shrink-0">
+                                  <InfoTooltip content={tooltipContent} position="left" size="small" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-end mt-auto">
+                              <span
+                                className={cn(
+                                  'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
+                                  severityClass,
+                                )}
+                              >
+                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cross-Database Comparison — full-width below the grid so the
+          comparison surface gets the horizontal room it needs */}
       <AnimatePresence>
         {comparisonResult && activeTab === 'database' && (
           <motion.div
+            ref={comparisonAnchorRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -2306,10 +2595,13 @@ export function SingleValidationPage() {
         )}
       </AnimatePresence>
 
-      {/* Scoring Results - Full Width Below Grid */}
+      {/* Scoring Results — full-width below the grid; auto-scrolls into
+          view when scoring completes so the user is not stranded above
+          their own result */}
       <AnimatePresence>
         {scoringResult && activeTab === 'validate' && (
           <motion.div
+            ref={scoringAnchorRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -2322,7 +2614,7 @@ export function SingleValidationPage() {
 
       {/* Share URL Toast */}
       <AnimatePresence>
-        {_shareToastVisible && (
+        {shareToastVisible && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}

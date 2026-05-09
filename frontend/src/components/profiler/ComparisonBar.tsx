@@ -77,7 +77,7 @@ export function ComparisonBar({
           >
             {/* Backdrop */}
             <div
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-[var(--color-text-primary)]/40 backdrop-blur-sm"
               onClick={() => {
                 setShowPasteOverlay(false);
                 setPasteError(null);

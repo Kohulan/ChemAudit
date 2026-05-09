@@ -160,7 +160,7 @@ export function AlertGroupCard({
                       'hover:bg-[var(--color-surface-elevated)]',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chem-primary-500 focus-visible:ring-inset',
                       'min-h-[44px]', // WCAG 2.5.5 touch target
-                      isHighlighted ? 'border-l-2 border-amber-400 pl-[14px]' : '',
+                      isHighlighted ? 'bg-amber-50/50 dark:bg-amber-900/15 ring-1 ring-inset ring-amber-400/40' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}

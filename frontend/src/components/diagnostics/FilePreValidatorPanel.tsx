@@ -46,7 +46,7 @@ function getVerdictInfo(result: FilePreValidationResponse): {
     return { variant: 'success', text: 'Ready to parse' };
   }
   if (hasErrorSeverity) {
-    return { variant: 'error', text: 'File has critical issues — do not parse' };
+    return { variant: 'error', text: 'File has critical issues; do not parse' };
   }
   return {
     variant: 'warning',

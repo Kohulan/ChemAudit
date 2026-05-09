@@ -91,11 +91,11 @@ export function BatchSummary({ jobId: _jobId, statistics, selectedIndices: _sele
         </button>
 
         {/* Processing time */}
-        <div className="bg-purple-500/10 dark:bg-purple-500/20 rounded-lg p-4">
-          <p className="text-3xl font-bold text-purple-700 dark:text-purple-400">
+        <div className="bg-chem-accent-600/10 dark:bg-chem-accent-600/20 rounded-lg p-4">
+          <p className="text-3xl font-bold text-chem-accent-700 dark:text-chem-accent-400">
             {formatTime(statistics.processing_time_seconds)}
           </p>
-          <p className="text-sm text-purple-600 dark:text-purple-500">Processing Time</p>
+          <p className="text-sm text-chem-accent-700 dark:text-chem-accent-500">Processing Time</p>
         </div>
       </div>
 
@@ -123,13 +123,13 @@ export function BatchSummary({ jobId: _jobId, statistics, selectedIndices: _sele
         </div>
         <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
           <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg QED Score</p>
-          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+          <p className="text-3xl font-bold text-chem-secondary-700 dark:text-chem-secondary-400">
             {statistics.avg_qed_score?.toFixed(2) ?? '-'}
           </p>
         </div>
         <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg p-4">
           <p className="text-sm text-[var(--color-text-muted)] mb-1">Avg SA Score</p>
-          <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+          <p className="text-3xl font-bold text-chem-accent-700 dark:text-chem-accent-400">
             {statistics.avg_sa_score?.toFixed(1) ?? '-'}
           </p>
         </div>

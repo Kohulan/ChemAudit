@@ -55,7 +55,7 @@ export function ProvenanceTimeline({ provenance }: ProvenanceTimelineProps) {
     <div className="space-y-3">
       {/* Stereo warning banner (when stereocenters were lost) */}
       {hasStereoWarning && provenance.stereo_summary && (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r-lg">
+        <div className="bg-amber-50 border border-amber-300 p-3 rounded-lg">
           <div className="flex items-start gap-2">
             <span className="text-amber-500 font-bold flex-shrink-0">!</span>
             <div>

@@ -55,7 +55,7 @@ const NotFoundPage = lazy(() =>
 function PageLoaderFallback() {
   return (
     <div className="flex items-center justify-center h-64">
-      <MoleculeLoader size="lg" text="Loading..." />
+      <MoleculeLoader size="lg" text="Starting the structure toolkit" />
     </div>
   );
 }
@@ -87,7 +87,7 @@ function RDKitErrorState({ error }: { error: string }) {
         </svg>
       </div>
       <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2 font-display">
-        Failed to load RDKit.js
+        Could not load the structure rendering toolkit
       </h2>
       <p className="text-sm text-text-secondary">{error}</p>
     </motion.div>

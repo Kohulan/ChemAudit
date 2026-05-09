@@ -222,7 +222,7 @@ export const MoleculeComparisonPanel = React.memo(function MoleculeComparisonPan
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
+            className="fixed inset-0 bg-[var(--color-text-primary)]/30 z-40"
             onClick={onClose}
           />
 

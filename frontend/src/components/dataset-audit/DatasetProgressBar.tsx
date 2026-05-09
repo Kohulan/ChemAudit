@@ -92,10 +92,11 @@ export function DatasetProgressBar({
           aria-label="Dataset analysis progress"
         >
           <div
-            className="h-full rounded-full bg-[var(--color-primary)]"
+            className="h-full rounded-full bg-[var(--color-primary)] origin-left"
             style={{
-              width: `${pct}%`,
-              transition: 'width 0.3s ease-out',
+              width: '100%',
+              transform: `scaleX(${pct / 100})`,
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           />
         </div>

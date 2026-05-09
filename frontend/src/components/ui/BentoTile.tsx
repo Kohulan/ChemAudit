@@ -116,7 +116,7 @@ export function TileValue({
   return (
     <div className={className}>
       <div className="flex items-baseline gap-2">
-        <span className={cn(sizeClasses[size], 'font-bold text-gradient tracking-tight', glow && 'text-glow')}>
+        <span className={cn(sizeClasses[size], 'font-bold text-[var(--color-primary)] tracking-tight', glow && 'text-glow')}>
           {value}
         </span>
         {trend && (

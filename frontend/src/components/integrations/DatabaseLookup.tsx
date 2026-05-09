@@ -34,7 +34,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
       const result = await integrationsApi.lookupAll({ inchikey, smiles });
       setResults(result);
     } catch (err) {
-      setError('Failed to look up databases');
+      setError('Could not query the structure databases. The lookup service may be temporarily unavailable; retry in a moment.');
       logger.error('Database lookup error:', err);
     } finally {
       setIsLoading(false);

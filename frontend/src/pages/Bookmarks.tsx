@@ -108,7 +108,7 @@ export function BookmarksPage() {
           <Star className="w-4 h-4 text-amber-500" />
           <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Molecule Library</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gradient tracking-tight font-display">
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] tracking-tight font-display">
           Bookmarks
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-3 text-base sm:text-lg max-w-2xl mx-auto">

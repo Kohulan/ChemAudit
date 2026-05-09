@@ -284,7 +284,7 @@ export function CalculationTooltip({
       )}
       <div>
         <span className="text-zinc-400 text-xs block mb-1">Calculation:</span>
-        <code className="text-xs bg-black/30 px-2 py-1 rounded block">{calculation}</code>
+        <code className="text-xs bg-[var(--color-text-primary)]/30 px-2 py-1 rounded block">{calculation}</code>
       </div>
       <div>
         <span className="text-zinc-400 text-xs block mb-1">Meaning:</span>

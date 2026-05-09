@@ -172,7 +172,7 @@ export function useMolecule(
           // Signal that a new mol is ready for SVG rendering
           setMolVersion((v) => v + 1);
         } catch (e) {
-          setError(e instanceof Error ? e.message : 'Unknown error');
+          setError(e instanceof Error ? e.message : 'Could not render this structure. The molecule data may be malformed.');
           setSvg(null);
         } finally {
           setIsLoading(false);
@@ -242,7 +242,7 @@ export function useMolecule(
       setSvg(svgContent);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
+      setError(e instanceof Error ? e.message : 'Could not render this structure. The molecule data may be malformed.');
       setSvg(null);
     }
     // Use serialized keys (stable strings) instead of array references (unstable)

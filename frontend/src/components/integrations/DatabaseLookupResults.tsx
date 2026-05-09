@@ -46,7 +46,7 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
         <div className="flex items-center gap-2">
           <img src={pubchemLogo} alt="PubChem" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900">PubChem</span>
-          <span className="text-xs text-gray-400">Failed to query</span>
+          <span className="text-xs text-gray-400">Lookup unavailable</span>
         </div>
       </div>
     );
@@ -122,7 +122,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
         <div className="flex items-center gap-2">
           <img src={chemblLogo} alt="ChEMBL" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900">ChEMBL</span>
-          <span className="text-xs text-gray-400">Failed to query</span>
+          <span className="text-xs text-gray-400">Lookup unavailable</span>
         </div>
       </div>
     );
@@ -222,7 +222,7 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
         <div className="flex items-center gap-2">
           <img src={coconutLogo} alt="COCONUT" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900">COCONUT</span>
-          <span className="text-xs text-gray-400">Failed to query</span>
+          <span className="text-xs text-gray-400">Lookup unavailable</span>
         </div>
       </div>
     );
@@ -304,7 +304,7 @@ function WikidataCard({ result }: { result: WikidataResult | null }) {
         <div className="flex items-center gap-2">
           <img src={wikidataLogo} alt="Wikidata" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900 dark:text-gray-100">Wikidata</span>
-          <span className="text-xs text-gray-400">Failed to query</span>
+          <span className="text-xs text-gray-400">Lookup unavailable</span>
         </div>
       </div>
     );
@@ -377,7 +377,7 @@ function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
         <div className="flex items-center gap-2">
           <img src={surechemblLogo} alt="SureChEMBL" className="w-5 h-5 rounded-sm object-contain" />
           <span className="font-medium text-gray-900 dark:text-gray-100">SureChEMBL</span>
-          <span className="text-xs text-gray-400">Failed to query</span>
+          <span className="text-xs text-gray-400">Lookup unavailable</span>
         </div>
       </div>
     );
