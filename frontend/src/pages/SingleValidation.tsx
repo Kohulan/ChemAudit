@@ -162,7 +162,7 @@ function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string
         ) : null
       )}
       {issues.length === 0 && totalChecks > 0 && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
           All clear
         </span>
       )}
