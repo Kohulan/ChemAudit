@@ -83,6 +83,16 @@ const IDENTIFIER_EXAMPLES = [
   { name: 'DB00945', label: 'DrugBank' },
 ];
 
+const CHEMBL_CATALOGS = [
+  { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
+  { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
+  { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
+  { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
+  { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
+  { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
+  { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
+];
+
 type InputType = 'smiles' | 'iupac' | 'identifier' | 'ambiguous';
 
 /** Characters that appear in SMILES but never in IUPAC names or identifiers. */
@@ -408,16 +418,6 @@ export function SingleValidationPage() {
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>(['PAINS', 'BRENK']);
   const [chemblExpanded, setChemblExpanded] = useState(false);
-
-  const CHEMBL_CATALOGS = [
-    { id: 'CHEMBL_BMS', label: 'BMS HTS Filters' },
-    { id: 'CHEMBL_DUNDEE', label: 'Dundee NTD Filters' },
-    { id: 'CHEMBL_GLAXO', label: 'Glaxo Hard Filters' },
-    { id: 'CHEMBL_INPHARMATICA', label: 'Inpharmatica' },
-    { id: 'CHEMBL_LINT', label: 'Lilly MedChem (LINT)' },
-    { id: 'CHEMBL_MLSMR', label: 'NIH MLSMR' },
-    { id: 'CHEMBL_SURECHEMBL', label: 'SureChEMBL' },
-  ];
 
   const toggleAllChembl = (enabled: boolean) => {
     const chemblIds = CHEMBL_CATALOGS.map((c) => c.id);
