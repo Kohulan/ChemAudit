@@ -1306,19 +1306,12 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            <div className="p-3 space-y-1.5">
+            <div className="p-3">
               <TabBar
-                tabs={TAB_ROW_1}
+                rows={[TAB_ROW_1, TAB_ROW_2]}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                ariaLabel="Validation analyses (core)"
-              />
-              <TabBar
-                tabs={TAB_ROW_2}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                ariaLabel="Validation analyses (deep)"
-                idPrefix="tab2"
+                ariaLabel="Validation analyses"
               />
             </div>
 
