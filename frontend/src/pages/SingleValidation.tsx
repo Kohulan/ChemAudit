@@ -777,7 +777,12 @@ export function SingleValidationPage() {
   }, [canonicalSmiles, molecule]);
 
   // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
+  // Only auto-fires after validation has produced a result. Otherwise the
+  // user gets a CTA inside the tab (already rendered) and decides whether
+  // to spend the API call. Gating on `result` prevents unsolicited network
+  // requests while the user is just exploring the tab bar.
   useEffect(() => {
+    if (!result) return;
     if (activeTab === 'compound-profile' && !profileResult && !profileLoading && canonicalSmiles) {
       profileCompound(canonicalSmiles);
     }
@@ -785,7 +790,7 @@ export function SingleValidationPage() {
       screenSafety(canonicalSmiles);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, canonicalSmiles]);
+  }, [activeTab, canonicalSmiles, result]);
 
   function getLoadingText(): string {
     if (isLoading) return 'Running validation checks...';
