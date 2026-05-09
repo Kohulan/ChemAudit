@@ -265,8 +265,11 @@ const CHECK_DESCRIPTIONS: Record<string, string> = {
   explicit_hydrogen_audit: 'Reports atoms with explicit hydrogen specifications and detects H atom objects from AddHs() processing.',
 };
 
+// Per DESIGN.md "Warm-Status Rule": pass / warning / error stay in the warm
+// spectrum (amber-gold → flame → fire). Differentiation comes from icon +
+// label first, with hue and saturation reinforcing the gradient.
 const CHECK_SEVERITY_STYLES: Record<string, string> = {
-  pass: 'bg-yellow-500/10 text-amber-600 dark:text-yellow-400',
+  pass: 'bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)] text-[#b45309] dark:text-[#fcd34d]',
   critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
   error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
   warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -2125,14 +2128,14 @@ export function SingleValidationPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="rounded-xl p-5 text-center bg-yellow-500/10 border border-yellow-500/20"
+                    className="rounded-xl p-5 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]"
                   >
-                    <div className="text-4xl mb-2">✓</div>
-                    <h3 className="text-lg font-semibold text-amber-600 dark:text-yellow-400 mb-1">
-                      No Issues Found
+                    <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
+                    <h3 className="text-lg font-semibold text-[#b45309] dark:text-[#fcd34d] mb-1 font-display">
+                      All Clear
                     </h3>
-                    <p className="text-sm text-amber-600/80 dark:text-yellow-400/80">
-                      All validation checks passed successfully
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      All validation checks passed
                     </p>
                     <p className="mt-3 text-xs text-[var(--color-text-muted)]">
                       Completed in {result.execution_time_ms.toFixed(0)}ms
@@ -2249,9 +2252,9 @@ export function SingleValidationPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl p-4 text-center bg-yellow-500/10 border border-yellow-500/20">
-                        <div className="text-2xl mb-1">✓</div>
-                        <p className="text-sm text-amber-600 dark:text-yellow-400">
+                      <div className="rounded-xl p-4 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]">
+                        <CheckCircle2 className="w-7 h-7 mx-auto mb-1 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
+                        <p className="text-sm font-medium text-[#b45309] dark:text-[#fcd34d]">
                           No structural alerts detected
                         </p>
                       </div>
