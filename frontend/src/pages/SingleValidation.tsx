@@ -405,6 +405,8 @@ export function SingleValidationPage() {
 
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
+  const scoringAnchorRef = useRef<HTMLDivElement>(null);
+  const comparisonAnchorRef = useRef<HTMLDivElement>(null);
 
   // Input type auto-detection
   const detectedType = molecule.trim() ? detectInputType(molecule.trim()) : 'ambiguous';
@@ -775,6 +777,26 @@ export function SingleValidationPage() {
     a.click();
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
+
+  // Auto-scroll to scoring results when they land. Without this the panel
+  // appears full-width below the grid and users miss it because their eye
+  // is still on the Score button in the left column. Only fires on the
+  // null -> set transition so re-renders don't keep triggering.
+  const prevScoringRef = useRef<typeof scoringResult>(null);
+  useEffect(() => {
+    if (!prevScoringRef.current && scoringResult && activeTab === 'validate') {
+      scoringAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevScoringRef.current = scoringResult;
+  }, [scoringResult, activeTab]);
+
+  const prevComparisonRef = useRef<typeof comparisonResult>(null);
+  useEffect(() => {
+    if (!prevComparisonRef.current && comparisonResult && activeTab === 'database') {
+      comparisonAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevComparisonRef.current = comparisonResult;
+  }, [comparisonResult, activeTab]);
 
   // Loading phrase cycling — name the actual chemistry being computed.
   // Phrases rotate on a 1.5s interval while a loading flag is set, so a
@@ -2383,40 +2405,42 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
-              {/* Scoring Results — surfaces in the right column directly under
-                  the score tiles when on the Validate tab */}
-              <AnimatePresence>
-                {scoringResult && activeTab === 'validate' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6"
-                  >
-                    <ScoringResults scoringResponse={scoringResult} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Cross-Database Comparison — surfaces in the right column on
-                  the Database tab so curators see consistency findings without
-                  scrolling past the grid */}
-              <AnimatePresence>
-                {comparisonResult && activeTab === 'database' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                  >
-                    <DatabaseComparisonPanel result={comparisonResult} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
             </>
           )}
         </motion.div>
       </div>
+
+      {/* Cross-Database Comparison — full-width below the grid so the
+          comparison surface gets the horizontal room it needs */}
+      <AnimatePresence>
+        {comparisonResult && activeTab === 'database' && (
+          <motion.div
+            ref={comparisonAnchorRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <DatabaseComparisonPanel result={comparisonResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scoring Results — full-width below the grid; auto-scrolls into
+          view when scoring completes so the user is not stranded above
+          their own result */}
+      <AnimatePresence>
+        {scoringResult && activeTab === 'validate' && (
+          <motion.div
+            ref={scoringAnchorRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="card p-6 sm:p-8"
+          >
+            <ScoringResults scoringResponse={scoringResult} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Share URL Toast */}
       <AnimatePresence>
