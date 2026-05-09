@@ -78,7 +78,7 @@ export function ClusterMemberGrid({
           >
             <MoleculeViewer smiles={smiles} width={80} height={60} />
             {smiles && (
-              <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+              <span className="absolute inset-0 flex items-center justify-center bg-[var(--color-text-primary)]/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                 {copiedIdx === idx ? (
                   <Check className="w-4 h-4 text-green-400" />
                 ) : (

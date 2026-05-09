@@ -352,7 +352,7 @@ function ScoredCard({ mol }: { mol: InlineScoredMolecule }) {
 
       {/* Score bar */}
       {score != null && (
-        <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden mb-2">
+        <div className="h-1.5 rounded-full bg-[var(--color-text-primary)]/5 dark:bg-[var(--color-text-primary)]/10 overflow-hidden mb-2">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(score, 100)}%` }}
@@ -571,7 +571,7 @@ export function SubsetActionPanel({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[var(--color-text-primary)]/30 backdrop-blur-[2px]"
       />
 
       {/* Panel */}
