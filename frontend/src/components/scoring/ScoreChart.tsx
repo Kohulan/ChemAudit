@@ -17,7 +17,13 @@ interface ScoreChartProps {
   interpretation?: string;
   /** Show as compact version */
   compact?: boolean;
-  /** Color variant: 'warm' (amber/yellow) or 'cool' (blue/cyan) */
+  /**
+   * Colour variant within the brand warm spectrum.
+   * - 'warm' (default): amber / gold / orange / fire — score-quality colours
+   * - 'cool': rose / crimson / stone — quieter warm pairing for the
+   *   secondary score tile so two adjacent gauges aren't competing on the
+   *   same hue. NOTE the legacy name; both variants are warm.
+   */
   variant?: 'warm' | 'cool';
 }
 
