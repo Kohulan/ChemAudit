@@ -23,6 +23,7 @@ import {
   BarChart3,
   ArrowLeft,
   GitCompareArrows,
+  Lock,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -2016,12 +2017,15 @@ export function SingleValidationPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={cn(
-                      'mt-3 text-xs text-center font-medium',
+                      'mt-3 text-xs text-center font-medium inline-flex items-center justify-center gap-1.5 w-full',
                       highlightLocked ? 'text-orange-500' : 'text-amber-500'
                     )}
                   >
-                    {highlightLocked ? '🔒 ' : ''}Highlighting atoms: {highlightedAtoms.join(', ')}
-                    {highlightLocked && ' (locked for download)'}
+                    {highlightLocked && <Lock className="w-3 h-3" />}
+                    <span>
+                      Highlighting atoms: {highlightedAtoms.join(', ')}
+                      {highlightLocked && ' (locked for download)'}
+                    </span>
                   </motion.p>
                 )}
                 {/* Stereochemistry info indicator */}
