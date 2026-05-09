@@ -228,9 +228,9 @@ export function RoundTripPanel({
             className="flex items-center gap-2"
           >
             {result.lossy === false ? (
-              <Badge variant="success">Lossless — no information lost</Badge>
+              <Badge variant="success">Lossless: no information lost</Badge>
             ) : (
-              <Badge variant="error">Lossy — information was lost in conversion</Badge>
+              <Badge variant="error">Lossy: conversion dropped information</Badge>
             )}
           </motion.div>
         )}

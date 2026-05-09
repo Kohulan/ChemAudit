@@ -210,7 +210,7 @@ export function ContradictionCard({
         className="relative rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 overflow-hidden"
         style={{
           backgroundColor: severity.clayBg,
-          borderLeft: `4px solid ${severity.borderColor}`,
+          border: `2px solid ${severity.borderColor}`,
           boxShadow: severity.clayShadow,
         }}
         onMouseEnter={(e) => { e.currentTarget.style.boxShadow = severity.clayHoverShadow; }}

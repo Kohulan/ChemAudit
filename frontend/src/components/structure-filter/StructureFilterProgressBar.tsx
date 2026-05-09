@@ -28,7 +28,7 @@ interface StructureFilterProgressBarProps {
  * - Stage label below bar in text-xs text-secondary
  * - Async threshold notice: amber-50/border-amber-200 banner
  * - 500ms delay before showing to avoid flash on fast jobs
- * - Transition: width 0.3s ease-out on progress fill
+ * - Transition: transform 0.3s smooth-ease on progress fill (scaleX, not width)
  */
 export function StructureFilterProgressBar({
   progress,
@@ -67,10 +67,11 @@ export function StructureFilterProgressBar({
           aria-label={`Filtering progress: ${pct}%`}
         >
           <div
-            className="h-full rounded-full bg-[var(--color-primary)]"
+            className="h-full rounded-full bg-[var(--color-primary)] origin-left"
             style={{
-              width: `${pct}%`,
-              transition: 'width 0.3s ease-out',
+              width: '100%',
+              transform: `scaleX(${pct / 100})`,
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           />
         </div>

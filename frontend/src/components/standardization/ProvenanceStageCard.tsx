@@ -50,8 +50,8 @@ function RoleBadge({ role }: { role: string }) {
   const colors: Record<string, string> = {
     salt: 'bg-blue-100 text-blue-700',
     solvent: 'bg-yellow-100 text-yellow-700',
-    counterion: 'bg-purple-100 text-purple-700',
-    unknown: 'bg-gray-100 text-gray-600',
+    counterion: 'bg-amber-100 text-amber-800',
+    unknown: 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
   };
   return (
     <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${colors[role] ?? colors.unknown}`}>
@@ -255,14 +255,14 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
                           </td>
                           <td className="p-1.5">
                             <span className={`px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                              r.before_type === 'aromatic' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                              r.before_type === 'aromatic' ? 'bg-amber-100 text-amber-800' : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]'
                             }`}>
                               {r.before_type}
                             </span>
                           </td>
                           <td className="p-1.5">
                             <span className={`px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                              r.after_type === 'aromatic' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                              r.after_type === 'aromatic' ? 'bg-amber-100 text-amber-800' : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]'
                             }`}>
                               {r.after_type}
                             </span>
@@ -344,7 +344,7 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
                   </h5>
                   <ul className="space-y-1">
                     {stage.dval_cross_refs.map((ref, i) => (
-                      <li key={i} className="text-xs text-gray-600 bg-blue-50 rounded px-2 py-1 border border-blue-100">
+                      <li key={i} className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-sunken)] rounded px-2 py-1 border border-[var(--color-border)]">
                         {ref}
                       </li>
                     ))}

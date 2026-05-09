@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Leaf, FlaskConical, Sparkles } from 'lucide-react';
+import { Leaf, FlaskConical, Sparkles, Info } from 'lucide-react';
 import type { NPLikenessResult } from '../../types/scoring';
 import { cn } from '../../lib/utils';
 import { InfoTooltip, DoiLink } from '../ui/Tooltip';
@@ -14,24 +14,24 @@ interface NPLikenessScoreProps {
  */
 function getScoreCategory(score: number) {
   if (score >= 1.0) return {
-    label: 'Natural Product-like',
+    label: 'Natural-product-like',
     icon: Leaf,
     gradient: 'from-emerald-500 to-green-400',
     bg: 'bg-emerald-500/10',
     text: 'text-emerald-600 dark:text-emerald-400',
     border: 'border-emerald-500/20',
     glow: 'shadow-emerald-500/30',
-    description: 'Structural features commonly found in natural products',
+    description: 'Fragments typical of natural products',
   };
   if (score >= -0.3) return {
-    label: 'Mixed Character',
+    label: 'Hybrid character',
     icon: Sparkles,
     gradient: 'from-slate-500 to-slate-400',
     bg: 'bg-slate-500/10',
     text: 'text-slate-500',
     border: 'border-slate-500/20',
     glow: 'shadow-slate-500/30',
-    description: 'Combines features from natural and synthetic compounds',
+    description: 'Mix of natural and synthetic fragments',
   };
   return {
     label: 'Synthetic-like',
@@ -41,7 +41,7 @@ function getScoreCategory(score: number) {
     text: 'text-red-600 dark:text-red-400',
     border: 'border-red-500/20',
     glow: 'shadow-red-500/30',
-    description: 'Features more common in synthetic compounds',
+    description: 'Fragments typical of synthetic compounds',
   };
 }
 
@@ -94,18 +94,18 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                   NP-Likeness
                 </h4>
                 <InfoTooltip
-                  title="Natural Product Likeness Score"
+                  title="Natural-Product likeness score"
                   content={
                     <div className="text-xs space-y-2">
-                      <p>Measures how similar a molecule's structure is to known natural products.</p>
+                      <p>How natural-product-like is this molecule? The score compares its structural fragments against a corpus of known natural products.</p>
                       <ul className="list-disc list-inside space-y-1 text-white/80">
-                        <li><strong>Score ≥ 1.0:</strong> Natural product-like</li>
-                        <li><strong>Score -0.3 to 1.0:</strong> Mixed character</li>
-                        <li><strong>Score &lt; -0.3:</strong> Synthetic-like</li>
+                        <li><strong>+1.0 or higher:</strong> natural-product-like</li>
+                        <li><strong>-0.3 to +1.0:</strong> hybrid character</li>
+                        <li><strong>Below -0.3:</strong> synthetic-like</li>
                       </ul>
-                      <p className="text-white/60">Based on fragment analysis comparing to the COCONUT natural products database.</p>
+                      <p className="text-white/60">Range -5 to +5. Reference fragments come from the COCONUT natural-products database.</p>
                       <div className="mt-2 pt-2 border-t border-white/20 text-white/60 space-y-1">
-                        <p>📖 Ertl et al. J Chem Inf Model (2008)</p>
+                        <p>Ertl et al. J Chem Inf Model (2008)</p>
                         <DoiLink doi="10.1021/ci700286x" />
                       </div>
                     </div>
@@ -113,7 +113,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                 />
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                Natural product similarity
+                Ertl fragment score, range -5 to +5
               </p>
             </div>
           </div>
@@ -132,41 +132,61 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
         {/* Visual Scale */}
         <div className="mb-4">
           <div className="relative h-10">
-            {/* Scale track background */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3 rounded-full overflow-hidden bg-[var(--color-surface-sunken)]">
+            {/* Scale track — sunken claymorphic groove. Inset top-left shadow
+                + inset bottom-right highlight create the impression that the
+                track is recessed into the surrounding surface, not painted on top. */}
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3.5 rounded-full overflow-hidden"
+              style={{
+                backgroundColor: 'var(--color-surface-sunken)',
+                boxShadow: `
+                  inset 1.5px 1.5px 3px rgba(26, 24, 21, 0.12),
+                  inset -1px -1px 2px rgba(255, 255, 255, 0.55)
+                `,
+              }}
+            >
               {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural) */}
               <div
-                className="absolute inset-0 opacity-80"
+                className="absolute inset-0"
                 style={{
-                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)'
+                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)',
+                  opacity: 0.85,
                 }}
+              />
+              {/* Inner specular highlight — hairline of light along the top of the groove */}
+              <div
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent)' }}
               />
             </div>
 
             {/* Center line indicator */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--color-text-muted)]/30 rounded-full" />
 
-            {/* Animated marker */}
+            {/* Animated marker — puffy claymorphic bead.
+                Inset white highlight (top-left) + inset shadow (bottom-right)
+                create the 3D bead, plus a soft warm drop shadow so it floats
+                above the track. No hard white ring. */}
             <motion.div
               initial={{ left: '50%' }}
               animate={{ left: `${clampedPosition}%` }}
               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
             >
-              {/* Glow ring */}
-              <div className={cn(
-                'absolute inset-0 w-7 h-7 -m-0.5 rounded-full blur-sm opacity-60',
-                `bg-gradient-to-r ${category.gradient}`
-              )} />
-              {/* Marker dot */}
-              <div className={cn(
-                'relative w-6 h-6 rounded-full border-2 border-white',
-                `bg-gradient-to-br ${category.gradient}`,
-                `shadow-lg ${category.glow}`
-              )}>
-                {/* Inner shine */}
-                <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-white/40" />
-              </div>
+              <div
+                className={cn(
+                  'relative w-6 h-6 rounded-full',
+                  `bg-gradient-to-br ${category.gradient}`,
+                )}
+                style={{
+                  boxShadow: `
+                    inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.55),
+                    inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.18),
+                    0 3px 8px rgba(26, 24, 21, 0.18),
+                    0 1px 2px rgba(26, 24, 21, 0.10)
+                  `,
+                }}
+              />
             </motion.div>
           </div>
 
@@ -174,12 +194,12 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
           <div className="flex justify-between text-[10px] mt-2 px-1">
             <span className="text-red-500 dark:text-red-400 font-medium flex items-center gap-1">
               <FlaskConical className="w-3 h-3" />
-              Synthetic
+              Synthetic <span className="text-[var(--color-text-muted)]">(-5)</span>
             </span>
-            <span className="text-[var(--color-text-muted)]">Mixed</span>
+            <span className="text-[var(--color-text-muted)]">0</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+              Natural <span className="text-[var(--color-text-muted)]">(+5)</span>
               <Leaf className="w-3 h-3" />
-              Natural
             </span>
           </div>
         </div>
@@ -208,17 +228,15 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
           {interpretation}
         </p>
 
-        {/* Caveats */}
+        {/* Caveats — informational notes about scoring boundaries / dataset limits */}
         {caveats.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-[var(--color-border)]">
+          <div className="mt-3 pt-3 border-t border-[var(--color-border)] space-y-1.5">
             {caveats.map((caveat, index) => (
               <div
                 key={index}
-                className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400"
+                className="flex items-start gap-2 text-[10px] text-[var(--color-text-muted)]"
               >
-                <svg className="w-3 h-3 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L1 21h22L12 2zm0 3.17L20.12 19H3.88L12 5.17zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z" />
-                </svg>
+                <Info className="w-3 h-3 flex-shrink-0 mt-0.5 text-[var(--color-text-muted)]" />
                 <span>{caveat}</span>
               </div>
             ))}

@@ -150,7 +150,7 @@ export function LigandEfficiencyPanel({ smiles, computeEfficiency }: LigandEffic
                     type="number"
                     value={activityValue}
                     onChange={(e) => setActivityValue(e.target.value)}
-                    placeholder="e.g. 100"
+                    placeholder="Numeric value in the selected unit"
                     min={0}
                     step="any"
                     className="w-full text-sm bg-surface-elevated border border-[var(--color-border)] rounded-xl px-3 py-2 text-text-primary"

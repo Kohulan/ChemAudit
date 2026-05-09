@@ -124,9 +124,9 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { detail?: string } } };
         const detail = axiosErr.response?.data?.detail;
-        setError(detail || 'Export failed');
+        setError(detail || 'Export could not complete. Check that your browser allowed the download, then try again.');
       } else {
-        setError(err instanceof Error ? err.message : 'Export failed');
+        setError(err instanceof Error ? err.message : 'Export could not complete. Check that your browser allowed the download, then try again.');
       }
       logger.error('Export failed:', err);
     } finally {
@@ -135,7 +135,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-[var(--color-text-primary)]/50 flex items-center justify-center z-50" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}

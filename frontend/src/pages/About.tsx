@@ -37,21 +37,18 @@ import {
 import { cn } from '../lib/utils';
 
 // Floating molecule configurations for background
+// Reduced from 7 to 2 — DESIGN.md "Earn every flourish": background decoration
+// should support, not compete with, page content.
 const moleculeConfigs = [
   { x: '10%', y: '15%', size: 60, delay: 0, duration: 20, opacity: 0.15 },
-  { x: '85%', y: '25%', size: 80, delay: 2, duration: 25, opacity: 0.12 },
-  { x: '75%', y: '60%', size: 50, delay: 4, duration: 18, opacity: 0.18 },
-  { x: '15%', y: '70%', size: 70, delay: 1, duration: 22, opacity: 0.14 },
-  { x: '50%', y: '85%', size: 45, delay: 3, duration: 16, opacity: 0.16 },
-  { x: '90%', y: '80%', size: 55, delay: 5, duration: 19, opacity: 0.13 },
-  { x: '5%', y: '45%', size: 65, delay: 2.5, duration: 21, opacity: 0.15 },
+  { x: '85%', y: '70%', size: 55, delay: 2, duration: 22, opacity: 0.13 },
 ];
 
-// Glowing orb configurations
+// Glowing orb configurations — static (no perpetual scale/opacity animation).
+// Reduced from 3 to 2 to lower ambient motion on the page.
 const glowOrbConfigs = [
-  { x: '20%', y: '30%', size: 300, color: 'var(--color-primary)', opacity: 0.08, blur: 100, duration: 8 },
-  { x: '70%', y: '50%', size: 250, color: 'var(--color-accent)', opacity: 0.06, blur: 80, duration: 10 },
-  { x: '40%', y: '80%', size: 200, color: 'var(--color-primary)', opacity: 0.05, blur: 60, duration: 12 },
+  { x: '20%', y: '30%', size: 300, color: 'var(--color-primary)', opacity: 0.08, blur: 100 },
+  { x: '70%', y: '50%', size: 250, color: 'var(--color-accent)', opacity: 0.06, blur: 80 },
 ];
 
 /**
@@ -65,8 +62,8 @@ export function AboutPage() {
     <div className="relative min-h-screen overflow-hidden">
       {/* Animated gradient mesh background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Aurora gradient effect */}
-        <motion.div
+        {/* Aurora gradient — static, no perpetual breathing animation */}
+        <div
           className="absolute inset-0"
           style={{
             background: `
@@ -75,19 +72,11 @@ export function AboutPage() {
               radial-gradient(ellipse 50% 30% at 50% 90%, rgba(var(--color-primary-rgb, 220, 38, 38), 0.05) 0%, transparent 50%)
             `,
           }}
-          animate={{
-            opacity: [0.8, 1, 0.8],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
         />
 
-        {/* Animated glowing orbs */}
+        {/* Static glowing orbs */}
         {glowOrbConfigs.map((orb, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute rounded-full"
             style={{
@@ -99,15 +88,6 @@ export function AboutPage() {
               opacity: orb.opacity,
               filter: `blur(${orb.blur}px)`,
               transform: 'translate(-50%, -50%)',
-            }}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [orb.opacity, orb.opacity * 1.5, orb.opacity],
-            }}
-            transition={{
-              duration: orb.duration,
-              repeat: Infinity,
-              ease: 'easeInOut',
             }}
           />
         ))}
@@ -702,7 +682,7 @@ function TechStack() {
       icon: <TestTube className="w-5 h-5" />,
       title: 'Chemistry',
       items: ['RDKit', 'RDKit.js', 'MolVS', 'ChEMBL Pipeline', 'openTSNE'],
-      color: 'from-purple-500/20 to-pink-500/10',
+      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
     },
     {
       icon: <Database className="w-5 h-5" />,
@@ -766,16 +746,16 @@ function ConnectSection() {
       title: 'Steinbeck Lab',
       description: 'Organization GitHub',
       href: 'https://github.com/Steinbeck-Lab',
-      color: 'from-purple-500 to-pink-500',
-      hoverColor: 'hover:border-purple-500/50',
+      color: 'from-chem-primary-600 to-chem-accent-600',
+      hoverColor: 'hover:border-chem-primary-600/50',
     },
     {
       icon: <Mail className="w-5 h-5" />,
       title: 'Email',
       description: 'kohulan.rajan@uni-jena.de',
       href: 'mailto:kohulan.rajan@uni-jena.de',
-      color: 'from-blue-500 to-cyan-500',
-      hoverColor: 'hover:border-blue-500/50',
+      color: 'from-chem-primary-600 to-chem-accent-600',
+      hoverColor: 'hover:border-chem-primary-600/50',
     },
     {
       icon: <Globe className="w-5 h-5" />,
@@ -868,15 +848,15 @@ function QuickStats() {
       label: 'Validation Checks',
       value: '27',
       icon: <Shield className="w-4 h-4" />,
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-chem-primary-600 to-chem-accent-600',
       bgColor: 'from-blue-500/10 to-cyan-500/10',
     },
     {
       label: 'Scoring Modules',
       value: '10+',
       icon: <FlaskConical className="w-4 h-4" />,
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'from-purple-500/10 to-pink-500/10',
+      color: 'from-chem-primary-600 to-chem-accent-600',
+      bgColor: 'from-chem-primary-600/10 to-chem-accent-600/10',
     },
     {
       label: 'Safety Filters',
@@ -961,13 +941,7 @@ function QuickStats() {
               </div>
 
               {/* Value */}
-              <div
-                className={cn(
-                  'text-3xl font-bold mb-1',
-                  'bg-gradient-to-r bg-clip-text text-transparent',
-                  stat.color
-                )}
-              >
+              <div className="text-3xl font-bold mb-1 text-[var(--color-primary)]">
                 {stat.value}
               </div>
 
@@ -1001,7 +975,7 @@ function AdvancedScoring() {
       title: 'Drug-Likeness',
       description: 'Multi-filter assessment using established pharmaceutical rules to predict oral bioavailability and drug-like properties.',
       features: ["Lipinski's Rule of Five", 'QED Score', 'Veber Rules', 'Rule of Three', 'Ghose Filter', 'Muegge Filter'],
-      color: 'from-blue-500/20 to-indigo-500/10',
+      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
     },
     {
       icon: <Beaker className="w-5 h-5" />,
@@ -1022,12 +996,12 @@ function AdvancedScoring() {
       title: 'ML-Readiness',
       description: 'Evaluates molecular suitability for machine learning with 451 descriptors and 7 fingerprint types for QSAR/QSPR models.',
       features: ['217 Standard Descriptors', 'AUTOCORR2D (192)', 'MQN (42)', '7 Fingerprint Types', 'Size Assessment', 'Dataset Quality Score'],
-      color: 'from-purple-500/20 to-violet-500/10',
+      color: 'from-chem-primary-600/20 to-chem-secondary-600/10',
     },
     {
       icon: <Target className="w-5 h-5" />,
-      title: 'NP-Likeness',
-      description: 'Natural product-likeness scoring to assess similarity to natural product chemical space for drug discovery.',
+      title: 'Natural-Product Likeness',
+      description: 'Score a molecule against natural-product fragments (Ertl et al., 2008) to position it on the synthetic-to-natural axis. Useful for triaging compound libraries by chemical-space origin.',
       features: ['NP-likeness Score', 'Scaffold Analysis', 'Fragment Matching', 'Chemical Space', 'Lead-likeness', 'Bioactivity Potential'],
       color: 'from-lime-500/20 to-green-500/10',
     },
@@ -1135,14 +1109,14 @@ function PlatformCapabilities() {
       title: 'QSAR-Ready Pipeline',
       description: 'Multi-step pipeline to prepare molecules for quantitative structure-activity relationship modeling. Configurable standardization, salt stripping, neutralization, and tautomer canonicalization.',
       features: ['Standardization Pipeline', 'Salt Stripping', 'Charge Neutralization', 'Tautomer Canonicalization', 'Duplicate Removal', 'Batch Export'],
-      color: 'from-violet-500/20 to-purple-500/10',
+      color: 'from-chem-secondary-600/20 to-chem-primary-600/10',
     },
     {
       icon: <Filter className="w-5 h-5" />,
       title: 'Structure Filter',
       description: 'Multi-stage funnel filtering for generative chemistry outputs. Apply sequential property and substructure filters to narrow large compound sets down to drug-like candidates.',
       features: ['Property Filters', 'Substructure Matching', 'Funnel Visualization', 'Stage-by-Stage Results', 'Export Survivors', 'Custom SMARTS'],
-      color: 'from-cyan-500/20 to-blue-500/10',
+      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
     },
     {
       icon: <Microscope className="w-5 h-5" />,
@@ -1170,7 +1144,7 @@ function PlatformCapabilities() {
       title: 'Diagnostics & Provenance',
       description: 'Deep SMILES diagnostics, InChI layer analysis, round-trip validation, and full standardization provenance tracking showing every transformation applied to a molecule.',
       features: ['SMILES Diagnostics', 'InChI Layer Diff', 'Round-trip Validation', 'Provenance Timeline', 'File Pre-validation', 'Coordinate Analysis'],
-      color: 'from-sky-500/20 to-indigo-500/10',
+      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
     },
   ];
 
@@ -1258,7 +1232,7 @@ function ScientificReferences() {
     {
       title: 'Drug-likeness Rules',
       icon: <Pill className="w-4 h-4" />,
-      color: 'from-purple-500/20 to-violet-500/10',
+      color: 'from-chem-primary-600/20 to-chem-secondary-600/10',
       references: [
         {
           method: "Lipinski's Rule of Five",
@@ -1442,7 +1416,7 @@ function ScientificReferences() {
     {
       title: 'Bioavailability & Permeation',
       icon: <Activity className="w-4 h-4" />,
-      color: 'from-indigo-500/20 to-blue-500/10',
+      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
       references: [
         {
           method: 'SwissADME / Bioavailability Radar',
@@ -1523,7 +1497,7 @@ function ScientificReferences() {
     {
       title: 'Software & Pipelines',
       icon: <Code2 className="w-4 h-4" />,
-      color: 'from-blue-500/20 to-indigo-500/10',
+      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
       references: [
         {
           method: 'RDKit',
@@ -1708,21 +1682,21 @@ function Acknowledgments() {
       description: 'World\'s largest collection of freely accessible chemical information',
       href: 'https://pubchem.ncbi.nlm.nih.gov/',
       logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/PubChem_logo.svg/1280px-PubChem_logo.svg.png',
-      color: 'from-blue-500 to-indigo-600',
+      color: 'from-chem-primary-600 to-chem-accent-700',
     },
     {
       name: 'COCONUT',
       description: 'Collection of Open Natural Products database',
       href: 'https://coconut.naturalproducts.net/',
       logo: 'https://raw.githubusercontent.com/Steinbeck-Lab/coconut/main/public/img/logo.svg',
-      color: 'from-green-600 to-emerald-700',
+      color: 'from-chem-accent-700 to-chem-accent-800',
     },
     {
       name: 'ChEBI',
       description: 'Chemical Entities of Biological Interest ontology from EMBL-EBI',
       href: 'https://www.ebi.ac.uk/chebi/',
       logo: 'https://www.ebi.ac.uk/chebi/chebi_logo.svg',
-      color: 'from-indigo-600 to-blue-700',
+      color: 'from-chem-accent-700 to-chem-primary-700',
     },
     {
       name: 'UniChem',

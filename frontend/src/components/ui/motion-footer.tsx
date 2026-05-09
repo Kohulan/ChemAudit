@@ -75,7 +75,7 @@ const FOOTER_CSS = `
 }
 
 .footer-coffee-icon {
-  animation: footer-cup-wobble 3s ease-in-out infinite;
+  animation: footer-cup-wobble 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s ease, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 0 0px transparent);
 }

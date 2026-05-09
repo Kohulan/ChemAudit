@@ -69,16 +69,46 @@ export function MoleculeViewer({
 
   if (!smiles) {
     return (
-      <div className={`${PLACEHOLDER_BASE} bg-gray-100 dark:bg-gray-800 ${className}`} style={placeholderStyle}>
-        <span className="text-gray-400 text-sm">Enter a molecule</span>
+      <div
+        className={`${PLACEHOLDER_BASE} bg-[var(--color-surface-sunken)] ${className}`}
+        style={placeholderStyle}
+      >
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-4 text-center">
+          {/* Faint benzene scaffold — chemists read this as 'placeholder molecule' */}
+          <svg
+            width={56}
+            height={56}
+            viewBox="0 0 100 100"
+            fill="none"
+            className="text-[var(--color-primary)]/25"
+            aria-hidden="true"
+          >
+            <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="2" />
+            <circle cx="50" cy="25" r="4" fill="currentColor" />
+            <circle cx="71.65" cy="37.5" r="4" fill="currentColor" />
+            <circle cx="71.65" cy="62.5" r="4" fill="currentColor" />
+            <circle cx="50" cy="75" r="4" fill="currentColor" />
+            <circle cx="28.35" cy="62.5" r="4" fill="currentColor" />
+            <circle cx="28.35" cy="37.5" r="4" fill="currentColor" />
+            <line x1="50" y1="31" x2="50" y2="69" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+              Structure preview
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Enter a SMILES to render
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={`${PLACEHOLDER_BASE} bg-gray-100 dark:bg-gray-800 ${className}`} style={placeholderStyle}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className={`${PLACEHOLDER_BASE} bg-[var(--color-surface-sunken)] ${className}`} style={placeholderStyle}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
       </div>
     );
   }

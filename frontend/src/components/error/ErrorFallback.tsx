@@ -22,10 +22,10 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
         {/* Title */}
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2 font-display">
-          Something went wrong
+          ChemAudit ran into a problem
         </h1>
         <p className="text-[var(--color-text-secondary)] mb-6">
-          An unexpected error occurred. You can try again or return home.
+          The page could not finish rendering. Try reloading; if it keeps failing, return to the dashboard and try a different action.
         </p>
 
         {/* Error details (collapsible in production) */}
@@ -58,7 +58,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
             )}
           >
             <Home className="w-4 h-4" />
-            Go Home
+            Back to dashboard
           </button>
         </div>
       </div>

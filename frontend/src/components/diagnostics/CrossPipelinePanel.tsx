@@ -31,9 +31,9 @@ const DIFF_HIGHLIGHT_COLOR: [number, number, number] = [0.937, 0.267, 0.267];
 function getRowHighlightClass(row: PropertyComparison): string {
   if (row.agrees) return '';
   if (row.structural) {
-    return 'bg-[rgba(239,68,68,0.15)] border-l-2 border-status-error';
+    return 'bg-[rgba(239,68,68,0.15)] ring-1 ring-inset ring-status-error/30';
   }
-  return 'bg-[rgba(245,158,11,0.15)] border-l-2 border-status-warning';
+  return 'bg-[rgba(245,158,11,0.15)] ring-1 ring-inset ring-status-warning/30';
 }
 
 /** Format a property value for display. */

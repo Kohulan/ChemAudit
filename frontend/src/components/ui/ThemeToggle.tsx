@@ -74,8 +74,8 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
         className={cn(
           'absolute inset-0 rounded-2xl opacity-0',
           isDark
-            ? 'bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-blue-500/20'
-            : 'bg-gradient-to-br from-amber-300/40 via-orange-300/30 to-yellow-300/40'
+            ? 'bg-gradient-to-br from-chem-primary-600/20 via-chem-accent-600/20 to-chem-primary-600/20'
+            : 'bg-gradient-to-br from-chem-accent-300/40 via-chem-accent-400/30 to-chem-accent-200/40'
         )}
         animate={{ opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -157,7 +157,7 @@ function ThemeDropdown({ className }: { className?: string }) {
                   className={cn(
                     'absolute inset-0 rounded-xl',
                     isDark
-                      ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-[inset_1px_1px_3px_rgba(255,255,255,0.1),0_2px_8px_rgba(99,102,241,0.3)]'
+                      ? 'bg-gradient-to-br from-chem-primary-600/20 to-chem-accent-600/20 shadow-[inset_1px_1px_3px_rgba(255,255,255,0.1),0_2px_8px_rgba(196,30,58,0.3)]'
                       : 'bg-gradient-to-br from-amber-100 to-orange-100 shadow-[inset_1px_1px_3px_rgba(255,255,255,0.8),0_2px_8px_rgba(251,191,36,0.2)]'
                   )}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -200,11 +200,11 @@ export function ThemeSelector({ className }: { className?: string }) {
                 isActive
                   ? cn(
                       isDark
-                        ? 'border-indigo-500/50 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300'
+                        ? 'border-chem-primary-600/50 bg-gradient-to-br from-chem-primary-600/20 to-chem-accent-600/20 text-chem-primary-300'
                         : 'border-amber-400/50 bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700',
                       // Claymorphism for active
                       isDark
-                        ? 'shadow-[inset_1px_1px_4px_rgba(255,255,255,0.05),0_4px_12px_rgba(99,102,241,0.2)]'
+                        ? 'shadow-[inset_1px_1px_4px_rgba(255,255,255,0.05),0_4px_12px_rgba(196,30,58,0.2)]'
                         : 'shadow-[inset_1px_1px_4px_rgba(255,255,255,0.8),0_4px_12px_rgba(251,191,36,0.15)]'
                     )
                   : cn(

@@ -114,7 +114,7 @@ export function useMoleculeInfo(smiles: string | null): UseMoleculeInfoResult {
           const mol = rdkit.get_mol(smiles);
 
           if (!mol) {
-            setError('Invalid molecule structure');
+            setError('Could not parse this structure as valid chemistry. Check the SMILES for typos, missing brackets, or unsupported atoms.');
             setInfo(null);
             setIsLoading(false);
             return;

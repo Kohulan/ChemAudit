@@ -289,7 +289,7 @@ export function useBatchAnalytics(
           setProgress(prev => ({ ...prev, elapsedSeconds }));
 
           if (elapsedSeconds > COMPUTING_TIMEOUT_S) {
-            setError('Analytics initialization timed out. The batch may still be processing.');
+            setError('Could not load analytics for this batch within the timeout. The validation itself may still be running; refresh the page in a minute to retry.');
             setStatus('error');
             timeoutRef.current = null;
             return;
@@ -409,7 +409,7 @@ export function useBatchAnalytics(
         } catch {
           consecutiveErrorsRef.current++;
           if (consecutiveErrorsRef.current >= 5) {
-            setError('Failed to fetch analytics after multiple retries');
+            setError('Could not load batch analytics after several attempts. The analytics service is unreachable; refresh the page to retry.');
             setStatus('error');
             timeoutRef.current = null;
           } else {
