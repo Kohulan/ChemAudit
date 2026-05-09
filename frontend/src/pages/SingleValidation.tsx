@@ -27,6 +27,8 @@ import {
   Hexagon,
   GitMerge,
   Scale,
+  FlaskConical,
+  Shield,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -61,7 +63,6 @@ import { IdentifierResolverCard } from '../components/integrations/IdentifierRes
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
 import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
 import { SafetyAccordion } from '../components/safety/SafetyAccordion';
-import { FlaskConical, Shield } from 'lucide-react';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
 
