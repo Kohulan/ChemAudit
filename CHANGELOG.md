@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.6.0](https://github.com/Kohulan/ChemAudit/compare/v1.5.1...v1.6.0) (2026-04-24)
+
+
+### Features
+
+* **security:** log suspicious patterns in uploaded batch files ([fe72c6b](https://github.com/Kohulan/ChemAudit/commit/fe72c6b6b1a7e3b05a4756c13a49b3790d7942a3))
+* **skills:** add ChemAudit Claude Code plugin with 8 agent skills ([af91d6a](https://github.com/Kohulan/ChemAudit/commit/af91d6a8617ea790cfd9ee0f48fcd178b1d45316))
+* **skills:** add ChemAudit Claude Code plugin with 8 agent skills ([8dd8eb2](https://github.com/Kohulan/ChemAudit/commit/8dd8eb22f0c0da52a3ae87ef57a9ce35e582fd8a))
+* **ui:** replace BB-8 toggle with chemistry-themed flask toggle ([9984a57](https://github.com/Kohulan/ChemAudit/commit/9984a5727ced739b42535ae4752033750c7d3038))
+
+
+### Bug Fixes
+
+* **analytics:** remove unreachable salt-form dedup fast-path ([914ab97](https://github.com/Kohulan/ChemAudit/commit/914ab973d9a0a2a6136821fab10e5d606b026c5d))
+* **batch:** accept single-column and headerless delimited files ([c9d0033](https://github.com/Kohulan/ChemAudit/commit/c9d00331a3e78bef80c86b89569aad75cd4cee21))
+* **batch:** accept single-column and headerless delimited files ([025f9bc](https://github.com/Kohulan/ChemAudit/commit/025f9bc31adacfbb8d232a358644a4ee1e714e28))
+* **deploy:** make deploy.sh succeed on fresh installs ([94bb599](https://github.com/Kohulan/ChemAudit/commit/94bb5995074af7aa5daefad48a6f0ce1c45942e1))
+* **deps:** resolve uuid and follow-redirects vulnerabilities in docs-site ([cf8a43d](https://github.com/Kohulan/ChemAudit/commit/cf8a43dbf3a63cfa82f08754820234d416494a84))
+* **diagnostics:** highlight MCS-based structural diff and fix thumbnail overflow in cross-pipeline panel ([00c8aa2](https://github.com/Kohulan/ChemAudit/commit/00c8aa2029f209faf5c21f1687d65ecd2fb62458))
+* **security:** run suspicious-content scan before strict validation ([f62a585](https://github.com/Kohulan/ChemAudit/commit/f62a585dd3b5cf28516424bb81ef5cfe207b9fa3))
+* **security:** sanitize scscore error returned to client ([df13844](https://github.com/Kohulan/ChemAudit/commit/df13844b309337c13d7b7c67483d056315e7a838))
+* **ui:** add info text above validate buttons in scoring and profile tabs ([66d72b9](https://github.com/Kohulan/ChemAudit/commit/66d72b9f45f6d529c4d3b7b18541c743d562d8d5))
+* **ui:** prevent scoring profiles auto-run and add validate buttons ([d049375](https://github.com/Kohulan/ChemAudit/commit/d0493759f187946c39742172ef2521c95a6db250))
+* **validation:** skip name resolver when input is valid SMILES ([0388336](https://github.com/Kohulan/ChemAudit/commit/038833681af2140583a0c3176b383ccb89bccf74))
+
+
+### Documentation
+
+* **api:** mark refreshCsrfToken as intentional public escape hatch ([2906e60](https://github.com/Kohulan/ChemAudit/commit/2906e60611d95273baa14b66a4eb80be77ecdcaf))
+
 ## [1.6.0](https://github.com/Kohulan/ChemAudit/compare/v1.5.0...v1.6.0) (2026-04-14)
 
 
