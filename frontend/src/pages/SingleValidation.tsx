@@ -2068,9 +2068,9 @@ export function SingleValidationPage() {
                 )}
               </div>
 
-              {/* Validation Issues - Show right after molecule viewer */}
+              {/* Validation Issues - Show right after molecule viewer (validate tab only) */}
               <AnimatePresence>
-                {result && validationIssues.length > 0 && (
+                {activeTab === 'validate' && result && validationIssues.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2107,9 +2107,9 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
-              {/* Score Tiles - Only show after validation/scoring */}
+              {/* Score Tiles - Only show after validation/scoring (validate tab only) */}
               <AnimatePresence>
-                {hasScores && (
+                {activeTab === 'validate' && hasScores && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2192,8 +2192,8 @@ export function SingleValidationPage() {
               {/* Other results panels */}
               <AnimatePresence>
 
-                {/* Validation Success - no issues */}
-                {result && validationIssues.length === 0 && (
+                {/* Validation Success - no issues (validate tab only) */}
+                {activeTab === 'validate' && result && validationIssues.length === 0 && (
                   <motion.div
                     key="validation-success"
                     initial={{ opacity: 0, y: 20 }}
@@ -2214,8 +2214,8 @@ export function SingleValidationPage() {
                   </motion.div>
                 )}
 
-                {/* All Checks - Collapsible */}
-                {result && result.all_checks && result.all_checks.length > 0 && (
+                {/* All Checks - Collapsible (validate tab only) */}
+                {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
                   <motion.div
                     key="all-checks"
                     initial={{ opacity: 0, y: 20 }}
