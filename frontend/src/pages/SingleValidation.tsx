@@ -1844,18 +1844,47 @@ export function SingleValidationPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="card p-5 border-red-500/30"
+                role="alert"
+                aria-live="polite"
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
                     <AlertTriangle className="w-5 h-5 text-red-500" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-red-500 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-red-500 mb-1 font-display">
                       {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error) as string)?.includes('parse') ? 'Parse Error' : 'Error'}
                     </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
+                    <p className="text-sm text-[var(--color-text-secondary)] break-words">
                       {error?.error || alertError?.error || scoringError?.error || standardizationError?.error}
                     </p>
+                    <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                      Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file.
+                      Most parse errors come from typos in atom symbols or unbalanced ring closures.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ClayButton
+                        variant="primary"
+                        size="sm"
+                        onClick={handleValidate}
+                        disabled={!molecule.trim()}
+                        leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                      >
+                        Try again
+                      </ClayButton>
+                      <ClayButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          reset();
+                          setAlertError(null);
+                          setScoringError(null);
+                          setStandardizationError(null);
+                        }}
+                      >
+                        Dismiss
+                      </ClayButton>
+                    </div>
                   </div>
                 </div>
               </motion.div>
