@@ -17,7 +17,7 @@ import { ContradictoryLabelsTab } from '../components/dataset-audit/Contradictor
 import { DatasetDiffTab } from '../components/dataset-audit/DatasetDiffTab';
 import { CurationReportTab } from '../components/dataset-audit/CurationReportTab';
 import { InfoTooltip } from '../components/ui/Tooltip';
-import { cn } from '../lib/utils';
+import { TabBar } from '../components/ui/TabBar';
 
 // =============================================================================
 // Tab configuration
@@ -153,63 +153,13 @@ export default function DatasetAudit() {
         </div>
       )}
 
-      {/* Claymorphic tab bar */}
-      <div
-        className="mb-8 p-1.5 rounded-2xl"
-        style={{
-          backgroundColor: 'var(--color-surface-sunken)',
-          boxShadow: `
-            2px 4px 8px 0 rgba(var(--color-primary-rgb), 0.08),
-            inset 2px 2px 6px rgba(255, 255, 255, 0.5),
-            inset -2px -2px 6px rgba(0, 0, 0, 0.06)
-          `,
-        }}
-        role="tablist"
-        aria-label="Dataset audit tabs"
-      >
-        <div className="flex gap-1">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={isActive}
-                aria-controls={`tabpanel-${tab.id}`}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'relative flex-1 px-3 py-2.5 text-sm font-medium rounded-xl',
-                  'flex items-center justify-center gap-2',
-                  'transition-all duration-400 ease-out',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
-                  isActive
-                    ? 'text-[var(--color-primary-dark)] font-semibold'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
-                )}
-                style={isActive ? {
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  boxShadow: `
-                    1px 2px 4px 0 rgba(var(--color-primary-rgb), 0.12),
-                    2px 4px 10px 0 rgba(var(--color-primary-rgb), 0.08),
-                    inset 1px 1px 4px rgba(255, 255, 255, 0.6),
-                    inset -1px -1px 4px rgba(var(--color-primary-rgb), 0.06)
-                  `,
-                } : {
-                  backgroundColor: 'transparent',
-                  boxShadow: 'none',
-                }}
-              >
-                <tab.icon className={cn(
-                  'w-4 h-4 transition-transform duration-300',
-                  isActive && 'scale-110',
-                )} />
-                <span className="font-display">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <TabBar
+        className="mb-8"
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        ariaLabel="Dataset audit tabs"
+      />
 
       {/* Tab content */}
       <AnimatePresence mode="wait">

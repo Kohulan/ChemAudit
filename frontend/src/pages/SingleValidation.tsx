@@ -40,6 +40,7 @@ import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
 import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
+import { TabBar, type TabBarTab } from '../components/ui/TabBar';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -168,54 +169,47 @@ function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string
   );
 }
 
-interface TabConfig {
-  id: TabType;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const TABS: TabConfig[] = [
+const TABS: ReadonlyArray<TabBarTab<TabType>> = [
   {
     id: 'validate',
     label: 'Validate & Score',
-    icon: <CheckCircle2 className="w-4 h-4" />,
+    icon: CheckCircle2,
     description: 'Check structure validity, calculate quality metrics, and assess ML-readiness',
   },
   {
     id: 'deep-validation',
     label: 'Deep Validation',
-    icon: <Microscope className="w-4 h-4" />,
+    icon: Microscope,
     description: 'Advanced structure checks: stereo, tautomers, composition, and complexity analysis',
   },
   {
     id: 'scoring-profiles',
     label: 'Scoring Profiles',
-    icon: <BarChart3 className="w-4 h-4" />,
+    icon: BarChart3,
     description: 'Consensus drug-likeness, lead-likeness, property breakdowns, bioavailability radar',
   },
   {
     id: 'alerts',
     label: 'Safety',
-    icon: <Shield className="w-4 h-4" />,
+    icon: Shield,
     description: 'Structural alerts, CYP soft-spots, hERG, bRo5, REOS, and complexity analysis',
   },
   {
     id: 'compound-profile',
     label: 'Compound Profile',
-    icon: <FlaskConical className="w-4 h-4" />,
+    icon: FlaskConical,
     description: 'Full molecular profiling: PFI, stars, bioavailability, synthesizability, 3D shape',
   },
   {
     id: 'database',
     label: 'Database Lookup',
-    icon: <Database className="w-4 h-4" />,
+    icon: Database,
     description: 'Search PubChem, ChEMBL, and COCONUT for compound information',
   },
   {
     id: 'standardize',
     label: 'Standardize',
-    icon: <Layers className="w-4 h-4" />,
+    icon: Layers,
     description: 'Normalize structure representation and remove salts/solvents',
   },
 ];
@@ -1307,35 +1301,14 @@ export function SingleValidationPage() {
 
           {/* Combined Tab Bar + Content */}
           <div className="card overflow-hidden">
-            {/* Tab Bar */}
-            <div className="flex flex-wrap gap-1.5 p-3 bg-[var(--color-surface-sunken)]/30">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    title={tab.description}
-                    className={cn(
-                      'group flex items-center gap-2',
-                      'px-3.5 py-2 text-[13px] font-medium whitespace-nowrap',
-                      'rounded-xl transition-all duration-200 cursor-pointer',
-                      'font-[Outfit,system-ui,sans-serif]',
-                      isActive
-                        ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] shadow-sm'
-                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]/50',
-                    )}
-                  >
-                    <span className={cn(
-                      'shrink-0 transition-colors duration-200',
-                      isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]',
-                    )}>
-                      {tab.icon}
-                    </span>
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
+            <div className="p-3">
+              <TabBar
+                tabs={TABS}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                ariaLabel="Validation analyses"
+                layout="auto"
+              />
             </div>
 
             {/* Accent line below tab bar */}

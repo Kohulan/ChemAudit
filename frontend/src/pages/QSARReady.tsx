@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Beaker, RefreshCw } from 'lucide-react';
+import { Atom, Beaker, Layers, RefreshCw } from 'lucide-react';
 import { useQSARPipelineConfig } from '../hooks/useQSARPipelineConfig';
 import { useQSARReady } from '../hooks/useQSARReady';
 import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Skeleton } from '../components/ui/Skeleton';
+import { TabBar, type TabBarTab } from '../components/ui/TabBar';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { PipelineConfigPanel } from '../components/qsar-ready/PipelineConfigPanel';
 import { QSARSingleResult } from '../components/qsar-ready/QSARSingleResult';
@@ -14,13 +15,17 @@ import { QSARBatchSummary } from '../components/qsar-ready/QSARBatchSummary';
 import { QSARBatchTable } from '../components/qsar-ready/QSARBatchTable';
 import { QSARDownloadPanel } from '../components/qsar-ready/QSARDownloadPanel';
 import { QSARProgressBar } from '../components/qsar-ready/QSARProgressBar';
-import { cn } from '../lib/utils';
 
 // =============================================================================
 // Tab types
 // =============================================================================
 
 type QSARTab = 'single' | 'batch';
+
+const TABS: ReadonlyArray<TabBarTab<QSARTab>> = [
+  { id: 'single', label: 'Single Molecule', icon: Atom },
+  { id: 'batch', label: 'Batch Upload', icon: Layers },
+];
 
 // =============================================================================
 // Page component
@@ -153,45 +158,13 @@ export function QSARReady() {
         )}
       </AnimatePresence>
 
-      {/* ── Tab switcher ── */}
-      <div
-        role="tablist"
-        aria-label="QSAR-Ready processing mode"
-        className="flex border-b border-[var(--color-border)] mb-6"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'single'}
-          aria-controls="tabpanel-single"
-          id="tab-single"
-          onClick={() => setActiveTab('single')}
-          className={cn(
-            'px-5 py-3 text-sm cursor-pointer transition-colors duration-150',
-            activeTab === 'single'
-              ? 'border-b-2 border-[var(--color-primary)] text-[var(--color-primary)] font-semibold'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent',
-          )}
-        >
-          Single Molecule
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'batch'}
-          aria-controls="tabpanel-batch"
-          id="tab-batch"
-          onClick={() => setActiveTab('batch')}
-          className={cn(
-            'px-5 py-3 text-sm cursor-pointer transition-colors duration-150',
-            activeTab === 'batch'
-              ? 'border-b-2 border-[var(--color-primary)] text-[var(--color-primary)] font-semibold'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent',
-          )}
-        >
-          Batch Upload
-        </button>
-      </div>
+      <TabBar
+        className="mb-6"
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        ariaLabel="QSAR-Ready processing mode"
+      />
 
       {/* ── Tab content area ── */}
       <AnimatePresence mode="wait">
