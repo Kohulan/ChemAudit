@@ -62,7 +62,15 @@ export function BookmarkButton({
         onClick={handleClick}
         disabled={isLoading || bookmarked}
         loading={isLoading}
-        leftIcon={<Star className={bookmarked ? 'w-4 h-4 fill-amber-300 text-amber-500' : 'w-4 h-4'} />}
+        leftIcon={
+          <Star
+            className={
+              bookmarked
+                ? 'w-4 h-4 fill-amber-400 text-amber-500'
+                : 'w-4 h-4 text-[#d97706] dark:text-[#fbbf24]'
+            }
+          />
+        }
         className={className}
         title={bookmarked ? 'Bookmarked' : 'Bookmark this molecule'}
       >

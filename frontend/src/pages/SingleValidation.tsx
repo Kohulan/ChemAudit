@@ -1147,19 +1147,23 @@ export function SingleValidationPage() {
               )}
             </AnimatePresence>
 
-            {/* Action button row — uniform default ClayButtons */}
+            {/* Action button row — uniform default ClayButtons; colour lives in the
+                leading icons so each action has a semantic hint while the chrome
+                stays grouped. Reset = muted (secondary, undo-style action),
+                Share + View Full Profile = primary (deliberate action / go deeper),
+                Bookmark = accent amber (warm 'save' positive). */}
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <ClayButton
                 onClick={handleReset}
                 disabled={!molecule && !result && !alertResult && !scoringResult && !standardizationResult && !databaseResults}
-                leftIcon={<RotateCcw className="w-4 h-4" />}
+                leftIcon={<RotateCcw className="w-4 h-4 text-[var(--color-text-muted)]" />}
               >
                 Reset
               </ClayButton>
               <ClayButton
                 onClick={handleShare}
                 disabled={!molecule.trim()}
-                leftIcon={<Share2 className="w-4 h-4" />}
+                leftIcon={<Share2 className="w-4 h-4 text-[var(--color-primary)]" />}
               >
                 Share
               </ClayButton>
@@ -1174,7 +1178,7 @@ export function SingleValidationPage() {
               {/* View Full Profile cross-link — per D-24 */}
               {result && resolvedSmiles && (
                 <ClayButton
-                  leftIcon={<Microscope className="w-4 h-4" />}
+                  leftIcon={<Microscope className="w-4 h-4 text-[var(--color-primary)]" />}
                   onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
                   title="Open the full Profiler page for this molecule"
                 >
