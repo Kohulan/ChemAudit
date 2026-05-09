@@ -1000,8 +1000,8 @@ function AdvancedScoring() {
     },
     {
       icon: <Target className="w-5 h-5" />,
-      title: 'NP-Likeness',
-      description: 'Natural product-likeness scoring to assess similarity to natural product chemical space for drug discovery.',
+      title: 'Natural-Product Likeness',
+      description: 'Score a molecule against natural-product fragments (Ertl et al., 2008) to position it on the synthetic-to-natural axis. Useful for triaging compound libraries by chemical-space origin.',
       features: ['NP-likeness Score', 'Scaffold Analysis', 'Fragment Matching', 'Chemical Space', 'Lead-likeness', 'Bioactivity Potential'],
       color: 'from-lime-500/20 to-green-500/10',
     },
