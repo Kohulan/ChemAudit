@@ -24,6 +24,9 @@ import {
   ArrowLeft,
   GitCompareArrows,
   Lock,
+  Hexagon,
+  GitMerge,
+  Scale,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
@@ -1110,9 +1113,11 @@ export function SingleValidationPage() {
                 >
                   <div className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
-                    isIdentifierInput && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
-                    !isIdentifierInput && isIupacInput && 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20',
-                    !isIdentifierInput && !isIupacInput && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+                    // Brand warm-spectrum tints per detected input type. Replaces
+                    // the previous off-brand emerald/green/blue palettes.
+                    isIdentifierInput && 'bg-[rgba(225,29,72,0.10)] text-[#be123c] dark:text-[#fb7185] border border-[rgba(225,29,72,0.22)]',
+                    !isIdentifierInput && isIupacInput && 'bg-[rgba(217,119,6,0.10)] text-[#b45309] dark:text-[#fbbf24] border border-[rgba(217,119,6,0.22)]',
+                    !isIdentifierInput && !isIupacInput && 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary-dark)] dark:text-[var(--color-primary)] border border-[rgba(var(--color-primary-rgb),0.22)]',
                   )}>
                     {isIdentifierInput
                       ? 'Detected as database identifier \u2014 will resolve on validate'
@@ -1246,36 +1251,43 @@ export function SingleValidationPage() {
                   {/* Show detailed info if validation result available, otherwise basic info */}
                   {result ? (
                     <div className="space-y-3">
-                      {/* Stats row — all from backend */}
+                      {/* Stats row — distinct icon + warm-spectrum tint per metric so the
+                          five tiles read as five different things at a glance, not one
+                          repeated card. Stays inside the brand palette per DESIGN.md. */}
                       <div className="grid grid-cols-5 gap-2 text-center">
                         {result.molecule_info.num_atoms != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_atoms}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
+                          <div className="rounded-lg p-2 bg-[rgba(var(--color-primary-rgb),0.06)] border border-[rgba(var(--color-primary-rgb),0.12)]">
+                            <Atom className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-primary)]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_atoms}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Atoms</div>
                           </div>
                         )}
                         {result.molecule_info.num_bonds != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_bonds}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Bonds</div>
+                          <div className="rounded-lg p-2 bg-[rgba(217,119,6,0.06)] border border-[rgba(217,119,6,0.14)]">
+                            <GitMerge className="w-3.5 h-3.5 mx-auto mb-1 text-[#d97706] dark:text-[#fbbf24]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_bonds}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Bonds</div>
                           </div>
                         )}
                         {result.molecule_info.num_rings != null && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_rings}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Rings</div>
+                          <div className="rounded-lg p-2 bg-[rgba(225,29,72,0.06)] border border-[rgba(225,29,72,0.14)]">
+                            <Hexagon className="w-3.5 h-3.5 mx-auto mb-1 text-[#e11d48] dark:text-[#fb7185]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_rings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Rings</div>
                           </div>
                         )}
                         {result.molecule_info.num_aromatic_rings != null && result.molecule_info.num_aromatic_rings > 0 && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.num_aromatic_rings}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Arom.</div>
+                          <div className="rounded-lg p-2 bg-[rgba(251,191,36,0.10)] border border-[rgba(251,191,36,0.22)]">
+                            <Sparkles className="w-3.5 h-3.5 mx-auto mb-1 text-[#b45309] dark:text-[#fbbf24]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.num_aromatic_rings}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Arom.</div>
                           </div>
                         )}
                         {result.molecule_info.molecular_weight && (
-                          <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
-                            <div className="text-lg font-bold text-[var(--color-text-primary)]">{result.molecule_info.molecular_weight.toFixed(1)}</div>
-                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">MW</div>
+                          <div className="rounded-lg p-2 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]">
+                            <Scale className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-text-secondary)]" />
+                            <div className="text-lg font-bold text-[var(--color-text-primary)] leading-none">{result.molecule_info.molecular_weight.toFixed(1)}</div>
+                            <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mt-1">MW</div>
                           </div>
                         )}
                       </div>
