@@ -422,6 +422,7 @@ export function SingleValidationPage() {
     wikidata: WikidataResult | null;
   } | null>(null);
   const [databaseLoading, setDatabaseLoading] = useState(false);
+  const [databaseError, setDatabaseError] = useState<string | null>(null);
 
   // Identifier resolution state
   const [resolverResult, setResolverResult] = useState<ResolvedCompound | null>(null);
@@ -541,6 +542,7 @@ export function SingleValidationPage() {
   const handleDatabaseLookup = async () => {
     if (!molecule.trim()) return;
     setDatabaseLoading(true);
+    setDatabaseError(null);
     setComparisonResult(null);
     try {
       const results = await integrationsApi.lookupAll({ smiles: resolvedSmiles });
@@ -551,6 +553,11 @@ export function SingleValidationPage() {
     } catch (err) {
       logger.error('Database lookup error:', err);
       setDatabaseResults(null);
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Database lookup failed. PubChem, ChEMBL, and COCONUT may be temporarily unavailable.';
+      setDatabaseError(message);
     } finally {
       setDatabaseLoading(false);
     }
@@ -575,6 +582,7 @@ export function SingleValidationPage() {
     setStandardizationResult(null);
     setStandardizationError(null);
     setDatabaseResults(null);
+    setDatabaseError(null);
     setResolverResult(null);
     setComparisonResult(null);
     setHighlightedAtoms([]);
@@ -712,7 +720,7 @@ export function SingleValidationPage() {
   };
 
   const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading || databaseLoading;
-  const hasError = error || alertError || scoringError || standardizationError;
+  const hasError = error || alertError || scoringError || standardizationError || databaseError;
 
   // Decorate the static tab rows with per-tab "has-result" indicators.
   // The dot signals that an analysis has been run, even when the user is
@@ -1878,10 +1886,10 @@ export function SingleValidationPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-red-500 mb-1 font-display">
-                      {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error) as string)?.includes('parse') ? 'Parse Error' : 'Error'}
+                      {((error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string)?.includes('parse') ? 'Parse Error' : databaseError ? 'Database Lookup Failed' : 'Error'}
                     </h3>
                     <p className="text-sm text-[var(--color-text-secondary)] break-words">
-                      {error?.error || alertError?.error || scoringError?.error || standardizationError?.error}
+                      {error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError}
                     </p>
                     <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                       Accepted: SMILES, InChI, IUPAC name, ChEMBL ID, CAS number, or MDL Mol file.
@@ -1905,6 +1913,7 @@ export function SingleValidationPage() {
                           setAlertError(null);
                           setScoringError(null);
                           setStandardizationError(null);
+                          setDatabaseError(null);
                         }}
                       >
                         Dismiss
