@@ -98,10 +98,13 @@ export function TabBar<T extends string = string>({
                 />
                 <span className="font-display">{tab.label}</span>
                 {tab.hasResult && !isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
-                  />
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                    />
+                    <span className="sr-only">(has results)</span>
+                  </>
                 )}
               </button>
             );
