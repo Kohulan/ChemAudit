@@ -2338,38 +2338,40 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
+              {/* Scoring Results — surfaces in the right column directly under
+                  the score tiles when on the Validate tab */}
+              <AnimatePresence>
+                {scoringResult && activeTab === 'validate' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="card p-5 sm:p-6"
+                  >
+                    <ScoringResults scoringResponse={scoringResult} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Cross-Database Comparison — surfaces in the right column on
+                  the Database tab so curators see consistency findings without
+                  scrolling past the grid */}
+              <AnimatePresence>
+                {comparisonResult && activeTab === 'database' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                  >
+                    <DatabaseComparisonPanel result={comparisonResult} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
             </>
           )}
         </motion.div>
       </div>
-
-
-      {/* Cross-Database Comparison - Full Width Below Grid */}
-      <AnimatePresence>
-        {comparisonResult && activeTab === 'database' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <DatabaseComparisonPanel result={comparisonResult} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Scoring Results - Full Width Below Grid */}
-      <AnimatePresence>
-        {scoringResult && activeTab === 'validate' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="card p-6 sm:p-8"
-          >
-            <ScoringResults scoringResponse={scoringResult} />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Share URL Toast */}
       <AnimatePresence>
