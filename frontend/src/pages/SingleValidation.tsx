@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -448,8 +448,57 @@ export function SingleValidationPage() {
   // CIP stereochemistry labels toggle
   const [showCIP, setShowCIP] = useState(false);
 
-  // All checks collapsible section
-  const [showAllChecks, setShowAllChecks] = useState(false);
+  // All checks panel — single floating card with sequenced translate-then-grow
+  // animation. The card is rendered ONCE as a position:absolute motion.div
+  // floating above the page. Two empty anchor divs (one in the right column,
+  // one below the grid) reserve layout space and provide measurement targets.
+  // The card animates top/left/width/height between the two anchors:
+  //   - Expand: top/left first (300ms), then width/height grow (400ms after).
+  //   - Collapse: width/height shrink first (400ms), then top/left return (300ms after).
+  // Same DOM element throughout. No mount/unmount, no fade.
+  const [allChecksPhase, setAllChecksPhase] = useState<'collapsed' | 'expanding' | 'expanded' | 'collapsing'>('collapsed');
+  const allChecksFloatContainerRef = useRef<HTMLDivElement>(null);
+  const allChecksCollapsedAnchorRef = useRef<HTMLDivElement>(null);
+  const allChecksExpandedAnchorRef = useRef<HTMLDivElement>(null);
+  type FloatRect = { top: number; left: number; width: number; height: number };
+  const [allChecksBounds, setAllChecksBounds] = useState<{ collapsed: FloatRect; expanded: FloatRect } | null>(null);
+
+  const measureAllChecksBounds = useCallback(() => {
+    const container = allChecksFloatContainerRef.current;
+    const collapsed = allChecksCollapsedAnchorRef.current;
+    const expanded = allChecksExpandedAnchorRef.current;
+    if (!container || !collapsed || !expanded) return;
+    const c = container.getBoundingClientRect();
+    const cR = collapsed.getBoundingClientRect();
+    const eR = expanded.getBoundingClientRect();
+    setAllChecksBounds({
+      collapsed: { top: cR.top - c.top, left: cR.left - c.left, width: cR.width, height: cR.height },
+      expanded: { top: eR.top - c.top, left: eR.left - c.left, width: eR.width, height: eR.height },
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    measureAllChecksBounds();
+    window.addEventListener('resize', measureAllChecksBounds);
+    return () => window.removeEventListener('resize', measureAllChecksBounds);
+  }, [measureAllChecksBounds, result, allChecksPhase, activeTab]);
+
+  // Auto-advance phase when transitions complete (700ms = 300ms move + 400ms grow).
+  useEffect(() => {
+    if (allChecksPhase === 'expanding') {
+      const id = window.setTimeout(() => setAllChecksPhase('expanded'), 750);
+      return () => window.clearTimeout(id);
+    }
+    if (allChecksPhase === 'collapsing') {
+      const id = window.setTimeout(() => setAllChecksPhase('collapsed'), 750);
+      return () => window.clearTimeout(id);
+    }
+  }, [allChecksPhase]);
+
+  const toggleAllChecks = useCallback(() => {
+    if (allChecksPhase === 'collapsed') setAllChecksPhase('expanding');
+    else if (allChecksPhase === 'expanded') setAllChecksPhase('collapsing');
+  }, [allChecksPhase]);
 
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
@@ -981,7 +1030,7 @@ export function SingleValidationPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
+    <div ref={allChecksFloatContainerRef} className="relative max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
       {/* Back to Batch bar — shown when navigated from batch results */}
       {batchOrigin && (
         <motion.div
@@ -2463,37 +2512,28 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
-              {/* All Checks — COLLAPSED slot (right column).
-                  Only ONE of the two slots (this and the EXPANDED below-grid
-                  slot) is in the React tree at any time — selected by
-                  showAllChecks. They share layoutId="all-checks-card", so
-                  Framer Motion physically morphs (translate + grow / shrink)
-                  the single visible element between right column and full-
-                  width below grid when toggled. */}
-              {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && !showAllChecks && (
+              {/* All Checks — COLLAPSED ANCHOR (right column).
+                  Empty placeholder that reserves layout space where the
+                  floating card visually sits when collapsed. Height
+                  animates 62→0 (and back) in sync with the floating card's
+                  position animation, so the page reflows smoothly. */}
+              {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
                 <motion.div
-                  layoutId="all-checks-card"
-                  transition={{ layout: { duration: 0.45, ease: [0.4, 0, 0.2, 1] } }}
-                  className="card overflow-hidden"
-                >
-                  <button
-                    onClick={() => setShowAllChecks(true)}
-                    aria-expanded={false}
-                    aria-controls="all-checks-grid"
-                    className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
-                        All Checks
-                      </h4>
-                      <span className="text-xs text-[var(--color-text-muted)]">
-                        {result.all_checks.length} total
-                      </span>
-                      {renderAllChecksSummary(result.all_checks)}
-                    </div>
-                    <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
-                  </button>
-                </motion.div>
+                  ref={allChecksCollapsedAnchorRef}
+                  animate={{
+                    height:
+                      allChecksPhase === 'collapsed' || allChecksPhase === 'collapsing'
+                        ? 62
+                        : 0,
+                  }}
+                  initial={false}
+                  transition={{
+                    duration: 0.35,
+                    ease: [0.4, 0, 0.2, 1],
+                    delay: allChecksPhase === 'collapsing' ? 0.4 : 0,
+                  }}
+                  aria-hidden="true"
+                />
               )}
 
             </>
@@ -2501,19 +2541,79 @@ export function SingleValidationPage() {
         </motion.div>
       </div>
 
-      {/* All Checks — EXPANDED slot (full-width below grid).
-          Mounts only when showAllChecks. Shares layoutId with the
-          right-column collapsed slot so the SAME visible element
-          physically translates + grows from right column to here. */}
-      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && showAllChecks && (
+      {/* All Checks — EXPANDED ANCHOR (full-width below grid).
+          Empty placeholder reserving layout space below the grid for the
+          expanded card. Height animates between 0 (collapsed) and the
+          card's natural expanded height in sync with the floating card. */}
+      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (() => {
+        const expandedHeight = 80 + Math.ceil(result.all_checks.length / 4) * 86;
+        return (
+          <motion.div
+            ref={allChecksExpandedAnchorRef}
+            animate={{
+              height:
+                allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+                  ? expandedHeight
+                  : 0,
+            }}
+            initial={false}
+            transition={{
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+              delay: allChecksPhase === 'expanding' ? 0.3 : 0,
+            }}
+            aria-hidden="true"
+          />
+        );
+      })()}
+
+      {/* All Checks — FLOATING CARD (the only real card).
+          Position absolute, animates top/left/width/height between the
+          two anchors above. Sequenced so it MOVES first, then GROWS on
+          expand, and SHRINKS first, then MOVES on collapse. Same DOM
+          element throughout — no mount/unmount, no fade. */}
+      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && allChecksBounds && (
         <motion.div
-          layoutId="all-checks-card"
-          transition={{ layout: { duration: 0.45, ease: [0.4, 0, 0.2, 1] } }}
-          className="card overflow-hidden"
+          className="absolute card overflow-hidden z-10"
+          initial={false}
+          animate={
+            allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+              ? {
+                  top: allChecksBounds.expanded.top,
+                  left: allChecksBounds.expanded.left,
+                  width: allChecksBounds.expanded.width,
+                  height: allChecksBounds.expanded.top !== allChecksBounds.collapsed.top
+                    ? 80 + Math.ceil(result.all_checks.length / 4) * 86
+                    : allChecksBounds.collapsed.height,
+                }
+              : {
+                  top: allChecksBounds.collapsed.top,
+                  left: allChecksBounds.collapsed.left,
+                  width: allChecksBounds.collapsed.width,
+                  height: allChecksBounds.collapsed.height || 62,
+                }
+          }
+          transition={
+            allChecksPhase === 'expanding'
+              ? {
+                  top: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+                  left: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+                  width: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+                  height: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+                }
+              : allChecksPhase === 'collapsing'
+                ? {
+                    width: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                    height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                    top: { duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.35 },
+                    left: { duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.35 },
+                  }
+                : { duration: 0.2 }
+          }
         >
           <button
-            onClick={() => setShowAllChecks(false)}
-            aria-expanded={true}
+            onClick={toggleAllChecks}
+            aria-expanded={allChecksPhase === 'expanded' || allChecksPhase === 'expanding'}
             aria-controls="all-checks-grid"
             className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
           >
@@ -2526,14 +2626,24 @@ export function SingleValidationPage() {
               </span>
               {renderAllChecksSummary(result.all_checks)}
             </div>
-            <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)] rotate-180" />
+            <motion.div
+              animate={{ rotate: (allChecksPhase === 'expanded' || allChecksPhase === 'expanding') ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
+            </motion.div>
           </button>
 
           <motion.div
             id="all-checks-grid"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.25, delay: 0.2 }}
+            animate={{
+              opacity: allChecksPhase === 'expanded' ? 1 : 0,
+            }}
+            initial={false}
+            transition={{
+              duration: 0.25,
+              delay: allChecksPhase === 'expanded' ? 0.6 : 0,
+            }}
             className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
