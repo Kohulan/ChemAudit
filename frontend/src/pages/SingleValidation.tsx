@@ -2393,80 +2393,6 @@ export function SingleValidationPage() {
                   </motion.div>
                 )}
 
-                {/* All Checks - Collapsible (validate tab only) */}
-                {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
-                  <motion.div
-                    key="all-checks"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6 overflow-visible"
-                  >
-                    <button
-                      onClick={() => setShowAllChecks(!showAllChecks)}
-                      className="w-full flex items-center justify-between text-left"
-                    >
-                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                        All Checks ({result.all_checks.length})
-                      </h4>
-                      <ChevronDown
-                        className={cn(
-                          'w-5 h-5 text-[var(--color-text-muted)] transition-transform',
-                          showAllChecks && 'rotate-180'
-                        )}
-                      />
-                    </button>
-
-                    <AnimatePresence>
-                      {showAllChecks && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-4 space-y-2"
-                        >
-                          {result.all_checks.map((check, index) => (
-                            <div
-                              key={`${check.check_name}-${index}`}
-                              className="py-2.5 px-3 bg-[var(--color-surface-sunken)] rounded-lg"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className={check.passed ? 'text-amber-500 dark:text-yellow-400' : 'text-red-500'}>
-                                    {check.passed ? '✓' : '✗'}
-                                  </span>
-                                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                                    {check.check_name.replace(/_/g, ' ')}
-                                  </span>
-                                  {CHECK_DESCRIPTIONS[check.check_name] && (
-                                    <InfoTooltip
-                                      content={CHECK_DESCRIPTIONS[check.check_name]}
-                                      position="right"
-                                    />
-                                  )}
-                                </div>
-                                <span
-                                  className={cn(
-                                    'text-xs px-2 py-1 rounded-md font-medium shrink-0',
-                                    CHECK_SEVERITY_STYLES[check.passed ? 'pass' : check.severity] ?? CHECK_SEVERITY_STYLES.info
-                                  )}
-                                >
-                                  {check.passed ? 'PASS' : check.severity.toUpperCase()}
-                                </span>
-                              </div>
-                              {check.message && (
-                                <p className="text-xs text-[var(--color-text-muted)] mt-1 ml-6">
-                                  {check.message}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
 
                 {/* Alert Screening Results */}
                 {alertResult && (
@@ -2521,6 +2447,133 @@ export function SingleValidationPage() {
           )}
         </motion.div>
       </div>
+
+      {/* All Checks — full-width below the grid. Collapsed = slim header bar.
+          Expanded = 4-up grid of mini cells (icon + name + severity badge),
+          tooltip on each cell reveals description + message. */}
+      <AnimatePresence>
+        {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+          <motion.div
+            key="all-checks"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="card overflow-hidden"
+          >
+            <button
+              onClick={() => setShowAllChecks(!showAllChecks)}
+              aria-expanded={showAllChecks}
+              aria-controls="all-checks-grid"
+              className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
+                  All Checks
+                </h4>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {result.all_checks.length} total
+                </span>
+                {result.all_checks.length > 0 && (() => {
+                  const passed = result.all_checks.filter((c) => c.passed).length;
+                  const flagged = result.all_checks.length - passed;
+                  return (
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
+                        {passed} passed
+                      </span>
+                      {flagged > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">
+                          {flagged} flagged
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+              <ChevronDown
+                className={cn(
+                  'w-5 h-5 text-[var(--color-text-muted)] transition-transform duration-300',
+                  showAllChecks && 'rotate-180'
+                )}
+              />
+            </button>
+
+            <AnimatePresence initial={false}>
+              {showAllChecks && (
+                <motion.div
+                  id="all-checks-grid"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
+                      {result.all_checks.map((check, index) => {
+                        const severity = check.passed ? 'pass' : check.severity;
+                        const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
+                        const description = CHECK_DESCRIPTIONS[check.check_name];
+                        const tooltipContent = (
+                          <div className="text-xs space-y-1.5">
+                            {description && <p>{description}</p>}
+                            {check.message && (
+                              <p className="text-white/80">
+                                <span className="text-white/60 font-medium">Result:</span> {check.message}
+                              </p>
+                            )}
+                          </div>
+                        );
+                        return (
+                          <div
+                            key={`${check.check_name}-${index}`}
+                            className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {check.passed ? (
+                                <CheckCircle2
+                                  className="w-3.5 h-3.5 flex-shrink-0 text-[#d97706] dark:text-[#fbbf24]"
+                                  strokeWidth={2.25}
+                                />
+                              ) : (
+                                <AlertTriangle
+                                  className="w-3.5 h-3.5 flex-shrink-0 text-orange-500"
+                                  strokeWidth={2.25}
+                                />
+                              )}
+                              <span
+                                className="text-xs font-medium text-[var(--color-text-primary)] truncate"
+                                title={check.check_name.replace(/_/g, ' ')}
+                              >
+                                {check.check_name.replace(/_/g, ' ')}
+                              </span>
+                              {(description || check.message) && (
+                                <span className="ml-auto flex-shrink-0">
+                                  <InfoTooltip content={tooltipContent} position="left" size="small" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-end mt-auto">
+                              <span
+                                className={cn(
+                                  'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
+                                  severityClass,
+                                )}
+                              >
+                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cross-Database Comparison — full-width below the grid so the
           comparison surface gets the horizontal room it needs */}
