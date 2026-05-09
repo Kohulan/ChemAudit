@@ -1510,8 +1510,7 @@ export function SingleValidationPage() {
                         <Info className="w-4 h-4" />
                       </div>
                       <p className="text-[var(--color-text-secondary)] text-sm">
-                        Validate your chemical structure for correctness, standardize representations,
-                        and assess machine learning readiness scores to ensure your compounds are suitable for ML model training and prediction.
+                        Run Validate first. Score becomes available once the canonical SMILES is computed.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -1551,8 +1550,8 @@ export function SingleValidationPage() {
                         <Info className="w-4 h-4" />
                       </div>
                       <p className="text-[var(--color-text-secondary)] text-sm">
-                        Advanced structure analysis covering stereoisomer enumeration, tautomer detection,
-                        chemical composition guards, and structural complexity flags for comprehensive compound profiling.
+                        Stereoisomer enumeration, tautomer detection, composition guards, and complexity flags.
+                        Requires a successful basic validation first.
                       </p>
                     </div>
                     {!result && (
@@ -1585,8 +1584,8 @@ export function SingleValidationPage() {
                             <Info className="w-4 h-4" />
                           </div>
                           <p className="text-[var(--color-text-secondary)] text-sm">
-                            Consensus drug-likeness scoring, lead-likeness evaluation, property breakdowns,
-                            and bioavailability radar across multiple scoring profiles.
+                            Drug-likeness, lead-likeness, property breakdowns, and bioavailability radar
+                            across multiple consensus profiles. Run Validate first to populate.
                           </p>
                         </div>
                         <ClayButton
@@ -1613,7 +1612,7 @@ export function SingleValidationPage() {
                       </div>
                       <div>
                         <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Search compound databases for additional information:
+                          Click Look Up to query four databases for this molecule:
                         </p>
                         <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
                           <li className="flex items-center gap-2">
@@ -1762,8 +1761,7 @@ export function SingleValidationPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-1.5">
                           <p className="text-[var(--color-text-secondary)] text-sm flex-1">
-                            Screen for problematic structural patterns that may cause issues
-                            in assays or drug development.
+                            PAINS and BRENK preselected. Toggle additional catalogs (NIH, ZINC, ChEMBL filters) below.
                           </p>
                           <InfoTooltip
                             title="Safety Assessment Metrics"
@@ -1903,7 +1901,7 @@ export function SingleValidationPage() {
                       </div>
                       <div>
                         <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Standardize your structure using the ChEMBL pipeline. This includes:
+                          Click Standardize to apply the ChEMBL structure pipeline:
                         </p>
                         <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
                           <li className="flex items-center gap-2">
