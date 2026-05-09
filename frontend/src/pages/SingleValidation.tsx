@@ -1374,13 +1374,19 @@ export function SingleValidationPage() {
                       <ClayButton
                         variant="accent"
                         onClick={handleCalculateScores}
-                        disabled={!molecule.trim() || isAnyLoading}
+                        disabled={!molecule.trim() || isAnyLoading || !result}
                         loading={scoringLoading}
                         leftIcon={<Sparkles className="w-4 h-4" />}
+                        title={!result ? 'Run Validate first — Score uses the canonical SMILES from validation' : undefined}
                       >
                         Score
                       </ClayButton>
                     </div>
+                    {!result && molecule.trim() && (
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        Score becomes available after validation completes.
+                      </p>
+                    )}
                   </div>
                 )}
 
