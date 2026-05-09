@@ -340,7 +340,7 @@ export function SingleValidationPage() {
   const [highlightLocked, setHighlightLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('validate');
   const { validate, result, error, isLoading, reset, restore } = useValidation();
-  const [_shareToastVisible, setShareToastVisible] = useState(false);
+  const [shareToastVisible, setShareToastVisible] = useState(false);
   const { recent, addRecent, removeRecent, clearRecent } = useRecentMolecules();
 
   // Enrichment: Profiler hook
@@ -942,6 +942,41 @@ export function SingleValidationPage() {
       ];
     }
     return phrases[loadingPhase % phrases.length];
+  }
+
+  function renderErrorDetail() {
+    const activeMessage = (error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string | undefined;
+    const errorType = classifyError(activeMessage, !!databaseError);
+    return (
+      <>
+        <h3 className="font-semibold text-red-500 mb-1 font-display">
+          {PARSE_ERROR_HEADINGS[errorType]}
+        </h3>
+        <p className="text-sm text-[var(--color-text-secondary)] break-words">
+          {activeMessage}
+        </p>
+        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+          {PARSE_ERROR_HINTS[errorType]}
+        </p>
+      </>
+    );
+  }
+
+  function renderAllChecksSummary(checks: NonNullable<typeof result>['all_checks']) {
+    const passed = checks.filter((c) => c.passed).length;
+    const flagged = checks.length - passed;
+    return (
+      <div className="flex items-center gap-1.5 ml-1">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
+          {passed} passed
+        </span>
+        {flagged > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">
+            {flagged} flagged
+          </span>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -2043,23 +2078,7 @@ export function SingleValidationPage() {
                     <AlertTriangle className="w-5 h-5 text-red-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    {(() => {
-                      const activeMessage = (error?.error || alertError?.error || scoringError?.error || standardizationError?.error || databaseError) as string | undefined;
-                      const errorType = classifyError(activeMessage, !!databaseError);
-                      return (
-                        <>
-                          <h3 className="font-semibold text-red-500 mb-1 font-display">
-                            {PARSE_ERROR_HEADINGS[errorType]}
-                          </h3>
-                          <p className="text-sm text-[var(--color-text-secondary)] break-words">
-                            {activeMessage}
-                          </p>
-                          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                            {PARSE_ERROR_HINTS[errorType]}
-                          </p>
-                        </>
-                      );
-                    })()}
+                    {renderErrorDetail()}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <ClayButton
                         variant="primary"
@@ -2473,22 +2492,7 @@ export function SingleValidationPage() {
                 <span className="text-xs text-[var(--color-text-muted)]">
                   {result.all_checks.length} total
                 </span>
-                {result.all_checks.length > 0 && (() => {
-                  const passed = result.all_checks.filter((c) => c.passed).length;
-                  const flagged = result.all_checks.length - passed;
-                  return (
-                    <div className="flex items-center gap-1.5 ml-1">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
-                        {passed} passed
-                      </span>
-                      {flagged > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">
-                          {flagged} flagged
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
+                {result.all_checks.length > 0 && renderAllChecksSummary(result.all_checks)}
               </div>
               <ChevronDown
                 className={cn(
@@ -2609,7 +2613,7 @@ export function SingleValidationPage() {
 
       {/* Share URL Toast */}
       <AnimatePresence>
-        {_shareToastVisible && (
+        {shareToastVisible && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}

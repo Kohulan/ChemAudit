@@ -28,20 +28,15 @@ export function BatchProgress({
   // Track if we've already called onComplete to prevent multiple calls
   const hasCompletedRef = useRef(false);
 
-  // Call onComplete when status changes to complete (only once)
+  // Call onComplete exactly once when status becomes complete; reset flag on new jobs.
   useEffect(() => {
     if (progress?.status === 'complete' && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
       onComplete();
-    }
-  }, [progress?.status, onComplete]);
-
-  // Reset completion flag when job changes
-  useEffect(() => {
-    if (progress?.status === 'pending' || progress?.status === 'processing') {
+    } else if (progress?.status === 'pending' || progress?.status === 'processing') {
       hasCompletedRef.current = false;
     }
-  }, [progress?.status]);
+  }, [progress?.status, onComplete]);
 
   const formatETA = (seconds: number | null | undefined): string => {
     if (seconds === null || seconds === undefined || seconds <= 0) return 'Calculating...';
@@ -100,18 +95,12 @@ export function BatchProgress({
     }
   }, [progress?.status, progress?.processed, progress?.total, progress?.error_message]);
 
-  // Progress bar style with gradient
-  const progressBarStyle = useMemo(() => {
-    let background: string;
-    if (progress?.status === 'complete') {
-      background = 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)';
-    } else if (progress?.status === 'failed') {
-      background = 'linear-gradient(90deg, #EF4444, #DC2626)';
-    } else {
-      background = 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)';
-    }
-    return { background };
-  }, [progress?.status]);
+  const progressBarBackground =
+    progress?.status === 'complete'
+      ? 'linear-gradient(90deg, #F59E0B, #EAB308, #FBBF24)'
+      : progress?.status === 'failed'
+        ? 'linear-gradient(90deg, #EF4444, #DC2626)'
+        : 'linear-gradient(90deg, #c41e3a, #e11d48, #d97706)';
 
   return (
     <motion.div
@@ -176,7 +165,7 @@ export function BatchProgress({
             className="h-full relative overflow-hidden transition-all duration-300 ease-out"
             style={{
               width: `${Math.max(0, Math.min(100, displayProgress))}%`,
-              ...progressBarStyle,
+              background: progressBarBackground,
             }}
           >
             {/* Shimmer overlay on progress */}

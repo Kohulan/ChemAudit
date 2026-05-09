@@ -107,8 +107,8 @@ export function MoleculeViewer({
 
   if (isLoading) {
     return (
-      <div className={`${PLACEHOLDER_BASE} bg-gray-100 dark:bg-gray-800 ${className}`} style={placeholderStyle}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className={`${PLACEHOLDER_BASE} bg-[var(--color-surface-sunken)] ${className}`} style={placeholderStyle}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
       </div>
     );
   }
