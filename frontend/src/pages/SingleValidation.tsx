@@ -2463,26 +2463,61 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
+              {/* All Checks — COLLAPSED slot (right column).
+                  When clicked, the card morphs (via shared layoutId) into the
+                  EXPANDED slot below the 2-col grid where it spans full width
+                  and reveals the 4-up grid of cells. Click chevron again to
+                  shrink back into this slot. */}
+              <AnimatePresence mode="popLayout">
+                {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && !showAllChecks && (
+                  <motion.div
+                    key="all-checks-collapsed"
+                    layoutId="all-checks-card"
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    className="card overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setShowAllChecks(true)}
+                      aria-expanded={false}
+                      aria-controls="all-checks-grid"
+                      className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
+                          All Checks
+                        </h4>
+                        <span className="text-xs text-[var(--color-text-muted)]">
+                          {result.all_checks.length} total
+                        </span>
+                        {renderAllChecksSummary(result.all_checks)}
+                      </div>
+                      <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
             </>
           )}
         </motion.div>
       </div>
 
-      {/* All Checks — full-width below the grid. Collapsed = slim header bar.
-          Expanded = 4-up grid of mini cells (icon + name + severity badge),
-          tooltip on each cell reveals description + message. */}
-      <AnimatePresence>
-        {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+      {/* All Checks — EXPANDED slot (full-width below grid).
+          Pairs with the COLLAPSED slot in the right column via shared
+          layoutId="all-checks-card". Framer Motion morphs position +
+          width + height when the user toggles. The collapsed-slot lives
+          in the right column above; this slot only mounts when expanded. */}
+      <AnimatePresence mode="popLayout">
+        {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && showAllChecks && (
           <motion.div
-            key="all-checks"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            key="all-checks-expanded"
+            layoutId="all-checks-card"
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
             className="card overflow-hidden"
           >
             <button
-              onClick={() => setShowAllChecks(!showAllChecks)}
-              aria-expanded={showAllChecks}
+              onClick={() => setShowAllChecks(false)}
+              aria-expanded={true}
               aria-controls="all-checks-grid"
               className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
             >
@@ -2493,89 +2528,78 @@ export function SingleValidationPage() {
                 <span className="text-xs text-[var(--color-text-muted)]">
                   {result.all_checks.length} total
                 </span>
-                {result.all_checks.length > 0 && renderAllChecksSummary(result.all_checks)}
+                {renderAllChecksSummary(result.all_checks)}
               </div>
-              <ChevronDown
-                className={cn(
-                  'w-5 h-5 text-[var(--color-text-muted)] transition-transform duration-300',
-                  showAllChecks && 'rotate-180'
-                )}
-              />
+              <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)] rotate-180" />
             </button>
 
-            <AnimatePresence initial={false}>
-              {showAllChecks && (
-                <motion.div
-                  id="all-checks-grid"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
-                      {result.all_checks.map((check, index) => {
-                        const severity = check.passed ? 'pass' : check.severity;
-                        const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
-                        const description = CHECK_DESCRIPTIONS[check.check_name];
-                        const tooltipContent = (
-                          <div className="text-xs space-y-1.5">
-                            {description && <p>{description}</p>}
-                            {check.message && (
-                              <p className="text-white/80">
-                                <span className="text-white/60 font-medium">Result:</span> {check.message}
-                              </p>
-                            )}
-                          </div>
-                        );
-                        return (
-                          <div
-                            key={`${check.check_name}-${index}`}
-                            className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              {check.passed ? (
-                                <CheckCircle2
-                                  className="w-3.5 h-3.5 flex-shrink-0 text-[#d97706] dark:text-[#fbbf24]"
-                                  strokeWidth={2.25}
-                                />
-                              ) : (
-                                <AlertTriangle
-                                  className="w-3.5 h-3.5 flex-shrink-0 text-orange-500"
-                                  strokeWidth={2.25}
-                                />
-                              )}
-                              <span
-                                className="text-xs font-medium text-[var(--color-text-primary)] truncate"
-                                title={check.check_name.replace(/_/g, ' ')}
-                              >
-                                {check.check_name.replace(/_/g, ' ')}
-                              </span>
-                              {(description || check.message) && (
-                                <span className="ml-auto flex-shrink-0">
-                                  <InfoTooltip content={tooltipContent} position="left" size="small" />
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-end mt-auto">
-                              <span
-                                className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
-                                  severityClass,
-                                )}
-                              >
-                                {check.passed ? 'PASS' : check.severity.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+            <motion.div
+              id="all-checks-grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25, delay: 0.15 }}
+              className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
+                {result.all_checks.map((check, index) => {
+                  const severity = check.passed ? 'pass' : check.severity;
+                  const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
+                  const description = CHECK_DESCRIPTIONS[check.check_name];
+                  const tooltipContent = (
+                    <div className="text-xs space-y-1.5">
+                      {description && <p>{description}</p>}
+                      {check.message && (
+                        <p className="text-white/80">
+                          <span className="text-white/60 font-medium">Result:</span> {check.message}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  );
+                  return (
+                    <div
+                      key={`${check.check_name}-${index}`}
+                      className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {check.passed ? (
+                          <CheckCircle2
+                            className="w-3.5 h-3.5 flex-shrink-0 text-[#d97706] dark:text-[#fbbf24]"
+                            strokeWidth={2.25}
+                          />
+                        ) : (
+                          <AlertTriangle
+                            className="w-3.5 h-3.5 flex-shrink-0 text-orange-500"
+                            strokeWidth={2.25}
+                          />
+                        )}
+                        <span
+                          className="text-xs font-medium text-[var(--color-text-primary)] truncate"
+                          title={check.check_name.replace(/_/g, ' ')}
+                        >
+                          {check.check_name.replace(/_/g, ' ')}
+                        </span>
+                        {(description || check.message) && (
+                          <span className="ml-auto flex-shrink-0">
+                            <InfoTooltip content={tooltipContent} position="left" size="small" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-end mt-auto">
+                        <span
+                          className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
+                            severityClass,
+                          )}
+                        >
+                          {check.passed ? 'PASS' : check.severity.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
