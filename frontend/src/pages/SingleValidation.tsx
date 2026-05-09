@@ -41,7 +41,7 @@ import { Badge } from '../components/ui/Badge';
 import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
 import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
-import { TabBar, type TabBarTab } from '../components/ui/TabBar';
+import { TabBar, type TabBarTab, type TabBarResultState } from '../components/ui/TabBar';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
@@ -731,21 +731,51 @@ export function SingleValidationPage() {
   const isAnyLoading = isLoading || alertsLoading || scoringLoading || standardizationLoading || databaseLoading;
   const hasError = error || alertError || scoringError || standardizationError || databaseError;
 
-  // Decorate the static tab rows with per-tab "has-result" indicators.
-  // The dot signals that an analysis has been run, even when the user is
-  // viewing a different tab — so they don't have to click each tab to find out.
+  // Decorate the static tab rows with per-tab "has-result" indicators and a
+  // qualified result state (clean / issues / warnings / complete) so a glance
+  // at the tab bar communicates not just that an analysis ran, but how it
+  // landed. Stays inside the warm-status spectrum per DESIGN.md.
   const tabRowsWithResults = useMemo(() => {
-    const hasByTab: Partial<Record<TabType, boolean>> = {
-      'validate': !!result,
-      'deep-validation': !!result,
-      'scoring-profiles': !!scoringResult,
-      'alerts': !!(alertResult || safetyAssessResult),
-      'compound-profile': !!profileResult,
-      'database': !!databaseResults,
-      'standardize': !!standardizationResult,
+    const validationIssueCount = result?.issues?.length ?? 0;
+    const validationCriticalCount = result?.issues?.filter(
+      (i) => i.severity === 'critical' || i.severity === 'error',
+    ).length ?? 0;
+    const alertCount = alertResult?.alerts?.length ?? 0;
+
+    const stateByTab: Partial<Record<TabType, { hasResult: boolean; resultState?: TabBarResultState }>> = {
+      'validate': result
+        ? {
+            hasResult: true,
+            resultState:
+              validationCriticalCount > 0
+                ? 'issues'
+                : validationIssueCount > 0
+                ? 'warnings'
+                : 'clean',
+          }
+        : { hasResult: false },
+      'deep-validation': result ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'scoring-profiles': scoringResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'alerts': (alertResult || safetyAssessResult)
+        ? {
+            hasResult: true,
+            resultState: alertResult ? (alertCount > 0 ? 'issues' : 'clean') : 'complete',
+          }
+        : { hasResult: false },
+      'compound-profile': profileResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'database': databaseResults ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
+      'standardize': standardizationResult ? { hasResult: true, resultState: 'complete' } : { hasResult: false },
     };
+
     const decorate = (row: ReadonlyArray<TabBarTab<TabType>>) =>
-      row.map((tab) => ({ ...tab, hasResult: !!hasByTab[tab.id] }));
+      row.map((tab) => {
+        const state = stateByTab[tab.id];
+        return {
+          ...tab,
+          hasResult: !!state?.hasResult,
+          resultState: state?.resultState,
+        };
+      });
     return [decorate(TAB_ROW_1), decorate(TAB_ROW_2)];
   }, [result, scoringResult, alertResult, safetyAssessResult, profileResult, databaseResults, standardizationResult]);
 

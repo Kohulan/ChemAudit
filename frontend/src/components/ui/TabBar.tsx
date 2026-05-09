@@ -1,14 +1,37 @@
 import type { ComponentType } from 'react';
 import { cn } from '../../lib/utils';
 
+export type TabBarResultState = 'clean' | 'issues' | 'warnings' | 'complete';
+
 export interface TabBarTab<T extends string = string> {
   id: T;
   label: string;
   icon: ComponentType<{ className?: string }>;
   description?: string;
-  /** When true, render a small brand-primary dot on the inactive tab to signal it has results. */
+  /** When true, render a small dot on the inactive tab to signal it has results. */
   hasResult?: boolean;
+  /**
+   * When `hasResult` is true, this further qualifies the dot colour so a glance
+   * at the tab bar communicates whether the result is clean, has issues, has
+   * warnings, or is just complete (no chemistry-valence distinction applies).
+   * All four colours stay inside the warm-status spectrum per DESIGN.md.
+   */
+  resultState?: TabBarResultState;
 }
+
+const RESULT_STATE_DOT_CLASS: Record<TabBarResultState, string> = {
+  clean: 'bg-[#fbbf24]', // score-excellent gold-amber
+  issues: 'bg-[#ea580c]', // score-fair orange-flame
+  warnings: 'bg-[#d97706]', // score-good amber
+  complete: 'bg-[var(--color-primary)]',
+};
+
+const RESULT_STATE_SR_LABEL: Record<TabBarResultState, string> = {
+  clean: '(all clear)',
+  issues: '(issues found)',
+  warnings: '(warnings)',
+  complete: '(has results)',
+};
 
 export interface TabBarProps<T extends string = string> {
   /** Single row of tabs. Mutually exclusive with `rows`. */
@@ -101,9 +124,14 @@ export function TabBar<T extends string = string>({
                   <>
                     <span
                       aria-hidden="true"
-                      className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                      className={cn(
+                        'absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
+                        RESULT_STATE_DOT_CLASS[tab.resultState ?? 'complete'],
+                      )}
                     />
-                    <span className="sr-only">(has results)</span>
+                    <span className="sr-only">
+                      {RESULT_STATE_SR_LABEL[tab.resultState ?? 'complete']}
+                    </span>
                   </>
                 )}
               </button>
