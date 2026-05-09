@@ -776,6 +776,22 @@ export function SingleValidationPage() {
     URL.revokeObjectURL(url);
   }, [canonicalSmiles, molecule]);
 
+  // Loading phrase cycling — name the actual chemistry being computed.
+  // Phrases rotate on a 1.5s interval while a loading flag is set, so a
+  // user looking at a multi-second wait sees what stage the tool is in,
+  // not just an opaque "Loading...".
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  useEffect(() => {
+    if (!isAnyLoading) {
+      setLoadingPhase(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setLoadingPhase((p) => p + 1);
+    }, 1500);
+    return () => clearInterval(id);
+  }, [isAnyLoading]);
+
   // ── Lazy-load enrichment data when switching to profiler / safety tabs ──
   // Only auto-fires after validation has produced a result. Otherwise the
   // user gets a CTA inside the tab (already rendered) and decides whether
@@ -793,11 +809,40 @@ export function SingleValidationPage() {
   }, [activeTab, canonicalSmiles, result]);
 
   function getLoadingText(): string {
-    if (isLoading) return 'Running validation checks...';
-    if (databaseLoading) return 'Querying external databases...';
-    if (scoringLoading) return 'Calculating scores...';
-    if (standardizationLoading) return 'Running standardization pipeline...';
-    return 'Screening for structural alerts...';
+    let phrases: ReadonlyArray<string>;
+    if (isLoading) {
+      phrases = [
+        'Sanitizing molecular graph...',
+        'Enumerating stereocenters...',
+        'Computing InChI layer...',
+        'Evaluating valence model...',
+      ];
+    } else if (databaseLoading) {
+      phrases = [
+        'Querying PubChem by InChIKey...',
+        'Resolving ChEMBL bioactivity links...',
+        'Searching COCONUT natural products...',
+      ];
+    } else if (scoringLoading) {
+      phrases = [
+        'Computing Lipinski descriptors...',
+        'Evaluating ML-readiness criteria...',
+        'Calculating bioavailability radar...',
+      ];
+    } else if (standardizationLoading) {
+      phrases = [
+        'Applying ChEMBL structure pipeline...',
+        'Canonicalizing tautomers...',
+        'Removing salts and solvents...',
+      ];
+    } else {
+      phrases = [
+        'Screening for structural alerts...',
+        'Matching SMARTS patterns...',
+        'Checking PAINS and BRENK catalogs...',
+      ];
+    }
+    return phrases[loadingPhase % phrases.length];
   }
 
   return (
