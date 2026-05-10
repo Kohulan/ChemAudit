@@ -2596,17 +2596,24 @@ export function SingleValidationPage() {
           transition={
             allChecksPhase === 'expanding'
               ? {
+                  // Phase 1 — move STRAIGHT DOWN: only `top` animates (350ms).
+                  // Phase 2 — grow LEFTWARD: `left` and `width` animate
+                  // together so the right edge stays anchored and the card
+                  // expands to the left. `height` reveals the body grid.
                   top: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
-                  left: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+                  left: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
                   width: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
                   height: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
                 }
               : allChecksPhase === 'collapsing'
                 ? {
+                    // Phase 1 — shrink RIGHTWARD: `left` slides right and
+                    // `width` shrinks together (right edge anchored).
+                    // Phase 2 — move STRAIGHT UP: `top` animates last.
+                    left: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
                     width: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
                     height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
                     top: { duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.35 },
-                    left: { duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.35 },
                   }
                 : { duration: 0.2 }
           }
