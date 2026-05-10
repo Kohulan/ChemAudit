@@ -2546,7 +2546,7 @@ export function SingleValidationPage() {
           expanded card. Height animates between 0 (collapsed) and the
           card's natural expanded height in sync with the floating card. */}
       {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (() => {
-        const expandedHeight = 80 + Math.ceil(result.all_checks.length / 4) * 86;
+        const expandedHeight = 90 + Math.ceil(result.all_checks.length / 4) * 152;
         return (
           <motion.div
             ref={allChecksExpandedAnchorRef}
@@ -2583,7 +2583,7 @@ export function SingleValidationPage() {
                   left: allChecksBounds.expanded.left,
                   width: allChecksBounds.expanded.width,
                   height: allChecksBounds.expanded.top !== allChecksBounds.collapsed.top
-                    ? 80 + Math.ceil(result.all_checks.length / 4) * 86
+                    ? 90 + Math.ceil(result.all_checks.length / 4) * 152
                     : allChecksBounds.collapsed.height,
                 }
               : {
@@ -2658,20 +2658,10 @@ export function SingleValidationPage() {
                 const severity = check.passed ? 'pass' : check.severity;
                 const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
                 const description = CHECK_DESCRIPTIONS[check.check_name];
-                const tooltipContent = (
-                  <div className="text-xs space-y-1.5">
-                    {description && <p>{description}</p>}
-                    {check.message && (
-                      <p className="text-white/80">
-                        <span className="text-white/60 font-medium">Result:</span> {check.message}
-                      </p>
-                    )}
-                  </div>
-                );
                 return (
                   <div
                     key={`${check.check_name}-${index}`}
-                    className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
+                    className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-1.5 min-h-[140px]"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       {check.passed ? (
@@ -2686,18 +2676,23 @@ export function SingleValidationPage() {
                         />
                       )}
                       <span
-                        className="text-xs font-medium text-[var(--color-text-primary)] truncate"
+                        className="text-xs font-semibold text-[var(--color-text-primary)] truncate"
                         title={check.check_name.replace(/_/g, ' ')}
                       >
                         {check.check_name.replace(/_/g, ' ')}
                       </span>
-                      {(description || check.message) && (
-                        <span className="ml-auto flex-shrink-0">
-                          <InfoTooltip content={tooltipContent} position="left" size="small" />
-                        </span>
-                      )}
                     </div>
-                    <div className="flex items-center justify-end mt-auto">
+                    {description && (
+                      <p className="text-[10px] text-[var(--color-text-muted)] leading-snug line-clamp-3">
+                        {description}
+                      </p>
+                    )}
+                    {check.message && (
+                      <p className="text-[10px] text-[var(--color-text-secondary)] leading-snug line-clamp-2 italic">
+                        {check.message}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-end mt-auto pt-1">
                       <span
                         className={cn(
                           'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
