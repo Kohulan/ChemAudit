@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -335,6 +335,209 @@ const CHECK_SEVERITY_STYLES: Record<string, string> = {
   info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
 };
 
+// Group the 27 individual checks into 7 chemistry-meaningful families so
+// the expanded "All Checks" panel reads as scannable sections, not as a
+// 27-card grid. Each category carries its own warm-tinted accent and
+// lucide icon — restrained color (still well under the "10% of any
+// screen" budget) that gives every section a visual key. Order follows
+// reading flow: parsing first, identifiers last.
+type CategoryAccent = {
+  icon: 'flask' | 'atom' | 'hexagon' | 'layers' | 'share' | 'merge' | 'lock';
+  // Section header icon chip
+  textClass: string;
+  bgClass: string;
+  // Section box (card-inset container)
+  sectionBgClass: string;
+  sectionBorderClass: string;
+  sectionHoverBorderClass: string;
+  // Pass-count chip when allPassed
+  countBgClass: string;
+  countTextClass: string;
+};
+
+const CHECK_CATEGORIES: ReadonlyArray<{
+  key: string;
+  label: string;
+  members: ReadonlyArray<string>;
+  accent: CategoryAccent;
+}> = [
+  {
+    key: 'parsing',
+    label: 'Parsing & sanitization',
+    members: ['parsability', 'sanitization', 'valence', 'aromaticity', 'connectivity'],
+    accent: {
+      icon: 'flask',
+      textClass: 'text-[#c41e3a] dark:text-[#f87171]',
+      bgClass: 'bg-[rgba(196,30,58,0.12)]',
+      sectionBgClass: 'bg-[rgba(196,30,58,0.03)] dark:bg-[rgba(248,113,113,0.04)]',
+      sectionBorderClass: 'border-[rgba(196,30,58,0.18)] dark:border-[rgba(248,113,113,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(196,30,58,0.32)] dark:hover:border-[rgba(248,113,113,0.36)]',
+      countBgClass: 'bg-[rgba(196,30,58,0.14)] dark:bg-[rgba(248,113,113,0.18)]',
+      countTextClass: 'text-[#c41e3a] dark:text-[#f87171]',
+    },
+  },
+  {
+    key: 'atomic',
+    label: 'Atomic composition',
+    members: [
+      'hypervalent_atoms',
+      'charged_species',
+      'explicit_hydrogen_audit',
+      'radical_detection',
+      'isotope_label_detection',
+    ],
+    accent: {
+      icon: 'atom',
+      textClass: 'text-[#d97706] dark:text-[#fbbf24]',
+      bgClass: 'bg-[rgba(217,119,6,0.14)]',
+      sectionBgClass: 'bg-[rgba(217,119,6,0.04)] dark:bg-[rgba(251,191,36,0.05)]',
+      sectionBorderClass: 'border-[rgba(217,119,6,0.20)] dark:border-[rgba(251,191,36,0.22)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(217,119,6,0.34)] dark:hover:border-[rgba(251,191,36,0.38)]',
+      countBgClass: 'bg-[rgba(217,119,6,0.16)] dark:bg-[rgba(251,191,36,0.20)]',
+      countTextClass: 'text-[#b45309] dark:text-[#fbbf24]',
+    },
+  },
+  {
+    key: 'topology',
+    label: 'Topology & rings',
+    members: ['polymer_detection', 'ring_strain', 'macrocycle_detection', 'aromatic_system_validation'],
+    accent: {
+      icon: 'hexagon',
+      textClass: 'text-[#b45309] dark:text-[#fcd34d]',
+      bgClass: 'bg-[rgba(180,83,9,0.12)]',
+      sectionBgClass: 'bg-[rgba(180,83,9,0.03)] dark:bg-[rgba(252,211,77,0.05)]',
+      sectionBorderClass: 'border-[rgba(180,83,9,0.20)] dark:border-[rgba(252,211,77,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(180,83,9,0.34)] dark:hover:border-[rgba(252,211,77,0.36)]',
+      countBgClass: 'bg-[rgba(180,83,9,0.16)] dark:bg-[rgba(252,211,77,0.20)]',
+      countTextClass: 'text-[#b45309] dark:text-[#fcd34d]',
+    },
+  },
+  {
+    key: 'composition',
+    label: 'Composition & contaminants',
+    members: ['mixture_detection', 'solvent_contamination', 'inorganic_filter', 'trivial_molecule'],
+    accent: {
+      icon: 'layers',
+      textClass: 'text-[#ea580c] dark:text-[#fdba74]',
+      bgClass: 'bg-[rgba(234,88,12,0.12)]',
+      sectionBgClass: 'bg-[rgba(234,88,12,0.03)] dark:bg-[rgba(253,186,116,0.05)]',
+      sectionBorderClass: 'border-[rgba(234,88,12,0.20)] dark:border-[rgba(253,186,116,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(234,88,12,0.34)] dark:hover:border-[rgba(253,186,116,0.36)]',
+      countBgClass: 'bg-[rgba(234,88,12,0.16)] dark:bg-[rgba(253,186,116,0.20)]',
+      countTextClass: 'text-[#ea580c] dark:text-[#fdba74]',
+    },
+  },
+  {
+    key: 'stereo',
+    label: 'Stereochemistry',
+    members: [
+      'stereoisomer_enumeration',
+      'undefined_stereocenters',
+      'undefined_doublebond_stereo',
+      'conflicting_stereo',
+    ],
+    accent: {
+      icon: 'share',
+      textClass: 'text-[#e11d48] dark:text-[#fb7185]',
+      bgClass: 'bg-[rgba(225,29,72,0.12)]',
+      sectionBgClass: 'bg-[rgba(225,29,72,0.03)] dark:bg-[rgba(251,113,133,0.05)]',
+      sectionBorderClass: 'border-[rgba(225,29,72,0.18)] dark:border-[rgba(251,113,133,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(225,29,72,0.32)] dark:hover:border-[rgba(251,113,133,0.36)]',
+      countBgClass: 'bg-[rgba(225,29,72,0.14)] dark:bg-[rgba(251,113,133,0.20)]',
+      countTextClass: 'text-[#e11d48] dark:text-[#fb7185]',
+    },
+  },
+  {
+    key: 'tautomer',
+    label: 'Tautomers & coordinates',
+    members: ['tautomer_detection', 'coordinate_dimension'],
+    accent: {
+      icon: 'merge',
+      textClass: 'text-[#9d1830] dark:text-[#f87171]',
+      bgClass: 'bg-[rgba(157,24,48,0.12)]',
+      sectionBgClass: 'bg-[rgba(157,24,48,0.03)] dark:bg-[rgba(248,113,113,0.05)]',
+      sectionBorderClass: 'border-[rgba(157,24,48,0.18)] dark:border-[rgba(248,113,113,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(157,24,48,0.32)] dark:hover:border-[rgba(248,113,113,0.36)]',
+      countBgClass: 'bg-[rgba(157,24,48,0.14)] dark:bg-[rgba(248,113,113,0.18)]',
+      countTextClass: 'text-[#9d1830] dark:text-[#f87171]',
+    },
+  },
+  {
+    key: 'identifier',
+    label: 'Identifiers & roundtrips',
+    members: ['smiles_roundtrip', 'inchi_generation', 'inchi_roundtrip'],
+    accent: {
+      icon: 'lock',
+      textClass: 'text-[#92400e] dark:text-[#fbbf24]',
+      bgClass: 'bg-[rgba(146,64,14,0.12)]',
+      sectionBgClass: 'bg-[rgba(146,64,14,0.03)] dark:bg-[rgba(251,191,36,0.05)]',
+      sectionBorderClass: 'border-[rgba(146,64,14,0.20)] dark:border-[rgba(251,191,36,0.20)]',
+      sectionHoverBorderClass: 'hover:border-[rgba(146,64,14,0.34)] dark:hover:border-[rgba(251,191,36,0.36)]',
+      countBgClass: 'bg-[rgba(146,64,14,0.16)] dark:bg-[rgba(251,191,36,0.20)]',
+      countTextClass: 'text-[#92400e] dark:text-[#fbbf24]',
+    },
+  },
+];
+
+const FALLBACK_CATEGORY_ACCENT: CategoryAccent = {
+  icon: 'layers',
+  textClass: 'text-[var(--color-text-secondary)]',
+  bgClass: 'bg-[var(--color-surface-sunken)]',
+  sectionBgClass: 'bg-[var(--color-surface-sunken)]',
+  sectionBorderClass: 'border-[var(--color-border)]/50',
+  sectionHoverBorderClass: 'hover:border-[var(--color-border)]',
+  countBgClass: 'bg-[var(--color-surface-sunken)]',
+  countTextClass: 'text-[var(--color-text-secondary)]',
+};
+
+type AnyCheck = { check_name: string; passed: boolean; severity: string; message?: string | null };
+
+function groupChecksByCategory<C extends AnyCheck>(checks: ReadonlyArray<C>) {
+  const byName = new Map(checks.map((c) => [c.check_name, c] as const));
+  const seen = new Set<string>();
+  const groups: { label: string; items: C[]; accent: CategoryAccent }[] = [];
+  for (const cat of CHECK_CATEGORIES) {
+    const items: C[] = [];
+    for (const name of cat.members) {
+      const c = byName.get(name);
+      if (c) {
+        items.push(c);
+        seen.add(name);
+      }
+    }
+    if (items.length > 0) groups.push({ label: cat.label, items, accent: cat.accent });
+  }
+  const leftovers = checks.filter((c) => !seen.has(c.check_name));
+  if (leftovers.length > 0)
+    groups.push({ label: 'Other', items: leftovers, accent: FALLBACK_CATEGORY_ACCENT });
+  return groups;
+}
+
+// Maximum columns per section at the current viewport. Keeping the cap
+// in sync with the responsive sm/md/lg/xl breakpoints means a 5-item
+// section can fill a single row at xl (5 cols allowed), while smaller
+// viewports degrade gracefully without crushing card width.
+function useChecksMaxCols(): number {
+  const compute = () => {
+    if (typeof window === 'undefined') return 5;
+    const w = window.innerWidth;
+    if (w >= 1280) return 5;
+    if (w >= 1024) return 4;
+    if (w >= 768) return 3;
+    if (w >= 640) return 2;
+    return 1;
+  };
+  const [cols, setCols] = useState(compute);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = () => setCols(compute());
+    handler();
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return cols;
+}
+
 export function SingleValidationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -448,8 +651,93 @@ export function SingleValidationPage() {
   // CIP stereochemistry labels toggle
   const [showCIP, setShowCIP] = useState(false);
 
-  // All checks collapsible section
-  const [showAllChecks, setShowAllChecks] = useState(false);
+  // All checks panel — single floating card with sequenced translate-then-grow
+  // animation. The card is rendered ONCE as a position:absolute motion.div
+  // floating above the page. Two empty anchor divs (one in the right column,
+  // one below the grid) reserve layout space and provide measurement targets.
+  // The card animates top/left/width/height between the two anchors:
+  //   - Expand: top/left first (300ms), then width/height grow (400ms after).
+  //   - Collapse: width/height shrink first (400ms), then top/left return (300ms after).
+  // Same DOM element throughout. No mount/unmount, no fade.
+  const [allChecksPhase, setAllChecksPhase] = useState<'collapsed' | 'expanding' | 'expanded' | 'collapsing'>('collapsed');
+  const allChecksFloatContainerRef = useRef<HTMLDivElement>(null);
+  const allChecksCollapsedAnchorRef = useRef<HTMLDivElement>(null);
+  const allChecksExpandedAnchorRef = useRef<HTMLDivElement>(null);
+  type FloatRect = { top: number; left: number; width: number; height: number };
+  const [allChecksBounds, setAllChecksBounds] = useState<{ collapsed: FloatRect; expanded: FloatRect } | null>(null);
+
+  const measureAllChecksBounds = useCallback(() => {
+    const container = allChecksFloatContainerRef.current;
+    const collapsed = allChecksCollapsedAnchorRef.current;
+    const expanded = allChecksExpandedAnchorRef.current;
+    if (!container || !collapsed || !expanded) return;
+    const c = container.getBoundingClientRect();
+    const cR = collapsed.getBoundingClientRect();
+    const eR = expanded.getBoundingClientRect();
+    setAllChecksBounds({
+      collapsed: { top: cR.top - c.top, left: cR.left - c.left, width: cR.width, height: cR.height },
+      expanded: { top: eR.top - c.top, left: eR.left - c.left, width: eR.width, height: eR.height },
+    });
+  }, []);
+
+  const allChecksMaxCols = useChecksMaxCols();
+  const allChecksGroups = useMemo(
+    () => (result?.all_checks ? groupChecksByCategory(result.all_checks) : []),
+    [result?.all_checks],
+  );
+
+  // Measure the actual rendered content height with a ResizeObserver so
+  // the floating card sizes to its content exactly — no estimation, no
+  // phantom whitespace at the bottom of the panel. Callback-ref pattern
+  // so the observer attaches the moment the inner content div mounts
+  // (which happens AFTER allChecksBounds is set, so a useEffect with
+  // stale deps would never fire). Synchronous scrollHeight read on
+  // attach gives the floating card the right size on its first paint —
+  // no clipping when the user expands the panel.
+  const HEADER_STRIP_HEIGHT = 62;
+  const allChecksObserverRef = useRef<ResizeObserver | null>(null);
+  const [allChecksContentHeight, setAllChecksContentHeight] = useState(0);
+  const allChecksContentRef = useCallback((node: HTMLDivElement | null) => {
+    if (allChecksObserverRef.current) {
+      allChecksObserverRef.current.disconnect();
+      allChecksObserverRef.current = null;
+    }
+    if (!node) return;
+    setAllChecksContentHeight(node.scrollHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const h = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
+      setAllChecksContentHeight(Math.ceil(h));
+    });
+    ro.observe(node);
+    allChecksObserverRef.current = ro;
+  }, []);
+  const allChecksExpandedHeight = allChecksContentHeight + HEADER_STRIP_HEIGHT;
+
+  useLayoutEffect(() => {
+    measureAllChecksBounds();
+    window.addEventListener('resize', measureAllChecksBounds);
+    return () => window.removeEventListener('resize', measureAllChecksBounds);
+  }, [measureAllChecksBounds, result, allChecksPhase, activeTab, allChecksExpandedHeight]);
+
+  // Auto-advance phase when transitions complete (700ms = 300ms move + 400ms grow).
+  useEffect(() => {
+    if (allChecksPhase === 'expanding') {
+      const id = window.setTimeout(() => setAllChecksPhase('expanded'), 750);
+      return () => window.clearTimeout(id);
+    }
+    if (allChecksPhase === 'collapsing') {
+      const id = window.setTimeout(() => setAllChecksPhase('collapsed'), 750);
+      return () => window.clearTimeout(id);
+    }
+  }, [allChecksPhase]);
+
+  const toggleAllChecks = useCallback(() => {
+    if (allChecksPhase === 'collapsed') setAllChecksPhase('expanding');
+    else if (allChecksPhase === 'expanded') setAllChecksPhase('collapsing');
+  }, [allChecksPhase]);
 
   // Molecule preview ref for image download
   const previewRef = useRef<HTMLDivElement>(null);
@@ -981,7 +1269,7 @@ export function SingleValidationPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
+    <div ref={allChecksFloatContainerRef} className="relative max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
       {/* Back to Batch bar — shown when navigated from batch results */}
       {batchOrigin && (
         <motion.div
@@ -2463,76 +2751,245 @@ export function SingleValidationPage() {
                 )}
               </AnimatePresence>
 
+              {/* All Checks — COLLAPSED ANCHOR (right column).
+                  Empty placeholder that reserves layout space where the
+                  floating card visually sits when collapsed. Height
+                  animates 62→0 (and back) in sync with the floating card's
+                  position animation, so the page reflows smoothly. */}
+              {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+                <motion.div
+                  ref={allChecksCollapsedAnchorRef}
+                  animate={{
+                    height:
+                      allChecksPhase === 'collapsed' || allChecksPhase === 'collapsing'
+                        ? 62
+                        : 0,
+                  }}
+                  initial={false}
+                  transition={{
+                    duration: 0.35,
+                    ease: [0.4, 0, 0.2, 1],
+                    delay: allChecksPhase === 'collapsing' ? 0.4 : 0,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+
             </>
           )}
         </motion.div>
       </div>
 
-      {/* All Checks — full-width below the grid. Collapsed = slim header bar.
-          Expanded = 4-up grid of mini cells (icon + name + severity badge),
-          tooltip on each cell reveals description + message. */}
-      <AnimatePresence>
-        {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+      {/* All Checks — EXPANDED ANCHOR (full-width below grid).
+          Empty placeholder reserving layout space below the grid for the
+          expanded card. Height animates between 0 (collapsed) and the
+          card's natural expanded height in sync with the floating card. */}
+      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (() => {
+        return (
           <motion.div
-            key="all-checks"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="card overflow-hidden"
-          >
-            <button
-              onClick={() => setShowAllChecks(!showAllChecks)}
-              aria-expanded={showAllChecks}
-              aria-controls="all-checks-grid"
-              className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
-                  All Checks
-                </h4>
-                <span className="text-xs text-[var(--color-text-muted)]">
-                  {result.all_checks.length} total
-                </span>
-                {result.all_checks.length > 0 && renderAllChecksSummary(result.all_checks)}
-              </div>
-              <ChevronDown
-                className={cn(
-                  'w-5 h-5 text-[var(--color-text-muted)] transition-transform duration-300',
-                  showAllChecks && 'rotate-180'
-                )}
-              />
-            </button>
+            ref={allChecksExpandedAnchorRef}
+            animate={{
+              height:
+                allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+                  ? allChecksExpandedHeight
+                  : 0,
+            }}
+            initial={false}
+            transition={{
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+              delay: allChecksPhase === 'expanding' ? 0.3 : 0,
+            }}
+            aria-hidden="true"
+          />
+        );
+      })()}
 
-            <AnimatePresence initial={false}>
-              {showAllChecks && (
-                <motion.div
-                  id="all-checks-grid"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-2 border-t border-[var(--color-border)]/40">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
-                      {result.all_checks.map((check, index) => {
+      {/* All Checks — FLOATING CARD (the only real card).
+          Position absolute, animates top/left/width/height between the
+          two anchors above. Sequenced so it MOVES first, then GROWS on
+          expand, and SHRINKS first, then MOVES on collapse. Same DOM
+          element throughout — no mount/unmount, no fade. */}
+      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && allChecksBounds && (
+        <motion.div
+          className="absolute card overflow-hidden z-10"
+          style={{
+            boxShadow:
+              allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+                ? 'var(--shadow-lg)'
+                : 'var(--shadow-sm)',
+          }}
+          initial={false}
+          animate={
+            allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+              ? {
+                  top: allChecksBounds.expanded.top,
+                  left: allChecksBounds.expanded.left,
+                  width: allChecksBounds.expanded.width,
+                  height: allChecksBounds.expanded.top !== allChecksBounds.collapsed.top
+                    ? allChecksExpandedHeight
+                    : allChecksBounds.collapsed.height,
+                }
+              : {
+                  top: allChecksBounds.collapsed.top,
+                  left: allChecksBounds.collapsed.left,
+                  width: allChecksBounds.collapsed.width,
+                  height: allChecksBounds.collapsed.height || 62,
+                }
+          }
+          transition={
+            allChecksPhase === 'expanding'
+              ? {
+                  // Phase 1 — move STRAIGHT DOWN: only `top` animates (350ms).
+                  // Phase 2 — grow LEFTWARD: `left` and `width` animate
+                  // together so the right edge stays anchored and the card
+                  // expands to the left. `height` reveals the body grid.
+                  top: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+                  left: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+                  width: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+                  height: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.3 },
+                }
+              : allChecksPhase === 'collapsing'
+                ? {
+                    // Phase 1 — shrink RIGHTWARD: `left` slides right and
+                    // `width` shrinks together (right edge anchored).
+                    // Phase 2 — move STRAIGHT UP: `top` animates last.
+                    left: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                    width: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                    height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                    top: { duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.35 },
+                  }
+                : { duration: 0.2 }
+          }
+        >
+          <button
+            onClick={toggleAllChecks}
+            aria-expanded={allChecksPhase === 'expanded' || allChecksPhase === 'expanding'}
+            aria-controls="all-checks-grid"
+            className="w-full flex items-center justify-between text-left px-5 py-4 sm:px-6 sm:py-5 hover:bg-[var(--color-surface-sunken)]/40 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <h4 className="font-semibold text-[var(--color-text-primary)] text-sm font-display">
+                All Checks
+              </h4>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                {result.all_checks.length} checks
+              </span>
+              {renderAllChecksSummary(result.all_checks)}
+            </div>
+            <motion.div
+              animate={{ rotate: (allChecksPhase === 'expanded' || allChecksPhase === 'expanding') ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
+            </motion.div>
+          </button>
+
+          <motion.div
+            id="all-checks-grid"
+            animate={{
+              opacity: allChecksPhase === 'expanded' ? 1 : 0,
+            }}
+            initial={false}
+            transition={{
+              duration: 0.25,
+              delay: allChecksPhase === 'expanded' ? 0.6 : 0,
+            }}
+            className="border-t border-[var(--color-border)]/40"
+          >
+            {/* Categorized card grid. Replaces the flat 27-card grid
+                 (the "Identical card grids" anti-pattern in DESIGN.md)
+                 by wrapping cards in 7 chemistry-meaningful sections,
+                 each with its own warm-tinted icon. Per-section column
+                 count = min(items.length, breakpointMax) so 5-item
+                 sections fill a single row at xl (no orphan cells), and
+                 small sections are capped at CARD_MAX width so cards
+                 don't balloon. ResizeObserver on this div drives the
+                 floating-card height — exact, no estimation. */}
+            <div ref={allChecksContentRef} className="px-5 sm:px-6 pt-4 pb-5 sm:pb-6 space-y-4">
+              {allChecksGroups.map((group) => {
+                const passedCount = group.items.filter((c) => c.passed).length;
+                const allPassed = passedCount === group.items.length;
+                const cols = Math.max(1, Math.min(group.items.length, allChecksMaxCols));
+                const CARD_MAX = 320;
+                const GAP = 10;
+                const sectionMaxWidth = cols * CARD_MAX + (cols - 1) * GAP;
+                const Icon =
+                  group.accent.icon === 'flask'
+                    ? FlaskConical
+                    : group.accent.icon === 'atom'
+                      ? Atom
+                      : group.accent.icon === 'hexagon'
+                        ? Hexagon
+                        : group.accent.icon === 'layers'
+                          ? Layers
+                          : group.accent.icon === 'share'
+                            ? Share2
+                            : group.accent.icon === 'merge'
+                              ? GitMerge
+                              : Lock;
+                return (
+                  <section
+                    key={group.label}
+                    className={cn(
+                      'rounded-2xl p-4 sm:p-5 border transition-colors duration-300',
+                      group.accent.sectionBgClass,
+                      group.accent.sectionBorderClass,
+                      group.accent.sectionHoverBorderClass,
+                    )}
+                    style={{ boxShadow: 'inset 0 1px 2px rgba(26, 24, 21, 0.03)' }}
+                  >
+                    <header className="flex items-center gap-3 mb-3.5">
+                      <span
+                        className={cn(
+                          'flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0',
+                          group.accent.bgClass,
+                        )}
+                      >
+                        <Icon
+                          className={cn('w-4 h-4', group.accent.textClass)}
+                          strokeWidth={2.25}
+                        />
+                      </span>
+                      <h5 className="text-[0.9375rem] font-semibold text-[var(--color-text-primary)] font-display tracking-tight whitespace-nowrap flex-1 min-w-0 truncate">
+                        {group.label}
+                      </h5>
+                      <span
+                        className={cn(
+                          'text-xs font-semibold tabular-nums px-2.5 py-1 rounded-full whitespace-nowrap',
+                          allPassed
+                            ? cn(group.accent.countBgClass, group.accent.countTextClass)
+                            : 'bg-[rgba(220,38,38,0.14)] text-[#dc2626] dark:bg-[rgba(248,113,113,0.20)] dark:text-[#fb7185]',
+                        )}
+                      >
+                        {passedCount} / {group.items.length}
+                      </span>
+                    </header>
+                    <div
+                      className="grid auto-rows-fr"
+                      style={{
+                        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                        gap: `${GAP}px`,
+                        maxWidth: `${sectionMaxWidth}px`,
+                      }}
+                    >
+                      {group.items.map((check, index) => {
                         const severity = check.passed ? 'pass' : check.severity;
-                        const severityClass = CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
+                        const severityClass =
+                          CHECK_SEVERITY_STYLES[severity] ?? CHECK_SEVERITY_STYLES.info;
                         const description = CHECK_DESCRIPTIONS[check.check_name];
-                        const tooltipContent = (
-                          <div className="text-xs space-y-1.5">
-                            {description && <p>{description}</p>}
-                            {check.message && (
-                              <p className="text-white/80">
-                                <span className="text-white/60 font-medium">Result:</span> {check.message}
-                              </p>
-                            )}
-                          </div>
-                        );
+                        const prettyName = check.check_name.replace(/_/g, ' ');
                         return (
                           <div
                             key={`${check.check_name}-${index}`}
-                            className="rounded-lg p-3 bg-[var(--color-surface-sunken)] border border-[var(--color-border)]/50 flex flex-col gap-2 min-h-[68px]"
+                            className={cn(
+                              'rounded-lg p-3 border flex flex-col gap-1.5',
+                              'transition-all duration-200',
+                              'hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(26,24,21,0.08)]',
+                              check.passed
+                                ? 'bg-[var(--color-surface-elevated)] border-[var(--color-border)]/50'
+                                : 'bg-[rgba(220,38,38,0.06)] dark:bg-[rgba(248,113,113,0.10)] border-[rgba(220,38,38,0.30)] dark:border-[rgba(248,113,113,0.35)]',
+                            )}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
                               {check.passed ? (
@@ -2542,43 +2999,46 @@ export function SingleValidationPage() {
                                 />
                               ) : (
                                 <AlertTriangle
-                                  className="w-3.5 h-3.5 flex-shrink-0 text-orange-500"
-                                  strokeWidth={2.25}
+                                  className="w-3.5 h-3.5 flex-shrink-0 text-[#dc2626] dark:text-[#fb7185]"
+                                  strokeWidth={2.5}
                                 />
                               )}
                               <span
-                                className="text-xs font-medium text-[var(--color-text-primary)] truncate"
-                                title={check.check_name.replace(/_/g, ' ')}
+                                className="text-xs font-semibold text-[var(--color-text-primary)] truncate flex-1 min-w-0"
+                                title={prettyName}
                               >
-                                {check.check_name.replace(/_/g, ' ')}
+                                {prettyName}
                               </span>
-                              {(description || check.message) && (
-                                <span className="ml-auto flex-shrink-0">
-                                  <InfoTooltip content={tooltipContent} position="left" size="small" />
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-end mt-auto">
                               <span
                                 className={cn(
-                                  'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide',
+                                  'text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide flex-shrink-0',
                                   severityClass,
                                 )}
                               >
                                 {check.passed ? 'PASS' : check.severity.toUpperCase()}
                               </span>
                             </div>
+                            {description && (
+                              <p className="text-[11px] text-[var(--color-text-secondary)] leading-snug line-clamp-3">
+                                {description}
+                              </p>
+                            )}
+                            {check.message && (
+                              <p className="text-[11px] text-[var(--color-text-muted)] leading-snug line-clamp-2 font-medium mt-auto">
+                                {check.message}
+                              </p>
+                            )}
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </section>
+                );
+              })}
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* Cross-Database Comparison — full-width below the grid so the
           comparison surface gets the horizontal room it needs */}
