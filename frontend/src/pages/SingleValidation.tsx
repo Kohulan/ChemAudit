@@ -671,12 +671,41 @@ export function SingleValidationPage() {
     const collapsed = allChecksCollapsedAnchorRef.current;
     const expanded = allChecksExpandedAnchorRef.current;
     if (!container || !collapsed || !expanded) return;
-    const c = container.getBoundingClientRect();
-    const cR = collapsed.getBoundingClientRect();
-    const eR = expanded.getBoundingClientRect();
+
+    // Walk the offsetParent chain from the anchor up to (but not including)
+    // the container, accumulating offsetTop/offsetLeft at each step.
+    // This gives position relative to the container in the static layout flow,
+    // unaffected by CSS transforms (e.g. the right-column slide-in animation).
+    // getBoundingClientRect() includes transforms and produces a wrong left
+    // during the right-column entry animation, causing the card to jitter.
+    function offsetRelativeTo(el: HTMLElement): { top: number; left: number } {
+      let top = 0;
+      let left = 0;
+      let cur: HTMLElement | null = el;
+      while (cur && cur !== container) {
+        top += cur.offsetTop;
+        left += cur.offsetLeft;
+        cur = cur.offsetParent as HTMLElement | null;
+      }
+      return { top, left };
+    }
+
+    const cPos = offsetRelativeTo(collapsed);
+    const ePos = offsetRelativeTo(expanded);
+
     setAllChecksBounds({
-      collapsed: { top: cR.top - c.top, left: cR.left - c.left, width: cR.width, height: cR.height },
-      expanded: { top: eR.top - c.top, left: eR.left - c.left, width: eR.width, height: eR.height },
+      collapsed: {
+        top: cPos.top,
+        left: cPos.left,
+        width: collapsed.offsetWidth,
+        height: collapsed.offsetHeight,
+      },
+      expanded: {
+        top: ePos.top,
+        left: ePos.left,
+        width: expanded.offsetWidth,
+        height: expanded.offsetHeight,
+      },
     });
   }, []);
 
@@ -1498,16 +1527,6 @@ export function SingleValidationPage() {
                   source="single_validation"
                   onAfterBookmark={handleAfterBookmark}
                 />
-              )}
-              {/* View Full Profile cross-link — per D-24 */}
-              {result && resolvedSmiles && (
-                <ClayButton
-                  leftIcon={<Microscope className="w-4 h-4 text-[var(--color-primary)]" />}
-                  onClick={() => navigate(`/profiler?smiles=${encodeURIComponent(resolvedSmiles)}`)}
-                  title="Open the full Profiler page for this molecule"
-                >
-                  View Full Profile
-                </ClayButton>
               )}
             </div>
 
