@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.schemas.integrations import WikidataRequest, WikidataResult
 
 WIKIDATA_SPARQL_URL = "https://query.wikidata.org/sparql"
+WIKIDATA_QLEVER_URL = "https://qlever.dev/api/wikidata"
 
 
 def _binding_value(entry: dict, key: str) -> Optional[str]:
@@ -55,11 +56,9 @@ class WikidataClient:
         if not title:
             return None
 
-        # SPARQL: find Wikidata item linked to this Wikipedia article,
-        # then get its chemical identifiers.
         # P2017 = isomeric SMILES (preserves stereochemistry)
         # P233  = canonical SMILES (flat, no stereochemistry)
-        query = f"""
+        primary_query = f"""
         SELECT ?isomericSmiles ?smiles ?inchikey ?cas ?inchi ?label WHERE {{
           ?article schema:about ?item ;
                    schema:isPartOf <https://en.wikipedia.org/> ;
@@ -73,36 +72,59 @@ class WikidataClient:
         }} LIMIT 1
         """
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    WIKIDATA_SPARQL_URL,
-                    params={"query": query, "format": "json"},
-                    headers={"User-Agent": "ChemAudit/2.0 (chemical validation tool)"},
-                )
-                response.raise_for_status()
-                data = response.json()
+        # QLever uses @en@rdfs:label instead of SERVICE wikibase:label / FILTER(LANG)
+        qlever_query = f"""
+        SELECT ?isomericSmiles ?smiles ?inchikey ?cas ?inchi ?label WHERE {{
+          ?article schema:about ?item ;
+                   schema:isPartOf <https://en.wikipedia.org/> ;
+                   schema:name "{title}"@en .
+          OPTIONAL {{ ?item wdt:P2017 ?isomericSmiles . }}
+          OPTIONAL {{ ?item wdt:P233 ?smiles . }}
+          OPTIONAL {{ ?item wdt:P235 ?inchikey . }}
+          OPTIONAL {{ ?item wdt:P231 ?cas . }}
+          OPTIONAL {{ ?item wdt:P234 ?inchi . }}
+          OPTIONAL {{ ?item @en@rdfs:label ?label . }}
+        }} LIMIT 1
+        """
 
-            bindings = data.get("results", {}).get("bindings", [])
-            if not bindings:
-                return None
+        endpoints = [
+            (WIKIDATA_SPARQL_URL, primary_query),
+            (WIKIDATA_QLEVER_URL, qlever_query),
+        ]
 
-            entry = bindings[0]
-            smiles = _preferred_smiles(entry)
-            inchikey = _binding_value(entry, "inchikey")
-            if not smiles and not inchikey:
-                return None
+        for sparql_url, query in endpoints:
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.get(
+                        sparql_url,
+                        params={"query": query, "format": "json"},
+                        headers={"User-Agent": "ChemAudit/2.0 (chemical validation tool)"},
+                    )
+                    response.raise_for_status()
+                    data = response.json()
 
-            return {
-                "smiles": smiles,
-                "inchikey": inchikey,
-                "cas": _binding_value(entry, "cas"),
-                "inchi": _binding_value(entry, "inchi"),
-                "label": _binding_value(entry, "label"),
-            }
+                bindings = data.get("results", {}).get("bindings", [])
+                if not bindings:
+                    continue
 
-        except (httpx.HTTPError, KeyError, ValueError):
-            return None
+                entry = bindings[0]
+                smiles = _preferred_smiles(entry)
+                inchikey = _binding_value(entry, "inchikey")
+                if not smiles and not inchikey:
+                    continue
+
+                return {
+                    "smiles": smiles,
+                    "inchikey": inchikey,
+                    "cas": _binding_value(entry, "cas"),
+                    "inchi": _binding_value(entry, "inchi"),
+                    "label": _binding_value(entry, "label"),
+                }
+
+            except (httpx.HTTPError, KeyError, ValueError):
+                continue
+
+        return None
 
     async def resolve_from_inchikey(self, inchikey: str) -> Optional[dict]:
         """Resolve an InChIKey to chemical structure data via Wikidata SPARQL.
@@ -116,7 +138,7 @@ class WikidataClient:
         """
         # P2017 = isomeric SMILES (preserves stereochemistry)
         # P233  = canonical SMILES (flat, no stereochemistry)
-        query = f"""
+        primary_query = f"""
         SELECT ?item ?isomericSmiles ?smiles ?inchi ?inchikey ?cas
                ?formula ?mass ?label WHERE {{
           ?item wdt:P235 "{inchikey}" .
@@ -131,55 +153,79 @@ class WikidataClient:
         }} LIMIT 1
         """
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    WIKIDATA_SPARQL_URL,
-                    params={"query": query, "format": "json"},
-                    headers={"User-Agent": "ChemAudit/2.0 (chemical validation tool)"},
-                )
-                response.raise_for_status()
-                data = response.json()
+        # QLever uses @en@rdfs:label instead of FILTER(LANG(?label) = "en")
+        qlever_query = f"""
+        SELECT ?item ?isomericSmiles ?smiles ?inchi ?inchikey ?cas
+               ?formula ?mass ?label WHERE {{
+          ?item wdt:P235 "{inchikey}" .
+          OPTIONAL {{ ?item wdt:P2017 ?isomericSmiles . }}
+          OPTIONAL {{ ?item wdt:P233 ?smiles . }}
+          OPTIONAL {{ ?item wdt:P234 ?inchi . }}
+          OPTIONAL {{ ?item wdt:P235 ?inchikey . }}
+          OPTIONAL {{ ?item wdt:P231 ?cas . }}
+          OPTIONAL {{ ?item wdt:P274 ?formula . }}
+          OPTIONAL {{ ?item wdt:P2067 ?mass . }}
+          OPTIONAL {{ ?item @en@rdfs:label ?label . }}
+        }} LIMIT 1
+        """
 
-            bindings = data.get("results", {}).get("bindings", [])
-            if not bindings:
-                return None
+        endpoints = [
+            (WIKIDATA_SPARQL_URL, primary_query),
+            (WIKIDATA_QLEVER_URL, qlever_query),
+        ]
 
-            entry = bindings[0]
-            smiles = _preferred_smiles(entry)
-            ik = _binding_value(entry, "inchikey")
-            if not smiles and not ik:
-                return None
+        for sparql_url, query in endpoints:
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.get(
+                        sparql_url,
+                        params={"query": query, "format": "json"},
+                        headers={"User-Agent": "ChemAudit/2.0 (chemical validation tool)"},
+                    )
+                    response.raise_for_status()
+                    data = response.json()
 
-            # P2067 returns mass as string in daltons -- parse to float
-            mass_str = _binding_value(entry, "mass")
-            mass = None
-            if mass_str:
-                try:
-                    mass = float(mass_str)
-                except (ValueError, TypeError):
-                    pass
+                bindings = data.get("results", {}).get("bindings", [])
+                if not bindings:
+                    continue
 
-            # Build Wikidata URL from entity URI (e.g. http://www.wikidata.org/entity/Q18216)
-            item_uri = _binding_value(entry, "item")
-            url = None
-            if item_uri:
-                qid = item_uri.rsplit("/", 1)[-1]
-                url = f"https://www.wikidata.org/wiki/{qid}"
+                entry = bindings[0]
+                smiles = _preferred_smiles(entry)
+                ik = _binding_value(entry, "inchikey")
+                if not smiles and not ik:
+                    continue
 
-            return {
-                "smiles": smiles,
-                "inchi": _binding_value(entry, "inchi"),
-                "inchikey": ik,
-                "cas": _binding_value(entry, "cas"),
-                "formula": _binding_value(entry, "formula"),
-                "mass": mass,
-                "label": _binding_value(entry, "label"),
-                "url": url,
-            }
+                # P2067 returns mass as string in daltons -- parse to float
+                mass_str = _binding_value(entry, "mass")
+                mass = None
+                if mass_str:
+                    try:
+                        mass = float(mass_str)
+                    except (ValueError, TypeError):
+                        pass
 
-        except (httpx.HTTPError, KeyError, ValueError):
-            return None
+                # Build Wikidata URL from entity URI (e.g. http://www.wikidata.org/entity/Q18216)
+                item_uri = _binding_value(entry, "item")
+                url = None
+                if item_uri:
+                    qid = item_uri.rsplit("/", 1)[-1]
+                    url = f"https://www.wikidata.org/wiki/{qid}"
+
+                return {
+                    "smiles": smiles,
+                    "inchi": _binding_value(entry, "inchi"),
+                    "inchikey": ik,
+                    "cas": _binding_value(entry, "cas"),
+                    "formula": _binding_value(entry, "formula"),
+                    "mass": mass,
+                    "label": _binding_value(entry, "label"),
+                    "url": url,
+                }
+
+            except (httpx.HTTPError, KeyError, ValueError):
+                continue
+
+        return None
 
 
 async def lookup_wikidata(request: WikidataRequest) -> WikidataResult:
