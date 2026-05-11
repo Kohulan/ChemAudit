@@ -2662,7 +2662,7 @@ export function SingleValidationPage() {
                     </div>
 
                     {/* ML Readiness */}
-                    <div className="card-accent p-4 sm:p-5">
+                    <div className="card-accent p-4 sm:p-5 flex flex-col">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
@@ -2676,7 +2676,7 @@ export function SingleValidationPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex justify-center">
+                      <div className="flex-1 flex items-center justify-center">
                         {mlReadyScore !== undefined ? (
                           <ScoreChart
                             score={mlReadyScore}
@@ -2833,6 +2833,7 @@ export function SingleValidationPage() {
         <motion.div
           className="absolute card overflow-hidden z-10"
           style={{
+            marginTop: 0,
             boxShadow:
               allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
                 ? 'var(--shadow-lg)'
