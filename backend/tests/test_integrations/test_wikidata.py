@@ -119,3 +119,84 @@ class TestWikidataClient:
             result = await client.resolve_from_inchikey("XXXXXXXXXXXXXXXXXX-UHFFFAOYSA-N")
 
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_resolve_from_inchikey_falls_back_to_qlever(self):
+        """Test that QLever is used when the primary endpoint raises an error."""
+        import httpx
+
+        client = WikidataClient()
+        qlever_response = MagicMock()
+        qlever_response.json.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "smiles": {"value": "CC(=O)Oc1ccccc1C(=O)O"},
+                        "inchi": {"value": "InChI=1S/C9H8O4/..."},
+                        "inchikey": {"value": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"},
+                        "cas": {"value": "50-78-2"},
+                        "formula": {"value": "C9H8O4"},
+                        "mass": {"value": "180.157"},
+                        "label": {"value": "aspirin"},
+                    }
+                ]
+            }
+        }
+        qlever_response.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_get(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise httpx.TimeoutException("timeout")
+            return qlever_response
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = mock_get
+            result = await client.resolve_from_inchikey("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")
+
+        assert result is not None
+        assert result["smiles"] == "CC(=O)Oc1ccccc1C(=O)O"
+        assert result["label"] == "aspirin"
+        assert call_count == 2  # primary failed, QLever succeeded
+
+    @pytest.mark.asyncio
+    async def test_resolve_from_wikipedia_falls_back_to_qlever(self):
+        """Test that QLever is used when the primary endpoint raises an error."""
+        import httpx
+
+        client = WikidataClient()
+        qlever_response = MagicMock()
+        qlever_response.json.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "smiles": {"value": "CC(=O)Oc1ccccc1C(=O)O"},
+                        "inchikey": {"value": "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"},
+                        "label": {"value": "aspirin"},
+                    }
+                ]
+            }
+        }
+        qlever_response.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_get(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise httpx.TimeoutException("timeout")
+            return qlever_response
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = mock_get
+            result = await client.resolve_from_wikipedia(
+                "https://en.wikipedia.org/wiki/Aspirin"
+            )
+
+        assert result is not None
+        assert result["smiles"] == "CC(=O)Oc1ccccc1C(=O)O"
+        assert call_count == 2  # primary failed, QLever succeeded
