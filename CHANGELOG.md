@@ -1,5 +1,68 @@
 # Changelog
 
+## [1.7.0](https://github.com/Kohulan/ChemAudit/compare/v1.6.0...v1.7.0) (2026-05-11)
+
+
+### Features
+
+* **delight:** bench-register batch completion language (impeccable D3) ([5e061a7](https://github.com/Kohulan/ChemAudit/commit/5e061a78535d9415f3d35c1dbdb61d0797f57164))
+* **delight:** chemistry-accurate loading messages cycle (impeccable D1) ([482c46d](https://github.com/Kohulan/ChemAudit/commit/482c46d0a1d00154409a7c756124f2f88ec2bf9b))
+* **delight:** chemistry-aware empty state for structure preview (impeccable D2) ([97a95ef](https://github.com/Kohulan/ChemAudit/commit/97a95ef8a56e3c33f35a8d60d68fc0d6dc973b02))
+* **delight:** console citation easter egg for developer-chemists (impeccable A4) ([b4ae33a](https://github.com/Kohulan/ChemAudit/commit/b4ae33a4fd6ff425b59abe54235c033f775f64fb))
+* **delight:** structure preview caption shows formula and MW (impeccable D4) ([6302bbf](https://github.com/Kohulan/ChemAudit/commit/6302bbf62df3334578192513a97292548c459f72))
+* **integrations:** add QLever as fallback Wikidata SPARQL endpoint ([4103627](https://github.com/Kohulan/ChemAudit/commit/41036276037c300902806d93226954773ffc02df))
+* **ui:** All Checks expands to full-width 4-up grid ([19f23f2](https://github.com/Kohulan/ChemAudit/commit/19f23f2b214843a199b962be221e5d3e2f4fecc4))
+* **ui:** All Checks panel morphs from right column to full-width on expand ([35747b8](https://github.com/Kohulan/ChemAudit/commit/35747b8b0503a4deae8381529df4c2a1ecc456b3))
+* **ui:** categorize All Checks panel into 7 sections with hover delight ([70b448a](https://github.com/Kohulan/ChemAudit/commit/70b448a23186009679e59cd77340be61cf6d3885))
+* **ui:** colorize Molecule Info stat tiles + input-type badge (impeccable colorize) ([9c21fe0](https://github.com/Kohulan/ChemAudit/commit/9c21fe069b888af4c18fb90635e3c8d0fefcb5c6))
+* **ui:** diagnostic tab dot colours by result state (impeccable E1) ([90dfc2c](https://github.com/Kohulan/ChemAudit/commit/90dfc2c1750066b0d301144ff3ac120c95d669aa))
+* **ui:** distill SingleValidation to 3 primary tabs + disclosure (impeccable phase 4) ([6254bce](https://github.com/Kohulan/ChemAudit/commit/6254bced8f5e6ac5b10d458fdca73a56a9bb4739))
+* **ui:** parse error sub-typing with bench-grade hints (impeccable E2) ([e32ec0f](https://github.com/Kohulan/ChemAudit/commit/e32ec0fdf02c5b2a2608215ed35387ea0c6c26f6))
+* **ui:** semantic icon colour on action row buttons (impeccable colorize) ([d73c8dc](https://github.com/Kohulan/ChemAudit/commit/d73c8dc71689ce85f142e37b29c880fd666aa661))
+* **ui:** single floating All Checks card with sequenced position+size animation ([30604c3](https://github.com/Kohulan/ChemAudit/commit/30604c3ac5c95be336ee0e157f119273303f0481))
+* **ui:** tab has-result dot indicator (impeccable critique P1) ([28cdf0f](https://github.com/Kohulan/ChemAudit/commit/28cdf0fe9da7f0777115f1942befd85ce4c0dfe8))
+
+
+### Bug Fixes
+
+* **a11y:** hasResult dot announces 'has results' to screen readers (impeccable A3) ([d9c989a](https://github.com/Kohulan/ChemAudit/commit/d9c989a811d430d6a1e694791802d82292c97020))
+* **deps:** resolve 15 dependency vulnerabilities across frontend and docs-site ([3cc5321](https://github.com/Kohulan/ChemAudit/commit/3cc53213255d0441b1866f2c455c8d76d706087f))
+* **lint:** remove unused no-console eslint-disable directive ([46ae427](https://github.com/Kohulan/ChemAudit/commit/46ae42797dbc5de3fbc4258592ec1c6e0217a04e))
+* **ui:** All Checks card moves straight down (not diagonally) ([5ce0536](https://github.com/Kohulan/ChemAudit/commit/5ce053610e3a8055f3c3aef1de983de29460196d))
+* **ui:** clarify error messages, empty states, and form labels ([2651d04](https://github.com/Kohulan/ChemAudit/commit/2651d047b36c3e0352a3c8fe8ab570042a2db38a))
+* **ui:** clarify NP-Likeness copy (impeccable clarify NP-Likeness) ([e5352cc](https://github.com/Kohulan/ChemAudit/commit/e5352cc5e595a7aea94fd385d2cd63f07d74707a))
+* **ui:** close 24px gap before All Checks and equalize score tile heights ([4a88c47](https://github.com/Kohulan/ChemAudit/commit/4a88c471c63cfe0a3215254337544fa48aba7224))
+* **ui:** database lookup error now surfaces to user (impeccable B1, P0) ([49e1ef0](https://github.com/Kohulan/ChemAudit/commit/49e1ef005707bf5956dfc0b399327b4be25083d1))
+* **ui:** error recovery + minor observations (impeccable phase 6) ([df7d375](https://github.com/Kohulan/ChemAudit/commit/df7d375a4dedda8e0c5deae5645f0df143efdc0c))
+* **ui:** gate Safety / Compound Profile auto-screen on validation result (impeccable B2, P1) ([144eed0](https://github.com/Kohulan/ChemAudit/commit/144eed0ab0c90e18d44bca674d5e05d1ab243d59))
+* **ui:** gate Score button on validation completion (impeccable critique P1) ([52d69bd](https://github.com/Kohulan/ChemAudit/commit/52d69bd4faa3b0faf5f169872c47c20f8a2dcba3))
+* **ui:** gate validate-tab right-column panels on activeTab (impeccable B3, P1) ([c79be9e](https://github.com/Kohulan/ChemAudit/commit/c79be9e744f6f3e42c53ea886f902629f9891519))
+* **ui:** inline check descriptions + bigger cell height in All Checks grid ([0d3cf4c](https://github.com/Kohulan/ChemAudit/commit/0d3cf4c8be2976bb43d51f50757a00f6976e7018))
+* **ui:** IssueSeverityTags 'All clear' uses gold-amber per Warm-Status Rule (impeccable A2) ([af112a2](https://github.com/Kohulan/ChemAudit/commit/af112a2c290204d02868fbdaaab387e0f244d5ae))
+* **ui:** make More analysis disclosure always discoverable on SingleValidation ([5a94186](https://github.com/Kohulan/ChemAudit/commit/5a941868430c6358fec9f4fe5485856bbff319ae))
+* **ui:** measure All Checks bounds via offset chain ([3341823](https://github.com/Kohulan/ChemAudit/commit/33418239c57bffd45fd8362551014118acb1eb75))
+* **ui:** measure All Checks bounds via offset chain to avoid transform jitter ([29b91b8](https://github.com/Kohulan/ChemAudit/commit/29b91b884fa2f7a779521a6469d684f4dc920900))
+* **ui:** merge duplicate lucide-react import in SingleValidation ([94660d5](https://github.com/Kohulan/ChemAudit/commit/94660d5804e344ebc90ab03bc04a97ac8152708d))
+* **ui:** move ScoringResults + DatabaseComparisonPanel into right column (impeccable C1, P1) ([3bf26ba](https://github.com/Kohulan/ChemAudit/commit/3bf26ba4e5c62059781b022535fe4957b5348288))
+* **ui:** proper claymorphism on NP-Likeness track + marker (impeccable clarify NP-Likeness) ([0c148b4](https://github.com/Kohulan/ChemAudit/commit/0c148b495085c43ce0041055abfcd589ccb9e15c))
+* **ui:** purge off-brand colors and absolute-ban anti-patterns ([00511e6](https://github.com/Kohulan/ChemAudit/commit/00511e6b4e0f546b40bea87ea491eb7127692a2d))
+* **ui:** quiet About page background motion (impeccable phase 5) ([0e00eec](https://github.com/Kohulan/ChemAudit/commit/0e00eec271e266c90b1455855c12d633a280d20b))
+* **ui:** replace amber-on-amber pass styling with prominent gold + CheckCircle2 (impeccable critique P0) ([fa6b36a](https://github.com/Kohulan/ChemAudit/commit/fa6b36a83fd0c89190d0fe2d18f8c87af911f533))
+* **ui:** replace lock emoji with Lock icon (impeccable A1) ([3537002](https://github.com/Kohulan/ChemAudit/commit/35370025b5c3e2f1f8e64ccbe6788bbf9e4e4a75))
+* **ui:** replace More analysis disclosure with two-row tab layout ([a6c2714](https://github.com/Kohulan/ChemAudit/commit/a6c27145470087752732f10738f1795dd4d86655))
+* **ui:** replace tab descriptions with first-actionable guidance (impeccable F.P2-A) ([8cbe4ff](https://github.com/Kohulan/ChemAudit/commit/8cbe4ffae7cfe4564b2926feb8c4abf822ca192c))
+* **ui:** residual color and absolute-ban cleanup (phase 2.5) ([ed63f02](https://github.com/Kohulan/ChemAudit/commit/ed63f0240a5040fac79353628e01f4c6a38fdc6b))
+* **ui:** revert ScoringResults to full-width below grid + auto-scroll on land ([2c2b2bf](https://github.com/Kohulan/ChemAudit/commit/2c2b2bf468aa90d86763bce4c8af7699fc620597))
+* **ui:** SingleValidation error card recovery parity (impeccable critique P0) ([17025ef](https://github.com/Kohulan/ChemAudit/commit/17025ef80aa6c6beda10e58da26b017d8bf72566))
+* **ui:** smooth single-element morph for All Checks panel ([4b59703](https://github.com/Kohulan/ChemAudit/commit/4b59703ae1b2ad99a59e38e6302903601a00e931))
+* **ui:** unify SingleValidation action row buttons (impeccable clarify) ([272c465](https://github.com/Kohulan/ChemAudit/commit/272c46561d01883203fba2c44e59a8b95daac255))
+* **ui:** unify two SingleValidation tab rows into a single tray ([5605acf](https://github.com/Kohulan/ChemAudit/commit/5605acf93ac46f03dc633e8f10a2118635155c99))
+
+
+### Documentation
+
+* **ui:** clarify ScoreChart 'cool' variant is rose/crimson not blue (impeccable F.P2-C) ([23d8548](https://github.com/Kohulan/ChemAudit/commit/23d8548ada41599c49d093b6b8a52105a5f95b68))
+
 ## [1.6.0](https://github.com/Kohulan/ChemAudit/compare/v1.5.1...v1.6.0) (2026-04-24)
 
 
