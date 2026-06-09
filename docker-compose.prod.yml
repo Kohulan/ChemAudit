@@ -218,6 +218,56 @@ services:
       retries: 3
       start_period: 30s
 
+  # Dedicated worker for expensive analytics (t-SNE, similarity matrices) so they
+  # cannot starve the default batch-processing queue.
+  celery-worker-analytics:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+    container_name: chemaudit-celery-worker-analytics-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS_ANALYTICS:-1} -Q analytics -n worker-analytics@%h
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemaudit}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemaudit}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
+      # Security settings (required — Celery imports app.core.config)
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:?CORS_ORIGINS_STR is required for production}
+      - DEBUG=false
+    deploy:
+      resources:
+        limits:
+          memory: ${CELERY_ANALYTICS_MEMORY_LIMIT:-2g}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping -d worker-analytics@$$HOSTNAME || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   nginx:
     image: nginx:1.25-alpine
     container_name: chemaudit-nginx-prod

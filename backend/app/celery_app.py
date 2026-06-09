@@ -30,6 +30,7 @@ celery_app = Celery(
 # Define exchanges and queues for priority-based routing
 default_exchange = Exchange("default", type="direct")
 priority_exchange = Exchange("priority", type="direct")
+analytics_exchange = Exchange("analytics", type="direct")
 
 celery_app.conf.update(
     task_serializer="json",
@@ -48,6 +49,9 @@ celery_app.conf.update(
     task_queues=(
         Queue("default", default_exchange, routing_key="default"),
         Queue("high_priority", priority_exchange, routing_key="high_priority"),
+        # Isolates expensive analytics (t-SNE, etc.) so they cannot starve the
+        # batch-processing default queue. Requires a worker consuming -Q analytics.
+        Queue("analytics", analytics_exchange, routing_key="analytics"),
     ),
     task_default_queue="default",
     task_default_exchange="default",
@@ -72,12 +76,13 @@ celery_app.conf.update(
         "app.services.batch.tasks.aggregate_batch_results_priority": {
             "queue": "high_priority",
         },
-        # Analytics tasks
+        # Analytics tasks — cheap ones stay on default; expensive ones (t-SNE,
+        # similarity matrices) go to the isolated analytics queue.
         "app.services.batch.analytics_tasks.run_cheap_analytics": {
             "queue": "default",
         },
         "app.services.batch.analytics_tasks.run_expensive_analytics": {
-            "queue": "default",
+            "queue": "analytics",
         },
         # Dataset intelligence audit
         "app.services.dataset_intelligence.batch_processor.process_dataset_audit": {
