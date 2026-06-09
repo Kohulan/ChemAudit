@@ -12,6 +12,7 @@ import time
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
+import redis.exceptions
 from celery import chord, group
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski, rdMolDescriptors
@@ -32,6 +33,18 @@ from app.services.standardization import standardize_molecule
 from app.services.validation.engine import validation_engine
 
 CHUNK_SIZE = 100  # Process 100 molecules per chunk for progress updates
+
+# Only transient infrastructure failures are worth retrying. Permanent errors
+# (bad SMILES, schema mismatch, logic bugs) are already caught inside the task
+# bodies and returned as result dicts, so a blanket (Exception,) retry only
+# triples the cost of permanently-broken molecules.
+TRANSIENT_ERRORS = (
+    ConnectionError,
+    TimeoutError,
+    redis.exceptions.ConnectionError,
+    redis.exceptions.TimeoutError,
+    OSError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +72,7 @@ def _init_analytics_and_dispatch(job_id: str) -> None:
 @celery_app.task(
     bind=True,
     queue="high_priority",
-    autoretry_for=(Exception,),
+    autoretry_for=TRANSIENT_ERRORS,
     retry_backoff=True,
     max_retries=2,
 )
@@ -168,7 +181,7 @@ def validate_single_molecule(
 
 @celery_app.task(
     bind=True,
-    autoretry_for=(Exception,),
+    autoretry_for=TRANSIENT_ERRORS,
     retry_backoff=True,
     max_retries=3,
     acks_late=True,
@@ -660,7 +673,7 @@ def aggregate_batch_results(
 # Priority queue versions of tasks for small jobs
 @celery_app.task(
     bind=True,
-    autoretry_for=(Exception,),
+    autoretry_for=TRANSIENT_ERRORS,
     retry_backoff=True,
     max_retries=3,
     acks_late=True,
