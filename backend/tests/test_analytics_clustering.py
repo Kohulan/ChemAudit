@@ -125,3 +125,28 @@ class TestButinaClustering:
         assert result["singleton_count"] == 0
         assert result["largest_cluster_size"] == 4
         assert sorted(result["clusters"][0]["member_indices"]) == [0, 1, 2, 3]
+
+
+def test_bulk_and_loop_distances_match():
+    """Vectorized BulkTanimotoSimilarity must equal the naive loop, same order."""
+    from rdkit import Chem, DataStructs
+    from rdkit.Chem import rdFingerprintGenerator
+
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    smis = ["CCO", "CCN", "c1ccccc1", "CC(=O)O", "CCCl"]
+    fps = [gen.GetFingerprint(Chem.MolFromSmiles(s)) for s in smis]
+    n = len(fps)
+
+    naive = []
+    for i in range(1, n):
+        for j in range(i):
+            naive.append(1.0 - DataStructs.TanimotoSimilarity(fps[i], fps[j]))
+
+    bulk = []
+    for i in range(1, n):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        bulk.extend(1.0 - s for s in sims)
+
+    assert len(naive) == len(bulk)
+    for a, b in zip(naive, bulk):
+        assert abs(a - b) < 1e-9

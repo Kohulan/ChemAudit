@@ -113,11 +113,12 @@ def compute_butina_clustering(
     # Step 2: Generate Morgan fingerprints
     fps = [_MORGAN_GEN.GetFingerprint(mol) for mol in valid_mols]
 
-    # Step 3: Compute lower-triangle Tanimoto distance list
+    # Step 3: Compute lower-triangle Tanimoto distance list (vectorized via
+    # RDKit C-level BulkTanimotoSimilarity — ~10-50x faster than a Python loop).
     dists: list[float] = []
     for i in range(1, n):
-        for j in range(0, i):
-            dists.append(1.0 - DataStructs.TanimotoSimilarity(fps[i], fps[j]))
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        dists.extend(1.0 - s for s in sims)
 
     # Step 4: Butina clustering
     cluster_tuples = Butina.ClusterData(dists, n, distThresh=distance_cutoff, isDistData=True)
