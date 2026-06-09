@@ -12,10 +12,13 @@ LICENSING NOTE: SYBA is GPL-3.0. It MUST ONLY be called via subprocess
 isolation. Never import syba at module level in this Apache-2.0 codebase.
 """
 
+import json
 import logging
 import os
+import queue
 import subprocess
 import sys
+import threading
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
@@ -206,61 +209,142 @@ def _compute_scscore(smiles: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _syba_via_subprocess(smiles: str) -> Optional[float]:
-    """Run SYBA prediction via subprocess to maintain GPL-3.0 isolation.
+_SYBA_WORKER_PATH = os.path.join(os.path.dirname(__file__), "syba_worker.py")
+_SYBA_READY_TIMEOUT = 60.0  # seconds to allow for one-time SYBA model load
+_SYBA_PREDICT_TIMEOUT = 30.0  # seconds per prediction
 
-    SYBA (SYnthesizaBility Assessment) is GPL-3.0 licensed. This Apache-2.0
-    codebase must never import it directly. Instead, we spawn a fresh Python
-    subprocess that imports and runs SYBA, then captures the numeric output.
 
-    Args:
-        smiles: SMILES string to score
+class _SybaWorker:
+    """Manages a long-lived SYBA subprocess to amortise the model-load cost.
 
-    Returns:
-        SYBA score as float, or None on any failure (timeout, import error,
-        subprocess error, parse error)
+    SYBA (GPL-3.0) is confined to a separate process (``syba_worker.py``); this
+    Apache-2.0 module only exchanges JSON lines with it over stdin/stdout. The
+    worker is started lazily on first use and reused for all later predictions.
+    Access is serialised by a lock (a single worker, one request at a time), a
+    background reader thread feeds responses to a queue for timeout handling, and
+    a crashed/hung worker is killed and transparently restarted on the next call.
+    A permanent failure (SYBA not importable) is sticky so we don't respawn.
     """
-    # Defense-in-depth: the SMILES is embedded via repr() and run with
-    # shell=False, but reject pathological input (oversized or non-printable /
-    # newline-bearing) before spawning a process at all.
-    if (
-        not smiles
-        or len(smiles) > _MAX_SYBA_SMILES_LEN
-        or not smiles.isprintable()
-    ):
-        logger.debug("SYBA input rejected (length/non-printable): %r", smiles[:60])
-        return None
 
-    script = (
-        "from syba.syba import SybaClassifier; "
-        "s = SybaClassifier(); "
-        "s.fitDefaultScore(); "
-        f"score = s.predict({smiles!r}); "
-        "print(score)"
-    )
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            shell=False,  # explicit: never invoke a shell
-        )
-        if proc.returncode != 0:
-            logger.debug("SYBA subprocess failed (rc=%d): %s", proc.returncode, proc.stderr[:200])
+    def __init__(self, command: Optional[list] = None):
+        self._command = command or [sys.executable, "-u", _SYBA_WORKER_PATH]
+        self._proc: Optional[subprocess.Popen] = None
+        self._queue: "queue.Queue[Optional[str]]" = queue.Queue()
+        self._lock = threading.Lock()
+        self._fatal = False  # SYBA permanently unavailable (e.g. not installed)
+
+    def _read_loop(self, proc: subprocess.Popen) -> None:
+        try:
+            for line in proc.stdout:  # type: ignore[union-attr]
+                self._queue.put(line)
+        finally:
+            self._queue.put(None)  # EOF sentinel
+
+    def _kill(self) -> None:
+        if self._proc is not None:
+            try:
+                self._proc.kill()
+            except Exception:
+                pass
+        self._proc = None
+
+    def _ensure_started(self) -> bool:
+        if self._fatal:
+            return False
+        if self._proc is not None and self._proc.poll() is None:
+            return True
+
+        try:
+            self._proc = subprocess.Popen(
+                self._command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1,
+                shell=False,
+            )
+        except Exception as exc:
+            logger.warning("SYBA worker failed to start: %s", exc)
+            self._fatal = True
+            return False
+
+        self._queue = queue.Queue()
+        threading.Thread(target=self._read_loop, args=(self._proc,), daemon=True).start()
+
+        # Handshake: wait for the worker to load the model (or report fatal).
+        try:
+            line = self._queue.get(timeout=_SYBA_READY_TIMEOUT)
+        except queue.Empty:
+            logger.warning("SYBA worker did not become ready within %ss", _SYBA_READY_TIMEOUT)
+            self._kill()
+            return False
+        try:
+            msg = json.loads(line) if line else {}
+        except Exception:
+            msg = {}
+        if msg.get("ready"):
+            return True
+        # Not ready. A fatal handshake (SYBA missing) is sticky; otherwise retry later.
+        if msg.get("fatal"):
+            logger.warning("SYBA unavailable: %s", msg.get("error", "model load failed"))
+            self._fatal = True
+        self._kill()
+        return False
+
+    def predict(self, smiles: str) -> Optional[float]:
+        """Return the SYBA score for ``smiles``, or None if unavailable."""
+        # Defense-in-depth: reject pathological input before touching the worker.
+        if not smiles or len(smiles) > _MAX_SYBA_SMILES_LEN or not smiles.isprintable():
+            logger.debug("SYBA input rejected (length/non-printable): %r", smiles[:60])
             return None
 
-        return float(proc.stdout.strip())
+        with self._lock:
+            if not self._ensure_started():
+                return None
+            try:
+                self._proc.stdin.write(json.dumps({"smiles": smiles}) + "\n")  # type: ignore[union-attr]
+                self._proc.stdin.flush()  # type: ignore[union-attr]
+            except Exception as exc:
+                logger.debug("SYBA worker write failed: %s", exc)
+                self._kill()
+                return None
 
-    except subprocess.TimeoutExpired:
-        logger.debug("SYBA subprocess timed out after 30s")
-        return None
-    except (ValueError, OSError) as err:
-        logger.debug("SYBA subprocess error: %s", err)
-        return None
-    except Exception as err:
-        logger.debug("Unexpected SYBA subprocess error: %s", err)
-        return None
+            try:
+                line = self._queue.get(timeout=_SYBA_PREDICT_TIMEOUT)
+            except queue.Empty:
+                logger.debug("SYBA prediction timed out; restarting worker")
+                self._kill()
+                return None
+
+            if line is None:  # worker died mid-request
+                self._kill()
+                return None
+
+            try:
+                msg = json.loads(line)
+            except Exception:
+                return None
+            score = msg.get("score")
+            return float(score) if score is not None else None
+
+    def shutdown(self) -> None:
+        with self._lock:
+            if self._proc is not None:
+                try:
+                    self._proc.stdin.close()  # type: ignore[union-attr]
+                except Exception:
+                    pass
+                self._kill()
+
+
+# Module-level singleton reused across all SYBA scoring calls.
+_syba_worker = _SybaWorker()
+
+
+def _syba_via_subprocess(smiles: str) -> Optional[float]:
+    """Compute a SYBA score via the persistent worker (GPL-3.0 isolated)."""
+    return _syba_worker.predict(smiles)
 
 
 def _compute_syba(smiles: str) -> Dict[str, Any]:

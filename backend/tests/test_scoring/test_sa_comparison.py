@@ -9,9 +9,8 @@ Tests cover:
 """
 
 import ast
-import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from rdkit import Chem
@@ -109,108 +108,52 @@ class TestSAComparison:
         assert "scscore" in result["error"].lower() or "not available" in result["error"].lower()
 
     # ------------------------------------------------------------------
-    # SYBA subprocess tests (GPL-3.0 isolation)
+    # SYBA score -> classification mapping (worker mechanism is patched out;
+    # the persistent-worker IPC/lifecycle is covered by test_syba_worker.py)
     # ------------------------------------------------------------------
 
-    def test_syba_subprocess_timeout(self):
-        """When subprocess.run raises TimeoutExpired, syba result must have available=False."""
+    _SYBA_PREDICT = "app.services.profiler.sa_comparison._syba_via_subprocess"
+
+    def test_syba_unavailable_returns_available_false(self):
+        """When the worker can't produce a score, syba result is available=False."""
         from app.services.profiler.sa_comparison import _compute_syba
 
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="python", timeout=30)):
+        with patch(self._SYBA_PREDICT, return_value=None):
             result = _compute_syba(ASPIRIN_SMILES)
 
         assert result["available"] is False
         assert "error" in result
 
-    def test_syba_subprocess_import_error(self):
-        """When subprocess returncode=1, syba result must have available=False."""
+    def test_syba_success(self):
+        """A valid score yields available=True with the score echoed back."""
         from app.services.profiler.sa_comparison import _compute_syba
 
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ""
-        mock_result.stderr = "ModuleNotFoundError: No module named 'syba'"
-
-        with patch("subprocess.run", return_value=mock_result):
-            result = _compute_syba(ASPIRIN_SMILES)
-
-        assert result["available"] is False
-        assert "error" in result
-
-    def test_syba_subprocess_success(self):
-        """When subprocess returns valid score, syba result must have available=True."""
-        from app.services.profiler.sa_comparison import _compute_syba
-
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "42.5\n"
-        mock_result.stderr = ""
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch(self._SYBA_PREDICT, return_value=42.5):
             result = _compute_syba(ASPIRIN_SMILES)
 
         assert result["available"] is True
         assert result["score"] == 42.5
         assert result["classification"] == "moderate"  # 0 < 42.5 <= 50
 
-    def test_syba_subprocess_json_parse_error(self):
-        """When subprocess returns invalid JSON, syba result must have available=False."""
-        from app.services.profiler.sa_comparison import _compute_syba
-
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "not_a_number\n"
-        mock_result.stderr = ""
-
-        with patch("subprocess.run", return_value=mock_result):
-            result = _compute_syba(ASPIRIN_SMILES)
-
-        assert result["available"] is False
-
-    # ------------------------------------------------------------------
-    # SYBA classification tests
-    # ------------------------------------------------------------------
-
     def test_syba_classification_easy(self):
-        """SYBA score > 50 returns 'easy' classification."""
         from app.services.profiler.sa_comparison import _compute_syba
 
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "75.0\n"
-        mock_result.stderr = ""
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch(self._SYBA_PREDICT, return_value=75.0):
             result = _compute_syba(ASPIRIN_SMILES)
-
         assert result["classification"] == "easy"
 
     def test_syba_classification_moderate(self):
-        """SYBA score 0 < x <= 50 returns 'moderate' classification."""
         from app.services.profiler.sa_comparison import _compute_syba
 
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "25.0\n"
-        mock_result.stderr = ""
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch(self._SYBA_PREDICT, return_value=25.0):
             result = _compute_syba(ASPIRIN_SMILES)
-
         assert result["classification"] == "moderate"
 
     def test_syba_classification_difficult(self):
-        """SYBA score <= 0 returns 'difficult' classification."""
         from app.services.profiler.sa_comparison import _compute_syba
 
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "-50.0\n"
-        mock_result.stderr = ""
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch(self._SYBA_PREDICT, return_value=-50.0):
             result = _compute_syba(ASPIRIN_SMILES)
-
         assert result["classification"] == "difficult"
 
     # ------------------------------------------------------------------
@@ -221,8 +164,9 @@ class TestSAComparison:
         """compute_sa_comparison must return all 4 keys: sa_score, scscore, syba, rascore."""
         from app.services.profiler.sa_comparison import compute_sa_comparison
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
+        with patch(
+            "app.services.profiler.sa_comparison._syba_via_subprocess", return_value=None
+        ):
             result = compute_sa_comparison(aspirin_mol, ASPIRIN_SMILES)
 
         assert "sa_score" in result, "Missing 'sa_score' key"
@@ -234,8 +178,9 @@ class TestSAComparison:
         """RAscore slot must always have available=False (out of scope for v3.0)."""
         from app.services.profiler.sa_comparison import compute_sa_comparison
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
+        with patch(
+            "app.services.profiler.sa_comparison._syba_via_subprocess", return_value=None
+        ):
             result = compute_sa_comparison(aspirin_mol, ASPIRIN_SMILES)
 
         assert result["rascore"]["available"] is False
@@ -244,8 +189,9 @@ class TestSAComparison:
         """SA Score must always be present and available=True even when other scorers fail."""
         from app.services.profiler.sa_comparison import compute_sa_comparison
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
+        with patch(
+            "app.services.profiler.sa_comparison._syba_via_subprocess", return_value=None
+        ):
             result = compute_sa_comparison(aspirin_mol, ASPIRIN_SMILES)
 
         assert result["sa_score"]["available"] is True
