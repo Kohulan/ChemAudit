@@ -118,29 +118,43 @@ def _load_scscore() -> Optional[Any]:
 
     try:
         from scscore.standalone_model_numpy import SCScorer  # type: ignore
-
-        scorer = SCScorer()
-        try:
-            scorer.restore()
-            _SCSCORE_SCORER = scorer
-            return _SCSCORE_SCORER
-        except Exception as restore_err:
-            logger.debug("SCScore restore() failed (%s), trying vendor fallback", restore_err)
-            # Try vendor-supplied .npz weight file (pre-converted for NumPy 2.x)
-            vendor_path = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
-            if os.path.isfile(vendor_path):
-                try:
-                    scorer2 = SCScorer()
-                    scorer2.restore(weight_path=vendor_path)
-                    _SCSCORE_SCORER = scorer2
-                    return _SCSCORE_SCORER
-                except Exception as vendor_err:
-                    logger.debug("SCScore vendor fallback failed: %s", vendor_err)
-
     except ImportError:
-        logger.debug("scscore not installed — SCScore will be unavailable")
+        # Optional dependency; absence is expected and surfaced as available=False.
+        logger.debug("scscore not installed — SCScore comparison will be unavailable")
+        _SCSCORE_SCORER = None
+        return None
     except Exception as err:
-        logger.debug("Unexpected error loading SCScore: %s", err)
+        logger.debug("Unexpected error importing SCScore: %s", err)
+        _SCSCORE_SCORER = None
+        return None
+
+    scorer = SCScorer()
+    try:
+        scorer.restore()
+        _SCSCORE_SCORER = scorer
+        return _SCSCORE_SCORER
+    except Exception as restore_err:
+        logger.debug("SCScore restore() failed (%s), trying vendor fallback", restore_err)
+        # Try a vendor-supplied .npz weight file (pre-converted for NumPy 2.x).
+        vendor_path = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
+        if os.path.isfile(vendor_path):
+            try:
+                scorer2 = SCScorer()
+                scorer2.restore(weight_path=vendor_path)
+                _SCSCORE_SCORER = scorer2
+                return _SCSCORE_SCORER
+            except Exception as vendor_err:
+                logger.debug("SCScore vendor fallback failed: %s", vendor_err)
+        # scscore IS installed but its weights could not be loaded (commonly a
+        # NumPy 2.x pickle-compat issue). Surface this clearly — once — instead
+        # of silently degrading, so operators know SCScore needs enabling.
+        logger.warning(
+            "SCScore is installed but its weights failed to load (%s). SCScore "
+            "will be unavailable. To enable it under NumPy 2.x, place a converted "
+            "weight file at %s — see vendor/README.md.",
+            restore_err,
+            vendor_path,
+        )
 
     _SCSCORE_SCORER = None
     return None
