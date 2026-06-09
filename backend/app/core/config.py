@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     # Leave True for local dev; set False in any shared/staging environment.
     ALLOW_INSECURE_DEFAULTS: bool = True
 
+    # Admin auth replay resistance. When True, only HMAC-signed, time-bound admin
+    # tokens are accepted and the static X-Admin-Secret is rejected. Default False
+    # for backward compatibility; enable (behind TLS) for stricter admin auth.
+    ADMIN_AUTH_REQUIRE_SIGNED: bool = False
+    ADMIN_AUTH_MAX_SKEW_SECONDS: int = 300  # freshness window for signed tokens
+
     # ==========================================================================
     # CORS Settings
     # ==========================================================================

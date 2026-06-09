@@ -208,6 +208,51 @@ async def _update_usage_stats(api_key: str):
 # =============================================================================
 
 
+def generate_admin_token() -> str:
+    """Generate a signed, time-bound admin token: '<unix_ts>.<hmac_sha256>'.
+
+    Admin clients can send this in X-Admin-Secret instead of the static secret.
+    It is only valid within ADMIN_AUTH_MAX_SKEW_SECONDS, giving replay resistance.
+    """
+    ts = str(int(time.time()))
+    sig = hmac.new(
+        settings.API_KEY_ADMIN_SECRET.encode(), ts.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"{ts}.{sig}"
+
+
+def _verify_signed_admin_token(token: str) -> bool:
+    """Verify a '<ts>.<hmac>' admin token: correct signature and within skew."""
+    try:
+        ts_str, sig = token.split(".", 1)
+        ts = int(ts_str)
+    except (ValueError, AttributeError):
+        return False
+    if abs(int(time.time()) - ts) > settings.ADMIN_AUTH_MAX_SKEW_SECONDS:
+        return False
+    expected = hmac.new(
+        settings.API_KEY_ADMIN_SECRET.encode(), ts_str.encode(), hashlib.sha256
+    ).hexdigest()
+    return secrets.compare_digest(sig, expected)
+
+
+def verify_admin_secret(provided: Optional[str]) -> bool:
+    """Validate an admin credential (constant-time where applicable).
+
+    Accepts a signed, time-bound token (replay-resistant). When
+    ADMIN_AUTH_REQUIRE_SIGNED is False (default), also accepts the static
+    API_KEY_ADMIN_SECRET for backward compatibility.
+    """
+    if not provided:
+        return False
+    # Signed token form is always honoured (replay-resistant).
+    if "." in provided and _verify_signed_admin_token(provided):
+        return True
+    if settings.ADMIN_AUTH_REQUIRE_SIGNED:
+        return False
+    return secrets.compare_digest(provided, settings.API_KEY_ADMIN_SECRET)
+
+
 async def require_admin_auth(
     admin_secret: Optional[str] = Security(admin_secret_header),
 ) -> bool:
@@ -232,8 +277,9 @@ async def require_admin_auth(
             headers={"WWW-Authenticate": "AdminSecret"},
         )
 
-    # Constant-time comparison to prevent timing attacks
-    if not secrets.compare_digest(admin_secret, settings.API_KEY_ADMIN_SECRET):
+    # Accepts a signed time-bound token (replay-resistant) or, unless strict mode
+    # is enabled, the static admin secret (constant-time comparison).
+    if not verify_admin_secret(admin_secret):
         logger.warning("Failed admin authentication attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
