@@ -51,7 +51,7 @@ class ConnectionManager:
     async def close_redis(self) -> None:
         """Close Redis connection."""
         if self._redis:
-            await self._redis.close()
+            await self._redis.aclose()
             self._redis = None
 
     async def _ensure_redis(self) -> bool:
@@ -221,7 +221,7 @@ class ConnectionManager:
         finally:
             try:
                 await pubsub.unsubscribe(channel)
-                await pubsub.close()
+                await pubsub.aclose()
                 logger.debug(f"Unsubscribed from channel {channel}")
             except Exception as e:
                 logger.warning(f"Error during pubsub cleanup for job {job_id}: {e}")
