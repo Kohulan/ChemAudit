@@ -187,7 +187,7 @@ def _classify_fragment(
     MolVS pattern name (or None if no match).
     """
     try:
-        from molvs.fragment import REMOVE_FRAGMENTS  # type: ignore[import]
+        from app.services.validation._fragment_patterns import REMOVE_FRAGMENTS
 
         frag_heavy_count = frag_mol.GetNumHeavyAtoms()
         for fp in REMOVE_FRAGMENTS:
@@ -382,7 +382,7 @@ class SolventContaminationCheck(BaseCheck):
         # Only match if the fragment has the same heavy atom count as the pattern
         # to avoid false positives from broad SMARTS like [#8] or [#7]
         try:
-            from molvs.fragment import REMOVE_FRAGMENTS  # type: ignore[import]
+            from app.services.validation._fragment_patterns import REMOVE_FRAGMENTS
 
             frag_heavy_count = frag_mol.GetNumHeavyAtoms()
             for fp in REMOVE_FRAGMENTS:
