@@ -40,6 +40,10 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,  # Process one task at a time for accurate progress
     task_acks_late=True,  # Acknowledge tasks after completion for reliability
     task_reject_on_worker_lost=True,  # Requeue tasks if worker dies
+    # Global task time limits — backstop against pathological molecules that
+    # make RDKit ring perception run unbounded and permanently block a worker.
+    task_soft_time_limit=3300,  # 55 min: raises SoftTimeLimitExceeded (graceful)
+    task_time_limit=3600,  # 60 min: hard SIGKILL of the worker process
     # Queue definitions
     task_queues=(
         Queue("default", default_exchange, routing_key="default"),
