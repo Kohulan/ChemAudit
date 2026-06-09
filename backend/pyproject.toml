@@ -78,3 +78,15 @@ asyncio_mode = "auto"
 markers = [
     "slow: marks tests as slow (deselect with '-k not slow')",
 ]
+
+# Coverage gate. Enforced ONLY when coverage is actually collected (the CI step
+# runs `pytest --cov=app`); intentionally NOT added to pytest addopts so local
+# partial runs (e.g. `pytest tests/test_foo.py`) are not gated. Floor set below
+# the current measured total (~75%) so it ratchets without breaking CI.
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/cli.py", "*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
