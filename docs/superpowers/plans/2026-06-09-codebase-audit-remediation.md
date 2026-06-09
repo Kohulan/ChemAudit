@@ -604,17 +604,23 @@ git commit -m "test: add coverage thresholds to ratchet backend and frontend cov
 
 ---
 
-## Wave 3 — Larger backend refactors (gated, likely separate PRs)
+## Wave 3 — Larger backend refactors — ✅ 3.1/3.2/3.4/3.6/3.7 DONE (2026-06-09)
 
-Each warrants its own plan + PR per the writing-plans "one subsystem per plan" rule.
+- **3.1 Chunked Redis batch-result storage** — ✅ DONE. Results stored as a Redis LIST (one JSON per element); default unfiltered/unsorted view paginates via `LRANGE` (no full deserialize); filtered/sorted views load-all + view-cache; backward-compatible with the legacy single-blob format. Commit `perf(batch): store results as Redis list...`.
+- **3.2 WebSocket duplicate-subscriber fix + test suite** — ✅ DONE. Ownership guard: a superseded subscriber stops before broadcasting; cancel-and-await prior task in `connect`; full WS test suite added (was zero coverage). Commit `fix(websockets): prevent duplicate broadcasts...`.
+- **3.3 Persistent SYBA worker** — ⏸ DEFERRED (own effort). Replacing subprocess-per-call with a long-lived worker + JSON pipe is a high-effort/high-risk new IPC + lifecycle for an optional GPL-isolated feature that currently works. Low value-per-risk; defer to a dedicated PR.
+- **3.4 Dedicated analytics queue + time limits** — ✅ DONE. `analytics` queue + routing for `run_expensive_analytics`, per-task `soft_time_limit=600`/`time_limit=660`, dedicated `celery-worker-analytics` added to both compose files. Commit `perf(analytics): isolate expensive analytics...`.
+- **3.5 `asyncio.run()` in Celery tasks** — ⏸ DEFERRED (benign). Harmless in the default prefork worker model; the "fix" is a risky rewrite of the audit-write path for a non-issue in the current config. Revisit only if switching to async/gevent/eventlet Celery pools.
+- **3.6 Celery chord/aggregation integration test** — ✅ DONE. Eager-mode end-to-end test of `group(chunks)` → aggregate → store. Commit `test(batch): add eager Celery chord aggregation integration test`.
+- **3.7 Redis memory policy** — ✅ DONE (improved over audit). Bounded `maxmemory` in dev compose; switched BOTH compose files from the risky `allkeys-lru` to `volatile-lru` so no-TTL Celery broker messages are never evicted. Commit `fix(redis): bound memory and use volatile-lru...`.
 
-- **3.1 Chunked Redis batch-result storage** (`services/batch/result_aggregator.py:239-252`): replace the single `json.dumps(results)` blob with a Redis list (`RPUSH`/`LRANGE`) per job; convert paginated reads to range queries. Touches the results-read API contract + pagination → needs careful migration + tests. High value, high effort.
-- **3.2 WebSocket duplicate-subscriber fix + test suite** (`websockets/manager.py:94-112,141-212`): cancel-and-await the existing subscriber task before creating a new one on reconnect; then build the missing WebSocket test suite (connect/disconnect/reconnect, pub/sub forwarding, ownership, Redis-unavailable). High value (currently zero WS coverage).
-- **3.3 Persistent SYBA worker** (`services/profiler/sa_comparison.py:169-210`): replace subprocess-per-call with a long-lived worker process + stdin/stdout JSON pipe to amortize model-load cost. Medium value, medium effort (new IPC protocol + lifecycle).
-- **3.4 Dedicated analytics queue + time limits** (`celery_app.py`, `services/analytics/chemical_space.py:145-190`): route expensive analytics (t-SNE) to a separate `analytics` queue with its own workers + per-task `time_limit`, so analytics can't starve batch processing.
-- **3.5 `asyncio.run()` in Celery tasks** (`services/batch/tasks.py:580`, `services/session/cleanup.py:30`): make the audit-trail DB write a blocking sync call (sync SQLAlchemy session) OR commit to the async Celery worker model consistently. Low/medium.
-- **3.6 Celery chord/aggregation integration tests** (`tests/test_batch/`, `conftest.py`): configure `CELERY_TASK_ALWAYS_EAGER`, exercise the `chord`/`group` → `aggregate_batch_results` path end-to-end.
-- **3.7 Redis memory policy** (deployment, not app code): set `maxmemory-policy allkeys-lru` + bound `maxmemory` in the Redis service config / `docker-compose*.yml`. **Ops config, not source.**
+## Wave 4 — Frontend refactors & E2E — ✅ 4.3 DONE (2026-06-09); 4.1/4.2/4.4/4.5 remain
+
+- **4.1 Split `SingleValidation.tsx`** (3,115 lines) — ⏳ REMAINING (large, own PR). The app's central page has zero tests; do **4.4** (characterization tests) first, then extract tab panels into `components/validation/` incrementally. High effort, high risk — dedicated PR.
+- **4.2 Split monolithic backend route files** (`batch.py` 1,090, `scoring.py` 893, `qsar_ready.py` 707) — ⏳ REMAINING (large, own PR). Mechanical extraction into `services/`; lower-risk (good backend coverage) but big.
+- **4.3 Replace `window.prompt`/`window.confirm`** — ✅ DONE. Added accessible, testable `ConfirmModal` + `PromptModal` (`components/common/`) with full test coverage; wired all three components. Commit `feat(ui): replace native window.prompt/confirm with accessible, testable React modals`.
+- **4.4 Page-level frontend tests** (`SingleValidation.tsx`, `BatchValidation.tsx`) — ⏳ REMAINING (large). Heavy API/RDKit/router mocking; pairs with 4.1.
+- **4.5 E2E suite (Playwright)** — ⏳ REMAINING (blocked on environment). Requires the full stack running (backend + frontend + Redis + Postgres + Celery). Cannot be authored/verified without a live stack; do in an environment where the stack is up.
 
 ---
 
