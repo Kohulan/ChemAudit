@@ -30,9 +30,17 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 admin_secret_header = APIKeyHeader(name="X-Admin-Secret", auto_error=False)
 
 
+_ASYNC_REDIS: "redis.Redis | None" = None
+
+
 async def get_redis_client():
-    """Get async Redis client."""
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+    """Return a process-wide pooled async Redis client (lazy singleton)."""
+    global _ASYNC_REDIS
+    if _ASYNC_REDIS is None:
+        _ASYNC_REDIS = redis.from_url(
+            settings.REDIS_URL, decode_responses=True, max_connections=20
+        )
+    return _ASYNC_REDIS
 
 
 @lru_cache(maxsize=512)
@@ -71,27 +79,24 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
         Dictionary with key metadata if valid, None if invalid or expired
     """
     client = await get_redis_client()
-    try:
-        key_hash = hash_api_key_for_lookup(api_key)
-        key_data = await client.hgetall(f"apikey:{key_hash}")
+    key_hash = hash_api_key_for_lookup(api_key)
+    key_data = await client.hgetall(f"apikey:{key_hash}")
 
-        if not key_data:
-            return None
+    if not key_data:
+        return None
 
-        # Check if key has expired
-        expires_at = key_data.get("expires_at")
-        if expires_at:
-            try:
-                exp_time = datetime.fromisoformat(expires_at)
-                if datetime.now(timezone.utc) > exp_time:
-                    logger.info(f"API key expired: {key_hash[:12]}...")
-                    return None
-            except ValueError:
-                pass  # Invalid date format, treat as non-expiring
+    # Check if key has expired
+    expires_at = key_data.get("expires_at")
+    if expires_at:
+        try:
+            exp_time = datetime.fromisoformat(expires_at)
+            if datetime.now(timezone.utc) > exp_time:
+                logger.info(f"API key expired: {key_hash[:12]}...")
+                return None
+        except ValueError:
+            pass  # Invalid date format, treat as non-expiring
 
-        return dict(key_data)
-    finally:
-        await client.aclose()
+    return dict(key_data)
 
 
 def is_key_expired(key_data: dict) -> bool:
@@ -191,14 +196,11 @@ async def _update_usage_stats(api_key: str):
     Increments request count and updates last_used timestamp.
     """
     client = await get_redis_client()
-    try:
-        key_hash = hash_api_key_for_lookup(api_key)
-        await client.hset(
-            f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
-        )
-        await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
-    finally:
-        await client.aclose()
+    key_hash = hash_api_key_for_lookup(api_key)
+    await client.hset(
+        f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
+    )
+    await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
 
 
 # =============================================================================

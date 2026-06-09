@@ -25,9 +25,17 @@ BAN_KEY_PREFIX = "ratelimit:ban:"
 VIOLATION_KEY_PREFIX = "ratelimit:violations:"
 
 
+_SYNC_REDIS: "redis.Redis | None" = None
+
+
 def get_sync_redis_client():
-    """Get synchronous Redis client for rate limiting."""
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+    """Return a process-wide pooled synchronous Redis client (lazy singleton)."""
+    global _SYNC_REDIS
+    if _SYNC_REDIS is None:
+        _SYNC_REDIS = redis.from_url(
+            settings.REDIS_URL, decode_responses=True, max_connections=20
+        )
+    return _SYNC_REDIS
 
 
 def is_ip_banned(ip_address: str) -> bool:
