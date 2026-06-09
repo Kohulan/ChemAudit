@@ -43,6 +43,10 @@ def _get_sascorer():
 _SCSCORE_SCORER: Optional[Any] = None
 _SCSCORE_LOAD_ATTEMPTED: bool = False
 
+# Upper bound on SMILES length accepted by the SYBA subprocess path. Scoring a
+# SMILES longer than this is pointless and only widens the input surface.
+_MAX_SYBA_SMILES_LEN = 2000
+
 
 # ---------------------------------------------------------------------------
 # SA Score (RDKit Contrib — always available)
@@ -202,6 +206,17 @@ def _syba_via_subprocess(smiles: str) -> Optional[float]:
         SYBA score as float, or None on any failure (timeout, import error,
         subprocess error, parse error)
     """
+    # Defense-in-depth: the SMILES is embedded via repr() and run with
+    # shell=False, but reject pathological input (oversized or non-printable /
+    # newline-bearing) before spawning a process at all.
+    if (
+        not smiles
+        or len(smiles) > _MAX_SYBA_SMILES_LEN
+        or not smiles.isprintable()
+    ):
+        logger.debug("SYBA input rejected (length/non-printable): %r", smiles[:60])
+        return None
+
     script = (
         "from syba.syba import SybaClassifier; "
         "s = SybaClassifier(); "
@@ -215,6 +230,7 @@ def _syba_via_subprocess(smiles: str) -> Optional[float]:
             capture_output=True,
             text=True,
             timeout=30,
+            shell=False,  # explicit: never invoke a shell
         )
         if proc.returncode != 0:
             logger.debug("SYBA subprocess failed (rc=%d): %s", proc.returncode, proc.stderr[:200])
