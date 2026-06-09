@@ -34,7 +34,7 @@ import { ExampleMolecules } from '../components/validation/ExampleMolecules';
 import { ErrorPanel, LoadingPanel } from '../components/validation/StatusPanels';
 import { ScoreTiles } from '../components/validation/ScoreTiles';
 import { ValidationOutcomePanels } from '../components/validation/ValidationOutcomePanels';
-import { IssueCard } from '../components/validation/IssueCard';
+import { ValidationIssuesPanel } from '../components/validation/ValidationIssuesPanel';
 import { ScoringResults } from '../components/scoring/ScoringResults';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
@@ -2415,43 +2415,15 @@ export function SingleValidationPage() {
               </div>
 
               {/* Validation Issues - Show right after molecule viewer (validate tab only) */}
-              <AnimatePresence>
-                {activeTab === 'validate' && result && validationIssues.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                        Validation Issues
-                      </h4>
-                      <Badge variant="warning">{validationIssues.length} found</Badge>
-                    </div>
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                      {validationIssues.map((issue, index) => {
-                        const isThisLocked = highlightLocked &&
-                          JSON.stringify(highlightedAtoms) === JSON.stringify(issue.affected_atoms);
-                        return (
-                          <IssueCard
-                            key={`${issue.check_name}-${index}`}
-                            issue={issue}
-                            onAtomHover={highlightLocked ? undefined : setHighlightedAtoms}
-                            onAtomLock={handleAtomLock}
-                            isLocked={isThisLocked}
-                          />
-                        );
-                      })}
-                    </div>
-                    {result && (
-                      <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
-                        Completed in {result.execution_time_ms.toFixed(0)}ms
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <ValidationIssuesPanel
+                show={activeTab === 'validate' && Boolean(result) && validationIssues.length > 0}
+                issues={validationIssues}
+                executionMs={result?.execution_time_ms || 0}
+                highlightedAtoms={highlightedAtoms}
+                highlightLocked={highlightLocked}
+                onAtomHover={setHighlightedAtoms}
+                onAtomLock={handleAtomLock}
+              />
 
               {/* Score Tiles - Only show after validation/scoring (validate tab only) */}
               <ScoreTiles
