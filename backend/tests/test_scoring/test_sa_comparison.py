@@ -55,9 +55,9 @@ class TestSAComparison:
         """SA score between 3 and 5 returns 'moderate' classification."""
         from app.services.profiler.sa_comparison import _compute_sa_score
 
-        # Mock sascorer to return a moderate score
-        with patch("app.services.profiler.sa_comparison.sascorer") as mock_sascorer:
-            mock_sascorer.calculateScore.return_value = 4.0
+        # Mock sascorer to return a moderate score (lazy loader seam)
+        with patch("app.services.profiler.sa_comparison._get_sascorer") as mock_get:
+            mock_get.return_value.calculateScore.return_value = 4.0
             mol = Chem.MolFromSmiles("C")
             result = _compute_sa_score(mol)
 
@@ -67,9 +67,9 @@ class TestSAComparison:
         """SA score >= 5 returns 'difficult' classification."""
         from app.services.profiler.sa_comparison import _compute_sa_score
 
-        # Mock sascorer to return a difficult score
-        with patch("app.services.profiler.sa_comparison.sascorer") as mock_sascorer:
-            mock_sascorer.calculateScore.return_value = 6.0
+        # Mock sascorer to return a difficult score (lazy loader seam)
+        with patch("app.services.profiler.sa_comparison._get_sascorer") as mock_get:
+            mock_get.return_value.calculateScore.return_value = 6.0
             mol = Chem.MolFromSmiles("C")
             result = _compute_sa_score(mol)
 

@@ -16,16 +16,28 @@ import logging
 import os
 import subprocess
 import sys
+from functools import lru_cache
 from typing import Any, Dict, Optional
 
 from rdkit import Chem, RDConfig
 
 from app.core.error_sanitizer import safe_error_detail
 
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
-import sascorer  # type: ignore  # noqa: E402
-
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def _get_sascorer():
+    """Lazily import RDKit Contrib sascorer; return None if unavailable."""
+    try:
+        sa_path = os.path.join(RDConfig.RDContribDir, "SA_Score")
+        if sa_path not in sys.path:
+            sys.path.insert(0, sa_path)
+        import sascorer  # type: ignore[import-untyped]
+
+        return sascorer
+    except Exception:
+        return None
 
 # Module-level cache for SCScore scorer (loaded once, reused across calls)
 _SCSCORE_SCORER: Optional[Any] = None
@@ -50,7 +62,17 @@ def _compute_sa_score(mol: Chem.Mol) -> Dict[str, Any]:
     Returns:
         dict with keys: score (float), scale (str), classification (str), available (bool)
     """
-    score = sascorer.calculateScore(mol)
+    _sa = _get_sascorer()
+    if _sa is None:
+        return {
+            "score": None,
+            "scale": "1-10",
+            "classification": None,
+            "available": False,
+            "error": "sascorer not available",
+        }
+
+    score = _sa.calculateScore(mol)
     if score < 3:
         classification = "easy"
     elif score < 5:
