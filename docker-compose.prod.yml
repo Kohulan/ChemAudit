@@ -32,7 +32,10 @@ services:
     image: redis:7-alpine
     container_name: chemaudit-redis-prod
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy allkeys-lru
+    # volatile-lru (not allkeys-lru) evicts only TTL'd keys (cache/results/progress)
+    # under memory pressure and never the no-TTL Celery broker messages, so queued
+    # batch jobs are not silently lost when Redis fills up.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-volatile-lru}
     volumes:
       - redis_data:/data
     networks:
