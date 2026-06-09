@@ -6,6 +6,8 @@ import { ClayCard } from '../ui/ClayCard';
 import { ClayButton } from '../ui/ClayButton';
 import { PresetSelector } from './PresetSelector';
 import { StepToggleGrid } from './StepToggleGrid';
+import { ConfirmModal } from '../common/ConfirmModal';
+import { PromptModal } from '../common/PromptModal';
 import type { UseQSARPipelineConfigReturn } from '../../hooks/useQSARPipelineConfig';
 import type { QSARReadyConfig } from '../../types/qsar_ready';
 
@@ -26,8 +28,8 @@ type PipelineConfigPanelProps = UseQSARPipelineConfigReturn;
  * Pipeline Configuration Panel — wraps PresetSelector + StepToggleGrid.
  *
  * Shows 3 built-in preset buttons and a 10-step toggle grid in a collapsible
- * ClayCard. Custom profiles can be saved (window.prompt for name), loaded, and
- * deleted (window.confirm). Built-in presets have no save/delete actions.
+ * ClayCard. Custom profiles can be saved (PromptModal for name), loaded, and
+ * deleted (ConfirmModal). Built-in presets have no save/delete actions.
  *
  * Collapse animation: AnimatePresence + motion.div height auto→0, 250ms ease-in.
  * Per Phase 10 UI-SPEC copywriting and interaction contracts.
@@ -45,6 +47,8 @@ export function PipelineConfigPanel({
   isPreset,
 }: PipelineConfigPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Handle step boolean toggles
   const handleToggleStep = (key: string, enabled: boolean) => {
@@ -57,22 +61,15 @@ export function PipelineConfigPanel({
   };
 
   // Save current config as a named custom profile
-  const handleSaveConfig = () => {
-    const name = window.prompt('Enter a name for this configuration:');
-    if (name && name.trim()) {
-      saveProfile(name.trim());
-    }
-  };
+  const handleSaveConfig = () => setShowSavePrompt(true);
 
   // Delete a custom preset with confirmation
   const handleDeleteProfile = (id: string, name: string) => {
-    const confirmed = window.confirm(`Delete '${name}'? This cannot be undone.`);
-    if (confirmed) {
-      deleteProfile(id);
-    }
+    setPendingDelete({ id, name });
   };
 
   return (
+    <>
     <ClayCard variant="default" size="md" className="p-0">
       {/* ── Header row ── */}
       <div className="flex items-center justify-between px-6 py-4">
@@ -192,5 +189,28 @@ export function PipelineConfigPanel({
         )}
       </AnimatePresence>
     </ClayCard>
+
+    <PromptModal
+      isOpen={showSavePrompt}
+      title="Name this configuration"
+      placeholder="e.g. My QSAR pipeline"
+      onConfirm={(name) => {
+        saveProfile(name);
+        setShowSavePrompt(false);
+      }}
+      onCancel={() => setShowSavePrompt(false)}
+    />
+    <ConfirmModal
+      isOpen={pendingDelete !== null}
+      title="Delete configuration"
+      message={`Delete '${pendingDelete?.name ?? ''}'? This cannot be undone.`}
+      confirmLabel="Delete"
+      onConfirm={() => {
+        if (pendingDelete) deleteProfile(pendingDelete.id);
+        setPendingDelete(null);
+      }}
+      onCancel={() => setPendingDelete(null)}
+    />
+    </>
   );
 }

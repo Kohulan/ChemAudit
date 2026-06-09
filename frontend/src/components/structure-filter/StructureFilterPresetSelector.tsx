@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ClayButton } from '../ui/ClayButton';
+import { ConfirmModal } from '../common/ConfirmModal';
+import { PromptModal } from '../common/PromptModal';
 import { PRESET_IDS } from '../../types/structure_filter';
 import type { StructureFilterProfile } from '../../types/structure_filter';
 
@@ -78,7 +80,7 @@ interface StructureFilterPresetSelectorProps {
  *
  * Active preset: ring-2 highlight + filled background.
  * Modified label: shown when a preset was edited (D-13).
- * Save: window.prompt for name (D-13 — same as PipelineConfigPanel Phase 10 pattern).
+ * Save: in-app PromptModal for name (D-13 — same as PipelineConfigPanel pattern).
  * Delete: inline confirmation before calling onDeleteProfile.
  * Guard: delete button never rendered for built-in preset IDs (PRESET_IDS guard).
  *
@@ -92,26 +94,13 @@ export function StructureFilterPresetSelector({
   onSaveProfile,
   onDeleteProfile,
 }: StructureFilterPresetSelectorProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const handleSaveConfig = () => {
-    const name = window.prompt('Name your custom configuration:');
-    if (name && name.trim()) {
-      onSaveProfile(name.trim());
-    }
-  };
+  const handleSaveConfig = () => setShowSavePrompt(true);
 
   const handleDeleteClick = (id: string, name: string) => {
-    setDeletingId(id);
-    // Inline confirmation pattern (UI-SPEC copywriting)
-    const confirmed = window.confirm(`Delete '${name}'? This cannot be undone.`);
-    setDeletingId(null);
-    if (confirmed) {
-      // Guard: never call delete for built-in presets (PRESET_IDS no-op)
-      if (!PRESET_IDS.has(id)) {
-        onDeleteProfile(id);
-      }
-    }
+    setPendingDelete({ id, name });
   };
 
   return (
@@ -173,7 +162,7 @@ export function StructureFilterPresetSelector({
           <div className="flex flex-wrap gap-2">
             {profiles.map((profile) => {
               const isActiveProfile = activePreset === profile.id;
-              const isDeleting = deletingId === profile.id;
+              const isDeleting = pendingDelete?.id === profile.id;
               return (
                 <div
                   key={profile.id}
@@ -214,6 +203,31 @@ export function StructureFilterPresetSelector({
           </div>
         </div>
       )}
+
+      <PromptModal
+        isOpen={showSavePrompt}
+        title="Name your custom configuration"
+        placeholder="e.g. My filter preset"
+        onConfirm={(name) => {
+          onSaveProfile(name);
+          setShowSavePrompt(false);
+        }}
+        onCancel={() => setShowSavePrompt(false)}
+      />
+      <ConfirmModal
+        isOpen={pendingDelete !== null}
+        title="Delete configuration"
+        message={`Delete '${pendingDelete?.name ?? ''}'? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => {
+          // Guard: never delete built-in presets (PRESET_IDS no-op)
+          if (pendingDelete && !PRESET_IDS.has(pendingDelete.id)) {
+            onDeleteProfile(pendingDelete.id);
+          }
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
