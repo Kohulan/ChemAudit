@@ -192,7 +192,7 @@ class TestEmailDispatchWiring:
             patch("app.services.batch.tasks.result_storage"),
             patch("app.services.batch.tasks.progress_tracker") as mock_tracker,
             patch("app.services.batch.tasks.compute_statistics", return_value=stats_obj),
-            patch("app.services.batch.tasks.asyncio"),
+            patch("app.services.batch.tasks._log_batch_audit"),
             patch("app.services.notifications.email.send_batch_complete_email") as mock_email_task,
         ):
             # Setup: mock Redis to return a notification email
@@ -225,7 +225,7 @@ class TestEmailDispatchWiring:
             patch("app.services.batch.tasks.result_storage"),
             patch("app.services.batch.tasks.progress_tracker") as mock_tracker,
             patch("app.services.batch.tasks.compute_statistics", return_value=stats_obj),
-            patch("app.services.batch.tasks.asyncio"),
+            patch("app.services.batch.tasks._log_batch_audit"),
             patch("app.services.notifications.email.send_batch_complete_email") as mock_email_task,
         ):
             mock_redis = MagicMock()
