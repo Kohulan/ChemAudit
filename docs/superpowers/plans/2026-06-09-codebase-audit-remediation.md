@@ -614,13 +614,17 @@ git commit -m "test: add coverage thresholds to ratchet backend and frontend cov
 - **3.6 Celery chord/aggregation integration test** — ✅ DONE. Eager-mode end-to-end test of `group(chunks)` → aggregate → store. Commit `test(batch): add eager Celery chord aggregation integration test`.
 - **3.7 Redis memory policy** — ✅ DONE (improved over audit). Bounded `maxmemory` in dev compose; switched BOTH compose files from the risky `allkeys-lru` to `volatile-lru` so no-TTL Celery broker messages are never evicted. Commit `fix(redis): bound memory and use volatile-lru...`.
 
-## Wave 4 — Frontend refactors & E2E — ✅ 4.3 DONE (2026-06-09); 4.1/4.2/4.4/4.5 remain
+## Wave 4 — Frontend refactors & E2E — ✅ 4.2/4.3/4.4/4.5 DONE (2026-06-09); 4.1 in progress
 
-- **4.1 Split `SingleValidation.tsx`** (3,115 lines) — ⏳ REMAINING (large, own PR). The app's central page has zero tests; do **4.4** (characterization tests) first, then extract tab panels into `components/validation/` incrementally. High effort, high risk — dedicated PR.
-- **4.2 Split monolithic backend route files** (`batch.py` 1,090, `scoring.py` 893, `qsar_ready.py` 707) — ⏳ REMAINING (large, own PR). Mechanical extraction into `services/`; lower-risk (good backend coverage) but big.
-- **4.3 Replace `window.prompt`/`window.confirm`** — ✅ DONE. Added accessible, testable `ConfirmModal` + `PromptModal` (`components/common/`) with full test coverage; wired all three components. Commit `feat(ui): replace native window.prompt/confirm with accessible, testable React modals`.
-- **4.4 Page-level frontend tests** (`SingleValidation.tsx`, `BatchValidation.tsx`) — ⏳ REMAINING (large). Heavy API/RDKit/router mocking; pairs with 4.1.
-- **4.5 E2E suite (Playwright)** — ⏳ REMAINING (blocked on environment). Requires the full stack running (backend + frontend + Redis + Postgres + Celery). Cannot be authored/verified without a live stack; do in an environment where the stack is up.
+- **4.1 Split `SingleValidation.tsx`** (3,115 lines) — ⏳ IN PROGRESS (incremental). The safety nets are now in place — page render tests (4.4) **and** a live E2E that exercises the validation flow (4.5) — so tab panels can be extracted into `components/validation/` one at a time, each verified by the full vitest + E2E suites. Pure reorganization (no behaviour change); continue incrementally.
+- **4.2 Split monolithic backend route files** — ✅ DONE. `scoring.py` 893→392 (17 builders → `services/scoring/score_builders.py`); `qsar_ready.py` 707→520 (export/summary builders → `services/qsar_ready/builders.py`); `batch.py` 1,090→824 (subset endpoints → `routes/batch_subset.py`, shared `services/batch/parsing.py`). Verified against the full 2,341-test real-service suite.
+- **4.3 Replace `window.prompt`/`window.confirm`** — ✅ DONE. Accessible, testable `ConfirmModal` + `PromptModal` wired into all three components.
+- **4.4 Page-level frontend tests** — ✅ DONE. Render/characterization tests for `SingleValidation` and `BatchValidation` in the real provider tree.
+- **4.5 E2E suite (Playwright)** — ✅ DONE. `frontend/playwright.config.ts` orchestrates backend (:8001) + frontend (:3002); `e2e/single-validation.spec.ts` drives a real browser through the full validate round-trip. Passes against the live stack (Redis + Postgres containers).
+
+## Environment note (this session)
+
+The full backend suite was validated against a **real stack**: Redis + Postgres started as Docker containers (`chemaudit-redis-test`, `chemaudit-pg-test`), and the missing-in-this-env Python deps were installed into the `cheminformatics` conda env (`asyncpg`, `psycopg[binary]`, `fakeredis`, `aiosqlite`, `pytest-cov`, `coverage`, `xlsxwriter`, `openpyxl`, `openTSNE`, plus `@playwright/test` + chromium for the frontend). Result: **2,341 backend tests pass, 0 failures** (was 15 env-only failures before the stack was up), **202 frontend tests**, **1 E2E** — all green.
 
 ---
 
