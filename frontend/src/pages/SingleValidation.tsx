@@ -33,6 +33,7 @@ import {
 import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ExampleMolecules } from '../components/validation/ExampleMolecules';
+import { ErrorPanel, LoadingPanel } from '../components/validation/StatusPanels';
 import { IssueCard } from '../components/validation/IssueCard';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
@@ -43,7 +44,6 @@ import { DeepValidationTab } from '../components/validation/DeepValidationTab';
 import { ScoringProfilesTab } from '../components/scoring-profiles';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
-import { MoleculeLoader } from '../components/ui/MoleculeLoader';
 import { CopyButton } from '../components/ui/CopyButton';
 import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
 import { TabBar, type TabBarTab, type TabBarResultState } from '../components/ui/TabBar';
@@ -2280,68 +2280,22 @@ export function SingleValidationPage() {
           </AnimatePresence>
 
           {/* Loading State */}
-          <AnimatePresence>
-            {isAnyLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="card-glass p-6"
-              >
-                <MoleculeLoader
-                  size="md"
-                  text={getLoadingText()}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <LoadingPanel show={isAnyLoading} text={getLoadingText()} />
 
           {/* Error State */}
-          <AnimatePresence>
-            {hasError && !isAnyLoading && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="card p-5 border-red-500/30"
-                role="alert"
-                aria-live="polite"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {renderErrorDetail()}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <ClayButton
-                        variant="primary"
-                        size="sm"
-                        onClick={handleValidate}
-                        disabled={!molecule.trim()}
-                        leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                      >
-                        Try again
-                      </ClayButton>
-                      <ClayButton
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          reset();
-                          setAlertError(null);
-                          setScoringError(null);
-                          setStandardizationError(null);
-                          setDatabaseError(null);
-                        }}
-                      >
-                        Dismiss
-                      </ClayButton>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <ErrorPanel
+            show={Boolean(hasError) && !isAnyLoading}
+            detail={renderErrorDetail()}
+            onRetry={handleValidate}
+            retryDisabled={!molecule.trim()}
+            onDismiss={() => {
+              reset();
+              setAlertError(null);
+              setScoringError(null);
+              setStandardizationError(null);
+              setDatabaseError(null);
+            }}
+          />
         </motion.div>
 
         {/* RIGHT COLUMN */}
