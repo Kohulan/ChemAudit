@@ -24,10 +24,7 @@ def eager_chord(monkeypatch):
     monkeypatch.setattr(progress_tracker, "_redis", fakeredis.FakeRedis())
     monkeypatch.setattr(result_storage, "_redis", fakeredis.FakeRedis())
 
-    async def _noop_audit(**kwargs):
-        return None
-
-    monkeypatch.setattr(tasks, "_log_batch_audit", _noop_audit)
+    monkeypatch.setattr(tasks, "_log_batch_audit", lambda **kwargs: None)
     monkeypatch.setattr(tasks, "_init_analytics_and_dispatch", lambda job_id: None)
     yield
     conf.task_always_eager, conf.task_eager_propagates = prev

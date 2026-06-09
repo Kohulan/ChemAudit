@@ -9,10 +9,20 @@ import logging
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.db.models.audit import ValidationAuditEntry
 
 logger = logging.getLogger(__name__)
+
+
+def _batch_outcome(molecule_count: int, fail_count: int) -> str:
+    """Derive a batch audit outcome from pass/fail counts."""
+    if fail_count == 0:
+        return "pass"
+    if fail_count < molecule_count / 2:
+        return "warn"
+    return "fail"
 
 
 async def log_validation_event(
@@ -94,18 +104,11 @@ async def log_batch_event(
     Returns:
         Created audit entry
     """
-    if fail_count == 0:
-        outcome = "pass"
-    elif fail_count < molecule_count / 2:
-        outcome = "warn"
-    else:
-        outcome = "fail"
-
     return await log_validation_event(
         db=db,
         smiles="",
         inchikey=None,
-        outcome=outcome,
+        outcome=_batch_outcome(molecule_count, fail_count),
         score=None,
         source="batch",
         job_id=job_id,
@@ -115,3 +118,36 @@ async def log_batch_event(
         api_key_hash=api_key_hash,
         session_id=session_id,
     )
+
+
+def log_batch_event_sync(
+    db: Session,
+    job_id: str,
+    molecule_count: int,
+    pass_count: int,
+    fail_count: int,
+    api_key_hash: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> ValidationAuditEntry:
+    """Synchronous batch-completion audit write for the Celery task context.
+
+    Mirrors :func:`log_batch_event` but uses a synchronous Session so Celery
+    workers never have to bridge async code with asyncio.run().
+    """
+    entry = ValidationAuditEntry(
+        smiles="",
+        inchikey=None,
+        outcome=_batch_outcome(molecule_count, fail_count),
+        score=None,
+        source="batch",
+        job_id=job_id,
+        molecule_count=molecule_count,
+        pass_count=pass_count,
+        fail_count=fail_count,
+        api_key_hash=api_key_hash,
+        session_id=session_id,
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry

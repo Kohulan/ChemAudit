@@ -24,40 +24,34 @@ def purge_expired_sessions():
 
     Only affects rows where session_id IS NOT NULL (anonymous browser sessions).
     API-key-scoped rows (api_key_hash IS NOT NULL) are preserved.
+
+    Runs synchronously against the sync engine — Celery tasks have no event loop
+    under the default prefork pool, so no asyncio bridging is needed.
     """
-    import asyncio
-
-    asyncio.run(_purge_expired_sessions())
-
-
-async def _purge_expired_sessions():
-    """Async implementation of the purge logic."""
-    from app.db import async_session
+    from app.db import sync_session
 
     cutoff = datetime.utcnow() - timedelta(seconds=SESSION_MAX_AGE)
 
-    async with async_session() as db:
+    with sync_session() as db:
         # Delete expired bookmarks (session-scoped only)
-        bm_result = await db.execute(
+        bm_count = db.execute(
             delete(Bookmark).where(
                 Bookmark.session_id.isnot(None),
                 Bookmark.api_key_hash.is_(None),
                 Bookmark.created_at < cutoff,
             )
-        )
-        bm_count = bm_result.rowcount
+        ).rowcount
 
         # Delete expired audit entries (session-scoped only)
-        audit_result = await db.execute(
+        audit_count = db.execute(
             delete(ValidationAuditEntry).where(
                 ValidationAuditEntry.session_id.isnot(None),
                 ValidationAuditEntry.api_key_hash.is_(None),
                 ValidationAuditEntry.created_at < cutoff,
             )
-        )
-        audit_count = audit_result.rowcount
+        ).rowcount
 
-        await db.commit()
+        db.commit()
 
     logger.info(
         "Session purge complete: %d bookmarks, %d audit entries removed (cutoff: %s)",

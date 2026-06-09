@@ -6,7 +6,6 @@ Uses chord pattern: process_molecule_chunk tasks -> aggregate_batch_results.
 Supports priority queues for concurrent job handling.
 """
 
-import asyncio
 import logging
 import time
 from dataclasses import asdict
@@ -525,7 +524,7 @@ def _process_single_molecule(
     return result
 
 
-async def _log_batch_audit(
+def _log_batch_audit(
     job_id: str,
     molecule_count: int,
     pass_count: int,
@@ -534,10 +533,12 @@ async def _log_batch_audit(
     api_key_hash: Optional[str] = None,
 ) -> None:
     """
-    Create a DB session and log a batch completion event to the audit trail.
+    Log a batch completion event to the audit trail using a synchronous DB
+    session.
 
-    This async helper is called via asyncio.run() from Celery tasks, which run
-    in their own process with no existing event loop.
+    Celery tasks run in a synchronous context, so this uses the sync engine
+    directly rather than bridging async code with asyncio.run() (which is
+    fragile under non-prefork worker pools).
 
     Args:
         job_id: Batch job identifier
@@ -547,11 +548,11 @@ async def _log_batch_audit(
         session_id: Session ID for anonymous user tracking
         api_key_hash: Hashed API key if present
     """
-    from app.db import async_session
-    from app.services.audit.service import log_batch_event
+    from app.db import sync_session
+    from app.services.audit.service import log_batch_event_sync
 
-    async with async_session() as db:
-        await log_batch_event(
+    with sync_session() as db:
+        log_batch_event_sync(
             db=db,
             job_id=job_id,
             molecule_count=molecule_count,
@@ -590,13 +591,11 @@ def _finalize_batch(
     progress_tracker.mark_complete(job_id)
 
     try:
-        asyncio.run(
-            _log_batch_audit(
-                job_id=job_id,
-                molecule_count=total,
-                pass_count=pass_count,
-                fail_count=fail_count,
-            )
+        _log_batch_audit(
+            job_id=job_id,
+            molecule_count=total,
+            pass_count=pass_count,
+            fail_count=fail_count,
         )
     except Exception as e:
         logger.warning("Failed to log batch audit event for %s: %s", job_id, e)
