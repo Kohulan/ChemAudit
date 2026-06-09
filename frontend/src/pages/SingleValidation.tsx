@@ -12,8 +12,6 @@ import {
   Play,
   Search,
   Layers,
-  Target,
-  Zap,
   CheckCircle2,
   Info,
   Share2,
@@ -34,10 +32,10 @@ import { StructureInput } from '../components/molecules/StructureInput';
 import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ExampleMolecules } from '../components/validation/ExampleMolecules';
 import { ErrorPanel, LoadingPanel } from '../components/validation/StatusPanels';
+import { ScoreTiles } from '../components/validation/ScoreTiles';
 import { IssueCard } from '../components/validation/IssueCard';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
-import { ScoreChart } from '../components/scoring/ScoreChart';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
 import { DeepValidationTab } from '../components/validation/DeepValidationTab';
@@ -52,7 +50,7 @@ import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
 import { useRecentMolecules } from '../hooks/useRecentMolecules';
 import { alertsApi, scoringApi, standardizationApi, integrationsApi } from '../services/api';
 import { BookmarkButton } from '../components/bookmarks/BookmarkButton';
-import { cn, getScoreLabel } from '../lib/utils';
+import { cn } from '../lib/utils';
 import { saveSnapshot, getSnapshot } from '../lib/bookmarkStore';
 import { logger } from '../lib/logger';
 import type { AlertScreenResponse, AlertError } from '../types/alerts';
@@ -174,43 +172,6 @@ const PARSE_ERROR_HINTS: Record<ParseErrorType, string> = {
 };
 
 /** Compact severity summary tags for the quality card */
-function IssueSeverityTags({ issues, totalChecks }: { issues: { severity: string }[]; totalChecks: number }) {
-  const counts = { critical: 0, error: 0, warning: 0 };
-  for (const issue of issues) {
-    const sev = issue.severity as keyof typeof counts;
-    if (sev in counts) counts[sev]++;
-  }
-  const passed = totalChecks - issues.length;
-
-  const TAG_STYLES: Record<string, string> = {
-    critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
-    error: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  };
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-      {totalChecks > 0 && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]">
-          {passed}/{totalChecks} passed
-        </span>
-      )}
-      {Object.entries(counts).map(([severity, count]) =>
-        count > 0 ? (
-          <span key={severity} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${TAG_STYLES[severity]}`}>
-            {count} {severity}
-          </span>
-        ) : null
-      )}
-      {issues.length === 0 && totalChecks > 0 && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(251,191,36,0.18)] text-[#b45309] dark:text-[#fcd34d] font-medium">
-          All clear
-        </span>
-      )}
-    </div>
-  );
-}
-
 // Tabs split across two rows for visual breathing room.
 // Row 1: most-frequent core actions (validate, surface safety, normalize, lookup).
 // Row 2: deeper / power-user analyses.
@@ -2494,86 +2455,14 @@ export function SingleValidationPage() {
               </AnimatePresence>
 
               {/* Score Tiles - Only show after validation/scoring (validate tab only) */}
-              <AnimatePresence>
-                {activeTab === 'validate' && hasScores && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="grid grid-cols-2 gap-4"
-                  >
-                    {/* Quality Score */}
-                    <div className="card-gradient p-4 sm:p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <span className="text-xs font-medium text-[var(--color-text-secondary)]">Quality</span>
-                        </div>
-                        {qualityScore !== null && (
-                          <Badge variant={qualityScore >= 70 ? 'success' : qualityScore >= 40 ? 'warning' : 'error'} size="sm">
-                            {getScoreLabel(qualityScore)}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex justify-center">
-                        {qualityScore !== null ? (
-                          <ScoreChart
-                            score={qualityScore}
-                            label="Validation Quality"
-                            size={100}
-                            compact
-                            variant="cool"
-                          />
-                        ) : (
-                          <div className="w-[100px] h-[100px] flex items-center justify-center">
-                            <span className="text-3xl font-bold text-[var(--color-text-muted)]">--</span>
-                          </div>
-                        )}
-                      </div>
-                      {/* Issue severity tags */}
-                      {result && (
-                        <IssueSeverityTags
-                          issues={result.issues || []}
-                          totalChecks={result.all_checks?.length || 0}
-                        />
-                      )}
-                    </div>
-
-                    {/* ML Readiness */}
-                    <div className="card-accent p-4 sm:p-5 flex flex-col">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-accent)]">
-                            <Zap className="w-4 h-4" />
-                          </div>
-                          <span className="text-xs font-medium text-[var(--color-text-secondary)]">ML Ready</span>
-                        </div>
-                        {mlReady !== null && (
-                          <Badge variant={mlReady ? 'success' : 'warning'} dot size="sm">
-                            {mlReady ? 'Ready' : 'Review'}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex-1 flex items-center justify-center">
-                        {mlReadyScore !== undefined ? (
-                          <ScoreChart
-                            score={mlReadyScore}
-                            label="ML-Readiness"
-                            size={100}
-                            compact
-                          />
-                        ) : (
-                          <div className="w-[100px] h-[100px] flex items-center justify-center">
-                            <span className="text-3xl font-bold text-[var(--color-text-muted)]">--</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <ScoreTiles
+                show={activeTab === 'validate' && Boolean(hasScores)}
+                qualityScore={qualityScore}
+                mlReadyScore={mlReadyScore}
+                mlReady={mlReady}
+                issues={result ? result.issues || [] : null}
+                totalChecks={result?.all_checks?.length || 0}
+              />
 
               {/* Other results panels */}
               <AnimatePresence>
