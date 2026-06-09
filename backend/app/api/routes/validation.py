@@ -5,6 +5,7 @@ Endpoints for single molecule validation with Redis caching support.
 Supports both synchronous and async (Celery priority queue) validation.
 """
 
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -303,8 +304,10 @@ async def validate_molecule_async(
     task = validate_single_molecule.delay(canonical_smiles, body.checks)
 
     try:
-        # Wait for result with timeout
-        result = task.get(timeout=timeout)
+        # Wait for result with timeout. task.get() is blocking, so run it in a
+        # thread to keep the event loop free to serve other requests.
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, lambda: task.get(timeout=timeout))
 
         # Extract molecule info from the parsed molecule
         mol_info = extract_molecule_info(
