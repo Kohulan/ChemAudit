@@ -235,21 +235,27 @@ class ResultStorage:
             statistics: Computed statistics
         """
         r = self._get_redis()
+        key = f"batch:results:{job_id}"
 
-        # Store results as a JSON list (for smaller batches, this is fine)
-        # For very large batches (10K+), consider chunked storage
-        r.set(
-            f"batch:results:{job_id}",
-            json.dumps(results),
-            ex=self.RESULT_EXPIRY,
-        )
-
+        # Store results as a Redis LIST — one JSON-encoded result per element —
+        # so the default paginated view can be served with an LRANGE range query
+        # instead of deserializing the entire dataset (which reaches 50-200 MB
+        # for 10K-molecule batches). Pushed in batches to bound peak memory.
+        pipe = r.pipeline()
+        pipe.delete(key)  # idempotent re-store; also clears any legacy blob
+        write_batch = 1000
+        for i in range(0, len(results), write_batch):
+            chunk = results[i : i + write_batch]
+            if chunk:
+                pipe.rpush(key, *[json.dumps(res) for res in chunk])
+        pipe.expire(key, self.RESULT_EXPIRY)
         # Store statistics separately
-        r.set(
+        pipe.set(
             f"batch:stats:{job_id}",
             json.dumps(asdict(statistics)),
             ex=self.RESULT_EXPIRY,
         )
+        pipe.execute()
 
     # Valid sort fields mapping to value extractors
     SORT_EXTRACTORS = {
@@ -323,6 +329,7 @@ class ResultStorage:
             Dictionary with results, pagination info, and statistics
         """
         r = self._get_redis()
+        key = f"batch:results:{job_id}"
 
         empty = {
             "results": [],
@@ -332,7 +339,40 @@ class ResultStorage:
             "total_pages": 0,
         }
 
-        # Check view cache first
+        ktype = r.type(key)
+        if isinstance(ktype, bytes):
+            ktype = ktype.decode()
+        if ktype == "none":
+            return empty
+
+        no_filter_or_sort = (
+            status_filter is None
+            and min_score is None
+            and max_score is None
+            and issue_filter is None
+            and alert_filter is None
+            and not sort_by
+        )
+
+        # Fast path: default (unfiltered, unsorted) view over the chunked list —
+        # fetch only this page with LRANGE; never deserialize the whole dataset.
+        if no_filter_or_sort and ktype == "list":
+            total_results = r.llen(key)
+            total_pages = (
+                (total_results + page_size - 1) // page_size if total_results > 0 else 0
+            )
+            start_idx = (page - 1) * page_size
+            raw_page = r.lrange(key, start_idx, start_idx + page_size - 1)
+            return {
+                "results": [json.loads(x) for x in raw_page],
+                "page": page,
+                "page_size": page_size,
+                "total_results": total_results,
+                "total_pages": total_pages,
+            }
+
+        # Slow path: filtering/sorting (or a legacy single-blob value) requires
+        # the full set. Use the view cache so repeated paging doesn't re-work it.
         view_key = self._view_cache_key(
             job_id, status_filter, min_score, max_score, sort_by, sort_dir,
             issue_filter, alert_filter,
@@ -342,12 +382,11 @@ class ResultStorage:
         if cached_view:
             filtered = json.loads(cached_view)
         else:
-            # Cache miss — load raw results, filter, sort, then cache
-            results_data = r.get(f"batch:results:{job_id}")
-            if not results_data:
+            # Cache miss — load all results, filter, sort, then cache
+            results = self._load_all(r, job_id)
+            if not results:
                 return empty
 
-            results = json.loads(results_data)
             filtered = self._apply_filters(
                 results, status_filter, min_score, max_score, issue_filter, alert_filter
             )
@@ -392,10 +431,25 @@ class ResultStorage:
         Returns empty list if results have expired or don't exist.
         """
         r = self._get_redis()
-        data = r.get(f"batch:results:{job_id}")
-        if not data:
-            return []
-        return json.loads(data)
+        return self._load_all(r, job_id)
+
+    def _load_all(self, r: "redis.Redis", job_id: str) -> List[Dict[str, Any]]:
+        """Load all results for a job.
+
+        Supports the chunked list format (one JSON result per element) and the
+        legacy single-JSON-blob format (for results written before the
+        migration). Returns [] when no results exist.
+        """
+        key = f"batch:results:{job_id}"
+        ktype = r.type(key)
+        if isinstance(ktype, bytes):
+            ktype = ktype.decode()
+        if ktype == "list":
+            return [json.loads(x) for x in r.lrange(key, 0, -1)]
+        if ktype == "string":  # legacy single-blob format
+            data = r.get(key)
+            return json.loads(data) if data else []
+        return []
 
     def _apply_filters(
         self,
