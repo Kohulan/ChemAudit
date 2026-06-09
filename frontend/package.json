@@ -56,6 +56,7 @@
   },
   "overrides": {
     "brace-expansion": ">=1.1.13",
-    "follow-redirects": ">=1.15.12"
+    "follow-redirects": ">=1.15.12",
+    "ws": ">=8.20.1"
   }
 }
