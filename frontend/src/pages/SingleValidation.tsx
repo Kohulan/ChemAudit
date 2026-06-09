@@ -16,7 +16,6 @@ import {
   Info,
   Share2,
   ChevronDown,
-  Download,
   Microscope,
   BarChart3,
   ArrowLeft,
@@ -29,12 +28,12 @@ import {
   Shield,
 } from 'lucide-react';
 import { StructureInput } from '../components/molecules/StructureInput';
-import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ExampleMolecules } from '../components/validation/ExampleMolecules';
 import { ErrorPanel, LoadingPanel } from '../components/validation/StatusPanels';
 import { ScoreTiles } from '../components/validation/ScoreTiles';
 import { ValidationOutcomePanels } from '../components/validation/ValidationOutcomePanels';
 import { ValidationIssuesPanel } from '../components/validation/ValidationIssuesPanel';
+import { MoleculeViewerPanel } from '../components/validation/MoleculeViewerPanel';
 import { ScoringResults } from '../components/scoring/ScoringResults';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
@@ -128,12 +127,6 @@ function detectInputType(value: string): InputType {
 }
 
 /** Render a molecular formula like "C8H10N4O2" with the digits subscripted. */
-function formatMolecularFormula(formula: string) {
-  return formula.split(/(\d+)/).map((part, i) =>
-    /^\d+$/.test(part) ? <sub key={i}>{part}</sub> : <span key={i}>{part}</span>
-  );
-}
-
 /**
  * Classify a parse / processing error message into a sub-type so the user
  * gets a heading + hint specific to the actual failure mode rather than a
@@ -2294,125 +2287,18 @@ export function SingleValidationPage() {
           ) : (
             <>
               {/* Molecule Viewer */}
-              <div className="card-glow p-4 sm:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
-                    <Atom className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
-                      Structure Preview
-                    </h4>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                      {result?.molecule_info ? (
-                        <>
-                          {result.molecule_info.molecular_formula && (
-                            <span className="font-mono text-[var(--color-text-secondary)]">
-                              {formatMolecularFormula(result.molecule_info.molecular_formula)}
-                            </span>
-                          )}
-                          {result.molecule_info.molecular_formula && result.molecule_info.molecular_weight && (
-                            <span> · </span>
-                          )}
-                          {result.molecule_info.molecular_weight && (
-                            <span>MW {result.molecule_info.molecular_weight.toFixed(1)}</span>
-                          )}
-                          <span className="text-[var(--color-text-muted)]"> · rendered with RDKit.js</span>
-                        </>
-                      ) : molecule ? (
-                        'Rendered with RDKit.js'
-                      ) : (
-                        'Enter a SMILES to preview'
-                      )}
-                    </p>
-                  </div>
-                  {/* CIP Labels Toggle - Show when molecule has stereochemistry */}
-                  {moleculeInfo?.hasStereochemistry && (
-                    <button
-                      onClick={() => setShowCIP(!showCIP)}
-                      className={cn(
-                        'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
-                        'border shadow-sm',
-                        showCIP
-                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-[var(--color-primary)]/20'
-                          : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
-                      )}
-                      title="Show R/S and E/Z stereochemistry labels"
-                    >
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 6v6l4 2" />
-                      </svg>
-                      {showCIP ? 'Hide CIP' : 'Show CIP'}
-                    </button>
-                  )}
-                  {molecule && (
-                    <button
-                      onClick={handleDownloadImage}
-                      className={cn(
-                        'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all',
-                        'border shadow-sm',
-                        highlightLocked
-                          ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30 hover:bg-orange-500/20'
-                          : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
-                      )}
-                      title={highlightLocked ? "Download SVG with highlighted atoms" : "Download structure as SVG"}
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      {highlightLocked ? 'SVG + Highlights' : 'SVG'}
-                    </button>
-                  )}
-                </div>
-                <div ref={previewRef} className="molecule-preview rounded-xl">
-                  <MoleculeViewer
-                    smiles={canonicalSmiles || molecule}
-                    highlightAtoms={highlightedAtoms}
-                    width={700}
-                    height={500}
-                    showCIP={showCIP}
-                  />
-                </div>
-                {highlightedAtoms.length > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={cn(
-                      'mt-3 text-xs text-center font-medium inline-flex items-center justify-center gap-1.5 w-full',
-                      highlightLocked ? 'text-orange-500' : 'text-amber-500'
-                    )}
-                  >
-                    {highlightLocked && <Lock className="w-3 h-3" />}
-                    <span>
-                      Highlighting atoms: {highlightedAtoms.join(', ')}
-                      {highlightLocked && ' (locked for download)'}
-                    </span>
-                  </motion.p>
-                )}
-                {/* Stereochemistry info indicator */}
-                {moleculeInfo?.hasStereochemistry && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-3 flex items-center justify-center gap-2"
-                  >
-                    <div className="flex items-center gap-1.5 text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded-lg">
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                      </svg>
-                      <span>
-                        {moleculeInfo.numStereocenters > 0 && `${moleculeInfo.numStereocenters} stereocenter${moleculeInfo.numStereocenters > 1 ? 's' : ''}`}
-                        {moleculeInfo.numStereocenters > 0 && moleculeInfo.hasEZStereo && ' + '}
-                        {moleculeInfo.hasEZStereo && 'E/Z bonds'}
-                      </span>
-                    </div>
-                    {showCIP && (
-                      <span className="text-xs text-[var(--color-text-muted)]">
-                        (CIP labels shown)
-                      </span>
-                    )}
-                  </motion.div>
-                )}
-              </div>
+              <MoleculeViewerPanel
+                previewRef={previewRef}
+                molecule={molecule}
+                canonicalSmiles={canonicalSmiles}
+                summary={result?.molecule_info ?? null}
+                stereo={moleculeInfo ?? null}
+                highlightedAtoms={highlightedAtoms}
+                highlightLocked={highlightLocked}
+                showCIP={showCIP}
+                onToggleCIP={() => setShowCIP(!showCIP)}
+                onDownload={handleDownloadImage}
+              />
 
               {/* Validation Issues - Show right after molecule viewer (validate tab only) */}
               <ValidationIssuesPanel
