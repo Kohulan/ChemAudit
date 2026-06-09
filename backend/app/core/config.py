@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     API_KEY_DEFAULT_EXPIRY_DAYS: int = 90
     API_KEY_MAX_EXPIRY_DAYS: int = 365
 
+    # When False, insecure default secrets are rejected even in DEBUG mode.
+    # Leave True for local dev; set False in any shared/staging environment.
+    ALLOW_INSECURE_DEFAULTS: bool = True
+
     # ==========================================================================
     # CORS Settings
     # ==========================================================================
@@ -152,24 +156,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check_insecure_defaults(self) -> "Settings":
-        """Reject insecure default secrets when DEBUG is False."""
+        """Reject insecure default secrets in production or when explicitly disallowed."""
         secret_fields = ("SECRET_KEY", "API_KEY_ADMIN_SECRET", "CSRF_SECRET_KEY")
-        insecure_count = 0
-        for field_name in secret_fields:
-            value = getattr(self, field_name)
-            if value in _INSECURE_DEFAULTS:
-                if not self.DEBUG:
-                    raise ValueError(
-                        f"{field_name} still has an insecure default value. "
-                        f"Set a strong secret via environment variable before "
-                        f"running in production (DEBUG=False)."
-                    )
-                insecure_count += 1
-        if insecure_count:
-            _config_logger.warning(
-                "%d security setting(s) use insecure defaults. "
-                "Acceptable for local development only.",
-                insecure_count,
+        insecure = [f for f in secret_fields if getattr(self, f) in _INSECURE_DEFAULTS]
+        if insecure:
+            must_block = (not self.DEBUG) or (not self.ALLOW_INSECURE_DEFAULTS)
+            if must_block:
+                raise ValueError(
+                    f"Insecure default value(s) for {', '.join(insecure)}. "
+                    f"Set strong secrets via environment variables before running "
+                    f"outside local development."
+                )
+            _config_logger.error(
+                "%d security setting(s) use INSECURE DEFAULTS (%s). "
+                "Acceptable ONLY for local development; set ALLOW_INSECURE_DEFAULTS=False "
+                "in any shared environment.",
+                len(insecure),
+                ", ".join(insecure),
             )
         return self
 
