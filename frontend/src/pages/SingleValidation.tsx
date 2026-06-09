@@ -33,8 +33,8 @@ import { MoleculeViewer } from '../components/molecules/MoleculeViewer';
 import { ExampleMolecules } from '../components/validation/ExampleMolecules';
 import { ErrorPanel, LoadingPanel } from '../components/validation/StatusPanels';
 import { ScoreTiles } from '../components/validation/ScoreTiles';
+import { ValidationOutcomePanels } from '../components/validation/ValidationOutcomePanels';
 import { IssueCard } from '../components/validation/IssueCard';
-import { AlertCard } from '../components/alerts/AlertCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
@@ -1098,7 +1098,6 @@ export function SingleValidationPage() {
 
   // Current issues to display based on active tab/operation
   const validationIssues = result?.issues || [];
-  const alertIssues = alertResult?.alerts || [];
 
   const handleDownloadImage = useCallback(() => {
     const svgEl = previewRef.current?.querySelector('svg');
@@ -2464,80 +2463,13 @@ export function SingleValidationPage() {
                 totalChecks={result?.all_checks?.length || 0}
               />
 
-              {/* Other results panels */}
-              <AnimatePresence>
-
-                {/* Validation Success - no issues (validate tab only) */}
-                {activeTab === 'validate' && result && validationIssues.length === 0 && (
-                  <motion.div
-                    key="validation-success"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="rounded-xl p-5 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]"
-                  >
-                    <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
-                    <h3 className="text-lg font-semibold text-[#b45309] dark:text-[#fcd34d] mb-1 font-display">
-                      All Clear
-                    </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                      All validation checks passed
-                    </p>
-                    <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-                      Completed in {result.execution_time_ms.toFixed(0)}ms
-                    </p>
-                  </motion.div>
-                )}
-
-
-                {/* Alert Screening Results */}
-                {alertResult && (
-                  <motion.div
-                    key="alert-results"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="card p-5 sm:p-6"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="font-semibold text-[var(--color-text-primary)] text-sm">
-                          Structural Alerts
-                        </h4>
-                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                          Screened: {alertResult.screened_catalogs.join(', ')}
-                        </p>
-                      </div>
-                      <Badge variant={alertIssues.length === 0 ? 'success' : 'warning'}>
-                        {alertIssues.length} alerts
-                      </Badge>
-                    </div>
-
-                    {alertIssues.length > 0 ? (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                        {alertIssues.map((alert, index) => (
-                          <AlertCard
-                            key={`${alert.pattern_name}-${index}`}
-                            alert={alert}
-                            onAtomHover={setHighlightedAtoms}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl p-4 text-center bg-[rgba(251,191,36,0.18)] border border-[rgba(251,191,36,0.35)]">
-                        <CheckCircle2 className="w-7 h-7 mx-auto mb-1 text-[#d97706] dark:text-[#fbbf24]" strokeWidth={2.25} />
-                        <p className="text-sm font-medium text-[#b45309] dark:text-[#fcd34d]">
-                          No structural alerts detected
-                        </p>
-                      </div>
-                    )}
-
-                    <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
-                      Completed in {alertResult.execution_time_ms}ms
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Validation outcome panels (All Clear + structural alerts) */}
+              <ValidationOutcomePanels
+                showSuccess={activeTab === 'validate' && Boolean(result) && validationIssues.length === 0}
+                successExecutionMs={result?.execution_time_ms || 0}
+                alertResult={alertResult}
+                onAtomHover={setHighlightedAtoms}
+              />
 
               {/* All Checks — COLLAPSED ANCHOR (right column).
                   Empty placeholder that reserves layout space where the
