@@ -5,7 +5,10 @@ Clusters molecules using the Butina sphere-exclusion algorithm with configurable
 Tanimoto distance cutoff. Uses Morgan fingerprints (radius=2, 2048 bits) via the
 non-deprecated rdFingerprintGenerator API.
 
-Hard-capped at 1,000 molecules (Phase 13 decision D-03).
+Capped at 1,000 molecules by default (Phase 13 decision D-03). The cap is
+deployment-profile aware — overridable via ``settings.CLUSTERING_MAX_MOLECULES``
+(env ``CLUSTERING_MAX_MOLECULES`` / ``config/*.yml``) or the ``max_molecules``
+argument — because the pairwise distance computation is O(n^2).
 """
 
 from __future__ import annotations
@@ -17,10 +20,23 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
 from rdkit.ML.Cluster import Butina
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
-# Hard cap to prevent combinatorial explosion in distance matrix computation
+# Default hard cap to prevent combinatorial explosion in the O(n^2) distance
+# computation. The effective cap is resolved per-call (see _resolve_cap) so it
+# can be raised/lowered per deployment profile without a code change.
 MAX_MOLECULES = 1000
+
+
+def _resolve_cap(max_molecules: int | None) -> int:
+    """Resolve the effective molecule cap: explicit arg > configured setting > default."""
+    if max_molecules is not None and max_molecules > 0:
+        return max_molecules
+    configured = getattr(settings, "CLUSTERING_MAX_MOLECULES", MAX_MOLECULES)
+    return configured if isinstance(configured, int) and configured > 0 else MAX_MOLECULES
+
 
 # Morgan fingerprint generator (module-level singleton for reuse)
 _MORGAN_GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
@@ -29,6 +45,7 @@ _MORGAN_GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
 def compute_butina_clustering(
     results: list[dict[str, Any]],
     distance_cutoff: float = 0.35,
+    max_molecules: int | None = None,
 ) -> dict:
     """
     Cluster molecules using Butina sphere-exclusion algorithm.
@@ -42,6 +59,9 @@ def compute_butina_clustering(
             Lower values (e.g. 0.2) produce fewer, larger clusters.
             Higher values (e.g. 0.6) produce more, smaller clusters.
             Default 0.35.
+        max_molecules: Optional override for the molecule cap. When None, the
+            cap comes from ``settings.CLUSTERING_MAX_MOLECULES`` (deployment
+            profile), falling back to the ``MAX_MOLECULES`` default.
 
     Returns:
         Dict with keys:
@@ -53,11 +73,13 @@ def compute_butina_clustering(
         - ``largest_cluster_size``: size of largest cluster
         - ``distance_cutoff``: the cutoff used
     """
+    cap = _resolve_cap(max_molecules)
+
     # Step 1: Extract valid molecules and build index mapping
     valid_mols: list[Chem.Mol] = []
     valid_indices: list[int] = []  # valid_indices[i] = original batch index
 
-    for result in results[:MAX_MOLECULES]:
+    for result in results[:cap]:
         smiles = result.get("smiles", "")
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
@@ -69,7 +91,7 @@ def compute_butina_clustering(
 
     # Build index -> SMILES lookup for the response
     index_to_smiles: dict[int, str] = {}
-    for result in results[:MAX_MOLECULES]:
+    for result in results[:cap]:
         idx = result.get("index", 0)
         smiles = result.get("smiles", "")
         std_smiles = None

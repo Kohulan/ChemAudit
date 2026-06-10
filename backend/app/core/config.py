@@ -116,6 +116,12 @@ class Settings(BaseSettings):
     MAX_BATCH_SIZE: int = 10000
     MAX_FILE_SIZE_MB: int = 500
 
+    # Analytics limits
+    # Hard cap on molecules fed to Butina clustering — the pairwise distance
+    # computation is O(n^2), so this bounds compute/memory. Deployment-profile
+    # aware (see config/*.yml); overridable via the CLUSTERING_MAX_MOLECULES env var.
+    CLUSTERING_MAX_MOLECULES: int = 1000
+
     # Deployment profile
     DEPLOYMENT_PROFILE: str = "medium"
 

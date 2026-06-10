@@ -49,6 +49,7 @@ services:
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       # Security settings
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
@@ -87,6 +88,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       # Security settings (required — Celery imports app.core.config)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -118,6 +120,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       # Security settings (required — Celery imports app.core.config)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -150,6 +153,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       # Security settings (required — Celery imports app.core.config)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
