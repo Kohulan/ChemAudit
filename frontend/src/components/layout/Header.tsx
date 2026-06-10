@@ -459,7 +459,7 @@ export function Header() {
               whileHover={{ scale: 1.08, rotate: -3 }}
               whileTap={{ scale: 0.93 }}
             >
-              <img src="/logo.png" alt="ChemAudit" className="w-full h-full object-contain" />
+              <img src="/logo-192.png" alt="ChemAudit" className="w-full h-full object-contain" />
             </motion.div>
             <motion.div
               className="hidden sm:block"

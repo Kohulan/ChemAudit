@@ -347,7 +347,7 @@ function HeroSection() {
           }}
         />
         <div className="relative w-28 h-28 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20">
-          <img src="/logo.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
+          <img src="/logo-512.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
         </div>
       </motion.div>
 
