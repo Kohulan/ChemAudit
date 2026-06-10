@@ -1472,7 +1472,7 @@ function ScientificReferences() {
     {
       title: 'Bioavailability & Permeation',
       icon: <Activity className="w-4 h-4" />,
-      color: 'from-indigo-500/20 to-blue-500/10',
+      color: 'from-chem-primary-600/15 to-chem-accent-600/10',
       references: [
         {
           method: 'SwissADME / Bioavailability Radar',

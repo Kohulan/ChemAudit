@@ -94,7 +94,7 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
             className={cn(
               'w-5 h-5',
               isDark
-                ? 'text-indigo-300 drop-shadow-[0_0_8px_rgba(165,180,252,0.6)]'
+                ? 'text-chem-primary-300 drop-shadow-[0_0_8px_rgba(252,165,165,0.6)]'
                 : 'text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]'
             )}
           />
@@ -141,7 +141,7 @@ function ThemeDropdown({ className }: { className?: string }) {
                 'relative p-2.5 rounded-xl transition-colors duration-200',
                 isActive
                   ? isDark
-                    ? 'text-indigo-300'
+                    ? 'text-chem-primary-300'
                     : 'text-amber-600'
                   : isDark
                     ? 'text-slate-500 hover:text-slate-300'

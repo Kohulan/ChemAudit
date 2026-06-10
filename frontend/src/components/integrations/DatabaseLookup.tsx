@@ -84,7 +84,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
 
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
           <span className="ml-3 text-[var(--color-text-secondary)]">Querying databases...</span>
         </div>
       )}

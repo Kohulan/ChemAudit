@@ -68,9 +68,9 @@ export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) 
   }
 
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+    <div className="bg-[var(--color-surface-sunken)] border border-[var(--color-border)] rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
-        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">
+        <span className="px-2 py-0.5 bg-chem-primary-100 text-chem-primary-800 dark:bg-chem-primary-900/30 dark:text-chem-primary-300 text-xs font-medium rounded-full">
           {TYPE_LABELS[result.identifier_type_detected] || result.identifier_type_detected}
         </span>
         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${CONFIDENCE_COLORS[result.confidence] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]'}`}>

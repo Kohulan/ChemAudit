@@ -519,7 +519,7 @@ export function BatchResultsTable({
                           content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} — Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
                           position="bottom"
                         >
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400">
                             {result.scoring.druglikeness.qed_score.toFixed(2)}
                           </span>
                         </Tooltip>
@@ -843,7 +843,7 @@ export function BatchResultsTable({
                                         {result.scoring.druglikeness && (
                                           <div className="rounded-lg bg-gradient-to-br from-chem-secondary-600/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">QED</p>
-                                            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
+                                            <p className="text-xl font-bold text-chem-secondary-600 dark:text-chem-secondary-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
                                             <p className={cn("text-xs font-medium", result.scoring.druglikeness.lipinski_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                                               Lipinski: {result.scoring.druglikeness.lipinski_passed ? 'Pass' : 'Fail'}
                                             </p>

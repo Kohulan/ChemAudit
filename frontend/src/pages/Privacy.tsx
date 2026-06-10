@@ -184,8 +184,8 @@ export function PrivacyPage() {
             {/* Browser Local Storage */}
             <div className="bg-[var(--color-surface-sunken)] rounded-xl p-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <HardDrive className="w-5 h-5 text-purple-500" />
+                <div className="w-10 h-10 rounded-lg bg-chem-secondary-500/10 flex items-center justify-center">
+                  <HardDrive className="w-5 h-5 text-chem-secondary-500" />
                 </div>
                 <div>
                   <h3 className="font-medium text-[var(--color-text-primary)]">Browser Local Storage</h3>

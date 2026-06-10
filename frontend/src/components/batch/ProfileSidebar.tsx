@@ -36,7 +36,7 @@ const PROFILE_ICONS = [FlaskConical, Dna, Pill, Microscope, Atom, TestTube, Beak
 
 const ACCENT = [
   { bg: 'bg-rose-500/12', text: 'text-rose-500', border: 'border-rose-500/20' },
-  { bg: 'bg-violet-500/12', text: 'text-violet-500', border: 'border-violet-500/20' },
+  { bg: 'bg-chem-secondary-500/12', text: 'text-chem-secondary-500', border: 'border-chem-secondary-500/20' },
   { bg: 'bg-emerald-500/12', text: 'text-emerald-500', border: 'border-emerald-500/20' },
   { bg: 'bg-sky-500/12', text: 'text-sky-500', border: 'border-sky-500/20' },
   { bg: 'bg-amber-500/12', text: 'text-amber-600', border: 'border-amber-500/20' },

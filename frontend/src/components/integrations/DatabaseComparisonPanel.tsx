@@ -103,7 +103,7 @@ const DB_COLORS: Record<string, { dot: string; text: string; bg: string; border:
   Resolved: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
 };
 
-const fallbackDB = { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' };
+const fallbackDB = { dot: 'bg-chem-secondary-500', text: 'text-chem-secondary-700', bg: 'bg-chem-secondary-50', border: 'border-chem-secondary-200' };
 
 /* ── Sub-components ────────────────────────────────── */
 

@@ -12,7 +12,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
   'Reactive Group': { bg: 'bg-red-100', text: 'text-red-700' },
   'Toxicophore': { bg: 'bg-rose-100', text: 'text-rose-700' },
   'Metabolic Liability': { bg: 'bg-amber-100', text: 'text-amber-700' },
-  'Assay Interference': { bg: 'bg-purple-100', text: 'text-purple-700' },
+  'Assay Interference': { bg: 'bg-chem-secondary-100 dark:bg-chem-secondary-900/30', text: 'text-chem-secondary-700 dark:text-chem-secondary-300' },
   'Physicochemical': { bg: 'bg-slate-100', text: 'text-slate-700' },
   'Unwanted Functionality': { bg: 'bg-[var(--color-surface-sunken)]', text: 'text-[var(--color-text-secondary)]' },
 };

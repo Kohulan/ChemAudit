@@ -20,7 +20,7 @@ function getStatusColor(status: QSARReadyResult['status']): string {
     case 'duplicate':
       return '#d97706';
     case 'error':
-      return '#7c3aed';
+      return '#b45309';
     default:
       return 'var(--color-text-muted)';
   }
@@ -35,7 +35,7 @@ function getStatusBgClass(status: QSARReadyResult['status']): string {
     case 'duplicate':
       return 'bg-amber-50 text-amber-700';
     case 'error':
-      return 'bg-violet-50 text-violet-700';
+      return 'bg-chem-accent-50 dark:bg-chem-accent-900/20 text-chem-accent-700 dark:text-chem-accent-300';
     default:
       return 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]';
   }
