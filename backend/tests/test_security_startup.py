@@ -105,3 +105,28 @@ class TestSettingsSecurityValidation:
             # Restore debug mode for other tests
             os.environ["DEBUG"] = "true"
             reload(config_module)
+
+
+class TestAllowInsecureDefaultsGate:
+    """Test the ALLOW_INSECURE_DEFAULTS escape hatch for non-production envs."""
+
+    _INSECURE = {
+        "SECRET_KEY": "CHANGE_ME_IN_PRODUCTION",
+        "API_KEY_ADMIN_SECRET": "CHANGE_ME_IN_PRODUCTION",
+        "CSRF_SECRET_KEY": "CHANGE_ME_IN_PRODUCTION",
+    }
+
+    def test_insecure_defaults_blocked_when_explicitly_disallowed(self):
+        """Even in DEBUG, ALLOW_INSECURE_DEFAULTS=False must reject default secrets."""
+        from app.core.config import Settings
+
+        with pytest.raises(ValidationError, match="[Ii]nsecure default"):
+            Settings(DEBUG=True, ALLOW_INSECURE_DEFAULTS=False, **self._INSECURE)
+
+    def test_insecure_defaults_allowed_in_debug_by_default(self):
+        """Default dev behaviour is preserved: DEBUG=True still accepts defaults."""
+        from app.core.config import Settings
+
+        s = Settings(DEBUG=True, **self._INSECURE)  # ALLOW_INSECURE_DEFAULTS defaults True
+        assert s.SECRET_KEY == "CHANGE_ME_IN_PRODUCTION"
+        assert s.ALLOW_INSECURE_DEFAULTS is True

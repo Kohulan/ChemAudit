@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from functools import lru_cache
 from typing import Optional
 
 from rdkit import Chem, RDConfig
@@ -26,11 +27,21 @@ from app.services.alerts.nibr_filters import screen_nibr
 from app.services.scoring.safety_filters import _scorer
 from app.services.structure_filter.filter_config import FilterConfig
 
-# SA Score via RDKit Contrib (Phase 7 pattern)
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
-import sascorer  # type: ignore  # noqa: E402
-
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def _get_sascorer():
+    """Lazily import RDKit Contrib sascorer; return None if unavailable."""
+    try:
+        sa_path = os.path.join(RDConfig.RDContribDir, "SA_Score")
+        if sa_path not in sys.path:
+            sys.path.insert(0, sa_path)
+        import sascorer  # type: ignore[import-untyped]
+
+        return sascorer
+    except Exception:
+        return None
 
 
 def _has_any_alerts(mol: Chem.Mol, config: FilterConfig) -> bool:
@@ -92,7 +103,10 @@ def score_for_generative(smiles: str, config: FilterConfig) -> Optional[float]:
     alert_free = 0.0 if _has_any_alerts(mol, config) else 1.0
 
     # SA Score normalized to [0, 1]: 1.0 when sa=1 (easy), 0.0 when sa=10 (hard)
-    sa_raw = sascorer.calculateScore(mol)
+    _sa = _get_sascorer()
+    if _sa is None:
+        raise RuntimeError("SA Score unavailable: RDKit Contrib SA_Score not installed")
+    sa_raw = _sa.calculateScore(mol)
     sa_normalized = max(0.0, (10.0 - sa_raw) / 9.0)
 
     # Composite score via preset weight vector (D-15)

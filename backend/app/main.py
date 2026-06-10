@@ -18,6 +18,7 @@ from app.api.routes import (
     alerts,
     api_keys,
     batch,
+    batch_subset,
     bookmarks,
     config,
     dataset_intelligence,
@@ -60,14 +61,31 @@ logger = logging.getLogger(__name__)
 async def _check_ws_ownership(
     websocket: WebSocket, job_id: str, prefix: str
 ) -> bool:
-    """Check WebSocket session owns the job. Returns False if access denied."""
+    """Check whether the WebSocket session owns the job. Returns False to deny.
+
+    Ownership is enforced as graceful degradation and is DELIBERATELY fail-OPEN,
+    mirroring the tested HTTP path (``app.core.ownership.verify_job_access``): a
+    connection is denied only when Redis is reachable, an owner record exists for
+    the job, AND it does not match the caller's session cookie. When Redis is
+    unavailable, no owner is recorded (legacy/server-created jobs), or the client
+    has no session cookie, access is allowed.
+
+    This availability-over-strict-authz choice for non-sensitive job-progress
+    streams was kept on purpose (rather than the audit's suggested fail-closed):
+    job ids are unguessable UUIDs and a positive owner mismatch IS denied; the
+    HTTP path degrades identically, so failing only the WS check closed would add
+    an availability risk on a transient Redis outage without closing the gap; and
+    during a Redis outage the pub/sub progress stream has nothing to deliver
+    anyway. Do not change one path's posture without the other (and update
+    tests/test_ownership.py + tests/test_websocket_manager.py if you do).
+    """
     session_cookie = websocket.cookies.get(SESSION_COOKIE)
     if not session_cookie or not manager._redis:
-        return True
+        return True  # cannot verify ownership -> allow (deliberate fail-open)
     try:
         owner = await manager._redis.get(f"{prefix}:owner:{job_id}")
         if owner and owner != session_cookie:
-            return False
+            return False  # owner recorded and mismatched -> deny
     except Exception as exc:
         logger.warning("Ownership check failed for %s: %s", job_id, exc)
     return True
@@ -347,6 +365,7 @@ app.include_router(alerts.router, prefix="/api/v1", tags=["alerts"])
 app.include_router(standardization.router, prefix="/api/v1", tags=["standardization"])
 app.include_router(scoring.router, prefix="/api/v1", tags=["scoring"])
 app.include_router(batch.router, prefix="/api/v1", tags=["batch"])
+app.include_router(batch_subset.router, prefix="/api/v1", tags=["batch"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1", tags=["integrations"])

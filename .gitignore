@@ -94,3 +94,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Playwright E2E artifacts
+frontend/playwright-report/
+frontend/blob-report/
+frontend/playwright/.cache/
+frontend/test-results/

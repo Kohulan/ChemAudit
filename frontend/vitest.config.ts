@@ -17,6 +17,15 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
       ],
+      // Ratchet floor — set just below the current measured totals (lines ~31%,
+      // branches ~34%). Only enforced when coverage is collected (`--coverage`),
+      // so plain `npm test` runs are unaffected. Raise as page-level tests land.
+      thresholds: {
+        statements: 30,
+        branches: 33,
+        functions: 30,
+        lines: 30,
+      },
     },
   },
   resolve: {

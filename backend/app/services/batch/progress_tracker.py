@@ -7,6 +7,7 @@ Uses moving average for ETA calculation.
 
 import json
 import logging
+import threading
 import time
 from collections import deque
 from dataclasses import asdict, dataclass
@@ -53,13 +54,27 @@ class ProgressTracker:
     def __init__(self, redis_url: str = None):
         self._redis_url = redis_url or settings.REDIS_URL
         self._redis: Optional[redis.Redis] = None
+        self._redis_lock = threading.Lock()
         self._last_update_times: dict[str, float] = {}
         self._chunk_times: dict[str, deque] = {}
 
+    # Public alias so callers/tests can reason about the init guard.
+    @property
+    def _lock(self) -> threading.Lock:
+        return self._redis_lock
+
     def _get_redis(self) -> redis.Redis:
-        """Get or create Redis connection."""
+        """Get or create the pooled Redis connection (thread-safe lazy init).
+
+        The module-level singleton is shared across threads when Celery runs with
+        a thread pool; double-checked locking ensures only one client is created.
+        """
         if self._redis is None:
-            self._redis = redis.from_url(self._redis_url)
+            with self._redis_lock:
+                if self._redis is None:
+                    self._redis = redis.from_url(
+                        self._redis_url, max_connections=20
+                    )
         return self._redis
 
     def init_job(self, job_id: str, total: int) -> None:

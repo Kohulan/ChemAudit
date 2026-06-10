@@ -30,9 +30,17 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 admin_secret_header = APIKeyHeader(name="X-Admin-Secret", auto_error=False)
 
 
+_ASYNC_REDIS: "redis.Redis | None" = None
+
+
 async def get_redis_client():
-    """Get async Redis client."""
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+    """Return a process-wide pooled async Redis client (lazy singleton)."""
+    global _ASYNC_REDIS
+    if _ASYNC_REDIS is None:
+        _ASYNC_REDIS = redis.from_url(
+            settings.REDIS_URL, decode_responses=True, max_connections=20
+        )
+    return _ASYNC_REDIS
 
 
 @lru_cache(maxsize=512)
@@ -71,27 +79,24 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
         Dictionary with key metadata if valid, None if invalid or expired
     """
     client = await get_redis_client()
-    try:
-        key_hash = hash_api_key_for_lookup(api_key)
-        key_data = await client.hgetall(f"apikey:{key_hash}")
+    key_hash = hash_api_key_for_lookup(api_key)
+    key_data = await client.hgetall(f"apikey:{key_hash}")
 
-        if not key_data:
-            return None
+    if not key_data:
+        return None
 
-        # Check if key has expired
-        expires_at = key_data.get("expires_at")
-        if expires_at:
-            try:
-                exp_time = datetime.fromisoformat(expires_at)
-                if datetime.now(timezone.utc) > exp_time:
-                    logger.info(f"API key expired: {key_hash[:12]}...")
-                    return None
-            except ValueError:
-                pass  # Invalid date format, treat as non-expiring
+    # Check if key has expired
+    expires_at = key_data.get("expires_at")
+    if expires_at:
+        try:
+            exp_time = datetime.fromisoformat(expires_at)
+            if datetime.now(timezone.utc) > exp_time:
+                logger.info(f"API key expired: {key_hash[:12]}...")
+                return None
+        except ValueError:
+            pass  # Invalid date format, treat as non-expiring
 
-        return dict(key_data)
-    finally:
-        await client.aclose()
+    return dict(key_data)
 
 
 def is_key_expired(key_data: dict) -> bool:
@@ -191,19 +196,69 @@ async def _update_usage_stats(api_key: str):
     Increments request count and updates last_used timestamp.
     """
     client = await get_redis_client()
-    try:
-        key_hash = hash_api_key_for_lookup(api_key)
-        await client.hset(
-            f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
-        )
-        await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
-    finally:
-        await client.aclose()
+    key_hash = hash_api_key_for_lookup(api_key)
+    await client.hset(
+        f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
+    )
+    await client.hincrby(f"apikey:{key_hash}", "request_count", 1)
 
 
 # =============================================================================
 # Admin Authentication
 # =============================================================================
+
+
+def generate_admin_token() -> str:
+    """Generate a signed, time-bound admin token: '<unix_ts>.<hmac_sha256>'.
+
+    Admin clients can send this in X-Admin-Secret instead of the static secret.
+    It is only valid within ADMIN_AUTH_MAX_SKEW_SECONDS, giving replay resistance.
+
+    Note: HMAC-SHA256 is the correct primitive here — it is a message
+    authentication code over the timestamp, NOT password/secret-at-rest hashing.
+    A slow KDF (bcrypt/scrypt/argon2/PBKDF2) is for hashing low-entropy passwords
+    at rest and is inappropriate for a MAC. The admin secret is the HMAC *key*
+    (high entropy; insecure defaults are rejected by Settings validation), and
+    tokens are verified with secrets.compare_digest. Same construction as JWT
+    HS256 / webhook signatures.
+    """
+    ts = str(int(time.time()))
+    sig = hmac.new(
+        settings.API_KEY_ADMIN_SECRET.encode(), ts.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"{ts}.{sig}"
+
+
+def _verify_signed_admin_token(token: str) -> bool:
+    """Verify a '<ts>.<hmac>' admin token: correct signature and within skew."""
+    try:
+        ts_str, sig = token.split(".", 1)
+        ts = int(ts_str)
+    except (ValueError, AttributeError):
+        return False
+    if abs(int(time.time()) - ts) > settings.ADMIN_AUTH_MAX_SKEW_SECONDS:
+        return False
+    expected = hmac.new(
+        settings.API_KEY_ADMIN_SECRET.encode(), ts_str.encode(), hashlib.sha256
+    ).hexdigest()
+    return secrets.compare_digest(sig, expected)
+
+
+def verify_admin_secret(provided: Optional[str]) -> bool:
+    """Validate an admin credential (constant-time where applicable).
+
+    Accepts a signed, time-bound token (replay-resistant). When
+    ADMIN_AUTH_REQUIRE_SIGNED is False (default), also accepts the static
+    API_KEY_ADMIN_SECRET for backward compatibility.
+    """
+    if not provided:
+        return False
+    # Signed token form is always honoured (replay-resistant).
+    if "." in provided and _verify_signed_admin_token(provided):
+        return True
+    if settings.ADMIN_AUTH_REQUIRE_SIGNED:
+        return False
+    return secrets.compare_digest(provided, settings.API_KEY_ADMIN_SECRET)
 
 
 async def require_admin_auth(
@@ -230,8 +285,9 @@ async def require_admin_auth(
             headers={"WWW-Authenticate": "AdminSecret"},
         )
 
-    # Constant-time comparison to prevent timing attacks
-    if not secrets.compare_digest(admin_secret, settings.API_KEY_ADMIN_SECRET):
+    # Accepts a signed time-bound token (replay-resistant) or, unless strict mode
+    # is enabled, the static admin secret (constant-time comparison).
+    if not verify_admin_secret(admin_secret):
         logger.warning("Failed admin authentication attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -51,7 +51,7 @@ class ConnectionManager:
     async def close_redis(self) -> None:
         """Close Redis connection."""
         if self._redis:
-            await self._redis.close()
+            await self._redis.aclose()
             self._redis = None
 
     async def _ensure_redis(self) -> bool:
@@ -92,10 +92,16 @@ class ConnectionManager:
         self.active_connections[job_id].append(websocket)
 
         # Start subscriber task for this job if not already running
-        if (
-            job_id not in self._subscriber_tasks
-            or self._subscriber_tasks[job_id].done()
-        ):
+        existing = self._subscriber_tasks.get(job_id)
+        if existing is None or existing.done():
+            # Await any prior (done) task before starting a fresh one so a
+            # lingering subscriber can never run concurrently with the new one.
+            if existing is not None:
+                existing.cancel()
+                try:
+                    await existing
+                except (asyncio.CancelledError, Exception):
+                    pass
             # Create an event to signal when subscription is ready
             self._subscription_ready[job_id] = asyncio.Event()
             task = asyncio.create_task(self._subscribe_to_job(job_id))
@@ -152,6 +158,7 @@ class ConnectionManager:
                 self._subscription_ready[job_id].set()
             return
 
+        me = asyncio.current_task()
         pubsub = self._redis.pubsub()
         channel = f"batch:progress:{job_id}"
 
@@ -164,6 +171,14 @@ class ConnectionManager:
                 self._subscription_ready[job_id].set()
 
             while job_id in self.active_connections:
+                # If a newer subscriber task has taken over this job (e.g. after
+                # a rapid disconnect/reconnect), stop immediately so two
+                # concurrent subscribers can't broadcast duplicate messages.
+                if self._subscriber_tasks.get(job_id) is not me:
+                    logger.debug(
+                        "Subscriber for job %s superseded; exiting", job_id
+                    )
+                    break
                 try:
                     # Use listen() for proper async iteration instead of polling
                     message = await asyncio.wait_for(
@@ -206,7 +221,7 @@ class ConnectionManager:
         finally:
             try:
                 await pubsub.unsubscribe(channel)
-                await pubsub.close()
+                await pubsub.aclose()
                 logger.debug(f"Unsubscribed from channel {channel}")
             except Exception as e:
                 logger.warning(f"Error during pubsub cleanup for job {job_id}: {e}")
