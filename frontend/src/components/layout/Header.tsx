@@ -603,7 +603,7 @@ export function Header() {
             <motion.button
               onClick={() => setMobileOpen(v => !v)}
               className={cn(
-                'p-2 rounded-xl cursor-pointer',
+                'min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl cursor-pointer',
                 'text-[var(--color-text-secondary)]',
                 'hover:bg-[var(--color-surface-sunken)]',
                 'transition-colors duration-150',
