@@ -23,7 +23,7 @@
     --color-surface-overlay: rgba(255, 255, 255, 0.92);
     --color-text-primary: #1a1815;
     --color-text-secondary: #5c5650;
-    --color-text-muted: #9c958d;
+    --color-text-muted: #6f655c;
 
     /* Primary: Laboratory Crimson - refined, scientific */
     --color-primary: #c41e3a;
@@ -102,7 +102,7 @@
     --color-surface-overlay: rgba(28, 25, 23, 0.92);
     --color-text-primary: #fafaf9;
     --color-text-secondary: #a8a29e;
-    --color-text-muted: #57534e;
+    --color-text-muted: #8a857e;
 
     /* Primary: Vibrant crimson in dark */
     --color-primary: #f87171;
