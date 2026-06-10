@@ -58,9 +58,9 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-[var(--color-surface-elevated)] rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
           Database Cross-Reference
         </h3>
         {!results && (
@@ -77,7 +77,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
       </div>
 
       {!results && !isLoading && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Check if this molecule exists in PubChem, ChEMBL, COCONUT, Wikidata, or SureChEMBL.
         </p>
       )}
@@ -85,7 +85,7 @@ export function DatabaseLookup({ inchikey, smiles }: DatabaseLookupProps) {
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          <span className="ml-3 text-gray-600">Querying databases...</span>
+          <span className="ml-3 text-[var(--color-text-secondary)]">Querying databases...</span>
         </div>
       )}
 

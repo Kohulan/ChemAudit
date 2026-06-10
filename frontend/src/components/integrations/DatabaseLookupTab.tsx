@@ -86,12 +86,12 @@ export function DatabaseLookupControls({
         {/* Auto-compare toggle */}
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <div
-            className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+            className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-chem-dark-300 dark:bg-chem-dark-600'}`}
             onClick={onToggleAutoCompare}
             role="switch"
             aria-checked={autoCompare}
           >
-            <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+            <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-chem-dark-50 shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
           </div>
           <span className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
         </label>

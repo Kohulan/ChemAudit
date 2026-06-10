@@ -78,10 +78,10 @@ const STATUS_STYLES: Record<string, {
     glow: 'shadow-rose-500/5',
   },
   missing: {
-    badge: 'bg-gray-500/10 text-gray-500 border border-gray-300/30',
+    badge: 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)] border border-[var(--color-border-strong)]',
     badgeText: 'Missing',
-    accent: 'bg-gray-400',
-    detailBg: 'bg-gray-50/60 border-gray-200/50',
+    accent: 'bg-chem-dark-400',
+    detailBg: 'bg-[var(--color-surface-sunken)] border-[var(--color-border)]',
     icon: '—',
     glow: '',
   },
@@ -117,7 +117,7 @@ function StructureCard({ entry }: { entry: DatabaseEntry & { canonical_smiles: s
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -2 }}
-      className="group relative border border-gray-200/80 rounded-xl overflow-hidden bg-white hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 cursor-pointer"
+      className="group relative border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-elevated)] hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 cursor-pointer"
     >
       <div className={`h-1 ${c.dot}`} />
       <div className="p-2.5">
@@ -130,14 +130,14 @@ function StructureCard({ entry }: { entry: DatabaseEntry & { canonical_smiles: s
           </div>
           {entry.url && (
             <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-700 transition-colors">
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
           )}
         </div>
-        <MoleculeViewer smiles={displaySmiles} width={180} height={130} className="bg-white rounded-lg" />
+        <MoleculeViewer smiles={displaySmiles} width={180} height={130} className="bg-[var(--color-surface-elevated)] rounded-lg" />
       </div>
     </motion.div>
   );
@@ -148,7 +148,7 @@ function ResolvedSmilesRow({ kekulized, canonical }: { kekulized?: string | null
   const display = kekulized || canonical;
   return (
     <div className="flex items-start gap-2">
-      <code className="text-[12px] font-mono text-gray-800 break-all leading-relaxed select-all flex-1">{display}</code>
+      <code className="text-[12px] font-mono text-[var(--color-text-primary)] break-all leading-relaxed select-all flex-1">{display}</code>
       <div className="shrink-0">
         <CopyButton text={display} size={13} />
       </div>
@@ -167,11 +167,11 @@ function IdentifierCard({ comparison, databases, entries }: { comparison: Proper
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border border-gray-200/80 overflow-hidden bg-white shadow-sm ${style.glow}`}
+      className={`rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface-elevated)] shadow-sm ${style.glow}`}
     >
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-100">
-        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-surface-sunken)] border-b border-[var(--color-border-subtle)]">
+        <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">
           {propLabel}
         </span>
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold rounded-full ${style.badge}`}>
@@ -181,7 +181,7 @@ function IdentifierCard({ comparison, databases, entries }: { comparison: Proper
       </div>
 
       {/* Per-database values */}
-      <div className="divide-y divide-gray-100/80">
+      <div className="divide-y divide-[var(--color-border-subtle)]">
         {sortedDbs.map((db) => {
           const value = comparison.values[db];
           const c = DB_COLORS[db] || fallbackDB;
@@ -189,7 +189,7 @@ function IdentifierCard({ comparison, databases, entries }: { comparison: Proper
           const isSmilesProperty = comparison.property_name === 'canonical_smiles';
 
           return (
-            <div key={db} className={`flex items-start gap-3 px-4 py-2.5 group hover:bg-slate-50/50 transition-colors ${isResolved ? 'bg-emerald-50/20' : ''}`}>
+            <div key={db} className={`flex items-start gap-3 px-4 py-2.5 group hover:bg-[var(--color-surface-sunken)] transition-colors ${isResolved ? 'bg-status-success-light/20' : ''}`}>
               <div className="flex items-center gap-2 pt-0.5 shrink-0 w-[90px]">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
                 <span className={`text-[10px] font-bold ${c.text} uppercase tracking-wider`}>{db}</span>
@@ -200,14 +200,14 @@ function IdentifierCard({ comparison, databases, entries }: { comparison: Proper
                     <ResolvedSmilesRow canonical={value} kekulized={entries.find(e => e.database === 'Resolved')?.kekulized_smiles} />
                   ) : (
                     <div className="flex items-start gap-2">
-                      <code className="text-[12px] font-mono text-gray-800 break-all leading-relaxed select-all flex-1">{value}</code>
+                      <code className="text-[12px] font-mono text-[var(--color-text-primary)] break-all leading-relaxed select-all flex-1">{value}</code>
                       <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <CopyButton text={value} size={13} />
                       </div>
                     </div>
                   )
                 ) : (
-                  <span className="text-[11px] text-gray-300 italic">not available</span>
+                  <span className="text-[11px] text-[var(--color-text-muted)] italic">not available</span>
                 )}
               </div>
             </div>
@@ -219,7 +219,7 @@ function IdentifierCard({ comparison, databases, entries }: { comparison: Proper
       {comparison.detail && (
         <div className={`flex gap-3 px-4 py-2.5 border-t ${style.detailBg}`}>
           <div className={`w-0.5 shrink-0 rounded-full self-stretch ${style.accent}`} />
-          <p className="text-[11px] text-gray-600 leading-relaxed">{comparison.detail}</p>
+          <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">{comparison.detail}</p>
         </div>
       )}
     </motion.div>
@@ -248,7 +248,7 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`rounded-2xl border border-gray-200/60 bg-white overflow-hidden shadow-lg shadow-gray-200/40 ring-1 ${config.ring}`}
+      className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden shadow-lg shadow-gray-200/40 ring-1 ${config.ring}`}
     >
       {/* ── Gradient header ── */}
       <div className={`relative bg-gradient-to-r ${config.gradient} px-6 py-4 overflow-hidden`}>
@@ -298,10 +298,10 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:shadow-md cursor-default ${
                     entry.found
                       ? `${c.bg} ${c.text} ${c.border}`
-                      : 'bg-gray-50 text-gray-400 border-gray-200'
+                      : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border-[var(--color-border)]'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${entry.found ? c.dot : 'bg-gray-300'}`} />
+                  <span className={`w-2 h-2 rounded-full ${entry.found ? c.dot : 'bg-chem-dark-300'}`} />
                   {entry.database}
                   {entry.found && entry.url && (
                     <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
@@ -322,11 +322,11 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
         {allStructures.length >= 2 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-[var(--color-border-strong)] to-transparent" />
+              <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest px-2">
                 Structures
               </span>
-              <div className="h-px flex-1 bg-gradient-to-l from-gray-200 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-l from-[var(--color-border-strong)] to-transparent" />
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-1">
               {allStructures.map((entry, i) => (
@@ -349,11 +349,11 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
         {filtered.length > 0 && databases.length >= 2 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent" />
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-[var(--color-border-strong)] to-transparent" />
+              <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest px-2">
                 Identifiers
               </span>
-              <div className="h-px flex-1 bg-gradient-to-l from-gray-200 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-l from-[var(--color-border-strong)] to-transparent" />
             </div>
             <div className="space-y-3">
               {filtered.map((comp, i) => (
