@@ -18,13 +18,13 @@ interface AlertGroupCardProps {
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case 'critical':
-      return 'bg-red-500';
+      return 'bg-status-error';
     case 'warning':
-      return 'bg-amber-500';
+      return 'bg-status-warning';
     case 'info':
-      return 'bg-blue-400';
+      return 'bg-status-info';
     default:
-      return 'bg-gray-400';
+      return 'bg-chem-dark-400';
   }
 }
 
@@ -59,10 +59,10 @@ function getNibrLabel(alert: AlertResult): string | null {
 function NibrBadge({ label }: { label: string }) {
   const colorClass =
     label === 'Excluded'
-      ? 'bg-red-100 text-red-700'
+      ? 'bg-status-error-light text-status-error-dark dark:bg-status-error/15 dark:text-red-400'
       : label === 'Flag'
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-gray-100 text-gray-600';
+        ? 'bg-status-warning-light text-status-warning-dark dark:bg-status-warning/15 dark:text-amber-400'
+        : 'bg-chem-dark-100 text-chem-dark-600 dark:bg-chem-dark-800 dark:text-chem-dark-300';
 
   return (
     <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${colorClass}`}>
