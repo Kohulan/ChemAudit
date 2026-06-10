@@ -6,6 +6,7 @@ import {
   PolarAngleAxis,
 } from 'recharts';
 import { cn } from '../../lib/utils';
+import { chartTrackFill } from '../../lib/chartColors';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
 // =============================================================================
@@ -99,7 +100,7 @@ export function HealthScoreGauge({ score, className }: HealthScoreGaugeProps) {
 
   const clamped = Math.max(0, Math.min(100, score));
   const color = getScoreColor(clamped);
-  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
+  const backgroundFill = chartTrackFill(isDark);
 
   const data = [
     {
