@@ -10,7 +10,6 @@ import {
   Sparkles,
   RotateCcw,
   Play,
-  Search,
   Layers,
   CheckCircle2,
   Info,
@@ -19,7 +18,6 @@ import {
   Microscope,
   BarChart3,
   ArrowLeft,
-  GitCompareArrows,
   Hexagon,
   GitMerge,
   Scale,
@@ -40,7 +38,7 @@ import {
 } from '../components/validation/AllChecksCard';
 import { ScoringResults } from '../components/scoring/ScoringResults';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
-import { DatabaseLookupResults } from '../components/integrations/DatabaseLookupResults';
+import { DatabaseLookupControls, DatabaseResultsBox } from '../components/integrations/DatabaseLookupTab';
 import { DeepValidationTab } from '../components/validation/DeepValidationTab';
 import { ScoringProfilesTab } from '../components/scoring-profiles';
 import { ClayButton } from '../components/ui/ClayButton';
@@ -1574,76 +1572,16 @@ export function SingleValidationPage() {
 
                 {/* Database Lookup Tab */}
                 {activeTab === 'database' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                        <Info className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Click Look Up to query four databases for this molecule:
-                        </p>
-                        <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                            <strong className="text-[var(--color-text-primary)]">PubChem</strong> — NIH compound database (100M+ compounds)
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                            <strong className="text-[var(--color-text-primary)]">ChEMBL</strong> — Bioactivity and drug data
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                            <strong className="text-[var(--color-text-primary)]">COCONUT</strong> — Natural products database
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-                            <strong className="text-[var(--color-text-primary)]">Wikidata</strong> — Open knowledge base
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                            <strong className="text-[var(--color-text-primary)]">SureChEMBL</strong> — Patent literature presence
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <ClayButton
-                        variant="primary"
-                        onClick={handleDatabaseLookup}
-                        disabled={!molecule.trim() || isAnyLoading}
-                        loading={databaseLoading || isComparing}
-                        leftIcon={<Search className="w-4 h-4" />}
-                      >
-                        {isComparing ? 'Comparing...' : databaseLoading ? 'Looking up...' : 'Look Up'}
-                      </ClayButton>
-                      {/* Auto-compare toggle */}
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <div
-                          className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
-                          onClick={() => setAutoCompare(!autoCompare)}
-                          role="switch"
-                          aria-checked={autoCompare}
-                        >
-                          <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
-                        </div>
-                        <span className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
-                      </label>
-                      {/* Manual compare button — shown when toggle is off, lookup is done, no comparison yet */}
-                      {!autoCompare && databaseResults && !comparisonResult && (
-                        <ClayButton
-                          variant="outline"
-                          size="sm"
-                          onClick={runComparison}
-                          disabled={isComparing}
-                          loading={isComparing}
-                          leftIcon={<GitCompareArrows className="w-3.5 h-3.5" />}
-                        >
-                          Compare
-                        </ClayButton>
-                      )}
-                    </div>
-                  </div>
+                  <DatabaseLookupControls
+                    onLookup={handleDatabaseLookup}
+                    lookupDisabled={!molecule.trim() || isAnyLoading}
+                    databaseLoading={databaseLoading}
+                    isComparing={isComparing}
+                    autoCompare={autoCompare}
+                    onToggleAutoCompare={() => setAutoCompare(!autoCompare)}
+                    showManualCompare={!autoCompare && Boolean(databaseResults) && !comparisonResult}
+                    onCompare={runComparison}
+                  />
                 )}
 
                 {/* Compound Profile Tab */}
@@ -1921,45 +1859,11 @@ export function SingleValidationPage() {
           {/* Database Results - Collapsible Box (default collapsed) */}
           <AnimatePresence>
             {databaseResults && activeTab === 'database' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="card overflow-hidden"
-              >
-                <button
-                  onClick={() => setDbResultsExpanded(!dbResultsExpanded)}
-                  className="w-full flex items-center gap-3 p-4 sm:p-5 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-primary)]">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h4 className="font-semibold text-[var(--color-text-primary)] text-sm tracking-tight">
-                      Database Results
-                    </h4>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">Individual PubChem, ChEMBL, COCONUT, Wikidata, SureChEMBL details</p>
-                  </div>
-                  <ChevronDown className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform duration-200 ${dbResultsExpanded ? 'rotate-180' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {dbResultsExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-[var(--color-border)]">
-                        <div className="pt-4">
-                          <DatabaseLookupResults results={databaseResults} />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+              <DatabaseResultsBox
+                results={databaseResults}
+                expanded={dbResultsExpanded}
+                onToggleExpanded={() => setDbResultsExpanded(!dbResultsExpanded)}
+              />
             )}
           </AnimatePresence>
 
