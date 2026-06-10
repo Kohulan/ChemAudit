@@ -16,7 +16,7 @@ const VIEWER_WIDTH = 550;
 const VIEWER_HEIGHT = 300;
 
 const VIEWER_CONTAINER_CLASS =
-  'border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 p-2 min-h-[280px]';
+  'border border-[var(--color-border)] rounded-lg bg-[var(--color-surface-elevated)] p-2 min-h-[280px]';
 
 export function ComparisonView({
   originalSmiles,

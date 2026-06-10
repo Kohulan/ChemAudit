@@ -82,26 +82,26 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
   let iconColor: string;
   if (!stage.applied) {
     StatusIcon = XCircle;
-    iconColor = 'text-gray-400';
+    iconColor = 'text-[var(--color-text-muted)]';
   } else if (hasChanges) {
     StatusIcon = CheckCircle2;
-    iconColor = 'text-green-500';
+    iconColor = 'text-status-success-dark dark:text-status-success';
   } else {
     StatusIcon = MinusCircle;
-    iconColor = 'text-gray-400';
+    iconColor = 'text-[var(--color-text-muted)]';
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+    <div className="border border-[var(--color-border)] rounded-lg overflow-hidden bg-[var(--color-surface-elevated)]">
       {/* Header */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-surface-sunken)] transition-colors text-left"
         aria-expanded={isExpanded}
       >
         <StatusIcon className={`w-5 h-5 flex-shrink-0 ${iconColor}`} />
 
-        <span className="flex-1 text-sm font-semibold text-gray-900">
+        <span className="flex-1 text-sm font-semibold text-[var(--color-text-primary)]">
           {formatStageName(stage.stage_name)}
         </span>
 
@@ -114,29 +114,29 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
 
         {/* Skipped badge */}
         {!stage.applied && (
-          <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+          <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]">
             skipped
           </span>
         )}
 
         {/* Expand/collapse chevron */}
         {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
         )}
       </button>
 
       {/* Before → After SMILES (collapsed one-liner, shown when SMILES differ) */}
       {smilesDiffer && !isExpanded && (
         <div className="px-4 pb-3">
-          <div className="flex items-start gap-2 text-xs font-mono bg-gray-50 rounded p-2 border border-gray-100">
-            <span className="text-gray-500 flex-shrink-0 pt-0.5">before:</span>
-            <span className="text-gray-700 break-all">{stage.input_smiles}</span>
+          <div className="flex items-start gap-2 text-xs font-mono bg-[var(--color-surface-sunken)] rounded p-2 border border-[var(--color-border-subtle)]">
+            <span className="text-[var(--color-text-secondary)] flex-shrink-0 pt-0.5">before:</span>
+            <span className="text-[var(--color-text-primary)] break-all">{stage.input_smiles}</span>
           </div>
-          <div className="flex items-start gap-2 text-xs font-mono bg-green-50 rounded p-2 border border-green-100 mt-1">
-            <span className="text-green-600 flex-shrink-0 pt-0.5">after:</span>
-            <span className="text-green-800 break-all">{stage.output_smiles}</span>
+          <div className="flex items-start gap-2 text-xs font-mono bg-status-success-light/20 rounded p-2 border border-status-success/20 mt-1">
+            <span className="text-status-success-dark dark:text-status-success flex-shrink-0 pt-0.5">after:</span>
+            <span className="text-[var(--color-text-primary)] break-all">{stage.output_smiles}</span>
           </div>
         </div>
       )}
@@ -151,48 +151,48 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
+            <div className="px-4 pb-4 space-y-4 border-t border-[var(--color-border-subtle)]">
 
               {/* Before / After SMILES */}
               <div className="mt-3 space-y-1">
-                <div className="flex items-start gap-2 text-xs font-mono bg-gray-50 rounded p-2 border border-gray-100">
-                  <span className="text-gray-500 flex-shrink-0 pt-0.5">before:</span>
-                  <span className="text-gray-700 break-all">{stage.input_smiles || '—'}</span>
+                <div className="flex items-start gap-2 text-xs font-mono bg-[var(--color-surface-sunken)] rounded p-2 border border-[var(--color-border-subtle)]">
+                  <span className="text-[var(--color-text-secondary)] flex-shrink-0 pt-0.5">before:</span>
+                  <span className="text-[var(--color-text-primary)] break-all">{stage.input_smiles || '—'}</span>
                 </div>
-                <div className="flex items-start gap-2 text-xs font-mono bg-green-50 rounded p-2 border border-green-100">
-                  <span className="text-green-600 flex-shrink-0 pt-0.5">after:</span>
-                  <span className="text-green-800 break-all">{stage.output_smiles || '—'}</span>
+                <div className="flex items-start gap-2 text-xs font-mono bg-status-success-light/20 rounded p-2 border border-status-success/20">
+                  <span className="text-status-success-dark dark:text-status-success flex-shrink-0 pt-0.5">after:</span>
+                  <span className="text-[var(--color-text-primary)] break-all">{stage.output_smiles || '—'}</span>
                 </div>
               </div>
 
               {/* Charge changes */}
               {stage.charge_changes.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Charge Changes ({stage.charge_changes.length})
                   </h5>
                   <table className="w-full text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Atom</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Element</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Before</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">After</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Rule</th>
+                      <tr className="bg-[var(--color-surface-sunken)]">
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Atom</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Element</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Before</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">After</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Rule</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stage.charge_changes.map((c, i) => (
-                        <tr key={i} className="border-b border-gray-100">
+                        <tr key={i} className="border-b border-[var(--color-border-subtle)]">
                           <td className="p-1.5">
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-100 text-blue-700 font-mono font-medium text-[11px]">
                               {c.atom_idx}
                             </span>
                           </td>
-                          <td className="p-1.5 font-medium text-gray-800">{c.element}</td>
-                          <td className="p-1.5 font-mono text-gray-600">{c.before_charge > 0 ? `+${c.before_charge}` : c.before_charge}</td>
-                          <td className="p-1.5 font-mono text-gray-600">{c.after_charge > 0 ? `+${c.after_charge}` : c.after_charge}</td>
-                          <td className="p-1.5 text-gray-500">{c.rule_name}</td>
+                          <td className="p-1.5 font-medium text-[var(--color-text-primary)]">{c.element}</td>
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{c.before_charge > 0 ? `+${c.before_charge}` : c.before_charge}</td>
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{c.after_charge > 0 ? `+${c.after_charge}` : c.after_charge}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{c.rule_name}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -203,27 +203,27 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
               {/* Bond changes */}
               {stage.bond_changes.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Bond Changes ({stage.bond_changes.length})
                   </h5>
                   <table className="w-full text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Bond</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Atoms</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Before</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">After</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Rule</th>
+                      <tr className="bg-[var(--color-surface-sunken)]">
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Bond</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Atoms</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Before</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">After</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Rule</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stage.bond_changes.map((b, i) => (
-                        <tr key={i} className="border-b border-gray-100">
-                          <td className="p-1.5 font-mono text-gray-600">{b.bond_idx}</td>
-                          <td className="p-1.5 text-gray-600">{b.atom1_idx}–{b.atom2_idx}</td>
-                          <td className="p-1.5 font-mono text-gray-600">{b.before_type}</td>
-                          <td className="p-1.5 font-mono text-gray-600">{b.after_type}</td>
-                          <td className="p-1.5 text-gray-500">{b.rule_name}</td>
+                        <tr key={i} className="border-b border-[var(--color-border-subtle)]">
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{b.bond_idx}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{b.atom1_idx}–{b.atom2_idx}</td>
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{b.before_type}</td>
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{b.after_type}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{b.rule_name}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -234,23 +234,23 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
               {/* Ring changes */}
               {stage.ring_changes.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Ring Aromaticity Changes ({stage.ring_changes.length})
                   </h5>
                   <table className="w-full text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Ring Size</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Atoms</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Before Type</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">After Type</th>
+                      <tr className="bg-[var(--color-surface-sunken)]">
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Ring Size</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Atoms</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Before Type</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">After Type</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stage.ring_changes.map((r, i) => (
-                        <tr key={i} className="border-b border-gray-100">
-                          <td className="p-1.5 text-gray-800">{r.ring_size}-membered</td>
-                          <td className="p-1.5 font-mono text-gray-600 text-[11px]">
+                        <tr key={i} className="border-b border-[var(--color-border-subtle)]">
+                          <td className="p-1.5 text-[var(--color-text-primary)]">{r.ring_size}-membered</td>
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)] text-[11px]">
                             [{r.ring_atoms.join(', ')}]
                           </td>
                           <td className="p-1.5">
@@ -277,25 +277,25 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
               {/* Radical changes */}
               {stage.radical_changes.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Radical Changes ({stage.radical_changes.length})
                   </h5>
                   <table className="w-full text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Atom</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Element</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Before</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">After</th>
+                      <tr className="bg-[var(--color-surface-sunken)]">
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Atom</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Element</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Before</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">After</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stage.radical_changes.map((r, i) => (
-                        <tr key={i} className="border-b border-gray-100">
-                          <td className="p-1.5 font-mono text-gray-600">{r.atom_idx}</td>
-                          <td className="p-1.5 font-medium text-gray-800">{r.element}</td>
-                          <td className="p-1.5 text-gray-600">{r.before_radicals} e⁻</td>
-                          <td className="p-1.5 text-gray-600">{r.after_radicals} e⁻</td>
+                        <tr key={i} className="border-b border-[var(--color-border-subtle)]">
+                          <td className="p-1.5 font-mono text-[var(--color-text-secondary)]">{r.atom_idx}</td>
+                          <td className="p-1.5 font-medium text-[var(--color-text-primary)]">{r.element}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{r.before_radicals} e⁻</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{r.after_radicals} e⁻</td>
                         </tr>
                       ))}
                     </tbody>
@@ -306,29 +306,29 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
               {/* Fragment removals */}
               {stage.fragment_removals.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Removed Fragments ({stage.fragment_removals.length})
                   </h5>
                   <table className="w-full text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Fragment</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Name</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">Role</th>
-                        <th className="text-left p-1.5 text-gray-500 font-medium border-b border-gray-200">MW</th>
+                      <tr className="bg-[var(--color-surface-sunken)]">
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Fragment</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Name</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">Role</th>
+                        <th className="text-left p-1.5 text-[var(--color-text-secondary)] font-medium border-b border-[var(--color-border)]">MW</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stage.fragment_removals.map((f, i) => (
-                        <tr key={i} className="border-b border-gray-100">
-                          <td className="p-1.5 font-mono text-gray-700 text-[11px] break-all max-w-[120px]">
+                        <tr key={i} className="border-b border-[var(--color-border-subtle)]">
+                          <td className="p-1.5 font-mono text-[var(--color-text-primary)] text-[11px] break-all max-w-[120px]">
                             {f.smiles}
                           </td>
-                          <td className="p-1.5 text-gray-600">{f.name ?? '—'}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{f.name ?? '—'}</td>
                           <td className="p-1.5">
                             <RoleBadge role={f.role} />
                           </td>
-                          <td className="p-1.5 text-gray-600">{f.mw.toFixed(2)}</td>
+                          <td className="p-1.5 text-[var(--color-text-secondary)]">{f.mw.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -339,7 +339,7 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
               {/* DVAL cross-references */}
               {stage.dval_cross_refs.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                  <h5 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
                     Deep Validation Cross-References
                   </h5>
                   <ul className="space-y-1">
@@ -365,10 +365,10 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">Output structure</span>
+                        <span className="text-xs font-medium text-[var(--color-text-secondary)]">Output structure</span>
                         <button
                           onClick={() => setShowStructure(false)}
-                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                         >
                           Hide
                         </button>
@@ -378,10 +378,10 @@ export function ProvenanceStageCard({ stage, isExpanded, onToggle }: ProvenanceS
                         highlightAtoms={highlightAtoms}
                         width={280}
                         height={180}
-                        className="border border-gray-200 rounded-lg"
+                        className="border border-[var(--color-border)] rounded-lg"
                       />
                       {highlightAtoms.length > 0 && (
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-[var(--color-text-muted)]">
                           Highlighted atoms: {highlightAtoms.join(', ')} (affected by changes)
                         </p>
                       )}
