@@ -641,10 +641,10 @@ The full backend suite was validated against a **real stack**: Redis + Postgres 
 ## Self-Review (against CONCERNS.md)
 
 - **Tech Debt:** Redis per-call → T4; `asyncio.run()` in tasks → 3.5; monolithic routes → 4.2; `SingleValidation.tsx` → 4.1; no coverage enforcement → T8. ✅ covered.
-- **Security:** insecure defaults → T3; WS ownership fail-open → Flagged #1; SYBA subprocess → 2.3; admin header → 2.4. ✅ covered.
+- **Security:** insecure defaults → T3; WS ownership fail-open → deliberate (kept for parity with the tested HTTP path; rationale now documented in `_check_ws_ownership`, commit `b644e5a`); SYBA subprocess → 2.3; admin header → 2.4. ✅ covered.
 - **Performance:** batch JSON blob → 3.1; blocking `task.get` → T6; O(n²) clustering → T5; SYBA subprocess/call → 3.3; t-SNE blocking → 3.4. ✅ covered.
 - **Fragile areas:** WS duplicate subscriber → 3.2; no WS tests → 3.2; progress_tracker thread-safety → 2.1; `autoretry_for=(Exception,)` → T2; OPSIN JVM → 2.2. ✅ covered.
-- **Scaling:** Redis SPOF/memory → 3.7; clustering O(n²) memory → T5 (compute) + cap noted. ✅ covered.
+- **Scaling:** Redis SPOF/memory → 3.7; clustering O(n²) memory → vectorized via BulkTanimotoSimilarity + cap now deployment-configurable (`CLUSTERING_MAX_MOLECULES`, commit `d84c3fd`). ✅ covered.
 - **Dependencies:** `sascorer`/`npscorer` import → T7; `scscore` NumPy 2.x/vendor → 2.5 (DONE — vendored weights + reimplemented inference); `molvs` → 2.6 (DONE). ✅ covered.
 - **Missing features:** no E2E → 4.5; no Celery time limits → T1; Celery integration tests → 3.6. ✅ covered.
 - **Test gaps:** WS manager → 3.2; frontend pages → 4.4; Celery aggregation → 3.6; `window.prompt` → 4.3; rate-limit conn close → T4. ✅ covered.
