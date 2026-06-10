@@ -9,12 +9,9 @@ import {
   Database,
   Sparkles,
   RotateCcw,
-  Play,
   Layers,
   CheckCircle2,
-  Info,
   Share2,
-  ChevronDown,
   Microscope,
   BarChart3,
   ArrowLeft,
@@ -36,15 +33,21 @@ import {
   type AllChecksBounds,
   type AllChecksPhase,
 } from '../components/validation/AllChecksCard';
+import {
+  ValidateTabPanel,
+  DeepValidationTabPanel,
+  ScoringProfilesTabPanel,
+  CompoundProfileTabPanel,
+  AlertsTabPanel,
+  StandardizeTabPanel,
+} from '../components/validation/TabInputPanels';
 import { ScoringResults } from '../components/scoring/ScoringResults';
 import { StandardizationResults } from '../components/standardization/StandardizationResults';
 import { DatabaseLookupControls, DatabaseResultsBox } from '../components/integrations/DatabaseLookupTab';
-import { DeepValidationTab } from '../components/validation/DeepValidationTab';
-import { ScoringProfilesTab } from '../components/scoring-profiles';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
 import { CopyButton } from '../components/ui/CopyButton';
-import { InfoTooltip, DoiLink } from '../components/ui/Tooltip';
+import { InfoTooltip } from '../components/ui/Tooltip';
 import { TabBar, type TabBarTab, type TabBarResultState } from '../components/ui/TabBar';
 import { useValidation } from '../hooks/useValidation';
 import { useMoleculeInfo } from '../hooks/useMoleculeInfo';
@@ -60,8 +63,6 @@ import type { StandardizeResponse, StandardizeError } from '../types/standardiza
 import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, ResolvedCompound, ConsistencyResult } from '../types/integrations';
 import { IdentifierResolverCard } from '../components/integrations/IdentifierResolverCard';
 import { DatabaseComparisonPanel } from '../components/integrations/DatabaseComparisonPanel';
-import { ProfilerAccordion } from '../components/profiler/ProfilerAccordion';
-import { SafetyAccordion } from '../components/safety/SafetyAccordion';
 import { useProfiler } from '../hooks/useProfiler';
 import { useSafety } from '../hooks/useSafety';
 
@@ -1471,103 +1472,37 @@ export function SingleValidationPage() {
               >
                 {/* Validate & Score Tab */}
                 {activeTab === 'validate' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                        <Info className="w-4 h-4" />
-                      </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm">
-                        Run Validate first. Score becomes available once the canonical SMILES is computed.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <ClayButton
-                        variant="primary"
-                        onClick={handleValidate}
-                        disabled={!molecule.trim() || isAnyLoading}
-                        loading={isLoading}
-                        leftIcon={<Play className="w-4 h-4" />}
-                      >
-                        Validate
-                      </ClayButton>
-                      <ClayButton
-                        variant="accent"
-                        onClick={handleCalculateScores}
-                        disabled={!molecule.trim() || isAnyLoading || !result}
-                        loading={scoringLoading}
-                        leftIcon={<Sparkles className="w-4 h-4" />}
-                        title={!result ? 'Run Validate first — Score uses the canonical SMILES from validation' : undefined}
-                      >
-                        Score
-                      </ClayButton>
-                    </div>
-                    {!result && molecule.trim() && (
-                      <p className="text-xs text-[var(--color-text-muted)]">
-                        Score becomes available after validation completes.
-                      </p>
-                    )}
-                  </div>
+                  <ValidateTabPanel
+                    onValidate={handleValidate}
+                    onScore={handleCalculateScores}
+                    actionsDisabled={!molecule.trim() || isAnyLoading}
+                    hasResult={Boolean(result)}
+                    validateLoading={isLoading}
+                    scoreLoading={scoringLoading}
+                    showScoreHint={!result && Boolean(molecule.trim())}
+                  />
                 )}
 
                 {/* Deep Validation Tab */}
                 {activeTab === 'deep-validation' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                        <Info className="w-4 h-4" />
-                      </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm">
-                        Stereoisomer enumeration, tautomer detection, composition guards, and complexity flags.
-                        Requires a successful basic validation first.
-                      </p>
-                    </div>
-                    {!result && (
-                      <ClayButton
-                        variant="primary"
-                        onClick={handleValidate}
-                        disabled={!molecule.trim() || isAnyLoading}
-                        loading={isLoading}
-                        leftIcon={<Play className="w-4 h-4" />}
-                      >
-                        Validate
-                      </ClayButton>
-                    )}
-                    {result && (
-                      <DeepValidationTab
-                        checks={result.all_checks}
-                        onHighlightAtoms={setHighlightedAtoms}
-                      />
-                    )}
-                  </div>
+                  <DeepValidationTabPanel
+                    onValidate={handleValidate}
+                    actionsDisabled={!molecule.trim() || isAnyLoading}
+                    validateLoading={isLoading}
+                    checks={result?.all_checks ?? null}
+                    onHighlightAtoms={setHighlightedAtoms}
+                  />
                 )}
 
                 {/* Scoring Profiles Tab */}
                 {activeTab === 'scoring-profiles' && (
-                  <div className="space-y-4">
-                    {!result && (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                            <Info className="w-4 h-4" />
-                          </div>
-                          <p className="text-[var(--color-text-secondary)] text-sm">
-                            Drug-likeness, lead-likeness, property breakdowns, and bioavailability radar
-                            across multiple consensus profiles. Run Validate first to populate.
-                          </p>
-                        </div>
-                        <ClayButton
-                          variant="primary"
-                          onClick={handleValidate}
-                          disabled={!molecule.trim() || isAnyLoading}
-                          loading={isLoading}
-                          leftIcon={<Play className="w-4 h-4" />}
-                        >
-                          Validate
-                        </ClayButton>
-                      </>
-                    )}
-                    <ScoringProfilesTab smiles={result ? resolvedSmiles : ''} />
-                  </div>
+                  <ScoringProfilesTabPanel
+                    onValidate={handleValidate}
+                    actionsDisabled={!molecule.trim() || isAnyLoading}
+                    validateLoading={isLoading}
+                    hasResult={Boolean(result)}
+                    smiles={result ? resolvedSmiles : ''}
+                  />
                 )}
 
                 {/* Database Lookup Tab */}
@@ -1586,271 +1521,49 @@ export function SingleValidationPage() {
 
                 {/* Compound Profile Tab */}
                 {activeTab === 'compound-profile' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                        <FlaskConical className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-1.5">
-                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
-                            Comprehensive molecular profiling with physicochemical properties, drug-likeness assessment,
-                            synthesizability comparison, and 3D shape analysis.
-                          </p>
-                          <InfoTooltip
-                            title="Profiling Metrics"
-                            position="bottom"
-                            content={
-                              <div className="text-xs space-y-2">
-                                <div>
-                                  <p className="font-semibold text-white">PFI (Property Forecast Index)</p>
-                                  <p className="text-white/70">cLogP + aromatic ring count. &lt;5 low, 5-7 moderate, &gt;7 high risk.</p>
-                                  <p className="text-white/50 italic">Young et al. Drug Discov Today (2011)</p>
-                                  <DoiLink doi="10.1016/j.drudis.2011.06.001" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">#Stars (Outlier Count)</p>
-                                  <p className="text-white/70">Properties outside 95th-percentile drug-like ranges. 0 = drug-like, 3+ = outlier.</p>
-                                  <p className="text-white/50 italic">Jorgensen &amp; Duffy. Adv Drug Deliv Rev (2002)</p>
-                                  <DoiLink doi="10.1016/S0169-409X(02)00008-X" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">Abbott Bioavailability Score</p>
-                                  <p className="text-white/70">4-class oral bioavailability probability (11%, 17%, 56%, 85%).</p>
-                                  <p className="text-white/50 italic">Martin. J Med Chem (2005)</p>
-                                  <DoiLink doi="10.1021/jm0492002" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">Drug-likeness Rules</p>
-                                  <p className="text-white/70">Lipinski, Veber, Egan, Muegge, Ghose filter evaluation.</p>
-                                  <p className="text-white/50 italic">Lipinski et al. Adv Drug Deliv Rev (2001)</p>
-                                  <DoiLink doi="10.1016/S0169-409X(00)00129-0" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">SA Comparison</p>
-                                  <p className="text-white/70">Synthetic accessibility: SA Score + SCScore + SYBA side-by-side.</p>
-                                  <p className="text-white/50 italic">Ertl &amp; Schuffenhauer. J Cheminform (2009)</p>
-                                  <DoiLink doi="10.1186/1758-2946-1-8" />
-                                </div>
-                              </div>
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {!result && (
-                      <ClayButton
-                        variant="primary"
-                        onClick={handleValidate}
-                        disabled={!molecule.trim() || isAnyLoading}
-                        loading={isLoading}
-                        leftIcon={<Play className="w-4 h-4" />}
-                      >
-                        Validate
-                      </ClayButton>
-                    )}
-                    <ProfilerAccordion
-                      smiles={canonicalSmiles || ''}
-                      profile={profileResult}
-                      isLoading={profileLoading}
-                      error={profileError}
-                    />
-                  </div>
+                  <CompoundProfileTabPanel
+                    onValidate={handleValidate}
+                    actionsDisabled={!molecule.trim() || isAnyLoading}
+                    validateLoading={isLoading}
+                    hasResult={Boolean(result)}
+                    smiles={canonicalSmiles || ''}
+                    profile={profileResult}
+                    profileLoading={profileLoading}
+                    profileError={profileError}
+                  />
                 )}
 
                 {/* Safety Tab (alerts screening + safety assessment) */}
                 {activeTab === 'alerts' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
-                        <Info className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-1.5">
-                          <p className="text-[var(--color-text-secondary)] text-sm flex-1">
-                            PAINS and BRENK preselected. Toggle additional catalogs (NIH, ZINC, ChEMBL filters) below.
-                          </p>
-                          <InfoTooltip
-                            title="Safety Assessment Metrics"
-                            position="bottom"
-                            content={
-                              <div className="text-xs space-y-2">
-                                <div>
-                                  <p className="font-semibold text-white">CYP Soft-Spots</p>
-                                  <p className="text-white/70">SMARTS-based cytochrome P450 metabolism site prediction with atom highlighting.</p>
-                                  <p className="text-white/50 italic">Rydberg et al. ACS Med Chem Lett (2010)</p>
-                                  <DoiLink doi="10.1021/ml100016x" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">hERG Risk</p>
-                                  <p className="text-white/70">Rule-based hERG channel liability assessment using amphiphilic properties.</p>
-                                  <p className="text-white/50 italic">Aronov. Drug Discov Today (2005)</p>
-                                  <DoiLink doi="10.1016/S1359-6446(04)03278-7" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">bRo5 (Beyond Rule of 5)</p>
-                                  <p className="text-white/70">Relaxed thresholds for macrocycles, PROTACs, and natural products (MW &gt; 500).</p>
-                                  <p className="text-white/50 italic">Doak et al. Chem Biol (2014)</p>
-                                  <DoiLink doi="10.1016/j.chembiol.2014.08.013" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">REOS Filter</p>
-                                  <p className="text-white/70">Rapid Elimination of Swill — 7 physicochemical property range filters.</p>
-                                  <p className="text-white/50 italic">Walters &amp; Murcko. Curr Opin Chem Biol (1999)</p>
-                                  <DoiLink doi="10.1016/S1367-5931(99)80058-1" />
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-white">Complexity Analysis</p>
-                                  <p className="text-white/70">Bertz complexity index percentile vs commercial compound distributions.</p>
-                                  <p className="text-white/50 italic">Bertz. J Am Chem Soc (1981)</p>
-                                  <DoiLink doi="10.1021/ja00402a071" />
-                                </div>
-                              </div>
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Catalog selector */}
-                    <div>
-                      <p className="text-xs text-[var(--color-text-muted)] mb-2">Select catalogs to screen:</p>
-                      {/* Core catalogs */}
-                      <div className="flex flex-wrap gap-2">
-                        {['PAINS', 'BRENK', 'NIH', 'ZINC'].map((catalog) => (
-                          <button
-                            key={catalog}
-                            onClick={() => toggleCatalog(catalog)}
-                            className={cn(
-                              'px-3 py-1.5 text-sm rounded-lg transition-all',
-                              selectedCatalogs.includes(catalog)
-                                ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
-                                : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-transparent hover:border-[var(--color-border)]'
-                            )}
-                          >
-                            {catalog}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* ChEMBL catalogs — collapsible group */}
-                      <div className="mt-3 border border-[var(--color-border)] rounded-lg overflow-hidden">
-                        <button
-                          onClick={() => setChemblExpanded(!chemblExpanded)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm bg-[var(--color-surface-sunken)] hover:bg-[var(--color-surface-sunken)]/80 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={allChemblSelected}
-                              ref={(el) => { if (el) el.indeterminate = someChemblSelected && !allChemblSelected; }}
-                              onChange={(e) => { e.stopPropagation(); toggleAllChembl(e.target.checked); }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                            />
-                            <span className="font-medium text-[var(--color-text-primary)]">ChEMBL Filters</span>
-                            {someChemblSelected && (
-                              <span className="text-xs text-[var(--color-text-muted)]">
-                                ({CHEMBL_CATALOGS.filter((c) => selectedCatalogs.includes(c.id)).length}/{CHEMBL_CATALOGS.length})
-                              </span>
-                            )}
-                          </div>
-                          <ChevronDown className={cn('w-4 h-4 text-[var(--color-text-muted)] transition-transform', chemblExpanded && 'rotate-180')} />
-                        </button>
-                        {chemblExpanded && (
-                          <div className="px-3 py-2 flex flex-wrap gap-2 border-t border-[var(--color-border)]">
-                            {CHEMBL_CATALOGS.map((catalog) => (
-                              <button
-                                key={catalog.id}
-                                onClick={() => toggleCatalog(catalog.id)}
-                                className={cn(
-                                  'px-3 py-1.5 text-sm rounded-lg transition-all',
-                                  selectedCatalogs.includes(catalog.id)
-                                    ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
-                                    : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)] border border-transparent hover:border-[var(--color-border)]'
-                                )}
-                              >
-                                {catalog.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <ClayButton
-                      variant="primary"
-                      onClick={handleScreenAlerts}
-                      disabled={!molecule.trim() || isAnyLoading || selectedCatalogs.length === 0}
-                      loading={alertsLoading}
-                      leftIcon={<AlertTriangle className="w-4 h-4" />}
-                    >
-                      Screen Alerts
-                    </ClayButton>
-
-                    {/* Safety Assessment (merged into this tab) */}
-                    <SafetyAccordion
-                      smiles={canonicalSmiles || ''}
-                      alertResult={safetyAlertResult}
-                      safetyResult={safetyAssessResult}
-                      isLoading={safetyLoading}
-                      error={safetyAlertError || safetyAssessError}
-                    />
-                  </div>
+                  <AlertsTabPanel
+                    chemblCatalogs={CHEMBL_CATALOGS}
+                    selectedCatalogs={selectedCatalogs}
+                    onToggleCatalog={toggleCatalog}
+                    chemblExpanded={chemblExpanded}
+                    onToggleChemblExpanded={() => setChemblExpanded(!chemblExpanded)}
+                    allChemblSelected={allChemblSelected}
+                    someChemblSelected={someChemblSelected}
+                    onToggleAllChembl={toggleAllChembl}
+                    onScreenAlerts={handleScreenAlerts}
+                    screenDisabled={!molecule.trim() || isAnyLoading || selectedCatalogs.length === 0}
+                    alertsLoading={alertsLoading}
+                    safetySmiles={canonicalSmiles || ''}
+                    safetyAlertResult={safetyAlertResult}
+                    safetyResult={safetyAssessResult}
+                    safetyLoading={safetyLoading}
+                    safetyError={safetyAlertError || safetyAssessError}
+                  />
                 )}
 
                 {/* Standardize Tab */}
                 {activeTab === 'standardize' && (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] flex-shrink-0">
-                        <Info className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[var(--color-text-secondary)] text-sm mb-3">
-                          Click Standardize to apply the ChEMBL structure pipeline:
-                        </p>
-                        <ul className="list-none space-y-1 text-sm text-[var(--color-text-secondary)]">
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                            Salt and solvent removal
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                            Charge neutralization
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                            Stereochemistry normalization
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                            Tautomer canonicalization (optional)
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeTautomer}
-                        onChange={(e) => setIncludeTautomer(e.target.checked)}
-                        className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
-                      />
-                      Enable tautomer canonicalization
-                    </label>
-
-                    <ClayButton
-                      variant="primary"
-                      onClick={handleStandardize}
-                      disabled={!molecule.trim() || isAnyLoading}
-                      loading={standardizationLoading}
-                      leftIcon={<Layers className="w-4 h-4" />}
-                    >
-                      Standardize
-                    </ClayButton>
-                  </div>
+                  <StandardizeTabPanel
+                    includeTautomer={includeTautomer}
+                    onToggleTautomer={setIncludeTautomer}
+                    onStandardize={handleStandardize}
+                    standardizeDisabled={!molecule.trim() || isAnyLoading}
+                    standardizeLoading={standardizationLoading}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
