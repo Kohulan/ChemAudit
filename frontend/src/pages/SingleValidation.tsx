@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,8 +41,12 @@ import {
   AlertsTabPanel,
   StandardizeTabPanel,
 } from '../components/validation/TabInputPanels';
-import { ScoringResults } from '../components/scoring/ScoringResults';
-import { StandardizationResults } from '../components/standardization/StandardizationResults';
+const ScoringResults = lazy(() =>
+  import('../components/scoring/ScoringResults').then((m) => ({ default: m.ScoringResults }))
+);
+const StandardizationResults = lazy(() =>
+  import('../components/standardization/StandardizationResults').then((m) => ({ default: m.StandardizationResults }))
+);
 import { DatabaseLookupControls, DatabaseResultsBox } from '../components/integrations/DatabaseLookupTab';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
@@ -1627,7 +1631,9 @@ export function SingleValidationPage() {
                   {standardizationResult.result.steps_applied.filter(s => s.applied).length} changes
                 </Badge>
               </div>
-              <StandardizationResults result={standardizationResult.result} />
+              <Suspense fallback={null}>
+                <StandardizationResults result={standardizationResult.result} />
+              </Suspense>
               <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
                 Completed in {standardizationResult.execution_time_ms}ms
               </p>
@@ -1772,7 +1778,9 @@ export function SingleValidationPage() {
             exit={{ opacity: 0, y: -20 }}
             className="card p-6 sm:p-8"
           >
-            <ScoringResults scoringResponse={scoringResult} />
+            <Suspense fallback={null}>
+              <ScoringResults scoringResponse={scoringResult} />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
