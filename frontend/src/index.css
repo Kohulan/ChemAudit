@@ -664,12 +664,12 @@
   }
 
   .badge-warning {
-    background: rgba(245, 158, 11, 0.12);
-    color: #b45309;
+    background: rgba(234, 88, 12, 0.12);
+    color: #c2410c;
   }
   .dark .badge-warning {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
+    background: rgba(249, 115, 22, 0.18);
+    color: #fb923c;
   }
 
   .badge-error {
