@@ -380,9 +380,9 @@ export function StructureFilterInput({
           </div>
 
           {selectedSmilesColumn && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-              <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-green-600 dark:text-green-400">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-status-success/10 border border-status-success/20">
+              <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-status-success-dark dark:text-status-success">
                 Ready to filter ~{csvColumns.row_count_estimate.toLocaleString()} molecules from column &ldquo;{selectedSmilesColumn}&rdquo;
               </p>
             </div>
@@ -393,9 +393,9 @@ export function StructureFilterInput({
       {/* ── SDF info ── */}
       {isSdf && !isAnalyzing && (
         <div className="mt-4">
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-            <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-green-600 dark:text-green-400">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-status-success/10 border border-status-success/20">
+            <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-status-success-dark dark:text-status-success">
               SDF file ready to process
               {sdfMoleculeCount !== null && ` (~${sdfMoleculeCount.toLocaleString()} molecules)`}
             </p>

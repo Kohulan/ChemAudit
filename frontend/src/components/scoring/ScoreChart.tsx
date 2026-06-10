@@ -409,7 +409,7 @@ export function ScoreBreakdownBar({
           )}
         </span>
       </div>
-      <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-chem-dark-200 dark:bg-chem-dark-800 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{

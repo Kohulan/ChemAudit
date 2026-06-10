@@ -690,7 +690,7 @@ export function BatchValidationPage() {
                   <ClayButton
                     size="sm"
                     onClick={handleShare}
-                    leftIcon={shareCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                    leftIcon={shareCopied ? <Check className="w-3.5 h-3.5 text-status-success-dark dark:text-status-success" /> : <Share2 className="w-3.5 h-3.5" />}
                   >
                     {shareCopied ? 'Link copied!' : 'Share'}
                   </ClayButton>

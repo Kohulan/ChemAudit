@@ -1306,7 +1306,7 @@ export function SingleValidationPage() {
                                   }
                                 />
                                 {result.input_interpretation?.detected_as === 'iupac' && (
-                                  <span className="text-[10px] text-green-600 dark:text-green-400">(converted from IUPAC name)</span>
+                                  <span className="text-[10px] text-status-success-dark dark:text-status-success">(converted from IUPAC name)</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
@@ -1795,7 +1795,7 @@ export function SingleValidationPage() {
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
           >
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border-strong)] shadow-2xl">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-status-success-dark dark:text-status-success" />
               <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 Share URL copied to clipboard!
               </span>

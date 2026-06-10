@@ -270,7 +270,7 @@ export const MoleculeComparisonPanel = React.memo(function MoleculeComparisonPan
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="flex items-center justify-center rounded-lg bg-white dark:bg-gray-900/50 border border-[var(--color-border-subtle)] min-h-[140px]">
+                    <div className="flex items-center justify-center rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] min-h-[140px]">
                       <MoleculeViewer
                         smiles={mol.standardization?.standardized_smiles || mol.smiles}
                         width={180}

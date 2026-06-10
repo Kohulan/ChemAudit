@@ -18,7 +18,7 @@ const CATEGORY_BADGE: Record<string, string> = {
   'Metabolic Liability': 'bg-amber-100 text-amber-700',
   'Assay Interference': 'bg-purple-100 text-purple-700',
   'Physicochemical': 'bg-slate-100 text-slate-700',
-  'Unwanted Functionality': 'bg-gray-100 text-gray-600',
+  'Unwanted Functionality': 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
 };
 
 function formatPatternName(name: string): string {
@@ -200,7 +200,7 @@ function FilterCard({
                 <div key={i} className="flex items-center gap-1.5 py-0.5">
                   <AlertTriangle className="w-3 h-3 flex-shrink-0 text-red-500" />
                   <span className="text-[var(--color-text-secondary)]">{formatPatternName(detail.name)}</span>
-                  <span className={cn('px-1.5 py-0 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                  <span className={cn('px-1.5 py-0 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]')}>
                     {detail.category}
                   </span>
                 </div>
@@ -319,7 +319,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                       <div key={i} className="flex items-center gap-1.5 text-[11px]">
                         <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-red-400" />
                         <span className="text-[var(--color-text-muted)]">{formatPatternName(detail.name)}</span>
-                        <span className={cn('px-1.5 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                        <span className={cn('px-1.5 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]')}>
                           {detail.category}
                         </span>
                       </div>

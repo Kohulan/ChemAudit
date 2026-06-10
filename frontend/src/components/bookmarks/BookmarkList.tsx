@@ -246,7 +246,7 @@ export function BookmarkList({
                     {/* Snapshot indicator */}
                     {snapshotIds.has(bookmark.id) && (
                       <span
-                        className="inline-flex ml-2 px-1.5 py-0.5 text-[9px] font-medium rounded bg-green-500/10 text-green-600 dark:text-green-400 uppercase tracking-wider"
+                        className="inline-flex ml-2 px-1.5 py-0.5 text-[9px] font-medium rounded bg-status-success/10 text-status-success-dark dark:text-status-success uppercase tracking-wider"
                         title="Full validation results saved"
                       >
                         Results saved

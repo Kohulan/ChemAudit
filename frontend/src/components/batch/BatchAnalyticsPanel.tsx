@@ -271,13 +271,13 @@ function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
             key={type}
             className={cn(
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
-              st.status === 'complete' && 'bg-green-500/10 text-green-600 dark:text-green-400',
+              st.status === 'complete' && 'bg-status-success/10 text-status-success-dark dark:text-status-success',
               st.status === 'computing' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
               st.status === 'pending' && 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]',
               st.status === 'failed' && 'bg-red-500/10 text-red-500',
             )}
           >
-            {st.status === 'complete' && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            {st.status === 'complete' && <span className="w-1.5 h-1.5 rounded-full bg-status-success" />}
             {st.status === 'computing' && <Loader2 className="w-3 h-3 animate-spin" />}
             {st.status === 'failed' && <AlertTriangle className="w-3 h-3" />}
             {typeLabels[type] || type}

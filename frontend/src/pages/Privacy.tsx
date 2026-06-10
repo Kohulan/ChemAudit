@@ -86,19 +86,19 @@ export function PrivacyPage() {
           </h2>
           <ul className="space-y-2 text-[var(--color-text-secondary)]">
             <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-1">&#10003;</span>
+              <span className="text-status-success-dark dark:text-status-success mt-1">&#10003;</span>
               <span><strong>No tracking</strong> - No analytics, no advertising cookies, no third-party monitoring</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-1">&#10003;</span>
+              <span className="text-status-success-dark dark:text-status-success mt-1">&#10003;</span>
               <span><strong>No accounts</strong> - No registration or personal data collection required</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-1">&#10003;</span>
+              <span className="text-status-success-dark dark:text-status-success mt-1">&#10003;</span>
               <span><strong>Session-scoped storage</strong> - Bookmarks and validation history are tied to an anonymous session cookie and automatically purged after 30 days</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-green-500 mt-1">&#10003;</span>
+              <span className="text-status-success-dark dark:text-status-success mt-1">&#10003;</span>
               <span><strong>You control your data</strong> - Delete all your data at any time using the button below</span>
             </li>
           </ul>
@@ -366,7 +366,7 @@ export function PrivacyPage() {
           )}
 
           {purgeResult && (
-            <div className="p-4 rounded-lg bg-green-500/10 text-green-700">
+            <div className="p-4 rounded-lg bg-status-success/10 text-status-success-dark dark:text-status-success">
               Data deleted successfully: {purgeResult.bookmarks} bookmark{purgeResult.bookmarks !== 1 ? 's' : ''} and {purgeResult.history} history entr{purgeResult.history !== 1 ? 'ies' : 'y'} removed.
               Local snapshots cleared.
             </div>

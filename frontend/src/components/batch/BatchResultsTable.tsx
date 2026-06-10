@@ -565,7 +565,7 @@ export function BatchResultsTable({
                           <span className={cn(
                             'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                             result.scoring.profile.score >= 80
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                               : result.scoring.profile.score >= 50
                               ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                               : 'bg-red-500/10 text-red-600 dark:text-red-400'
@@ -756,7 +756,7 @@ export function BatchResultsTable({
                                 aria-label="Copy registration hash to clipboard"
                               >
                                 {copiedIndex === result.index ? (
-                                  <Check className="w-3 h-3 text-green-500" />
+                                  <Check className="w-3 h-3 text-status-success-dark dark:text-status-success" />
                                 ) : (
                                   <Clipboard className="w-3 h-3" />
                                 )}
@@ -891,7 +891,7 @@ export function BatchResultsTable({
                                         {result.name && <p className="text-sm text-[var(--color-text-muted)] truncate">{result.name}</p>}
                                       </div>
                                     </div>
-                                    <div className="flex-1 flex items-center justify-center rounded-lg bg-white dark:bg-gray-900/50 border border-[var(--color-border-subtle)]">
+                                    <div className="flex-1 flex items-center justify-center rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)]">
                                       <MoleculeViewer smiles={result.standardization?.standardized_smiles || result.smiles} highlightAtoms={highlightedAtoms} width={240} height={162} />
                                     </div>
                                     {highlightedAtoms.length > 0 && (
