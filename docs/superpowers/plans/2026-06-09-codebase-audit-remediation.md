@@ -593,18 +593,18 @@ git commit -m "test: add coverage thresholds to ratchet backend and frontend cov
 
 ---
 
-## Wave 2 — Defensive hardening (medium) — ✅ 2.1–2.4 DONE (2026-06-09)
+## Wave 2 — Defensive hardening (medium) — ✅ ALL DONE (2.1–2.6)
 
 - **2.1 `progress_tracker` thread-safety** — ✅ DONE. Double-checked locking around the lazy Redis init (`threading.Lock`). Commit `fix(batch): make ProgressTracker lazy Redis init thread-safe`.
 - **2.2 OPSIN JVM init-failed flag** — ✅ DONE. `_init_failed` sticky flag; first failure re-raises (startup logs), subsequent calls short-circuit. Commit `fix(iupac): skip OPSIN re-init after failure...`.
 - **2.3 SYBA subprocess input hardening** — ✅ DONE. Reject oversized/non-printable SMILES before spawn (`_MAX_SYBA_SMILES_LEN=2000`), explicit `shell=False`. Commit `fix(profiler): validate SYBA SMILES input...`.
 - **2.4 Admin-secret replay resistance** — ✅ DONE (backward-compatible). Added `generate_admin_token()` / `verify_admin_secret()`: HMAC-signed, time-bound tokens (`ADMIN_AUTH_MAX_SKEW_SECONDS=300`) always honoured; opt-in strict mode `ADMIN_AUTH_REQUIRE_SIGNED` (default False) rejects the static secret. Existing clients unaffected. Commit `feat(security): add opt-in HMAC-signed admin tokens...`.
-- **2.5 SCScore vendor weights** — ⛔ BLOCKED on external artifact. `scscore_weights.npz` is a binary that cannot be fabricated here; the code already degrades gracefully (`{"error": "scscore not available"}`). Action for maintainer: commit the real `.npz` to `services/profiler/vendor/` or document the separate install step.
+- **2.5 SCScore vendor weights** — ✅ DONE (2026-06-10, superseded the block). Investigation showed the upstream `scscore` package is Python-2 / NumPy-1 era (`import cPickle`, `dtype=np.bool`) and cannot run on this stack, and its loader has no `.npz` path — so the original "supply an `.npz`" plan was unworkable. Resolved like `molvs` (2.6): vendored the `full_reaxys_model_1024bool` weights as a pickle-free, NumPy-portable `scscore_weights.npz` (from upstream's `json.gz`; MIT, attributed) and reimplemented the ~25-line inference (Morgan-2/1024 FP → MLP → sigmoid 1-5) in `sa_comparison.py`, dropping the broken import. Reproduces the upstream model bit-for-bit (validated < 1e-6); still degrades gracefully if the weight file is absent. Commit `009d221`.
 - **2.6 `molvs` migration audit** — ✅ DONE (2026-06-10, superseded the deferral). Rather than swap to `rdkit.Chem.MolStandardize`, the unmaintained `molvs` dependency was dropped entirely: its 61 `REMOVE_FRAGMENTS` patterns were vendored verbatim into `services/validation/_fragment_patterns.py` with an upstream-parity test. Commit `c526c22 refactor(validation): vendor MolVS fragment patterns, drop unmaintained molvs dependency`.
 
 ---
 
-## Wave 3 — Larger backend refactors — ✅ 3.1/3.2/3.4/3.6/3.7 DONE (2026-06-09)
+## Wave 3 — Larger backend refactors — ✅ ALL DONE (3.1–3.7)
 
 - **3.1 Chunked Redis batch-result storage** — ✅ DONE. Results stored as a Redis LIST (one JSON per element); default unfiltered/unsorted view paginates via `LRANGE` (no full deserialize); filtered/sorted views load-all + view-cache; backward-compatible with the legacy single-blob format. Commit `perf(batch): store results as Redis list...`.
 - **3.2 WebSocket duplicate-subscriber fix + test suite** — ✅ DONE. Ownership guard: a superseded subscriber stops before broadcasting; cancel-and-await prior task in `connect`; full WS test suite added (was zero coverage). Commit `fix(websockets): prevent duplicate broadcasts...`.
@@ -645,8 +645,11 @@ The full backend suite was validated against a **real stack**: Redis + Postgres 
 - **Performance:** batch JSON blob → 3.1; blocking `task.get` → T6; O(n²) clustering → T5; SYBA subprocess/call → 3.3; t-SNE blocking → 3.4. ✅ covered.
 - **Fragile areas:** WS duplicate subscriber → 3.2; no WS tests → 3.2; progress_tracker thread-safety → 2.1; `autoretry_for=(Exception,)` → T2; OPSIN JVM → 2.2. ✅ covered.
 - **Scaling:** Redis SPOF/memory → 3.7; clustering O(n²) memory → T5 (compute) + cap noted. ✅ covered.
-- **Dependencies:** `sascorer`/`npscorer` import → T7; `scscore` NumPy 2.x/vendor → 2.5 (blocked on artifact); `molvs` → 2.6. ✅ covered.
+- **Dependencies:** `sascorer`/`npscorer` import → T7; `scscore` NumPy 2.x/vendor → 2.5 (DONE — vendored weights + reimplemented inference); `molvs` → 2.6 (DONE). ✅ covered.
 - **Missing features:** no E2E → 4.5; no Celery time limits → T1; Celery integration tests → 3.6. ✅ covered.
 - **Test gaps:** WS manager → 3.2; frontend pages → 4.4; Celery aggregation → 3.6; `window.prompt` → 4.3; rate-limit conn close → T4. ✅ covered.
 
-Every CONCERNS.md item maps to a task, a flag, or an explicitly-blocked artifact. No placeholders remain in Wave 1 (full code); Waves 2–4 are intentionally design-level and will be expanded per-wave at scheduling time.
+Every CONCERNS.md item is now resolved and committed (Waves 1–4, all sub-items
+including 2.5/2.6/3.3/3.5 and all of 4.1). No items remain blocked or deferred.
+Branch `fix/codebase-audit-concerns` is green: backend 2346 passed / 0 failed /
+31 skipped; frontend tsc + eslint clean, vitest 202, Playwright E2E 1.
