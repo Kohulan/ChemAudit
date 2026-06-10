@@ -3,8 +3,8 @@
 Computes three independent synthesizability scores and returns them together
 for comparison. Handles all graceful-fallback scenarios:
   - SA Score: Always available via RDKit Contrib sascorer (bundled with RDKit)
-  - SCScore: Optional pip install; gracefully falls back on ImportError or
-    weight file NumPy 2.x incompatibility
+  - SCScore: Self-contained reimplementation over vendored weights (no external
+    package); gracefully falls back if the weight file is absent
   - SYBA: Requires subprocess isolation; gracefully falls back on timeout or
     subprocess failure
 
@@ -12,24 +12,63 @@ LICENSING NOTE: SYBA is GPL-3.0. It MUST ONLY be called via subprocess
 isolation. Never import syba at module level in this Apache-2.0 codebase.
 """
 
+import json
 import logging
 import os
+import queue
 import subprocess
 import sys
+import threading
+from functools import lru_cache
 from typing import Any, Dict, Optional
 
+import numpy as np
 from rdkit import Chem, RDConfig
+from rdkit.Chem import rdFingerprintGenerator
 
 from app.core.error_sanitizer import safe_error_detail
 
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
-import sascorer  # type: ignore  # noqa: E402
-
 logger = logging.getLogger(__name__)
 
-# Module-level cache for SCScore scorer (loaded once, reused across calls)
-_SCSCORE_SCORER: Optional[Any] = None
+
+@lru_cache(maxsize=1)
+def _get_sascorer():
+    """Lazily import RDKit Contrib sascorer; return None if unavailable."""
+    try:
+        sa_path = os.path.join(RDConfig.RDContribDir, "SA_Score")
+        if sa_path not in sys.path:
+            sys.path.insert(0, sa_path)
+        import sascorer  # type: ignore[import-untyped]
+
+        return sascorer
+    except Exception:
+        return None
+
+
+# Module-level cache for the vendored SCScore weights (loaded once, reused).
+_SCSCORE_WEIGHTS: Optional[list] = None
 _SCSCORE_LOAD_ATTEMPTED: bool = False
+_SCSCORE_WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
+
+# SCScore model architecture (Coley et al., 2018) — must match the trained
+# weights. The model is a small MLP over a Morgan-2 1024-bit fingerprint;
+# scores range 1 (trivial starting material) to 5 (many complex steps).
+_SCSCORE_FP_LEN = 1024
+_SCSCORE_FP_RAD = 2
+_SCSCORE_SCALE = 5.0
+
+
+@lru_cache(maxsize=1)
+def _get_scscore_fp_gen():
+    """Reusable Morgan generator matching SCScore's training featurisation."""
+    return rdFingerprintGenerator.GetMorganGenerator(
+        radius=_SCSCORE_FP_RAD, fpSize=_SCSCORE_FP_LEN, includeChirality=True
+    )
+
+
+# Upper bound on SMILES length accepted by the SYBA subprocess path. Scoring a
+# SMILES longer than this is pointless and only widens the input surface.
+_MAX_SYBA_SMILES_LEN = 2000
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +89,17 @@ def _compute_sa_score(mol: Chem.Mol) -> Dict[str, Any]:
     Returns:
         dict with keys: score (float), scale (str), classification (str), available (bool)
     """
-    score = sascorer.calculateScore(mol)
+    _sa = _get_sascorer()
+    if _sa is None:
+        return {
+            "score": None,
+            "scale": "1-10",
+            "classification": None,
+            "available": False,
+            "error": "sascorer not available",
+        }
+
+    score = _sa.calculateScore(mol)
     if score < 3:
         classification = "easy"
     elif score < 5:
@@ -67,57 +116,73 @@ def _compute_sa_score(mol: Chem.Mol) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# SCScore (optional pip install — graceful fallback)
+# SCScore (self-contained reimplementation over vendored weights)
 # ---------------------------------------------------------------------------
 
 
-def _load_scscore() -> Optional[Any]:
-    """Attempt to load and restore the SCScore model.
+def _load_scscore_weights() -> Optional[list]:
+    """Load the vendored SCScore MLP weights once (list of 12 numpy arrays).
 
-    Tries two paths:
-    1. Standard SCScorer().restore() — works when scscore is pip-installed
-       and NumPy compat is OK
-    2. Vendor path fallback — looks for scscore_weights.npz in the vendor/
-       subdirectory alongside this module (pre-converted for NumPy 2.x)
+    The weights are the upstream ``model.ckpt-10654`` (full_reaxys_model_1024bool,
+    Coley et al.) re-saved from the project-agnostic ``json.gz`` form into a
+    portable, pickle-free ``.npz`` (plain ``.npy`` arrays — readable across NumPy
+    versions). Returns None if the file is absent, so SCScore degrades
+    gracefully without ever raising.
 
     Returns:
-        Loaded SCScorer instance, or None if unavailable
+        Ordered list of weight/bias arrays [W0, b0, W1, b1, ...], or None.
     """
-    global _SCSCORE_SCORER, _SCSCORE_LOAD_ATTEMPTED
+    global _SCSCORE_WEIGHTS, _SCSCORE_LOAD_ATTEMPTED
 
     if _SCSCORE_LOAD_ATTEMPTED:
-        return _SCSCORE_SCORER
+        return _SCSCORE_WEIGHTS
 
     _SCSCORE_LOAD_ATTEMPTED = True
 
+    if not os.path.isfile(_SCSCORE_WEIGHTS_PATH):
+        logger.debug(
+            "SCScore weights not present at %s — SCScore unavailable (see vendor/README.md)",
+            _SCSCORE_WEIGHTS_PATH,
+        )
+        _SCSCORE_WEIGHTS = None
+        return None
+
     try:
-        from scscore.standalone_model_numpy import SCScorer  # type: ignore
-
-        scorer = SCScorer()
-        try:
-            scorer.restore()
-            _SCSCORE_SCORER = scorer
-            return _SCSCORE_SCORER
-        except Exception as restore_err:
-            logger.debug("SCScore restore() failed (%s), trying vendor fallback", restore_err)
-            # Try vendor-supplied .npz weight file (pre-converted for NumPy 2.x)
-            vendor_path = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
-            if os.path.isfile(vendor_path):
-                try:
-                    scorer2 = SCScorer()
-                    scorer2.restore(weight_path=vendor_path)
-                    _SCSCORE_SCORER = scorer2
-                    return _SCSCORE_SCORER
-                except Exception as vendor_err:
-                    logger.debug("SCScore vendor fallback failed: %s", vendor_err)
-
-    except ImportError:
-        logger.debug("scscore not installed — SCScore will be unavailable")
+        with np.load(_SCSCORE_WEIGHTS_PATH) as data:
+            keys = sorted(data.files, key=lambda s: int(s.split("_")[1]))
+            _SCSCORE_WEIGHTS = [data[k] for k in keys]
     except Exception as err:
-        logger.debug("Unexpected error loading SCScore: %s", err)
+        logger.warning("Failed to load vendored SCScore weights (%s); SCScore unavailable", err)
+        _SCSCORE_WEIGHTS = None
 
-    _SCSCORE_SCORER = None
-    return None
+    return _SCSCORE_WEIGHTS
+
+
+def _scscore_fingerprint(mol: Chem.Mol) -> np.ndarray:
+    """Morgan fingerprint (radius 2, 1024 bits, chirality) as a float64 vector.
+
+    Reproduces the exact featurisation the upstream SCScore model was trained
+    with. Bit values are 0/1, exactly representable, so float64 here matches the
+    model's original float32 featurisation bit-for-bit (verified against the
+    upstream standalone model to < 1e-6).
+    """
+    return _get_scscore_fp_gen().GetFingerprintAsNumPy(mol).astype(np.float64)
+
+
+def _scscore_forward(weights: list, fp: np.ndarray) -> float:
+    """Run the SCScore MLP forward pass: dense layers + ReLU, sigmoid-scaled to 1-5.
+
+    Mirrors upstream ``SCScorer.apply``: weights are (W, b) pairs applied in
+    sequence with ReLU between hidden layers, then ``1 + (scale-1)*sigmoid(x)``.
+    """
+    x = fp
+    n = len(weights)
+    for i in range(0, n, 2):
+        x = np.matmul(x, weights[i]) + weights[i + 1]
+        if i != n - 2:  # ReLU on every layer except the last
+            x = x * (x > 0)
+    x = 1.0 + (_SCSCORE_SCALE - 1.0) * (1.0 / (1.0 + np.exp(-x)))
+    return float(np.asarray(x).ravel()[0])
 
 
 def _compute_scscore(smiles: str) -> Dict[str, Any]:
@@ -132,15 +197,25 @@ def _compute_scscore(smiles: str) -> Dict[str, Any]:
     Returns:
         dict with keys: score/error, scale, classification, available
     """
-    scorer = _load_scscore()
-    if scorer is None:
+    weights = _load_scscore_weights()
+    if weights is None:
         return {
             "error": "scscore not available",
             "available": False,
         }
 
     try:
-        _, score = scorer.apply(smiles)
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return {
+                "error": "Invalid SMILES for SCScore",
+                "available": False,
+            }
+
+        fp = _scscore_fingerprint(mol)
+        # Upstream returns 0 when the fingerprint is empty (no bits set).
+        score = 0.0 if float(fp.sum()) == 0.0 else _scscore_forward(weights, fp)
+
         if score < 2:
             classification = "easy"
         elif score < 3:
@@ -166,49 +241,142 @@ def _compute_scscore(smiles: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _syba_via_subprocess(smiles: str) -> Optional[float]:
-    """Run SYBA prediction via subprocess to maintain GPL-3.0 isolation.
+_SYBA_WORKER_PATH = os.path.join(os.path.dirname(__file__), "syba_worker.py")
+_SYBA_READY_TIMEOUT = 60.0  # seconds to allow for one-time SYBA model load
+_SYBA_PREDICT_TIMEOUT = 30.0  # seconds per prediction
 
-    SYBA (SYnthesizaBility Assessment) is GPL-3.0 licensed. This Apache-2.0
-    codebase must never import it directly. Instead, we spawn a fresh Python
-    subprocess that imports and runs SYBA, then captures the numeric output.
 
-    Args:
-        smiles: SMILES string to score
+class _SybaWorker:
+    """Manages a long-lived SYBA subprocess to amortise the model-load cost.
 
-    Returns:
-        SYBA score as float, or None on any failure (timeout, import error,
-        subprocess error, parse error)
+    SYBA (GPL-3.0) is confined to a separate process (``syba_worker.py``); this
+    Apache-2.0 module only exchanges JSON lines with it over stdin/stdout. The
+    worker is started lazily on first use and reused for all later predictions.
+    Access is serialised by a lock (a single worker, one request at a time), a
+    background reader thread feeds responses to a queue for timeout handling, and
+    a crashed/hung worker is killed and transparently restarted on the next call.
+    A permanent failure (SYBA not importable) is sticky so we don't respawn.
     """
-    script = (
-        "from syba.syba import SybaClassifier; "
-        "s = SybaClassifier(); "
-        "s.fitDefaultScore(); "
-        f"score = s.predict({smiles!r}); "
-        "print(score)"
-    )
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if proc.returncode != 0:
-            logger.debug("SYBA subprocess failed (rc=%d): %s", proc.returncode, proc.stderr[:200])
+
+    def __init__(self, command: Optional[list] = None):
+        self._command = command or [sys.executable, "-u", _SYBA_WORKER_PATH]
+        self._proc: Optional[subprocess.Popen] = None
+        self._queue: "queue.Queue[Optional[str]]" = queue.Queue()
+        self._lock = threading.Lock()
+        self._fatal = False  # SYBA permanently unavailable (e.g. not installed)
+
+    def _read_loop(self, proc: subprocess.Popen) -> None:
+        try:
+            for line in proc.stdout:  # type: ignore[union-attr]
+                self._queue.put(line)
+        finally:
+            self._queue.put(None)  # EOF sentinel
+
+    def _kill(self) -> None:
+        if self._proc is not None:
+            try:
+                self._proc.kill()
+            except Exception:
+                pass
+        self._proc = None
+
+    def _ensure_started(self) -> bool:
+        if self._fatal:
+            return False
+        if self._proc is not None and self._proc.poll() is None:
+            return True
+
+        try:
+            self._proc = subprocess.Popen(
+                self._command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1,
+                shell=False,
+            )
+        except Exception as exc:
+            logger.warning("SYBA worker failed to start: %s", exc)
+            self._fatal = True
+            return False
+
+        self._queue = queue.Queue()
+        threading.Thread(target=self._read_loop, args=(self._proc,), daemon=True).start()
+
+        # Handshake: wait for the worker to load the model (or report fatal).
+        try:
+            line = self._queue.get(timeout=_SYBA_READY_TIMEOUT)
+        except queue.Empty:
+            logger.warning("SYBA worker did not become ready within %ss", _SYBA_READY_TIMEOUT)
+            self._kill()
+            return False
+        try:
+            msg = json.loads(line) if line else {}
+        except Exception:
+            msg = {}
+        if msg.get("ready"):
+            return True
+        # Not ready. A fatal handshake (SYBA missing) is sticky; otherwise retry later.
+        if msg.get("fatal"):
+            logger.warning("SYBA unavailable: %s", msg.get("error", "model load failed"))
+            self._fatal = True
+        self._kill()
+        return False
+
+    def predict(self, smiles: str) -> Optional[float]:
+        """Return the SYBA score for ``smiles``, or None if unavailable."""
+        # Defense-in-depth: reject pathological input before touching the worker.
+        if not smiles or len(smiles) > _MAX_SYBA_SMILES_LEN or not smiles.isprintable():
+            logger.debug("SYBA input rejected (length/non-printable): %r", smiles[:60])
             return None
 
-        return float(proc.stdout.strip())
+        with self._lock:
+            if not self._ensure_started():
+                return None
+            try:
+                self._proc.stdin.write(json.dumps({"smiles": smiles}) + "\n")  # type: ignore[union-attr]
+                self._proc.stdin.flush()  # type: ignore[union-attr]
+            except Exception as exc:
+                logger.debug("SYBA worker write failed: %s", exc)
+                self._kill()
+                return None
 
-    except subprocess.TimeoutExpired:
-        logger.debug("SYBA subprocess timed out after 30s")
-        return None
-    except (ValueError, OSError) as err:
-        logger.debug("SYBA subprocess error: %s", err)
-        return None
-    except Exception as err:
-        logger.debug("Unexpected SYBA subprocess error: %s", err)
-        return None
+            try:
+                line = self._queue.get(timeout=_SYBA_PREDICT_TIMEOUT)
+            except queue.Empty:
+                logger.debug("SYBA prediction timed out; restarting worker")
+                self._kill()
+                return None
+
+            if line is None:  # worker died mid-request
+                self._kill()
+                return None
+
+            try:
+                msg = json.loads(line)
+            except Exception:
+                return None
+            score = msg.get("score")
+            return float(score) if score is not None else None
+
+    def shutdown(self) -> None:
+        with self._lock:
+            if self._proc is not None:
+                try:
+                    self._proc.stdin.close()  # type: ignore[union-attr]
+                except Exception:
+                    pass
+                self._kill()
+
+
+# Module-level singleton reused across all SYBA scoring calls.
+_syba_worker = _SybaWorker()
+
+
+def _syba_via_subprocess(smiles: str) -> Optional[float]:
+    """Compute a SYBA score via the persistent worker (GPL-3.0 isolated)."""
+    return _syba_worker.predict(smiles)
 
 
 def _compute_syba(smiles: str) -> Dict[str, Any]:

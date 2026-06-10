@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Optional
 
 from rdkit import Chem, RDConfig
@@ -32,11 +33,21 @@ from app.services.alerts.nibr_filters import screen_nibr
 from app.services.scoring.safety_filters import _scorer
 from app.services.structure_filter.filter_config import FilterConfig
 
-# SA Score via RDKit Contrib (Phase 7 pattern)
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
-import sascorer  # type: ignore  # noqa: E402
-
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def _get_sascorer():
+    """Lazily import RDKit Contrib sascorer; return None if unavailable."""
+    try:
+        sa_path = os.path.join(RDConfig.RDContribDir, "SA_Score")
+        if sa_path not in sys.path:
+            sys.path.insert(0, sa_path)
+        import sascorer  # type: ignore[import-untyped]
+
+        return sascorer
+    except Exception:
+        return None
 
 # Stage name constants
 STAGE_PARSE = "parse"
@@ -264,11 +275,15 @@ def filter_batch(smiles_list: list[str], config: FilterConfig) -> FilterResult:
     stage_input = len(active)
     sa_rejected: set[int] = set()
 
+    _sa = _get_sascorer()
+    if _sa is None:
+        raise RuntimeError("SA Score unavailable: RDKit Contrib SA_Score not installed")
+
     for idx in active:
         mol = mol_objects[idx]
         assert mol is not None
 
-        sa_score = sascorer.calculateScore(mol)
+        sa_score = _sa.calculateScore(mol)
         if sa_score > config.max_sa_score:
             results[idx].status = "rejected"
             results[idx].failed_at = STAGE_SA

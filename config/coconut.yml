@@ -5,6 +5,7 @@
 # Batch processing limits
 MAX_BATCH_SIZE: 1000000
 MAX_FILE_SIZE_MB: 1024
+CLUSTERING_MAX_MOLECULES: 5000   # Butina clustering cap (O(n^2) distance compute)
 
 # Worker configuration
 CELERY_WORKERS: 16              # Workers for large batch jobs

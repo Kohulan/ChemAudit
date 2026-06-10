@@ -30,6 +30,7 @@ celery_app = Celery(
 # Define exchanges and queues for priority-based routing
 default_exchange = Exchange("default", type="direct")
 priority_exchange = Exchange("priority", type="direct")
+analytics_exchange = Exchange("analytics", type="direct")
 
 celery_app.conf.update(
     task_serializer="json",
@@ -40,10 +41,17 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,  # Process one task at a time for accurate progress
     task_acks_late=True,  # Acknowledge tasks after completion for reliability
     task_reject_on_worker_lost=True,  # Requeue tasks if worker dies
+    # Global task time limits — backstop against pathological molecules that
+    # make RDKit ring perception run unbounded and permanently block a worker.
+    task_soft_time_limit=3300,  # 55 min: raises SoftTimeLimitExceeded (graceful)
+    task_time_limit=3600,  # 60 min: hard SIGKILL of the worker process
     # Queue definitions
     task_queues=(
         Queue("default", default_exchange, routing_key="default"),
         Queue("high_priority", priority_exchange, routing_key="high_priority"),
+        # Isolates expensive analytics (t-SNE, etc.) so they cannot starve the
+        # batch-processing default queue. Requires a worker consuming -Q analytics.
+        Queue("analytics", analytics_exchange, routing_key="analytics"),
     ),
     task_default_queue="default",
     task_default_exchange="default",
@@ -68,12 +76,13 @@ celery_app.conf.update(
         "app.services.batch.tasks.aggregate_batch_results_priority": {
             "queue": "high_priority",
         },
-        # Analytics tasks
+        # Analytics tasks — cheap ones stay on default; expensive ones (t-SNE,
+        # similarity matrices) go to the isolated analytics queue.
         "app.services.batch.analytics_tasks.run_cheap_analytics": {
             "queue": "default",
         },
         "app.services.batch.analytics_tasks.run_expensive_analytics": {
-            "queue": "default",
+            "queue": "analytics",
         },
         # Dataset intelligence audit
         "app.services.dataset_intelligence.batch_processor.process_dataset_audit": {

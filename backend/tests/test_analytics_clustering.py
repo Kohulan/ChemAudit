@@ -125,3 +125,65 @@ class TestButinaClustering:
         assert result["singleton_count"] == 0
         assert result["largest_cluster_size"] == 4
         assert sorted(result["clusters"][0]["member_indices"]) == [0, 1, 2, 3]
+
+    def test_respects_explicit_max_molecules_cap(self):
+        """An explicit max_molecules truncates the input before clustering."""
+        from app.services.analytics.clustering import compute_butina_clustering
+
+        results = [
+            _make_result("c1ccccc1C(=O)O", 0),
+            _make_result("c1ccc(O)cc1C(=O)O", 1),
+            _make_result("c1ccc(N)cc1C(=O)O", 2),
+            _make_result("c1ccc(F)cc1C(=O)O", 3),
+            _make_result("c1ccc(Cl)cc1C(=O)O", 4),
+        ]
+        result = compute_butina_clustering(results, distance_cutoff=0.4, max_molecules=2)
+
+        # Only the first 2 molecules are considered.
+        total_members = sum(c["size"] for c in result["clusters"])
+        assert total_members == 2
+
+    def test_cap_resolves_from_settings(self, monkeypatch):
+        """With no explicit cap, the configured CLUSTERING_MAX_MOLECULES drives it."""
+        import app.services.analytics.clustering as clustering
+
+        monkeypatch.setattr(clustering.settings, "CLUSTERING_MAX_MOLECULES", 3, raising=False)
+        results = [_make_result("c1ccccc1C(=O)O", i) for i in range(6)]
+        result = clustering.compute_butina_clustering(results, distance_cutoff=0.4)
+
+        total_members = sum(c["size"] for c in result["clusters"])
+        assert total_members == 3
+
+    def test_resolve_cap_precedence(self, monkeypatch):
+        """Effective cap precedence: explicit arg > configured setting > default."""
+        import app.services.analytics.clustering as clustering
+
+        monkeypatch.setattr(clustering.settings, "CLUSTERING_MAX_MOLECULES", 1000, raising=False)
+        assert clustering._resolve_cap(50) == 50      # explicit wins
+        assert clustering._resolve_cap(None) == 1000   # falls back to setting
+        assert clustering._resolve_cap(0) == 1000      # non-positive -> setting
+
+
+def test_bulk_and_loop_distances_match():
+    """Vectorized BulkTanimotoSimilarity must equal the naive loop, same order."""
+    from rdkit import Chem, DataStructs
+    from rdkit.Chem import rdFingerprintGenerator
+
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    smis = ["CCO", "CCN", "c1ccccc1", "CC(=O)O", "CCCl"]
+    fps = [gen.GetFingerprint(Chem.MolFromSmiles(s)) for s in smis]
+    n = len(fps)
+
+    naive = []
+    for i in range(1, n):
+        for j in range(i):
+            naive.append(1.0 - DataStructs.TanimotoSimilarity(fps[i], fps[j]))
+
+    bulk = []
+    for i in range(1, n):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        bulk.extend(1.0 - s for s in sims)
+
+    assert len(naive) == len(bulk)
+    for a, b in zip(naive, bulk):
+        assert abs(a - b) < 1e-9

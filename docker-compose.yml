@@ -19,7 +19,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: chemaudit-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD:-devpassword123}
+    # Bound memory and evict only TTL'd keys (cache/results/progress). volatile-lru
+    # (not allkeys-lru) ensures no-TTL Celery broker messages are never evicted.
+    command: redis-server --requirepass ${REDIS_PASSWORD:-devpassword123} --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-volatile-lru}
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
@@ -47,6 +49,7 @@ services:
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       # Security settings
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
@@ -85,6 +88,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       # Security settings (required — Celery imports app.core.config)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -116,6 +120,40 @@ services:
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
       - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
+      - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
+      # Security settings (required — Celery imports app.core.config)
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - API_KEY_ADMIN_SECRET=${API_KEY_ADMIN_SECRET:?API_KEY_ADMIN_SECRET is required}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?CSRF_SECRET_KEY is required}
+      - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:-http://localhost:3002,http://127.0.0.1:3002}
+      - DEBUG=true
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Dedicated worker for expensive analytics (t-SNE, similarity matrices) so they
+  # cannot starve the default batch-processing queue.
+  celery-worker-analytics:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chemaudit-celery-worker-analytics
+    entrypoint: []
+    command: celery -A app.celery_app worker --loglevel=${CELERY_LOG_LEVEL:-info} --concurrency=${CELERY_WORKERS_ANALYTICS:-1} -Q analytics -n worker-analytics@%h
+    volumes:
+      - ./backend:/app
+      - /app/data
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chemaudit}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-chemaudit}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:-devpassword123}@redis:6379/0}
+      - PYTHONUNBUFFERED=1
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10000}
+      - CLUSTERING_MAX_MOLECULES=${CLUSTERING_MAX_MOLECULES:-1000}
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}
       # Security settings (required — Celery imports app.core.config)
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}

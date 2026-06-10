@@ -1,6 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ClayButton } from '../ui/ClayButton';
 import { InfoTooltip } from '../ui/Tooltip';
+import { ConfirmModal } from '../common/ConfirmModal';
+import { PromptModal } from '../common/PromptModal';
 import type { DatasetWeightProfile } from '../../types/dataset_intelligence';
 import { PRESET_WEIGHT_IDS } from '../../types/dataset_intelligence';
 
@@ -53,8 +55,8 @@ const WEIGHT_KEYS = ['parsability', 'stereo', 'uniqueness', 'alerts', 'std_consi
  * - Each slider: 0 to 1.0, step 0.05
  * - Display current value as percentage
  * - Profile management: dropdown + Save/Delete/Reset buttons
- * - Save uses window.prompt per UI-SPEC interaction contract
- * - Delete uses window.confirm
+ * - Save uses an in-app PromptModal (accessible, testable)
+ * - Delete uses an in-app ConfirmModal
  * - Preset profiles cannot be deleted (PRESET_WEIGHT_IDS guard)
  */
 export function WeightSliders({
@@ -68,25 +70,19 @@ export function WeightSliders({
   onResetToDefaults,
 }: WeightSlidersProps) {
   const isPreset = activeProfileId ? PRESET_WEIGHT_IDS.has(activeProfileId) : false;
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleSave = useCallback(() => {
-    const name = window.prompt('Name your custom weight profile:');
-    if (name && name.trim()) {
-      onSaveProfile(name.trim());
-    }
-  }, [onSaveProfile]);
+  const deleteProfileName = activeProfileId
+    ? (savedProfiles.find((p) => p.id === activeProfileId)?.name ?? activeProfileId)
+    : '';
+
+  const handleSave = useCallback(() => setShowSavePrompt(true), []);
 
   const handleDelete = useCallback(() => {
     if (!activeProfileId || isPreset) return;
-    const profile = savedProfiles.find((p) => p.id === activeProfileId);
-    const profileName = profile?.name ?? activeProfileId;
-    const confirmed = window.confirm(
-      `Delete '${profileName}'? This cannot be undone.`,
-    );
-    if (confirmed) {
-      onDeleteProfile(activeProfileId);
-    }
-  }, [activeProfileId, isPreset, savedProfiles, onDeleteProfile]);
+    setShowDeleteConfirm(true);
+  }, [activeProfileId, isPreset]);
 
   const handleProfileChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -207,6 +203,28 @@ export function WeightSliders({
           </ClayButton>
         </div>
       </div>
+
+      <PromptModal
+        isOpen={showSavePrompt}
+        title="Name your custom weight profile"
+        placeholder="e.g. My weights"
+        onConfirm={(name) => {
+          onSaveProfile(name);
+          setShowSavePrompt(false);
+        }}
+        onCancel={() => setShowSavePrompt(false)}
+      />
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete profile"
+        message={`Delete '${deleteProfileName}'? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (activeProfileId) onDeleteProfile(activeProfileId);
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

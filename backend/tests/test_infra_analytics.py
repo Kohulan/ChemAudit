@@ -12,6 +12,7 @@ Covers:
 import json
 from unittest.mock import MagicMock, patch
 
+import fakeredis
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
@@ -42,23 +43,22 @@ def test_batch_result_ttl_is_24h():
 def test_get_all_results_returns_empty_for_missing_job():
     """get_all_results returns [] when there are no results in Redis."""
     storage = ResultStorage()
-    mock_redis = MagicMock()
-    mock_redis.get.return_value = None
-    storage._redis = mock_redis
+    storage._redis = fakeredis.FakeRedis()
 
-    result = storage.get_all_results("nonexistent-job-id")
-
-    assert result == []
-    mock_redis.get.assert_called_once_with("batch:results:nonexistent-job-id")
+    assert storage.get_all_results("nonexistent-job-id") == []
 
 
 def test_get_all_results_deserializes_stored_data():
-    """get_all_results correctly deserializes stored JSON list."""
+    """get_all_results returns the stored results after a store_results round trip."""
+    from app.services.batch.result_aggregator import compute_statistics
+
     storage = ResultStorage()
-    raw = [{"smiles": "CCO", "status": "success"}, {"smiles": "c1ccccc1", "status": "success"}]
-    mock_redis = MagicMock()
-    mock_redis.get.return_value = json.dumps(raw).encode()
-    storage._redis = mock_redis
+    storage._redis = fakeredis.FakeRedis()
+    raw = [
+        {"smiles": "CCO", "status": "success"},
+        {"smiles": "c1ccccc1", "status": "success"},
+    ]
+    storage.store_results("test-job-123", raw, compute_statistics(raw))
 
     result = storage.get_all_results("test-job-123")
 

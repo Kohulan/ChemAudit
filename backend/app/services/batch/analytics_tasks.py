@@ -152,7 +152,13 @@ def run_cheap_analytics(self, job_id: str) -> None:
             )
 
 
-@celery_app.task(bind=True, queue="default", ignore_result=True)
+@celery_app.task(
+    bind=True,
+    queue="analytics",
+    ignore_result=True,
+    soft_time_limit=600,  # 10 min: raise SoftTimeLimitExceeded for runaway t-SNE
+    time_limit=660,  # 11 min: hard kill
+)
 def run_expensive_analytics(
     self,
     job_id: str,
