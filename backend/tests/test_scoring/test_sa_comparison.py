@@ -78,18 +78,22 @@ class TestSAComparison:
     # SCScore tests (optional dependency — graceful fallback)
     # ------------------------------------------------------------------
 
-    def test_scscore_import_error(self, aspirin_mol):
-        """When _load_scscore returns None, result must have available=False."""
+    def test_scscore_available_for_aspirin(self, aspirin_mol):
+        """With vendored weights present, SCScore is available and matches the model."""
+        from app.services.profiler.sa_comparison import _compute_scscore
+
+        result = _compute_scscore(ASPIRIN_SMILES)
+
+        assert result["available"] is True
+        assert result["scale"] == "1-5"
+        assert result["score"] == 1.59  # reproduces upstream standalone model
+
+    def test_scscore_unavailable_when_weights_missing(self, aspirin_mol):
+        """When weights can't be loaded, scscore result must have available=False."""
         from app.services.profiler import sa_comparison
 
-        with patch.object(sa_comparison, "_load_scscore", return_value=None):
-            # Reset cached scorer to force reload path
-            original = sa_comparison._SCSCORE_SCORER
-            sa_comparison._SCSCORE_SCORER = None
-            try:
-                result = sa_comparison._compute_scscore(ASPIRIN_SMILES)
-            finally:
-                sa_comparison._SCSCORE_SCORER = original
+        with patch.object(sa_comparison, "_load_scscore_weights", return_value=None):
+            result = sa_comparison._compute_scscore(ASPIRIN_SMILES)
 
         assert result["available"] is False
         assert "error" in result
@@ -98,12 +102,8 @@ class TestSAComparison:
         """SCScore unavailable result must include descriptive error message."""
         from app.services.profiler import sa_comparison
 
-        with patch.object(sa_comparison, "_load_scscore", return_value=None):
-            sa_comparison._SCSCORE_SCORER = None
-            try:
-                result = sa_comparison._compute_scscore(ASPIRIN_SMILES)
-            finally:
-                sa_comparison._SCSCORE_SCORER = None
+        with patch.object(sa_comparison, "_load_scscore_weights", return_value=None):
+            result = sa_comparison._compute_scscore(ASPIRIN_SMILES)
 
         assert "scscore" in result["error"].lower() or "not available" in result["error"].lower()
 

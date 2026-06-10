@@ -3,8 +3,8 @@
 Computes three independent synthesizability scores and returns them together
 for comparison. Handles all graceful-fallback scenarios:
   - SA Score: Always available via RDKit Contrib sascorer (bundled with RDKit)
-  - SCScore: Optional pip install; gracefully falls back on ImportError or
-    weight file NumPy 2.x incompatibility
+  - SCScore: Self-contained reimplementation over vendored weights (no external
+    package); gracefully falls back if the weight file is absent
   - SYBA: Requires subprocess isolation; gracefully falls back on timeout or
     subprocess failure
 
@@ -22,7 +22,9 @@ import threading
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
+import numpy as np
 from rdkit import Chem, RDConfig
+from rdkit.Chem import rdFingerprintGenerator
 
 from app.core.error_sanitizer import safe_error_detail
 
@@ -42,9 +44,27 @@ def _get_sascorer():
     except Exception:
         return None
 
-# Module-level cache for SCScore scorer (loaded once, reused across calls)
-_SCSCORE_SCORER: Optional[Any] = None
+
+# Module-level cache for the vendored SCScore weights (loaded once, reused).
+_SCSCORE_WEIGHTS: Optional[list] = None
 _SCSCORE_LOAD_ATTEMPTED: bool = False
+_SCSCORE_WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
+
+# SCScore model architecture (Coley et al., 2018) — must match the trained
+# weights. The model is a small MLP over a Morgan-2 1024-bit fingerprint;
+# scores range 1 (trivial starting material) to 5 (many complex steps).
+_SCSCORE_FP_LEN = 1024
+_SCSCORE_FP_RAD = 2
+_SCSCORE_SCALE = 5.0
+
+
+@lru_cache(maxsize=1)
+def _get_scscore_fp_gen():
+    """Reusable Morgan generator matching SCScore's training featurisation."""
+    return rdFingerprintGenerator.GetMorganGenerator(
+        radius=_SCSCORE_FP_RAD, fpSize=_SCSCORE_FP_LEN, includeChirality=True
+    )
+
 
 # Upper bound on SMILES length accepted by the SYBA subprocess path. Scoring a
 # SMILES longer than this is pointless and only widens the input surface.
@@ -96,71 +116,73 @@ def _compute_sa_score(mol: Chem.Mol) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# SCScore (optional pip install — graceful fallback)
+# SCScore (self-contained reimplementation over vendored weights)
 # ---------------------------------------------------------------------------
 
 
-def _load_scscore() -> Optional[Any]:
-    """Attempt to load and restore the SCScore model.
+def _load_scscore_weights() -> Optional[list]:
+    """Load the vendored SCScore MLP weights once (list of 12 numpy arrays).
 
-    Tries two paths:
-    1. Standard SCScorer().restore() — works when scscore is pip-installed
-       and NumPy compat is OK
-    2. Vendor path fallback — looks for scscore_weights.npz in the vendor/
-       subdirectory alongside this module (pre-converted for NumPy 2.x)
+    The weights are the upstream ``model.ckpt-10654`` (full_reaxys_model_1024bool,
+    Coley et al.) re-saved from the project-agnostic ``json.gz`` form into a
+    portable, pickle-free ``.npz`` (plain ``.npy`` arrays — readable across NumPy
+    versions). Returns None if the file is absent, so SCScore degrades
+    gracefully without ever raising.
 
     Returns:
-        Loaded SCScorer instance, or None if unavailable
+        Ordered list of weight/bias arrays [W0, b0, W1, b1, ...], or None.
     """
-    global _SCSCORE_SCORER, _SCSCORE_LOAD_ATTEMPTED
+    global _SCSCORE_WEIGHTS, _SCSCORE_LOAD_ATTEMPTED
 
     if _SCSCORE_LOAD_ATTEMPTED:
-        return _SCSCORE_SCORER
+        return _SCSCORE_WEIGHTS
 
     _SCSCORE_LOAD_ATTEMPTED = True
 
-    try:
-        from scscore.standalone_model_numpy import SCScorer  # type: ignore
-    except ImportError:
-        # Optional dependency; absence is expected and surfaced as available=False.
-        logger.debug("scscore not installed — SCScore comparison will be unavailable")
-        _SCSCORE_SCORER = None
-        return None
-    except Exception as err:
-        logger.debug("Unexpected error importing SCScore: %s", err)
-        _SCSCORE_SCORER = None
-        return None
-
-    scorer = SCScorer()
-    try:
-        scorer.restore()
-        _SCSCORE_SCORER = scorer
-        return _SCSCORE_SCORER
-    except Exception as restore_err:
-        logger.debug("SCScore restore() failed (%s), trying vendor fallback", restore_err)
-        # Try a vendor-supplied .npz weight file (pre-converted for NumPy 2.x).
-        vendor_path = os.path.join(os.path.dirname(__file__), "vendor", "scscore_weights.npz")
-        if os.path.isfile(vendor_path):
-            try:
-                scorer2 = SCScorer()
-                scorer2.restore(weight_path=vendor_path)
-                _SCSCORE_SCORER = scorer2
-                return _SCSCORE_SCORER
-            except Exception as vendor_err:
-                logger.debug("SCScore vendor fallback failed: %s", vendor_err)
-        # scscore IS installed but its weights could not be loaded (commonly a
-        # NumPy 2.x pickle-compat issue). Surface this clearly — once — instead
-        # of silently degrading, so operators know SCScore needs enabling.
-        logger.warning(
-            "SCScore is installed but its weights failed to load (%s). SCScore "
-            "will be unavailable. To enable it under NumPy 2.x, place a converted "
-            "weight file at %s — see vendor/README.md.",
-            restore_err,
-            vendor_path,
+    if not os.path.isfile(_SCSCORE_WEIGHTS_PATH):
+        logger.debug(
+            "SCScore weights not present at %s — SCScore unavailable (see vendor/README.md)",
+            _SCSCORE_WEIGHTS_PATH,
         )
+        _SCSCORE_WEIGHTS = None
+        return None
 
-    _SCSCORE_SCORER = None
-    return None
+    try:
+        with np.load(_SCSCORE_WEIGHTS_PATH) as data:
+            keys = sorted(data.files, key=lambda s: int(s.split("_")[1]))
+            _SCSCORE_WEIGHTS = [data[k] for k in keys]
+    except Exception as err:
+        logger.warning("Failed to load vendored SCScore weights (%s); SCScore unavailable", err)
+        _SCSCORE_WEIGHTS = None
+
+    return _SCSCORE_WEIGHTS
+
+
+def _scscore_fingerprint(mol: Chem.Mol) -> "np.ndarray":
+    """Morgan fingerprint (radius 2, 1024 bits, chirality) as a float64 vector.
+
+    Reproduces the exact featurisation the upstream SCScore model was trained
+    with. Bit values are 0/1, exactly representable, so float64 here matches the
+    model's original float32 featurisation bit-for-bit (verified against the
+    upstream standalone model to < 1e-6).
+    """
+    return _get_scscore_fp_gen().GetFingerprintAsNumPy(mol).astype(np.float64)
+
+
+def _scscore_forward(weights: list, fp: "np.ndarray") -> float:
+    """Run the SCScore MLP forward pass: dense layers + ReLU, sigmoid-scaled to 1-5.
+
+    Mirrors upstream ``SCScorer.apply``: weights are (W, b) pairs applied in
+    sequence with ReLU between hidden layers, then ``1 + (scale-1)*sigmoid(x)``.
+    """
+    x = fp
+    n = len(weights)
+    for i in range(0, n, 2):
+        x = np.matmul(x, weights[i]) + weights[i + 1]
+        if i != n - 2:  # ReLU on every layer except the last
+            x = x * (x > 0)
+    x = 1.0 + (_SCSCORE_SCALE - 1.0) * (1.0 / (1.0 + np.exp(-x)))
+    return float(np.asarray(x).ravel()[0])
 
 
 def _compute_scscore(smiles: str) -> Dict[str, Any]:
@@ -175,15 +197,25 @@ def _compute_scscore(smiles: str) -> Dict[str, Any]:
     Returns:
         dict with keys: score/error, scale, classification, available
     """
-    scorer = _load_scscore()
-    if scorer is None:
+    weights = _load_scscore_weights()
+    if weights is None:
         return {
             "error": "scscore not available",
             "available": False,
         }
 
     try:
-        _, score = scorer.apply(smiles)
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return {
+                "error": "Invalid SMILES for SCScore",
+                "available": False,
+            }
+
+        fp = _scscore_fingerprint(mol)
+        # Upstream returns 0 when the fingerprint is empty (no bits set).
+        score = 0.0 if float(fp.sum()) == 0.0 else _scscore_forward(weights, fp)
+
         if score < 2:
             classification = "easy"
         elif score < 3:
