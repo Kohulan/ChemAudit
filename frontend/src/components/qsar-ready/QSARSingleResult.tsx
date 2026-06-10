@@ -23,7 +23,7 @@ interface QSARSingleResultProps {
  * Before/after structure comparison with InChIKey change indicator and step timeline.
  *
  * Layout per UI-SPEC Single Molecule Result Layout:
- * - grid grid-cols-2 gap-6 for before/after structure panels
+ * - grid grid-cols-1 md:grid-cols-2 gap-6 for before/after structure panels
  * - Centered InChIKeyChangeChip between panels
  * - PipelineStepTimeline below structures
  *
@@ -56,7 +56,7 @@ export function QSARSingleResult({ result }: QSARSingleResultProps) {
       )}
 
       {/* ── Before / After structure grid ── */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Before (original) */}
         <ClayCard variant="flat" size="sm" className="p-4 space-y-3">
           <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">

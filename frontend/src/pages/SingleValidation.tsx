@@ -1214,7 +1214,7 @@ export function SingleValidationPage() {
                       {/* Stats row — distinct icon + warm-spectrum tint per metric so the
                           five tiles read as five different things at a glance, not one
                           repeated card. Stays inside the brand palette per DESIGN.md. */}
-                      <div className="grid grid-cols-5 gap-2 text-center">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center">
                         {result.molecule_info.num_atoms != null && (
                           <div className="rounded-lg p-2 bg-[rgba(var(--color-primary-rgb),0.06)] border border-[rgba(var(--color-primary-rgb),0.12)]">
                             <Atom className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-primary)]" />
@@ -1363,7 +1363,7 @@ export function SingleValidationPage() {
                     </div>
                   ) : moleculeInfo ? (
                     <>
-                      <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                         <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
                           <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numAtoms}</div>
                           <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
