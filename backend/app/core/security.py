@@ -213,6 +213,14 @@ def generate_admin_token() -> str:
 
     Admin clients can send this in X-Admin-Secret instead of the static secret.
     It is only valid within ADMIN_AUTH_MAX_SKEW_SECONDS, giving replay resistance.
+
+    Note: HMAC-SHA256 is the correct primitive here — it is a message
+    authentication code over the timestamp, NOT password/secret-at-rest hashing.
+    A slow KDF (bcrypt/scrypt/argon2/PBKDF2) is for hashing low-entropy passwords
+    at rest and is inappropriate for a MAC. The admin secret is the HMAC *key*
+    (high entropy; insecure defaults are rejected by Settings validation), and
+    tokens are verified with secrets.compare_digest. Same construction as JWT
+    HS256 / webhook signatures.
     """
     ts = str(int(time.time()))
     sig = hmac.new(

@@ -179,12 +179,15 @@ class Settings(BaseSettings):
                     f"Set strong secrets via environment variables before running "
                     f"outside local development."
                 )
+            # Log only the count + static guidance — never the secret values nor
+            # the secret-named field list (which a scanner reasonably classifies
+            # as sensitive). The specific fields are surfaced in the ValueError
+            # above on the blocking path, where they aid the operator directly.
             _config_logger.error(
-                "%d security setting(s) use INSECURE DEFAULTS (%s). "
-                "Acceptable ONLY for local development; set ALLOW_INSECURE_DEFAULTS=False "
-                "in any shared environment.",
+                "%d security setting(s) use INSECURE DEFAULTS. Set strong secrets via "
+                "environment variables; acceptable ONLY for local development "
+                "(set ALLOW_INSECURE_DEFAULTS=False in any shared environment).",
                 len(insecure),
-                ", ".join(insecure),
             )
         return self
 
