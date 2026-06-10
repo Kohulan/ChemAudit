@@ -1098,3 +1098,16 @@
 .pulse-subtle {
   animation: subtle-pulse 2s ease-in-out infinite;
 }
+
+/* ================================================
+   RENDER-COST UTILITIES
+   ================================================ */
+@layer utilities {
+  /* Skip layout/paint for offscreen table rows (batch results).
+     contain-intrinsic-size approximates the collapsed row height so the
+     scrollbar stays stable. No-op in browsers without support. */
+  .cv-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+  }
+}

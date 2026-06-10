@@ -458,7 +458,7 @@ export function BatchResultsTable({
                   <tr
                     ref={result.index === focusedMoleculeIndex ? focusedRowRef : undefined}
                     className={`
-                      hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
+                      cv-row hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
                       ${result.status === 'error' ? 'bg-red-500/5' : ''}
                       ${expandedRow === result.index ? 'bg-[var(--color-primary)]/5' : ''}
                       ${result.index === focusedMoleculeIndex ? 'ring-2 ring-inset ring-[var(--color-primary)]/40' : ''}
