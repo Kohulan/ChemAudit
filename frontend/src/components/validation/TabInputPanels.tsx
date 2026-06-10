@@ -15,6 +15,28 @@ import { SafetyAccordion } from '../safety/SafetyAccordion';
  * rendered by the page under its own `activeTab === ...` guard.
  */
 
+interface ValidateButtonProps {
+  onValidate: () => void;
+  disabled: boolean;
+  loading: boolean;
+}
+
+/** Primary "Validate" trigger shared by every tab that gates its content on a
+ * successful basic validation. */
+function ValidateButton({ onValidate, disabled, loading }: ValidateButtonProps) {
+  return (
+    <ClayButton
+      variant="primary"
+      onClick={onValidate}
+      disabled={disabled}
+      loading={loading}
+      leftIcon={<Play className="w-4 h-4" />}
+    >
+      Validate
+    </ClayButton>
+  );
+}
+
 interface ValidateTabPanelProps {
   onValidate: () => void;
   onScore: () => void;
@@ -47,15 +69,7 @@ export function ValidateTabPanel({
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <ClayButton
-          variant="primary"
-          onClick={onValidate}
-          disabled={actionsDisabled}
-          loading={validateLoading}
-          leftIcon={<Play className="w-4 h-4" />}
-        >
-          Validate
-        </ClayButton>
+        <ValidateButton onValidate={onValidate} disabled={actionsDisabled} loading={validateLoading} />
         <ClayButton
           variant="accent"
           onClick={onScore}
@@ -104,15 +118,7 @@ export function DeepValidationTabPanel({
         </p>
       </div>
       {!checks && (
-        <ClayButton
-          variant="primary"
-          onClick={onValidate}
-          disabled={actionsDisabled}
-          loading={validateLoading}
-          leftIcon={<Play className="w-4 h-4" />}
-        >
-          Validate
-        </ClayButton>
+        <ValidateButton onValidate={onValidate} disabled={actionsDisabled} loading={validateLoading} />
       )}
       {checks && (
         <DeepValidationTab
@@ -153,15 +159,7 @@ export function ScoringProfilesTabPanel({
               across multiple consensus profiles. Run Validate first to populate.
             </p>
           </div>
-          <ClayButton
-            variant="primary"
-            onClick={onValidate}
-            disabled={actionsDisabled}
-            loading={validateLoading}
-            leftIcon={<Play className="w-4 h-4" />}
-          >
-            Validate
-          </ClayButton>
+          <ValidateButton onValidate={onValidate} disabled={actionsDisabled} loading={validateLoading} />
         </>
       )}
       <ScoringProfilesTab smiles={smiles} />
@@ -245,15 +243,7 @@ export function CompoundProfileTabPanel({
         </div>
       </div>
       {!hasResult && (
-        <ClayButton
-          variant="primary"
-          onClick={onValidate}
-          disabled={actionsDisabled}
-          loading={validateLoading}
-          leftIcon={<Play className="w-4 h-4" />}
-        >
-          Validate
-        </ClayButton>
+        <ValidateButton onValidate={onValidate} disabled={actionsDisabled} loading={validateLoading} />
       )}
       <ProfilerAccordion
         smiles={smiles}

@@ -10,6 +10,7 @@ import {
   Hexagon,
   Layers,
   Lock,
+  type LucideIcon,
   Share2,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -69,7 +70,7 @@ const CHECK_SEVERITY_STYLES: Record<string, string> = {
 // screen" budget) that gives every section a visual key. Order follows
 // reading flow: parsing first, identifiers last.
 type CategoryAccent = {
-  icon: 'flask' | 'atom' | 'hexagon' | 'layers' | 'share' | 'merge' | 'lock';
+  icon: LucideIcon;
   // Section header icon chip
   textClass: string;
   bgClass: string;
@@ -93,7 +94,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
     label: 'Parsing & sanitization',
     members: ['parsability', 'sanitization', 'valence', 'aromaticity', 'connectivity'],
     accent: {
-      icon: 'flask',
+      icon: FlaskConical,
       textClass: 'text-[#c41e3a] dark:text-[#f87171]',
       bgClass: 'bg-[rgba(196,30,58,0.12)]',
       sectionBgClass: 'bg-[rgba(196,30,58,0.03)] dark:bg-[rgba(248,113,113,0.04)]',
@@ -114,7 +115,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
       'isotope_label_detection',
     ],
     accent: {
-      icon: 'atom',
+      icon: Atom,
       textClass: 'text-[#d97706] dark:text-[#fbbf24]',
       bgClass: 'bg-[rgba(217,119,6,0.14)]',
       sectionBgClass: 'bg-[rgba(217,119,6,0.04)] dark:bg-[rgba(251,191,36,0.05)]',
@@ -129,7 +130,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
     label: 'Topology & rings',
     members: ['polymer_detection', 'ring_strain', 'macrocycle_detection', 'aromatic_system_validation'],
     accent: {
-      icon: 'hexagon',
+      icon: Hexagon,
       textClass: 'text-[#b45309] dark:text-[#fcd34d]',
       bgClass: 'bg-[rgba(180,83,9,0.12)]',
       sectionBgClass: 'bg-[rgba(180,83,9,0.03)] dark:bg-[rgba(252,211,77,0.05)]',
@@ -144,7 +145,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
     label: 'Composition & contaminants',
     members: ['mixture_detection', 'solvent_contamination', 'inorganic_filter', 'trivial_molecule'],
     accent: {
-      icon: 'layers',
+      icon: Layers,
       textClass: 'text-[#ea580c] dark:text-[#fdba74]',
       bgClass: 'bg-[rgba(234,88,12,0.12)]',
       sectionBgClass: 'bg-[rgba(234,88,12,0.03)] dark:bg-[rgba(253,186,116,0.05)]',
@@ -164,7 +165,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
       'conflicting_stereo',
     ],
     accent: {
-      icon: 'share',
+      icon: Share2,
       textClass: 'text-[#e11d48] dark:text-[#fb7185]',
       bgClass: 'bg-[rgba(225,29,72,0.12)]',
       sectionBgClass: 'bg-[rgba(225,29,72,0.03)] dark:bg-[rgba(251,113,133,0.05)]',
@@ -179,7 +180,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
     label: 'Tautomers & coordinates',
     members: ['tautomer_detection', 'coordinate_dimension'],
     accent: {
-      icon: 'merge',
+      icon: GitMerge,
       textClass: 'text-[#9d1830] dark:text-[#f87171]',
       bgClass: 'bg-[rgba(157,24,48,0.12)]',
       sectionBgClass: 'bg-[rgba(157,24,48,0.03)] dark:bg-[rgba(248,113,113,0.05)]',
@@ -194,7 +195,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
     label: 'Identifiers & roundtrips',
     members: ['smiles_roundtrip', 'inchi_generation', 'inchi_roundtrip'],
     accent: {
-      icon: 'lock',
+      icon: Lock,
       textClass: 'text-[#92400e] dark:text-[#fbbf24]',
       bgClass: 'bg-[rgba(146,64,14,0.12)]',
       sectionBgClass: 'bg-[rgba(146,64,14,0.03)] dark:bg-[rgba(251,191,36,0.05)]',
@@ -207,7 +208,7 @@ const CHECK_CATEGORIES: ReadonlyArray<{
 ];
 
 const FALLBACK_CATEGORY_ACCENT: CategoryAccent = {
-  icon: 'layers',
+  icon: Layers,
   textClass: 'text-[var(--color-text-secondary)]',
   bgClass: 'bg-[var(--color-surface-sunken)]',
   sectionBgClass: 'bg-[var(--color-surface-sunken)]',
@@ -424,20 +425,7 @@ export function AllChecksCard({
             const CARD_MAX = 320;
             const GAP = 10;
             const sectionMaxWidth = cols * CARD_MAX + (cols - 1) * GAP;
-            const Icon =
-              group.accent.icon === 'flask'
-                ? FlaskConical
-                : group.accent.icon === 'atom'
-                  ? Atom
-                  : group.accent.icon === 'hexagon'
-                    ? Hexagon
-                    : group.accent.icon === 'layers'
-                      ? Layers
-                      : group.accent.icon === 'share'
-                        ? Share2
-                        : group.accent.icon === 'merge'
-                          ? GitMerge
-                          : Lock;
+            const Icon = group.accent.icon;
             return (
               <section
                 key={group.label}

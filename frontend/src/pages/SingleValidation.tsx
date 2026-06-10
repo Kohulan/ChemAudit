@@ -1710,26 +1710,24 @@ export function SingleValidationPage() {
           Empty placeholder reserving layout space below the grid for the
           expanded card. Height animates between 0 (collapsed) and the
           card's natural expanded height in sync with the floating card. */}
-      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (() => {
-        return (
-          <motion.div
-            ref={allChecksExpandedAnchorRef}
-            animate={{
-              height:
-                allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
-                  ? allChecksExpandedHeight
-                  : 0,
-            }}
-            initial={false}
-            transition={{
-              duration: 0.4,
-              ease: [0.4, 0, 0.2, 1],
-              delay: allChecksPhase === 'expanding' ? 0.3 : 0,
-            }}
-            aria-hidden="true"
-          />
-        );
-      })()}
+      {activeTab === 'validate' && result && result.all_checks && result.all_checks.length > 0 && (
+        <motion.div
+          ref={allChecksExpandedAnchorRef}
+          animate={{
+            height:
+              allChecksPhase === 'expanded' || allChecksPhase === 'expanding'
+                ? allChecksExpandedHeight
+                : 0,
+          }}
+          initial={false}
+          transition={{
+            duration: 0.4,
+            ease: [0.4, 0, 0.2, 1],
+            delay: allChecksPhase === 'expanding' ? 0.3 : 0,
+          }}
+          aria-hidden="true"
+        />
+      )}
 
       {/* All Checks — FLOATING CARD (the only real card).
           Position absolute, animates top/left/width/height between the

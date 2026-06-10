@@ -158,7 +158,7 @@ def _load_scscore_weights() -> Optional[list]:
     return _SCSCORE_WEIGHTS
 
 
-def _scscore_fingerprint(mol: Chem.Mol) -> "np.ndarray":
+def _scscore_fingerprint(mol: Chem.Mol) -> np.ndarray:
     """Morgan fingerprint (radius 2, 1024 bits, chirality) as a float64 vector.
 
     Reproduces the exact featurisation the upstream SCScore model was trained
@@ -169,7 +169,7 @@ def _scscore_fingerprint(mol: Chem.Mol) -> "np.ndarray":
     return _get_scscore_fp_gen().GetFingerprintAsNumPy(mol).astype(np.float64)
 
 
-def _scscore_forward(weights: list, fp: "np.ndarray") -> float:
+def _scscore_forward(weights: list, fp: np.ndarray) -> float:
     """Run the SCScore MLP forward pass: dense layers + ReLU, sigmoid-scaled to 1-5.
 
     Mirrors upstream ``SCScorer.apply``: weights are (W, b) pairs applied in
