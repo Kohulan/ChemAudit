@@ -149,8 +149,11 @@ export interface StructureFilterProfile {
  * Maps stage name to hex color for funnel chart rendering.
  */
 export const STAGE_COLORS: Record<string, string> = {
-  parse: '#22c55e',
-  valence: '#4ade80',
+  // Stage-identity colours for the funnel viz (white labels sit on these
+  // fills, so each must be dark enough for white text and on the warm
+  // palette — no green-for-pass). parse/valence use amber-600/rose-600.
+  parse: '#d97706',
+  valence: '#e11d48',
   alerts: '#f59e0b',
   property: '#f97316',
   sa: '#ef4444',

@@ -49,7 +49,7 @@ function getCategoryBadge(category: 'added' | 'removed' | 'modified'): {
     case 'added':
       return {
         label: 'Added',
-        classes: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+        classes: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
       };
     case 'removed':
       return {
@@ -59,7 +59,7 @@ function getCategoryBadge(category: 'added' | 'removed' | 'modified'): {
     case 'modified':
       return {
         label: 'Modified',
-        classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+        classes: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
       };
   }
 }
@@ -372,7 +372,7 @@ function MoleculeRow({
                           <td className="py-1.5 pr-4 font-mono text-red-600 dark:text-red-400">
                             {String(change.old_value ?? '')}
                           </td>
-                          <td className="py-1.5 font-mono text-green-600 dark:text-green-400">
+                          <td className="py-1.5 font-mono text-amber-700 dark:text-amber-300">
                             {String(change.new_value ?? '')}
                           </td>
                         </tr>

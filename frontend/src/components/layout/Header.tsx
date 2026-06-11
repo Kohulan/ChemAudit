@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Atom,
   Layers,
@@ -175,6 +175,7 @@ function NavDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
+  const reduceMotion = useReducedMotion();
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -216,7 +217,7 @@ function NavDropdown({
           'flex items-center gap-1.5 transition-colors duration-200',
           navTextColor(groupActive, groupFocused),
         )}
-        whileTap={{ scale: 0.96 }}
+        whileTap={reduceMotion ? undefined : { scale: 0.96 }}
         onClick={() => {
           navigate(group.items[0].to);
           setOpen(false);
@@ -325,6 +326,7 @@ function NavDropdown({
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -456,14 +458,14 @@ export function Header() {
                 'group-hover:border-[rgba(var(--color-primary-rgb),0.2)]',
                 'transition-all duration-300',
               )}
-              whileHover={{ scale: 1.08, rotate: -3 }}
-              whileTap={{ scale: 0.93 }}
+              whileHover={reduceMotion ? undefined : { scale: 1.08, rotate: -3 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.93 }}
             >
               <img src="/logo-192.png" alt="ChemAudit" className="w-full h-full object-contain" />
             </motion.div>
             <motion.div
               className="hidden sm:block"
-              whileHover={{ x: 2 }}
+              whileHover={reduceMotion ? undefined : { x: 2 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
               <h1 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight leading-none font-display">
@@ -501,7 +503,7 @@ export function Header() {
                     width: pillRect.width,
                     height: pillRect.height,
                   }}
-                  transition={{ type: 'spring', bounce: 0, duration: 0.25 }}
+                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0, duration: 0.25 }}
                 />
               )}
 
@@ -547,7 +549,7 @@ export function Header() {
                         'flex items-center gap-1.5 transition-colors duration-200',
                         navTextColor(active, focused),
                       )}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
                     >
                       {active && (
                         <motion.span
@@ -582,8 +584,8 @@ export function Header() {
                   'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
                   'transition-colors duration-200',
                 )}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.96 }}
+                whileHover={reduceMotion ? undefined : { y: -1 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
               >
                 <item.icon className="w-3.5 h-3.5" />
                 <span className="font-display">{item.label}</span>
@@ -608,7 +610,7 @@ export function Header() {
                 'hover:bg-[var(--color-surface-sunken)]',
                 'transition-colors duration-150',
               )}
-              whileTap={{ scale: 0.9 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.9 }}
               aria-label="Toggle navigation menu"
             >
               <AnimatePresence mode="wait" initial={false}>

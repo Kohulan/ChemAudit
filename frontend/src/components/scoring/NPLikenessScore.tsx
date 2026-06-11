@@ -10,15 +10,20 @@ interface NPLikenessScoreProps {
 }
 
 /**
- * Get score category info based on NP-likeness score
+ * Get score category info based on NP-likeness score.
+ *
+ * Deliberate exception to the warm-hierarchy palette: this is the
+ * synthetic <-> natural axis, not a quality verdict, so it reads
+ * red (synthetic) -> green (natural). Green means "natural", which
+ * is the universal mental model, NOT "good/success".
  */
 function getScoreCategory(score: number) {
   if (score >= 1.0) return {
     label: 'Natural-product-like',
     icon: Leaf,
-    gradient: 'from-emerald-500 to-green-400',
+    gradient: 'from-emerald-500 to-emerald-300',
     bg: 'bg-emerald-500/10',
-    text: 'text-emerald-600 dark:text-emerald-400',
+    text: 'text-emerald-700 dark:text-emerald-300',
     border: 'border-emerald-500/20',
     glow: 'shadow-emerald-500/30',
     description: 'Fragments typical of natural products',
@@ -145,11 +150,13 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                 `,
               }}
             >
-              {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural) */}
+              {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural).
+                  Red→green is intentional here: this axis means synthetic vs
+                  natural, and green = natural is the universal reading. */}
               <div
                 className="absolute inset-0"
                 style={{
-                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)',
+                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #059669 100%)',
                   opacity: 0.85,
                 }}
               />
@@ -197,7 +204,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               Synthetic <span className="text-[var(--color-text-muted)]">(-5)</span>
             </span>
             <span className="text-[var(--color-text-muted)]">0</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <span className="text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1">
               Natural <span className="text-[var(--color-text-muted)]">(+5)</span>
               <Leaf className="w-3 h-3" />
             </span>

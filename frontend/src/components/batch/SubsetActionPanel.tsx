@@ -49,20 +49,20 @@ const PROPERTY_LABELS: Record<string, string> = {
 };
 
 function scoreColor(score: number): string {
-  if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
-  if (score >= 50) return 'text-amber-600 dark:text-amber-400';
+  if (score >= 80) return 'text-amber-700 dark:text-amber-300';
+  if (score >= 50) return 'text-orange-600 dark:text-orange-400';
   return 'text-red-500 dark:text-red-400';
 }
 
 function scoreBg(score: number): string {
-  if (score >= 80) return 'bg-emerald-500/15 border-emerald-500/25';
-  if (score >= 50) return 'bg-amber-500/15 border-amber-500/25';
+  if (score >= 80) return 'bg-amber-500/15 border-amber-500/25';
+  if (score >= 50) return 'bg-orange-500/15 border-orange-500/25';
   return 'bg-red-500/15 border-red-500/25';
 }
 
 function barColor(score: number): string {
-  if (score >= 80) return 'bg-emerald-500';
-  if (score >= 50) return 'bg-amber-500';
+  if (score >= 80) return 'bg-amber-600';
+  if (score >= 50) return 'bg-orange-500';
   return 'bg-red-500';
 }
 
@@ -158,7 +158,7 @@ function MiniDistribution({ molecules }: { molecules: InlineScoredMolecule[] }) 
             initial={{ width: 0 }}
             animate={{ width: `${(buckets.high / total) * 100}%` }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="h-full bg-emerald-500 rounded-l-full first:rounded-l-full"
+            className="h-full bg-amber-600 rounded-l-full first:rounded-l-full"
           />
         )}
         {buckets.med > 0 && (
@@ -166,7 +166,7 @@ function MiniDistribution({ molecules }: { molecules: InlineScoredMolecule[] }) 
             initial={{ width: 0 }}
             animate={{ width: `${(buckets.med / total) * 100}%` }}
             transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-            className="h-full bg-amber-500"
+            className="h-full bg-orange-500"
           />
         )}
         {buckets.low > 0 && (
@@ -181,13 +181,13 @@ function MiniDistribution({ molecules }: { molecules: InlineScoredMolecule[] }) 
       <div className="flex items-center gap-3 text-[10px] text-[var(--color-text-muted)]">
         {buckets.high > 0 && (
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="w-2 h-2 rounded-full bg-amber-600" />
             {buckets.high} pass
           </span>
         )}
         {buckets.med > 0 && (
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="w-2 h-2 rounded-full bg-orange-500" />
             {buckets.med} moderate
           </span>
         )}
@@ -236,8 +236,8 @@ function ValidationCard({
         isError
           ? 'bg-red-500/5 border-red-500/15 hover:border-red-500/30'
           : issues.length > 0
-            ? 'bg-amber-500/5 border-amber-500/15 hover:border-amber-500/30'
-            : 'bg-emerald-500/5 border-emerald-500/15 hover:border-emerald-500/30',
+            ? 'bg-orange-500/5 border-orange-500/15 hover:border-orange-500/30'
+            : 'bg-amber-500/5 border-amber-500/15 hover:border-amber-500/30',
       )}
     >
       {/* Structure depiction — hidden by default, fully visible on hover (sanitized via DOMPurify) */}
@@ -257,9 +257,9 @@ function ValidationCard({
           {isError ? (
             <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
           ) : issues.length > 0 ? (
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+            <AlertTriangle className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
           ) : (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           )}
           <span className="text-xs font-medium text-[var(--color-text-primary)] truncate">
             {result.name || `Molecule #${result.index}`}
@@ -302,7 +302,7 @@ function ValidationCard({
         </div>
       )}
       {warnings.length > 0 && issues.length === 0 && (
-        <span className="text-[9px] text-amber-600 dark:text-amber-400">
+        <span className="text-[9px] text-orange-600 dark:text-orange-400">
           {warnings.length} warning{warnings.length > 1 ? 's' : ''}
         </span>
       )}
@@ -370,7 +370,7 @@ function ScoredCard({ mol }: { mol: InlineScoredMolecule }) {
             className={cn(
               'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-medium',
               p.in_range
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                 : 'bg-red-500/10 text-red-600 dark:text-red-400',
             )}
           >
@@ -651,13 +651,13 @@ export function SubsetActionPanel({
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--color-surface-sunken)]">
                   <div className="flex items-center gap-3 text-[10px] font-medium">
                     {validationSummary.pass > 0 && (
-                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300">
                         <CheckCircle2 className="w-3 h-3" />
                         {validationSummary.pass} pass
                       </span>
                     )}
                     {validationSummary.warn > 0 && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                         <AlertTriangle className="w-3 h-3" />
                         {validationSummary.warn} issues
                       </span>

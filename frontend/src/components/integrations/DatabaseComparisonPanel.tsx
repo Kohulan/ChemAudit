@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, ExternalLink } from 'lucide-react';
 import { safeHref } from '../../lib/sanitize';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
@@ -18,14 +18,14 @@ const VERDICT_CONFIG: Record<string, {
   Icon: typeof CheckCircle2;
 }> = {
   consistent: {
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
-    ring: 'ring-emerald-500/30',
+    gradient: 'from-amber-400 via-amber-500 to-orange-400',
+    ring: 'ring-amber-500/30',
     label: 'Consistent',
     Icon: CheckCircle2,
   },
   minor_differences: {
-    gradient: 'from-amber-500 via-orange-500 to-yellow-500',
-    ring: 'ring-amber-500/30',
+    gradient: 'from-orange-400 via-orange-500 to-orange-600',
+    ring: 'ring-orange-500/30',
     label: 'Minor Differences',
     Icon: AlertTriangle,
   },
@@ -54,20 +54,20 @@ const STATUS_STYLES: Record<string, {
   glow: string;
 }> = {
   match: {
-    badge: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
+    badge: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
     badgeText: 'Match',
-    accent: 'bg-emerald-500',
-    detailBg: 'bg-emerald-50/60 border-emerald-200/50',
+    accent: 'bg-amber-600',
+    detailBg: 'bg-amber-50/60 border-amber-200/50',
     icon: '●',
-    glow: 'shadow-emerald-500/5',
+    glow: 'shadow-amber-500/5',
   },
   minor_difference: {
-    badge: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
+    badge: 'bg-orange-500/10 text-orange-700 border border-orange-500/20',
     badgeText: 'Minor Difference',
-    accent: 'bg-amber-500',
-    detailBg: 'bg-amber-50/60 border-amber-200/50',
+    accent: 'bg-orange-500',
+    detailBg: 'bg-orange-50/60 border-orange-200/50',
     icon: '◐',
-    glow: 'shadow-amber-500/5',
+    glow: 'shadow-orange-500/5',
   },
   mismatch: {
     badge: 'bg-rose-500/10 text-rose-700 border border-rose-500/20',
@@ -131,9 +131,7 @@ function StructureCard({ entry }: { entry: DatabaseEntry & { canonical_smiles: s
           {entry.url && (
             <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
               className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -306,9 +304,7 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
                   {entry.found && entry.url && (
                     <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
                       className="ml-1 opacity-50 hover:opacity-100 transition-opacity">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
                     </a>
                   )}
                   {!entry.found && <span className="text-[9px] font-normal opacity-60 ml-1">N/A</span>}

@@ -28,11 +28,11 @@ const PAGE_SIZE = 100;
 function getStatusChipClass(status: MoleculeResult['status']): string {
   switch (status) {
     case 'passed':
-      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
     case 'rejected':
       return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
     case 'duplicate':
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
     case 'error':
     default:
       return 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400';

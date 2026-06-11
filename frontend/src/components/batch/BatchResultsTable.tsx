@@ -368,7 +368,7 @@ export function BatchResultsTable({
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
                     <span className="inline-flex items-center gap-1">
                       PFI
-                      <InfoTooltip size="small" asSpan content="Property Forecast Index — cLogP + aromatic rings" />
+                      <InfoTooltip size="small" asSpan content="Property Forecast Index · cLogP + aromatic rings" />
                     </span>
                   </th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
@@ -402,7 +402,7 @@ export function BatchResultsTable({
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
                     <span className="inline-flex items-center gap-1">
                       bRo5
-                      <InfoTooltip size="small" asSpan content="Beyond Rule of 5 — for molecules with MW > 500" />
+                      <InfoTooltip size="small" asSpan content="Beyond Rule of 5 · for molecules with MW > 500" />
                     </span>
                   </th>
                 </>
@@ -484,7 +484,7 @@ export function BatchResultsTable({
                       {result.name || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] font-mono">
-                      <span className="group/smiles inline-flex items-center gap-1 max-w-[280px]">
+                      <span className="group/smiles inline-flex items-center gap-1 max-w-[120px] sm:max-w-[180px] md:max-w-[280px]">
                         <span className="truncate" title={result.smiles}>
                           {result.smiles}
                         </span>
@@ -499,7 +499,7 @@ export function BatchResultsTable({
                       <Tooltip
                         content={
                           result.scoring?.ml_readiness?.interpretation
-                            ? `Validation: ${result.validation?.overall_score ?? '-'}/100 — ${result.scoring.ml_readiness.interpretation}`
+                            ? `Validation: ${result.validation?.overall_score ?? '-'}/100 · ${result.scoring.ml_readiness.interpretation}`
                             : `Validation Score: ${result.validation?.overall_score ?? '-'}/100`
                         }
                         position="bottom"
@@ -516,7 +516,7 @@ export function BatchResultsTable({
                     <td className="px-4 py-3 text-center">
                       {result.scoring?.druglikeness ? (
                         <Tooltip
-                          content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} — Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
+                          content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} · Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
                           position="bottom"
                         >
                           <span className="px-2 py-1 rounded text-xs font-medium bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400">
@@ -547,7 +547,7 @@ export function BatchResultsTable({
                         return (
                           <Tooltip content={tooltipText} position="bottom">
                             {allClear ? (
-                              <span className="px-2 py-1 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300">
                                 ✓
                               </span>
                             ) : (
@@ -582,15 +582,15 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
                           {result.profiling?.pfi?.pfi != null ? (
                             <Tooltip
-                              content={`PFI ${result.profiling.pfi.pfi.toFixed(1)} (${result.profiling.pfi.risk} risk) — cLogP: ${result.profiling.pfi.clogp.toFixed(2)}, Aromatic rings: ${result.profiling.pfi.aromatic_rings}`}
+                              content={`PFI ${result.profiling.pfi.pfi.toFixed(1)} (${result.profiling.pfi.risk} risk) · cLogP: ${result.profiling.pfi.clogp.toFixed(2)}, Aromatic rings: ${result.profiling.pfi.aromatic_rings}`}
                               position="bottom"
                             >
                               <span className={cn(
                                 'px-1.5 py-0.5 rounded',
                                 result.profiling.pfi.risk === 'low'
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                                   : result.profiling.pfi.risk === 'moderate'
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
                                   : 'bg-red-500/10 text-red-600 dark:text-red-400'
                               )}>
                                 {result.profiling.pfi.pfi.toFixed(1)}
@@ -608,7 +608,7 @@ export function BatchResultsTable({
                               : 'All properties within 95th-percentile drug ranges';
                             return (
                               <Tooltip
-                                content={`${result.profiling!.stars!.stars} of ${result.profiling!.stars!.details.length} outside range${violated.length > 0 ? ` — ${summary}` : ''}`}
+                                content={`${result.profiling!.stars!.stars} of ${result.profiling!.stars!.details.length} outside range${violated.length > 0 ? ` · ${summary}` : ''}`}
                                 position="bottom"
                                 maxWidth={360}
                               >
@@ -620,7 +620,7 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
                           {result.profiling?.abbott?.probability_pct != null ? (
                             <Tooltip
-                              content={`${result.profiling.abbott.probability_pct}% predicted bioavailability — TPSA: ${result.profiling.abbott.tpsa.toFixed(1)} Å², Lipinski violations: ${result.profiling.abbott.lipinski_violations}`}
+                              content={`${result.profiling.abbott.probability_pct}% predicted bioavailability · TPSA: ${result.profiling.abbott.tpsa.toFixed(1)} Å², Lipinski violations: ${result.profiling.abbott.lipinski_violations}`}
                               position="bottom"
                             >
                               <span>{result.profiling.abbott.probability_pct}%</span>
@@ -642,8 +642,8 @@ export function BatchResultsTable({
                                 <span className={cn(
                                   'px-1.5 py-0.5 rounded',
                                   sites.length === 0
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                    : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
                                 )}>
                                   {sites.length === 0 ? 'clean' : `${sites.length} sites`}
                                 </span>
@@ -654,7 +654,7 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs">
                           {result.safety_assessment?.herg?.herg_risk != null ? (() => {
                             const h = result.safety_assessment!.herg!;
-                            const flagsSummary = h.flags.length > 0 ? ` — ${h.flags.join('; ')}` : '';
+                            const flagsSummary = h.flags.length > 0 ? ` · ${h.flags.join('; ')}` : '';
                             return (
                               <Tooltip
                                 content={`hERG risk: ${h.herg_risk} (${h.risk_score}/${h.max_score})${flagsSummary}`}
@@ -664,9 +664,9 @@ export function BatchResultsTable({
                                 <span className={cn(
                                   'px-1.5 py-0.5 rounded',
                                   h.herg_risk === 'low'
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                                     : h.herg_risk === 'moderate'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
                                     : 'bg-red-500/10 text-red-600 dark:text-red-400'
                                 )}>
                                   {h.herg_risk}
@@ -679,7 +679,7 @@ export function BatchResultsTable({
                           {result.safety_assessment?.bro5 != null ? (() => {
                             const b = result.safety_assessment!.bro5!;
                             const tooltipText = !b.applicable
-                              ? 'Not applicable — MW ≤ 500, standard Ro5 applies'
+                              ? 'Not applicable · MW ≤ 500, standard Ro5 applies'
                               : b.passed
                                 ? 'All bRo5 criteria passed'
                                 : b.violations.map(v => `${v.property}: ${v.value.toFixed(1)} (threshold: ${v.threshold})`).join('; ');
@@ -691,8 +691,8 @@ export function BatchResultsTable({
                                   <span className={cn(
                                     'px-1.5 py-0.5 rounded',
                                     b.passed
-                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                      : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
                                   )}>
                                     {b.passed ? 'pass' : `${b.violations.length} viol`}
                                   </span>
@@ -820,7 +820,7 @@ export function BatchResultsTable({
                                         ))}
                                       </ul>
                                     ) : (
-                                      <p className="text-sm text-emerald-600 dark:text-emerald-400 px-2 py-1">No structural issues detected</p>
+                                      <p className="text-sm text-amber-700 dark:text-amber-300 px-2 py-1">No structural issues detected</p>
                                     )}
                                   </div>
 
@@ -844,18 +844,18 @@ export function BatchResultsTable({
                                           <div className="rounded-lg bg-gradient-to-br from-chem-secondary-600/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">QED</p>
                                             <p className="text-xl font-bold text-chem-secondary-600 dark:text-chem-secondary-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
-                                            <p className={cn("text-xs font-medium", result.scoring.druglikeness.lipinski_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                                            <p className={cn("text-xs font-medium", result.scoring.druglikeness.lipinski_passed ? 'text-amber-700 dark:text-amber-300' : 'text-red-600 dark:text-red-400')}>
                                               Lipinski: {result.scoring.druglikeness.lipinski_passed ? 'Pass' : 'Fail'}
                                             </p>
                                           </div>
                                         )}
                                         {(result.scoring.safety_filters || result.alerts) && (
-                                          <div className="rounded-lg bg-gradient-to-br from-emerald-500/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
+                                          <div className="rounded-lg bg-gradient-to-br from-amber-500/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">Safety</p>
                                             {(() => {
                                               const ac = result.alerts?.alert_count ?? 0;
                                               const ok = ac === 0 && (result.scoring.safety_filters?.all_passed !== false);
-                                              return <p className={cn("text-xl font-bold", ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>{ok ? 'Clear' : ac}</p>;
+                                              return <p className={cn("text-xl font-bold", ok ? 'text-amber-700 dark:text-amber-300' : 'text-red-600 dark:text-red-400')}>{ok ? 'Clear' : ac}</p>;
                                             })()}
                                           </div>
                                         )}
@@ -885,7 +885,7 @@ export function BatchResultsTable({
                                         <div className="flex items-center gap-1.5">
                                           <h4 className="text-xs font-semibold text-[var(--color-text-primary)] tracking-tight uppercase">Structure</h4>
                                           {result.standardization?.standardized_smiles && result.standardization.changed && (
-                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Std</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 uppercase tracking-wide">Std</span>
                                           )}
                                         </div>
                                         {result.name && <p className="text-sm text-[var(--color-text-muted)] truncate">{result.name}</p>}
@@ -910,8 +910,8 @@ export function BatchResultsTable({
                                             <CopyButton text={result.smiles} size={13} className="shrink-0" />
                                           </div>
                                         </div>
-                                        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
-                                          <p className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-0.5">Standardized</p>
+                                        <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
+                                          <p className="text-[9px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-0.5">Standardized</p>
                                           <div className="flex items-start gap-1">
                                             <p className="text-xs font-mono text-[var(--color-text-secondary)] break-all flex-1">{result.standardization.standardized_smiles}</p>
                                             <CopyButton text={result.standardization.standardized_smiles} size={13} className="shrink-0" />
@@ -965,7 +965,7 @@ export function BatchResultsTable({
                                       <div className="space-y-0.5">
                                         {result.profiling.stars.details.map((d) => (
                                           <div key={d.property} className={cn('flex items-center gap-1.5 text-xs', d.violated ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]')}>
-                                            {d.violated ? <XCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                                            {d.violated ? <XCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />}
                                             <span className="flex-1 truncate">{d.property}</span>
                                             <span className="tabular-nums shrink-0">{d.value.toFixed(1)}</span>
                                             <span className="tabular-nums text-[var(--color-text-muted)] shrink-0 text-[11px]">({d.range_low}-{d.range_high})</span>
@@ -1035,7 +1035,7 @@ export function BatchResultsTable({
                                       )}
                                     </div>
                                   ) : (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400">All screens passed</p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">All screens passed</p>
                                   )}
                                 </MetricCard>
                                 {/* Assessment cards inline */}
@@ -1044,7 +1044,7 @@ export function BatchResultsTable({
                                     {result.safety_assessment.cyp_softspots && (
                                       <MetricCard title="CYP" score={result.safety_assessment.cyp_softspots.length} classification={result.safety_assessment.cyp_softspots.length > 0 ? `${result.safety_assessment.cyp_softspots.length} site(s)` : 'None'} classificationVariant="default" defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-1">{result.safety_assessment.cyp_softspots.length === 0 ? <p className="text-xs text-[var(--color-text-muted)]">No soft-spots</p> : result.safety_assessment.cyp_softspots.map((site) => (
-                                          <div key={site.site_name} className="text-xs"><span className="font-medium text-[var(--color-text-primary)]">{site.site_name}</span><span className="text-[var(--color-text-muted)]"> — {site.reaction_type}</span></div>
+                                          <div key={site.site_name} className="text-xs"><span className="font-medium text-[var(--color-text-primary)]">{site.site_name}</span><span className="text-[var(--color-text-muted)]"> · {site.reaction_type}</span></div>
                                         ))}</div>
                                       </MetricCard>
                                     )}
@@ -1067,7 +1067,7 @@ export function BatchResultsTable({
                                       <MetricCard title="Complexity" score={result.safety_assessment.complexity.n_outliers === 0 ? 'OK' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classification={result.safety_assessment.complexity.within_range ? 'Pass' : `${result.safety_assessment.complexity.n_outliers} outlier(s)`} classificationVariant={result.safety_assessment.complexity.n_outliers === 0 ? 'success' : 'warning'} defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-0.5">{Object.entries(result.safety_assessment.complexity.properties).map(([key, prop]) => (
                                           <div key={key} className={cn('flex items-center gap-1.5 text-xs', prop.outlier ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]')}>
-                                            {prop.outlier ? <XCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                                            {prop.outlier ? <XCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />}
                                             <span className="flex-1 truncate">{key.replace(/_/g, ' ')}</span>
                                             <span className="tabular-nums shrink-0">{prop.value.toFixed(1)}</span>
                                           </div>

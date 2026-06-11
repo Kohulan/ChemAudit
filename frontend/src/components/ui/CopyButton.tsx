@@ -37,14 +37,14 @@ export function CopyButton({ text, className = '', size = 14 }: CopyButtonProps)
         'inline-flex items-center justify-center p-1 rounded transition-colors',
         'hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]',
         'hover:text-[var(--color-text-secondary)]',
-        copied && 'text-green-500 hover:text-green-500',
+        copied && 'text-status-success-dark dark:text-status-success hover:text-status-success-dark dark:hover:text-status-success',
         className
       )}
       title={copied ? 'Copied!' : 'Copy to clipboard'}
       aria-label={copied ? 'Copied!' : 'Copy to clipboard'}
     >
       {copied ? (
-        <Check size={size} className="text-green-500" />
+        <Check size={size} className="text-status-success-dark dark:text-status-success" />
       ) : (
         <Copy size={size} />
       )}

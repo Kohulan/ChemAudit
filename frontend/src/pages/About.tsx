@@ -885,11 +885,29 @@ function ScientificReferences() {
 // BUILT IN THE OPEN (tech stack + acknowledgments)
 // ============================================================================
 
-const TECH_STACK: { label: string; items: string }[] = [
-  { label: 'Frontend', items: 'React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, RDKit.js' },
-  { label: 'Backend', items: 'Python 3.11+, FastAPI, Celery, Redis, Pandas, asyncpg' },
-  { label: 'Chemistry', items: 'RDKit, MolVS, ChEMBL Structure Pipeline, openTSNE' },
-  { label: 'Infrastructure', items: 'PostgreSQL, Docker, Nginx, Prometheus' },
+// Each layer keys to a brand color via its dot; technologies render as mono
+// code chips (they are package names, and this section is about code).
+const TECH_STACK: { label: string; dot: string; items: string[] }[] = [
+  {
+    label: 'Frontend',
+    dot: 'bg-chem-primary-600 dark:bg-chem-primary-400',
+    items: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'Framer Motion', 'Recharts', 'RDKit.js'],
+  },
+  {
+    label: 'Backend',
+    dot: 'bg-chem-accent-600 dark:bg-chem-accent-400',
+    items: ['Python 3.11+', 'FastAPI', 'Celery', 'Redis', 'Pandas', 'asyncpg'],
+  },
+  {
+    label: 'Chemistry',
+    dot: 'bg-chem-secondary-600 dark:bg-chem-secondary-400',
+    items: ['RDKit', 'MolVS', 'ChEMBL Structure Pipeline', 'openTSNE'],
+  },
+  {
+    label: 'Infrastructure',
+    dot: 'bg-chem-dark-400 dark:bg-chem-dark-500',
+    items: ['PostgreSQL', 'Docker', 'Nginx', 'Prometheus'],
+  },
 ];
 
 const ACKNOWLEDGMENTS = [
@@ -948,14 +966,29 @@ function BuiltInTheOpen() {
     <>
       <SectionHeader icon={<Code2 className="w-5 h-5" />} title="Built in the open" />
 
-      {/* Tech stack as quiet definition rows */}
+      {/* Tech stack: brand-keyed layer rows, technologies as mono code chips */}
       <div className="mb-8 divide-y divide-[var(--color-border)]/50">
         {TECH_STACK.map((row) => (
-          <div key={row.label} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 py-2.5">
-            <span className="w-32 shrink-0 text-sm font-semibold text-[var(--color-text-primary)]">
+          <div key={row.label} className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-4 py-3">
+            <span className="w-32 shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] sm:pt-0.5">
+              <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', row.dot)} aria-hidden="true" />
               {row.label}
             </span>
-            <span className="text-sm text-[var(--color-text-secondary)]">{row.items}</span>
+            <span className="flex flex-wrap gap-1.5">
+              {row.items.map((item) => (
+                <code
+                  key={item}
+                  className={cn(
+                    'font-mono text-xs px-2 py-1 rounded-md',
+                    'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',
+                    'text-[var(--color-text-secondary)]',
+                    'transition-colors hover:border-[var(--color-primary)]/40 hover:text-[var(--color-text-primary)]'
+                  )}
+                >
+                  {item}
+                </code>
+              ))}
+            </span>
           </div>
         ))}
       </div>

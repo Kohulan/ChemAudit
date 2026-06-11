@@ -10,17 +10,19 @@ interface ConsensusScoreCardProps {
 
 function getScoreColor(score: number, total: number) {
   const ratio = score / total;
-  if (ratio >= 0.8) return 'text-emerald-500';
-  if (ratio >= 0.6) return 'text-teal-500';
-  if (ratio >= 0.4) return 'text-amber-500';
+  // Top tier carries the gold/yellow band (ScoreChart convention) so the
+  // 0.8 threshold stays visible, not one amber shade apart.
+  if (ratio >= 0.8) return 'text-amber-600 dark:text-yellow-400';
+  if (ratio >= 0.6) return 'text-amber-600 dark:text-amber-400';
+  if (ratio >= 0.4) return 'text-orange-600 dark:text-orange-400';
   return 'text-red-500';
 }
 
 function getScoreBg(score: number, total: number) {
   const ratio = score / total;
-  if (ratio >= 0.8) return 'bg-emerald-500/10 border-emerald-500/20';
-  if (ratio >= 0.6) return 'bg-teal-500/10 border-teal-500/20';
-  if (ratio >= 0.4) return 'bg-amber-500/10 border-amber-500/20';
+  if (ratio >= 0.8) return 'bg-yellow-500/10 dark:bg-yellow-400/15 border-yellow-500/30';
+  if (ratio >= 0.6) return 'bg-amber-500/10 border-amber-500/20';
+  if (ratio >= 0.4) return 'bg-orange-500/10 border-orange-500/20';
   return 'bg-red-500/10 border-red-500/20';
 }
 
@@ -60,7 +62,7 @@ export function ConsensusScoreCard({ data }: ConsensusScoreCardProps) {
             >
               <div className="flex items-center gap-2">
                 {rs.passed ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 ) : (
                   <XCircle className="w-4 h-4 text-red-500" />
                 )}
@@ -72,7 +74,7 @@ export function ConsensusScoreCard({ data }: ConsensusScoreCardProps) {
                 <span className={cn(
                   'text-xs px-2 py-0.5 rounded-full font-medium',
                   rs.passed
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success'
                     : 'bg-red-500/10 text-red-600 dark:text-red-400'
                 )}>
                   {rs.passed ? 'PASS' : 'FAIL'}
@@ -104,7 +106,7 @@ export function ConsensusScoreCard({ data }: ConsensusScoreCardProps) {
                           <span className={cn(
                             'text-xs font-medium',
                             v.result === 'pass'
-                              ? 'text-emerald-600 dark:text-emerald-400'
+                              ? 'text-amber-700 dark:text-amber-300'
                               : 'text-red-600 dark:text-red-400'
                           )}>
                             {typeof v.value === 'number' ? (Number.isInteger(v.value) ? String(v.value) : v.value.toFixed(2)) : v.value}
@@ -113,7 +115,7 @@ export function ConsensusScoreCard({ data }: ConsensusScoreCardProps) {
                             ({v.threshold})
                           </span>
                           {v.result === 'pass' ? (
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                           ) : (
                             <XCircle className="w-3 h-3 text-red-500" />
                           )}

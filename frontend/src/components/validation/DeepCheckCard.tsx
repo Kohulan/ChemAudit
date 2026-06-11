@@ -668,7 +668,7 @@ export function DeepCheckCard({ check, effectiveSeverity, onHighlightAtoms }: De
         {/* Pass/Fail icon */}
         <div className="flex-shrink-0 mt-0.5">
           {check.passed ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
             <XCircle className="w-4 h-4 text-red-500" />
           )}

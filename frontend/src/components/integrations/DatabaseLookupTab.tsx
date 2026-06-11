@@ -1,4 +1,4 @@
-import { type ComponentProps } from 'react';
+import { useId, type ComponentProps } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Database, GitCompareArrows, Info, Search } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
@@ -39,6 +39,7 @@ export function DatabaseLookupControls({
   showManualCompare,
   onCompare,
 }: DatabaseLookupControlsProps) {
+  const autoCompareLabelId = useId();
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
@@ -85,15 +86,20 @@ export function DatabaseLookupControls({
         </ClayButton>
         {/* Auto-compare toggle */}
         <label className="flex items-center gap-2 cursor-pointer select-none">
-          <div
-            className={`relative w-8 h-[18px] rounded-full transition-colors ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-chem-dark-300 dark:bg-chem-dark-600'}`}
-            onClick={onToggleAutoCompare}
+          <button
+            type="button"
             role="switch"
             aria-checked={autoCompare}
+            aria-labelledby={autoCompareLabelId}
+            onClick={onToggleAutoCompare}
+            className={`relative w-8 h-[18px] rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-chem-dark-300 dark:bg-chem-dark-600'}`}
           >
-            <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-chem-dark-50 shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
-          </div>
-          <span className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
+            {/* left-0 anchors the knob: buttons default to text-align:center, which
+                would otherwise shift the absolutely-positioned span's static position
+                to the track's midpoint and strand the knob off the right edge */}
+            <span className={`absolute left-0 top-[2px] w-[14px] h-[14px] rounded-full bg-chem-dark-50 shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+          </button>
+          <span id={autoCompareLabelId} className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
         </label>
         {/* Manual compare button — shown when toggle is off, lookup is done, no comparison yet */}
         {showManualCompare && (

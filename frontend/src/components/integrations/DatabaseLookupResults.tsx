@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import type { PubChemResult, ChEMBLResult, COCONUTResult, WikidataResult, SureChEMBLResult } from '../../types/integrations';
 import { safeHref } from '../../lib/sanitize';
 const pubchemLogo = '/assets/logos/pubchem.png';
@@ -104,9 +105,7 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
               className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View on PubChem
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -204,9 +203,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
               className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300"
             >
               View on ChEMBL
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -265,7 +262,8 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
             {result.nplikeness != null && (
               <div>
                 <span className="text-[var(--color-text-secondary)]">NP-likeness:</span>{' '}
-                <span className={result.nplikeness > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--color-text-secondary)]'}>
+                {/* Positive = natural -> green (synthetic<->natural axis, not a quality verdict) */}
+                <span className={result.nplikeness > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-[var(--color-text-secondary)]'}>
                   {result.nplikeness.toFixed(2)}
                 </span>
               </div>
@@ -280,9 +278,7 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
               className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
             >
               View on COCONUT
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -359,9 +355,7 @@ function WikidataCard({ result }: { result: WikidataResult | null }) {
               className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
             >
               View on Wikidata
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -426,9 +420,7 @@ function SureChEMBLCard({ result }: { result: SureChEMBLResult | null }) {
               className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
             >
               View on SureChEMBL
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>

@@ -112,7 +112,7 @@ export function StdConsistencyPanel({ comparison, sampleSize }: StdConsistencyPa
                     <td className="px-4 py-2.5 text-sm text-[var(--color-text-primary)] font-medium">
                       {pipeline.name}
                     </td>
-                    <td className="px-4 py-2.5 text-sm text-right text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    <td className="px-4 py-2.5 text-sm text-right text-amber-700 dark:text-amber-300 tabular-nums">
                       {pipeline.agree}
                       <span className="text-xs text-[var(--color-text-muted)] ml-1">
                         ({agreePercent}%)

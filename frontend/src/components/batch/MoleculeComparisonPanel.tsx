@@ -97,12 +97,12 @@ function getCellColor(
   if (val === otherVal) return '';
   const isBetter = higherIsBetter ? val > otherVal : val < otherVal;
   return isBetter
-    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/5'
+    ? 'text-amber-700 dark:text-amber-300 bg-amber-500/10'
     : 'text-red-600 dark:text-red-400 bg-red-500/5';
 }
 
 function getSimilarityConfig(score: number): { label: string; color: string; bgColor: string; barColor: string } {
-  if (score >= 0.85) return { label: 'Very Similar', color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10', barColor: 'bg-emerald-500' };
+  if (score >= 0.85) return { label: 'Very Similar', color: 'text-amber-700 dark:text-amber-300', bgColor: 'bg-amber-500/15', barColor: 'bg-amber-600' };
   if (score >= 0.70) return { label: 'Similar', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-500/10', barColor: 'bg-amber-500' };
   if (score >= 0.50) return { label: 'Moderate', color: 'text-orange-600 dark:text-orange-400', bgColor: 'bg-orange-500/10', barColor: 'bg-orange-500' };
   return { label: 'Dissimilar', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-500/10', barColor: 'bg-red-500' };

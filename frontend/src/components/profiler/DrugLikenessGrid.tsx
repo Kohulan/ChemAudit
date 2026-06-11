@@ -76,7 +76,7 @@ export function DrugLikenessGrid({ druglikeness }: DrugLikenessGridProps) {
               'clay-card-sm p-3 flex flex-col items-center gap-1 text-center',
               'border',
               passed
-                ? 'border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10'
+                ? 'border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10'
                 : 'border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10',
             ].join(' ')}
           >
@@ -87,7 +87,7 @@ export function DrugLikenessGrid({ druglikeness }: DrugLikenessGridProps) {
 
             {/* Pass / Fail icon */}
             {passed ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" aria-label="Pass" />
+              <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-label="Pass" />
             ) : (
               <XCircle className="w-4 h-4 text-rose-500" aria-label="Fail" />
             )}
@@ -96,7 +96,7 @@ export function DrugLikenessGrid({ druglikeness }: DrugLikenessGridProps) {
             <span
               className={[
                 'text-[10px] leading-tight',
-                passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+                passed ? 'text-amber-700 dark:text-amber-300' : 'text-rose-600 dark:text-rose-400',
               ].join(' ')}
             >
               {violationCount !== null

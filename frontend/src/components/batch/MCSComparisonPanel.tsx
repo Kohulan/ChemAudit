@@ -34,9 +34,9 @@ function getSimilarityConfig(score: number): {
   if (score >= 0.85) {
     return {
       label: 'Very Similar',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-500/10',
-      barColor: 'bg-emerald-500',
+      color: 'text-amber-700 dark:text-amber-300',
+      bgColor: 'bg-amber-500/15',
+      barColor: 'bg-amber-600',
     };
   }
   if (score >= 0.7) {
@@ -120,6 +120,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-[var(--color-text-primary)]/30 z-40"
             onClick={onClose}
+            role="presentation"
           />
 
           {/* Drawer */}

@@ -46,12 +46,12 @@ function getDeltaColor(property: string, delta: number): string {
   if (delta === 0) return 'text-[var(--color-text-muted)]';
   if (FAVORABLE_HIGHER.has(property)) {
     return delta > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-amber-700 dark:text-amber-300'
       : 'text-red-600 dark:text-red-400';
   }
   if (FAVORABLE_LOWER.has(property)) {
     return delta < 0
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-amber-700 dark:text-amber-300'
       : 'text-red-600 dark:text-red-400';
   }
   // Neutral properties (MW, LogP, TPSA, HBA, HBD, RotBonds, RingCount)

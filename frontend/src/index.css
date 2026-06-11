@@ -656,7 +656,7 @@
 
   .badge-success {
     background: rgba(251, 191, 36, 0.15);
-    color: #b45309;
+    color: #92400e;
   }
   .dark .badge-success {
     background: rgba(251, 191, 36, 0.2);
@@ -674,7 +674,7 @@
 
   .badge-error {
     background: rgba(239, 68, 68, 0.12);
-    color: #dc2626;
+    color: #991b1b;
   }
   .dark .badge-error {
     background: rgba(239, 68, 68, 0.18);
