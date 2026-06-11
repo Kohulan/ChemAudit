@@ -368,7 +368,7 @@ export function BatchResultsTable({
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
                     <span className="inline-flex items-center gap-1">
                       PFI
-                      <InfoTooltip size="small" asSpan content="Property Forecast Index — cLogP + aromatic rings" />
+                      <InfoTooltip size="small" asSpan content="Property Forecast Index · cLogP + aromatic rings" />
                     </span>
                   </th>
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
@@ -402,7 +402,7 @@ export function BatchResultsTable({
                   <th className="px-3 py-3 text-center text-xs font-medium text-[var(--color-text-muted)] uppercase">
                     <span className="inline-flex items-center gap-1">
                       bRo5
-                      <InfoTooltip size="small" asSpan content="Beyond Rule of 5 — for molecules with MW > 500" />
+                      <InfoTooltip size="small" asSpan content="Beyond Rule of 5 · for molecules with MW > 500" />
                     </span>
                   </th>
                 </>
@@ -499,7 +499,7 @@ export function BatchResultsTable({
                       <Tooltip
                         content={
                           result.scoring?.ml_readiness?.interpretation
-                            ? `Validation: ${result.validation?.overall_score ?? '-'}/100 — ${result.scoring.ml_readiness.interpretation}`
+                            ? `Validation: ${result.validation?.overall_score ?? '-'}/100 · ${result.scoring.ml_readiness.interpretation}`
                             : `Validation Score: ${result.validation?.overall_score ?? '-'}/100`
                         }
                         position="bottom"
@@ -516,7 +516,7 @@ export function BatchResultsTable({
                     <td className="px-4 py-3 text-center">
                       {result.scoring?.druglikeness ? (
                         <Tooltip
-                          content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} — Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
+                          content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} · Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
                           position="bottom"
                         >
                           <span className="px-2 py-1 rounded text-xs font-medium bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400">
@@ -582,7 +582,7 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
                           {result.profiling?.pfi?.pfi != null ? (
                             <Tooltip
-                              content={`PFI ${result.profiling.pfi.pfi.toFixed(1)} (${result.profiling.pfi.risk} risk) — cLogP: ${result.profiling.pfi.clogp.toFixed(2)}, Aromatic rings: ${result.profiling.pfi.aromatic_rings}`}
+                              content={`PFI ${result.profiling.pfi.pfi.toFixed(1)} (${result.profiling.pfi.risk} risk) · cLogP: ${result.profiling.pfi.clogp.toFixed(2)}, Aromatic rings: ${result.profiling.pfi.aromatic_rings}`}
                               position="bottom"
                             >
                               <span className={cn(
@@ -608,7 +608,7 @@ export function BatchResultsTable({
                               : 'All properties within 95th-percentile drug ranges';
                             return (
                               <Tooltip
-                                content={`${result.profiling!.stars!.stars} of ${result.profiling!.stars!.details.length} outside range${violated.length > 0 ? ` — ${summary}` : ''}`}
+                                content={`${result.profiling!.stars!.stars} of ${result.profiling!.stars!.details.length} outside range${violated.length > 0 ? ` · ${summary}` : ''}`}
                                 position="bottom"
                                 maxWidth={360}
                               >
@@ -620,7 +620,7 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs text-[var(--color-text-secondary)]">
                           {result.profiling?.abbott?.probability_pct != null ? (
                             <Tooltip
-                              content={`${result.profiling.abbott.probability_pct}% predicted bioavailability — TPSA: ${result.profiling.abbott.tpsa.toFixed(1)} Å², Lipinski violations: ${result.profiling.abbott.lipinski_violations}`}
+                              content={`${result.profiling.abbott.probability_pct}% predicted bioavailability · TPSA: ${result.profiling.abbott.tpsa.toFixed(1)} Å², Lipinski violations: ${result.profiling.abbott.lipinski_violations}`}
                               position="bottom"
                             >
                               <span>{result.profiling.abbott.probability_pct}%</span>
@@ -654,7 +654,7 @@ export function BatchResultsTable({
                         <td className="px-3 py-3 text-center text-xs">
                           {result.safety_assessment?.herg?.herg_risk != null ? (() => {
                             const h = result.safety_assessment!.herg!;
-                            const flagsSummary = h.flags.length > 0 ? ` — ${h.flags.join('; ')}` : '';
+                            const flagsSummary = h.flags.length > 0 ? ` · ${h.flags.join('; ')}` : '';
                             return (
                               <Tooltip
                                 content={`hERG risk: ${h.herg_risk} (${h.risk_score}/${h.max_score})${flagsSummary}`}
@@ -679,7 +679,7 @@ export function BatchResultsTable({
                           {result.safety_assessment?.bro5 != null ? (() => {
                             const b = result.safety_assessment!.bro5!;
                             const tooltipText = !b.applicable
-                              ? 'Not applicable — MW ≤ 500, standard Ro5 applies'
+                              ? 'Not applicable · MW ≤ 500, standard Ro5 applies'
                               : b.passed
                                 ? 'All bRo5 criteria passed'
                                 : b.violations.map(v => `${v.property}: ${v.value.toFixed(1)} (threshold: ${v.threshold})`).join('; ');
@@ -1044,7 +1044,7 @@ export function BatchResultsTable({
                                     {result.safety_assessment.cyp_softspots && (
                                       <MetricCard title="CYP" score={result.safety_assessment.cyp_softspots.length} classification={result.safety_assessment.cyp_softspots.length > 0 ? `${result.safety_assessment.cyp_softspots.length} site(s)` : 'None'} classificationVariant="default" defaultExpanded={true} className="!p-3 !rounded-lg">
                                         <div className="space-y-1">{result.safety_assessment.cyp_softspots.length === 0 ? <p className="text-xs text-[var(--color-text-muted)]">No soft-spots</p> : result.safety_assessment.cyp_softspots.map((site) => (
-                                          <div key={site.site_name} className="text-xs"><span className="font-medium text-[var(--color-text-primary)]">{site.site_name}</span><span className="text-[var(--color-text-muted)]"> — {site.reaction_type}</span></div>
+                                          <div key={site.site_name} className="text-xs"><span className="font-medium text-[var(--color-text-primary)]">{site.site_name}</span><span className="text-[var(--color-text-muted)]"> · {site.reaction_type}</span></div>
                                         ))}</div>
                                       </MetricCard>
                                     )}

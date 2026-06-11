@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import { safeHref } from '../../lib/sanitize';
 import type { ResolvedCompound } from '../../types/integrations';
 
@@ -103,9 +104,7 @@ export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) 
               >
                 <span className="font-medium text-[var(--color-text-primary)]">{link.label}:</span>
                 <span className="font-mono">{link.id}</span>
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
+                <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
               </a>
             ))}
           </div>

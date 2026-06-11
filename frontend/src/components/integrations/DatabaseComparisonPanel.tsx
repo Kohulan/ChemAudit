@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, ExternalLink } from 'lucide-react';
 import { safeHref } from '../../lib/sanitize';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
@@ -131,9 +131,7 @@ function StructureCard({ entry }: { entry: DatabaseEntry & { canonical_smiles: s
           {entry.url && (
             <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
               className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           )}
         </div>
@@ -306,9 +304,7 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
                   {entry.found && entry.url && (
                     <a href={safeHref(entry.url)} target="_blank" rel="noopener noreferrer"
                       className="ml-1 opacity-50 hover:opacity-100 transition-opacity">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
                     </a>
                   )}
                   {!entry.found && <span className="text-[9px] font-normal opacity-60 ml-1">N/A</span>}
