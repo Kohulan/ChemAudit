@@ -10,6 +10,10 @@ import {
   ExternalLink,
   MapPin,
   User,
+  FlaskConical,
+  Layers,
+  Microscope,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -364,6 +368,7 @@ interface StartHereItem {
   title: string;
   desc: string;
   href: string;
+  icon: React.ReactNode;
   external?: boolean;
 }
 
@@ -372,39 +377,56 @@ const START_HERE: StartHereItem[] = [
     title: 'Validate a molecule',
     desc: 'Paste a SMILES, get a verdict in seconds.',
     href: '/',
+    icon: <FlaskConical className="w-4 h-4" />,
   },
   {
     title: 'Process a batch',
     desc: 'Upload an SDF or CSV and watch progress live.',
     href: '/batch',
+    icon: <Layers className="w-4 h-4" />,
   },
   {
     title: 'Audit a dataset',
     desc: 'Health-check an entire collection before training on it.',
     href: '/dataset-audit',
+    icon: <Microscope className="w-4 h-4" />,
   },
   {
     title: 'Read the docs',
     desc: 'Guides, API reference, and deployment.',
     href: 'https://kohulan.github.io/ChemAudit/',
+    icon: <BookOpen className="w-4 h-4" />,
     external: true,
   },
 ];
 
 function StartHereEntry({ entry }: { entry: StartHereItem }) {
   return (
-    <>
-      <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
-        {entry.title}
-        <ArrowRight
-          className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out"
-          aria-hidden="true"
-        />
+    <span className="flex items-start gap-3">
+      <span
+        className={cn(
+          'flex items-center justify-center w-8 h-8 rounded-lg shrink-0 mt-0.5',
+          'bg-gradient-to-br from-[var(--color-primary)]/15 to-[var(--color-accent)]/10',
+          'text-[var(--color-primary)]',
+          'group-hover:from-[var(--color-primary)]/25 group-hover:to-[var(--color-accent)]/15 transition-colors'
+        )}
+        aria-hidden="true"
+      >
+        {entry.icon}
       </span>
-      <span className="block text-sm text-[var(--color-text-secondary)] leading-relaxed">
-        {entry.desc}
+      <span>
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+          {entry.title}
+          <ArrowRight
+            className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out"
+            aria-hidden="true"
+          />
+        </span>
+        <span className="block text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          {entry.desc}
+        </span>
       </span>
-    </>
+    </span>
   );
 }
 
