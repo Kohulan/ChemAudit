@@ -1,19 +1,14 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import {
-  Building2,
   Mail,
   Globe,
   Github,
-  Code2,
-  TestTube,
   Coffee,
   ArrowRight,
   ExternalLink,
   MapPin,
-  BookOpen,
-  FlaskConical,
   User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -67,12 +62,14 @@ export function AboutPage() {
           <HeroSection />
         </div>
 
+        {/* Alternating chrome: card, open, card, open, warm card. Six identical
+            containers read as monotony; the rhythm is the design. */}
         <div className="space-y-6">
           <AnimatedCard>
             <WhatIsChemAudit />
           </AnimatedCard>
 
-          <AnimatedCard>
+          <AnimatedCard variant="open">
             <Capabilities />
           </AnimatedCard>
 
@@ -80,11 +77,11 @@ export function AboutPage() {
             <ScientificReferences />
           </AnimatedCard>
 
-          <AnimatedCard>
+          <AnimatedCard variant="open">
             <BuiltInTheOpen />
           </AnimatedCard>
 
-          <AnimatedCard>
+          <AnimatedCard tone="warm">
             <BuiltInJena />
           </AnimatedCard>
         </div>
@@ -99,7 +96,16 @@ export function AboutPage() {
 // ANIMATED CARD WRAPPER
 // ============================================================================
 
-function AnimatedCard({ children, className }: { children: React.ReactNode; className?: string }) {
+interface AnimatedCardProps {
+  children: React.ReactNode;
+  className?: string;
+  /** 'card' wraps in claymorphism chrome; 'open' breathes directly on the page surface. */
+  variant?: 'card' | 'open';
+  /** 'warm' washes the card with the brand gradient tint. */
+  tone?: 'default' | 'warm';
+}
+
+function AnimatedCard({ children, className, variant = 'card', tone = 'default' }: AnimatedCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
 
@@ -111,7 +117,11 @@ function AnimatedCard({ children, className }: { children: React.ReactNode; clas
       transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={className}
     >
-      <ClayCard>{children}</ClayCard>
+      {variant === 'open' ? (
+        <section className="px-1 sm:px-2 py-10 sm:py-14">{children}</section>
+      ) : (
+        <ClayCard tone={tone}>{children}</ClayCard>
+      )}
     </motion.div>
   );
 }
@@ -121,9 +131,18 @@ function AnimatedCard({ children, className }: { children: React.ReactNode; clas
 // Static surface: these sections are read, not clicked, so no hover lift.
 // ============================================================================
 
-function ClayCard({ children, className }: { children: React.ReactNode; className?: string }) {
+function ClayCard({
+  children,
+  className,
+  tone = 'default',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  tone?: 'default' | 'warm';
+}) {
   return (
     <div
+      style={tone === 'warm' ? { backgroundImage: 'var(--gradient-primary-subtle)' } : undefined}
       className={cn(
         'relative h-full p-6 sm:p-8 rounded-3xl overflow-hidden',
         'bg-[var(--color-surface-elevated)]',
@@ -168,7 +187,7 @@ function HeroSection() {
         </div>
       </div>
 
-      <h1 className="text-5xl md:text-6xl font-bold mb-6 font-display text-[var(--color-text-primary)]">
+      <h1 className="text-5xl md:text-7xl font-bold mb-6 font-display tracking-tight text-[var(--color-text-primary)]">
         About <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit
       </h1>
 
@@ -176,7 +195,65 @@ function HeroSection() {
         Validation, standardization, and quality scoring for chemical structures:
         built for cheminformatics workflows, drug discovery, and ML dataset curation.
       </p>
+
+      <ReactionScheme />
     </motion.div>
+  );
+}
+
+// ============================================================================
+// REACTION SCHEME
+// The product stated in the audience's native notation: reactant, conditions
+// over the arrow, product. The arrow draws itself once on load.
+// ============================================================================
+
+function ReactionScheme() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+      <Link
+        to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
+        title="Run this structure through the validator"
+        className={cn(
+          'font-mono text-xs sm:text-sm px-3 py-1.5 rounded-lg',
+          'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
+          'text-[var(--color-text-secondary)] shadow-sm',
+          'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40 transition-colors'
+        )}
+      >
+        CC(=O)Oc1ccccc1C(=O)O
+      </Link>
+
+      <div className="relative flex flex-col items-center rotate-90 sm:rotate-0 my-2 sm:my-0" aria-hidden="true">
+        <span className="-rotate-90 sm:rotate-0 font-display text-sm font-semibold text-[var(--color-primary)] mb-1">
+          ChemAudit
+        </span>
+        <svg width="120" height="12" viewBox="0 0 120 12" fill="none" className="overflow-visible">
+          <motion.path
+            d="M2 6 H 112 M 106 1.5 L 114 6 L 106 10.5"
+            stroke="var(--color-text-secondary)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={reduceMotion ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.9, delay: 0.5, ease: [0.25, 1, 0.5, 1] }}
+          />
+        </svg>
+      </div>
+
+      <span
+        className={cn(
+          'text-xs sm:text-sm font-medium px-3 py-1.5 rounded-lg',
+          'bg-[rgba(251,191,36,0.12)] dark:bg-[rgba(251,191,36,0.15)]',
+          'text-[#b45309] dark:text-[#fcd34d]',
+          'border border-[rgba(251,191,36,0.3)]'
+        )}
+      >
+        valid &middot; standardized &middot; scored
+      </span>
+    </div>
   );
 }
 
@@ -184,20 +261,24 @@ function HeroSection() {
 // SECTION HEADER
 // ============================================================================
 
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: React.ReactNode }) {
+// Sections are numbered like a paper: this audience navigates by section
+// number. The mono index replaces generic icon tiles.
+function SectionHeader({ index, title }: { index: string; title: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
+    <div className="flex items-center gap-3 mb-6">
       <div
         className={cn(
-          'p-2.5 rounded-2xl',
+          'w-10 h-10 rounded-2xl flex items-center justify-center',
           'bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-accent)]/10',
-          'text-[var(--color-primary)]',
           'shadow-inner'
         )}
+        aria-hidden="true"
       >
-        {icon}
+        <span className="font-mono text-sm font-semibold text-[var(--color-primary)]">{index}</span>
       </div>
-      <h2 className="text-xl font-bold text-[var(--color-text-primary)] font-display">{title}</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] font-display tracking-tight">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -211,7 +292,7 @@ function WhatIsChemAudit() {
   return (
     <>
       <SectionHeader
-        icon={<TestTube className="w-5 h-5" />}
+        index="01"
         title={
           <>
             What is <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit?
@@ -388,10 +469,20 @@ function CapabilityGroup({ label, items }: { label: string; items: Capability[] 
         {label}
       </h3>
       <dl className="space-y-4">
-        {items.map((item) => (
-          <div key={item.title}>
-            <dt className="font-semibold text-sm text-[var(--color-text-primary)]">{item.title}</dt>
-            <dd className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        {items.map((item, i) => (
+          <div key={item.title} className="grid grid-cols-[2rem_1fr]">
+            <dt className="contents">
+              <span
+                className="font-mono text-xs text-[var(--color-accent-dark)] dark:text-[var(--color-accent)] pt-0.5"
+                aria-hidden="true"
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="font-semibold text-sm text-[var(--color-text-primary)]">
+                {item.title}
+              </span>
+            </dt>
+            <dd className="col-start-2 text-sm text-[var(--color-text-secondary)] leading-relaxed">
               {item.desc}
             </dd>
           </div>
@@ -404,7 +495,7 @@ function CapabilityGroup({ label, items }: { label: string; items: Capability[] 
 function Capabilities() {
   return (
     <>
-      <SectionHeader icon={<FlaskConical className="w-5 h-5" />} title="What's inside" />
+      <SectionHeader index="02" title="What's inside" />
       <p className="text-[var(--color-text-secondary)] mb-8 max-w-prose">
         Twelve modules: six for scoring and screening, six for dataset preparation and analysis.
         The scoring side implements industry rules from Pfizer, GSK, Lilly, and BMS alongside the
@@ -654,7 +745,7 @@ function ScientificReferences() {
 
   return (
     <>
-      <SectionHeader icon={<BookOpen className="w-5 h-5" />} title="Methods & Scientific References" />
+      <SectionHeader index="03" title="Methods & Scientific References" />
       <p className="text-[var(--color-text-secondary)] mb-6 max-w-prose">
         Every algorithm and scoring function in ChemAudit comes from the published literature.
         These are the primary references.
@@ -821,7 +912,7 @@ const ACKNOWLEDGMENTS = [
 function BuiltInTheOpen() {
   return (
     <>
-      <SectionHeader icon={<Code2 className="w-5 h-5" />} title="Built in the open" />
+      <SectionHeader index="04" title="Built in the open" />
 
       {/* Tech stack as quiet definition rows */}
       <div className="mb-8 divide-y divide-[var(--color-border)]/50">
@@ -907,7 +998,7 @@ function BuiltInJena() {
 
   return (
     <>
-      <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Built in Jena" />
+      <SectionHeader index="05" title="Built in Jena" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Research group */}
