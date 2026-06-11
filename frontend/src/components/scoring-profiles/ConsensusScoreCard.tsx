@@ -10,7 +10,9 @@ interface ConsensusScoreCardProps {
 
 function getScoreColor(score: number, total: number) {
   const ratio = score / total;
-  if (ratio >= 0.8) return 'text-amber-700 dark:text-amber-300';
+  // Top tier carries the gold/yellow band (ScoreChart convention) so the
+  // 0.8 threshold stays visible, not one amber shade apart.
+  if (ratio >= 0.8) return 'text-amber-600 dark:text-yellow-400';
   if (ratio >= 0.6) return 'text-amber-600 dark:text-amber-400';
   if (ratio >= 0.4) return 'text-orange-600 dark:text-orange-400';
   return 'text-red-500';
@@ -18,7 +20,7 @@ function getScoreColor(score: number, total: number) {
 
 function getScoreBg(score: number, total: number) {
   const ratio = score / total;
-  if (ratio >= 0.8) return 'bg-amber-500/10 border-amber-500/20';
+  if (ratio >= 0.8) return 'bg-yellow-500/10 dark:bg-yellow-400/15 border-yellow-500/30';
   if (ratio >= 0.6) return 'bg-amber-500/10 border-amber-500/20';
   if (ratio >= 0.4) return 'bg-orange-500/10 border-orange-500/20';
   return 'bg-red-500/10 border-red-500/20';

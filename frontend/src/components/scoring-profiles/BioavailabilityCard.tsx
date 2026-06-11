@@ -218,7 +218,8 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                     </p>
                     <div className="space-y-1.5">
                       <div className="flex items-start gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-300 inline-block mt-0.5 flex-shrink-0" />
+                        {/* Swatch must match the plotted white-region point color (#b45309) */}
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-700 inline-block mt-0.5 flex-shrink-0" />
                         <span>
                           <strong>White</strong> — GI absorbed (93% accuracy).
                           TPSA {'<'} ~142 A^2, WLOGP ~-2.3 to +6.8

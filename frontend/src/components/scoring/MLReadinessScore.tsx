@@ -29,15 +29,18 @@ interface MLReadinessScoreProps {
  */
 function getScoreColor(score: number, maxScore: number) {
   const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  // Excellent tier carries the gold/yellow band (per the ScoreChart and
+  // BatchResultsTable convention) so it stays visually distinct from the
+  // amber >=70 tier, not just one shade apart.
   if (pct >= 85) return {
-    gradient: 'from-amber-400 to-amber-300',
-    bg: 'bg-amber-500/10',
-    bgRaw: 'amber',
-    text: 'text-amber-700 dark:text-amber-300',
-    border: 'border-amber-500/20',
-    ring: 'ring-amber-500/20',
-    stroke: '#d97706',
-    track: 'rgba(217, 119, 6, 0.15)',
+    gradient: 'from-yellow-400 to-yellow-300',
+    bg: 'bg-yellow-500/10 dark:bg-yellow-400/15',
+    bgRaw: 'yellow',
+    text: 'text-amber-600 dark:text-yellow-400',
+    border: 'border-yellow-500/30',
+    ring: 'ring-yellow-500/30',
+    stroke: '#fbbf24',
+    track: 'rgba(251, 191, 36, 0.15)',
   };
   if (pct >= 70) return {
     gradient: 'from-amber-500 to-amber-400',
@@ -479,7 +482,7 @@ function SupplementaryPills({ supplementary }: { supplementary: Record<string, u
             'transition-colors duration-150',
             pill.ok
               ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:bg-amber-500/15'
-              : 'bg-red-500/8 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/15'
+              : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/15'
           )}
         >
           <div className={cn(

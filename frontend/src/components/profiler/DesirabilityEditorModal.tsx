@@ -240,8 +240,15 @@ export function DesirabilityEditorModal({
   useEffect(() => {
     setEditedProfile(profile);
     setActivePropertyIndex(0);
-    setShowDeleteConfirm(false);
   }, [profile]);
+
+  // Disarm a pending delete confirmation only when the EDITED PROFILE
+  // actually changes. Keyed on id, not the object: the parent rebuilds the
+  // profile prop every render, and keying on the reference would dismiss
+  // the confirmation under the user on unrelated re-renders.
+  useEffect(() => {
+    setShowDeleteConfirm(false);
+  }, [profile.id]);
 
   // Keep the ref in sync and move focus to the inline confirm button when revealed
   useEffect(() => {

@@ -44,17 +44,29 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   const [sheetLayout, setSheetLayout] = useState<'single' | 'multi'>('single');
   const [includeAudit, setIncludeAudit] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // Refs mirror props/state so the effects below depend only on isOpen:
+  // parents pass onClose as an inline arrow, and re-running these effects on
+  // every parent render would re-steal focus mid-interaction.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const isExportingRef = useRef(isExporting);
+  isExportingRef.current = isExporting;
 
-  // Close on Escape and move initial focus into the dialog when it opens.
+  // Initial focus: exactly once per open, never again while open.
+  useEffect(() => {
+    if (isOpen) closeButtonRef.current?.focus();
+  }, [isOpen]);
+
+  // Close on Escape, except while an export is in flight (mirrors the
+  // disabled Cancel button, which guards the same window).
   useEffect(() => {
     if (!isOpen) return;
-    closeButtonRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !isExportingRef.current) onCloseRef.current();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
