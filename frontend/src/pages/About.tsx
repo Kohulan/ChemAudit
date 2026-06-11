@@ -303,8 +303,11 @@ function WhatIsChemAudit() {
           </>
         }
       />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
-        <div className="lg:col-span-3 space-y-5 text-[var(--color-text-secondary)]">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10">
+        {/* self-center splits any column-height difference evenly instead of
+            pooling it under the shorter prose. Justified + hyphenated body
+            matches the page's journal-article voice. */}
+        <div className="lg:col-span-3 lg:self-center space-y-5 text-[var(--color-text-secondary)] text-justify hyphens-auto">
           {/* Lede: the opening claim runs one step larger so the card has an
               entry point before the detail. Key figures carry the brand's
               gold (gold = quality throughout this product). */}
@@ -331,11 +334,11 @@ function WhatIsChemAudit() {
           </p>
         </div>
 
-        <div className="lg:col-span-2 lg:border-l lg:border-[var(--color-border)] lg:pl-10">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-3">
+        <div className="lg:col-span-2 lg:border-l lg:border-[var(--color-border)] lg:pl-8">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2">
             Start here
           </h3>
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             {START_HERE.map((entry) => (
               <li key={entry.title}>
                 {entry.external ? (
@@ -343,14 +346,14 @@ function WhatIsChemAudit() {
                     href={entry.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group block rounded-xl px-3 py-2.5 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
                   >
                     <StartHereEntry entry={entry} />
                   </a>
                 ) : (
                   <Link
                     to={entry.href}
-                    className="group block rounded-xl px-3 py-2.5 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
                   >
                     <StartHereEntry entry={entry} />
                   </Link>
@@ -422,7 +425,7 @@ function StartHereEntry({ entry }: { entry: StartHereItem }) {
             aria-hidden="true"
           />
         </span>
-        <span className="block text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        <span className="block text-sm text-[var(--color-text-secondary)] leading-snug">
           {entry.desc}
         </span>
       </span>
