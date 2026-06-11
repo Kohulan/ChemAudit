@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import {
   Building2,
@@ -87,29 +88,7 @@ export function AboutPage() {
           </AnimatedCard>
         </div>
 
-        {/* License footer */}
-        <div className="text-center py-10">
-          <div className="flex items-center justify-center gap-1.5 mb-2">
-            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-              Made with
-            </span>
-            <Coffee className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
-            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-              for the chemistry community
-            </span>
-          </div>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            ChemAudit is open-source software released under the{' '}
-            <a
-              href="https://opensource.org/licenses/MIT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--color-primary)] hover:underline transition-colors"
-            >
-              MIT License
-            </a>
-          </p>
-        </div>
+        <LicenseFooter />
       </div>
     </div>
   );
@@ -247,7 +226,15 @@ function WhatIsChemAudit() {
           <strong className="font-semibold text-[var(--color-text-primary)]">1,500 structural-alert patterns</strong>.
         </p>
         <p className="leading-relaxed">
-          It scales from a single pasted SMILES to batch jobs of millions of molecules, computing{' '}
+          It scales from{' '}
+          <Link
+            to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
+            title="Try it: this link validates aspirin"
+            className="underline decoration-dotted decoration-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-primary)] hover:decoration-[var(--color-primary)] transition-colors"
+          >
+            a single pasted SMILES
+          </Link>{' '}
+          to batch jobs of millions of molecules, computing{' '}
           <strong className="font-semibold text-[var(--color-text-primary)]">451 descriptors</strong> and
           seven fingerprint types along the way, with results exportable in five formats. The
           verdicts are traceable: every score links back to the published method that produced it.
@@ -960,6 +947,81 @@ function BuiltInJena() {
         </div>
       </div>
     </>
+  );
+}
+
+// ============================================================================
+// LICENSE FOOTER
+// The coffee icon hides this page's one easter egg: caffeine, with a SMILES
+// that really runs through the validator. Discovery reward for the curious;
+// screen-reader users get it through the button label.
+// ============================================================================
+
+const CAFFEINE_SMILES = 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C';
+
+function LicenseFooter() {
+  const [brewing, setBrewing] = useState(false);
+
+  return (
+    <div className="text-center py-10">
+      <div className="flex items-center justify-center gap-1.5 mb-2">
+        <span className="text-sm font-medium text-[var(--color-text-secondary)]">Made with</span>
+        <button
+          onClick={() => setBrewing((v) => !v)}
+          aria-expanded={brewing}
+          aria-controls="caffeine-note"
+          aria-label="About the coffee in this line"
+          className="group p-1 -m-1 rounded-lg cursor-pointer hover:bg-[var(--color-accent)]/10 transition-colors"
+        >
+          <Coffee
+            className="w-4 h-4 text-[var(--color-accent)] transition-transform duration-200 ease-out group-hover:-rotate-12"
+            aria-hidden="true"
+          />
+        </button>
+        <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+          for the chemistry community
+        </span>
+      </div>
+
+      {brewing && (
+        <motion.div
+          id="caffeine-note"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+          className="mx-auto mb-4 max-w-sm"
+        >
+          <p className="text-xs text-[var(--color-text-secondary)] mb-2">
+            Caffeine (C&#8328;H&#8321;&#8320;N&#8324;O&#8322;). The project's other dependency.
+          </p>
+          <Link
+            to={`/?smiles=${encodeURIComponent(CAFFEINE_SMILES)}`}
+            title="Run it through the validator"
+            className={cn(
+              'inline-block font-mono text-[11px] px-2.5 py-1 rounded-lg',
+              'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',
+              'text-[var(--color-text-secondary)]',
+              'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40',
+              'transition-colors'
+            )}
+          >
+            {CAFFEINE_SMILES}
+          </Link>
+        </motion.div>
+      )}
+
+      <p className="text-xs text-[var(--color-text-muted)]">
+        ChemAudit is open-source software released under the{' '}
+        <a
+          href="https://opensource.org/licenses/MIT"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--color-primary)] hover:underline transition-colors"
+        >
+          MIT License
+        </a>
+      </p>
+    </div>
   );
 }
 
