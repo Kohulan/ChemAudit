@@ -7,6 +7,7 @@ import {
   Github,
   Coffee,
   ArrowRight,
+  ChevronDown,
   ExternalLink,
   MapPin,
   User,
@@ -228,7 +229,8 @@ function ReactionScheme() {
           'font-mono text-xs sm:text-sm px-3 py-1.5 rounded-lg',
           'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
           'text-[var(--color-text-secondary)] shadow-sm',
-          'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40 transition-colors'
+          'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40 transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
         )}
       >
         CC(=O)Oc1ccccc1C(=O)O
@@ -255,9 +257,9 @@ function ReactionScheme() {
       <span
         className={cn(
           'text-xs sm:text-sm font-medium px-3 py-1.5 rounded-lg',
-          'bg-[rgba(251,191,36,0.12)] dark:bg-[rgba(251,191,36,0.15)]',
-          'text-[#b45309] dark:text-[#fcd34d]',
-          'border border-[rgba(251,191,36,0.3)]'
+          'bg-chem-accent-400/[0.12] dark:bg-chem-accent-400/[0.15]',
+          'text-chem-accent-700 dark:text-chem-accent-300',
+          'border border-chem-accent-400/30'
         )}
       >
         valid &middot; standardized &middot; scored
@@ -350,14 +352,14 @@ function WhatIsChemAudit() {
                     href={entry.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
                   >
                     <StartHereEntry entry={entry} />
                   </a>
                 ) : (
                   <Link
                     to={entry.href}
-                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
                   >
                     <StartHereEntry entry={entry} />
                   </Link>
@@ -785,7 +787,7 @@ function ScientificReferences() {
 
   return (
     <>
-      <SectionHeader icon={<BookMarked className="w-5 h-5" />} title="Methods & Scientific References" />
+      <SectionHeader icon={<BookMarked className="w-5 h-5" />} title="Methods & scientific references" />
       <p className="text-[var(--color-text-secondary)] mb-6 max-w-prose">
         Every algorithm and scoring function in ChemAudit comes from the published literature.
         These are the primary references.
@@ -803,7 +805,7 @@ function ScientificReferences() {
               onClick={() => setExpandedCategory(expandedCategory === category.title ? null : category.title)}
               aria-expanded={expandedCategory === category.title}
               aria-controls={panelId}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--color-primary)]/5 transition-colors"
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
             >
               <div>
                 <span className="font-semibold text-sm text-[var(--color-text-primary)]">
@@ -817,15 +819,7 @@ function ScientificReferences() {
                 animate={{ rotate: expandedCategory === category.title ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <svg
-                  className="w-5 h-5 text-[var(--color-text-muted)]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" aria-hidden="true" />
               </motion.div>
             </button>
 
@@ -1086,7 +1080,7 @@ function BuiltInJena() {
                   href="https://kohulanr.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                 >
                   <Globe className="w-3.5 h-3.5" aria-hidden="true" />
                   kohulanr.com
@@ -1095,7 +1089,7 @@ function BuiltInJena() {
                   href="https://github.com/Kohulan"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
                 >
                   <Github className="w-3.5 h-3.5" aria-hidden="true" />
                   github.com/Kohulan
@@ -1118,7 +1112,8 @@ function BuiltInJena() {
                   className={cn(
                     'inline-flex items-center gap-2.5 text-sm',
                     'text-[var(--color-text-secondary)]',
-                    'hover:text-[var(--color-primary)] transition-colors'
+                    'hover:text-[var(--color-primary)] transition-colors',
+                    'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
                   )}
                 >
                   <span className="text-[var(--color-primary)]">{link.icon}</span>
@@ -1184,7 +1179,7 @@ function LicenseFooter() {
           aria-expanded={brewing}
           aria-controls="caffeine-note"
           aria-label="About the coffee in this line"
-          className="group p-1 -m-1 rounded-lg cursor-pointer hover:bg-[var(--color-accent)]/10 transition-colors"
+          className="group p-1 -m-1 rounded-lg cursor-pointer hover:bg-[var(--color-accent)]/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
         >
           <Coffee
             className="w-4 h-4 text-[var(--color-accent)] transition-transform duration-200 ease-out group-hover:-rotate-12"
@@ -1215,7 +1210,8 @@ function LicenseFooter() {
               'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',
               'text-[var(--color-text-secondary)]',
               'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40',
-              'transition-colors'
+              'transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
             )}
           >
             {CAFFEINE_SMILES}
