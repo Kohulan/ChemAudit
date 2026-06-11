@@ -1000,53 +1000,33 @@ function BuiltInJena() {
     <>
       <SectionHeader index="05" title="Built in Jena" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-7">
         {/* Research group */}
         <div>
           <a
             href="http://cheminf.uni-jena.de/"
             target="_blank"
             rel="noopener noreferrer"
-            className="block mb-4"
+            className="inline-block mb-4"
           >
-            <div className="rounded-xl bg-white dark:bg-white/10 p-2 transition-shadow hover:shadow-md">
+            <span className="inline-flex items-center rounded-xl bg-white dark:bg-white/95 px-4 py-2.5 shadow-sm hover:shadow-md transition-shadow">
               <img
                 src="/cheminf-logo.png"
                 alt="Natural Products Cheminformatics research group"
-                className="h-20 mx-auto object-contain"
+                className="h-12 object-contain"
               />
-            </div>
+            </span>
           </a>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4 max-w-prose">
+          <p className="text-sm text-[var(--color-text-secondary)] max-w-prose leading-relaxed">
             The group works on chemical structure annotation, deep learning for chemical
             information mining, and open-source cheminformatics tools.
           </p>
-          <a
-            href={mapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative block h-36 rounded-xl overflow-hidden mb-3 border border-[var(--color-border)]/50 hover:border-[var(--color-primary)]/30 transition-colors"
-          >
-            <iframe
-              src="https://www.openstreetmap.org/export/embed.html?bbox=11.5825%2C50.9245%2C11.5955%2C50.9305&layer=mapnik&marker=50.9275%2C11.589"
-              className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-              title="Location Map"
-            />
-          </a>
-          <div className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
-            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" aria-hidden="true" />
-            <span>
-              Friedrich Schiller University Jena
-              <br />
-              Lessingstr 8, 07743 Jena, Germany
-            </span>
-          </div>
         </div>
 
         {/* Developer + contact */}
-        <div className="flex flex-col">
+        <div>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[var(--color-surface-elevated)] shadow-md bg-[var(--color-surface-sunken)] shrink-0">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--color-surface-elevated)] shadow-md bg-[var(--color-surface-sunken)] shrink-0">
               <img
                 src="https://github.com/Kohulan.png"
                 alt="Kohulan Rajan"
@@ -1084,11 +1064,11 @@ function BuiltInJena() {
             </div>
           </div>
 
-          <p className="text-sm text-[var(--color-text-secondary)] mb-5 max-w-prose">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-3 max-w-prose">
             ChemAudit is open source. Contributions, bug reports, and feature requests are welcome.
           </p>
 
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
             {CONTACT_LINKS.map((link) => (
               <li key={link.label}>
                 <a
@@ -1109,6 +1089,36 @@ function BuiltInJena() {
           </ul>
         </div>
       </div>
+
+      {/* Map anchors the section's base at full width; the address rides on it.
+          Top-left so the OpenStreetMap attribution stays unobstructed. */}
+      <a
+        href={mapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block h-40 md:h-48 rounded-2xl overflow-hidden border border-[var(--color-border)]/50 hover:border-[var(--color-primary)]/30 transition-colors"
+      >
+        <iframe
+          src="https://www.openstreetmap.org/export/embed.html?bbox=11.5825%2C50.9245%2C11.5955%2C50.9305&layer=mapnik&marker=50.9275%2C11.589"
+          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          title="Location Map"
+        />
+        <span
+          className={cn(
+            'absolute top-3 left-3 z-10 inline-flex items-start gap-2',
+            'rounded-lg px-3 py-2 text-xs leading-snug',
+            'bg-[var(--color-surface-elevated)]/95 text-[var(--color-text-secondary)]',
+            'border border-[var(--color-border)] shadow-md'
+          )}
+        >
+          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--color-primary)]" aria-hidden="true" />
+          <span>
+            Friedrich Schiller University Jena
+            <br />
+            Lessingstr 8, 07743 Jena, Germany
+          </span>
+        </span>
+      </a>
     </>
   );
 }
