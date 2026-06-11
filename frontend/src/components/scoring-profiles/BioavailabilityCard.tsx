@@ -15,6 +15,8 @@ import {
 import type { BioavailabilityRadar, BoiledEgg } from '../../types/scoring';
 import { cn } from '../../lib/utils';
 import { InfoTooltip, DoiLink } from '../ui/Tooltip';
+import { useThemeContext } from '../../contexts/ThemeContext';
+import { referenceZoneFill } from '../../lib/chartColors';
 
 interface BioavailabilityCardProps {
   radar: BioavailabilityRadar | null;
@@ -24,7 +26,7 @@ interface BioavailabilityCardProps {
 function getRegionColor(region: string) {
   switch (region) {
     case 'yolk': return 'text-amber-500';
-    case 'white': return 'text-emerald-500';
+    case 'white': return 'text-amber-700 dark:text-amber-300';
     default: return 'text-gray-500';
   }
 }
@@ -32,12 +34,13 @@ function getRegionColor(region: string) {
 function getRegionBg(region: string) {
   switch (region) {
     case 'yolk': return 'bg-amber-500/10 border-amber-500/20';
-    case 'white': return 'bg-emerald-500/10 border-emerald-500/20';
+    case 'white': return 'bg-amber-700/10 border-amber-700/20';
     default: return 'bg-gray-500/10 border-gray-500/20';
   }
 }
 
 export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardProps) {
+  const { isDark } = useThemeContext();
   return (
     <div className="space-y-6">
       {/* Radar Chart */}
@@ -85,9 +88,9 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
               radar.overall_in_range_count >= 5
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                 : radar.overall_in_range_count >= 3
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
                   : 'bg-red-500/10 text-red-600 dark:text-red-400'
             )}>
               {radar.overall_in_range_count}/6 in range
@@ -120,8 +123,8 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                 <Radar
                   name="Optimal"
                   dataKey="optimal"
-                  stroke="rgba(16, 185, 129, 0.4)"
-                  fill="rgba(16, 185, 129, 0.08)"
+                  stroke="rgba(217, 119, 6, 0.4)"
+                  fill={referenceZoneFill(isDark)}
                   fillOpacity={1}
                 />
                 {/* Actual values */}
@@ -151,7 +154,7 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                         <p className="text-[var(--color-text-muted)]">
                           Range: {axis.optimal_min} - {axis.optimal_max}
                         </p>
-                        <p className={axis.in_range ? 'text-emerald-500' : 'text-red-500'}>
+                        <p className={axis.in_range ? 'text-amber-700 dark:text-amber-300' : 'text-red-500'}>
                           {axis.in_range ? 'In range' : 'Out of range'}
                         </p>
                       </div>
@@ -170,14 +173,14 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                 className={cn(
                   'flex items-center justify-between px-3 py-2 rounded-lg text-xs',
                   a.in_range
-                    ? 'bg-emerald-500/5 border border-emerald-500/10'
+                    ? 'bg-amber-500/5 border border-amber-500/10'
                     : 'bg-red-500/5 border border-red-500/10'
                 )}
               >
                 <span className="font-medium text-[var(--color-text-primary)]">{a.name}</span>
                 <span className={cn(
                   'font-mono',
-                  a.in_range ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                  a.in_range ? 'text-amber-700 dark:text-amber-300' : 'text-red-600 dark:text-red-400'
                 )}>
                   {a.actual_value.toFixed(1)}
                 </span>
@@ -215,7 +218,7 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                     </p>
                     <div className="space-y-1.5">
                       <div className="flex items-start gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block mt-0.5 flex-shrink-0" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-300 inline-block mt-0.5 flex-shrink-0" />
                         <span>
                           <strong>White</strong> — GI absorbed (93% accuracy).
                           TPSA {'<'} ~142 A^2, WLOGP ~-2.3 to +6.8
@@ -251,7 +254,7 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
             </div>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium capitalize',
-              getRegionColor(boiledEgg.region).replace('text-', 'bg-').replace('500', '500/10'),
+              getRegionBg(boiledEgg.region),
               getRegionColor(boiledEgg.region)
             )}>
               {boiledEgg.region}
@@ -295,7 +298,7 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                     boiledEgg.region === 'yolk'
                       ? '#f59e0b'
                       : boiledEgg.region === 'white'
-                        ? '#10b981'
+                        ? '#b45309'
                         : '#6b7280'
                   }
                   shape="circle"
@@ -330,7 +333,7 @@ export function BioavailabilityCard({ radar, boiledEgg }: BioavailabilityCardPro
                 <div className="flex items-center gap-1">
                   <span className={cn(
                     'w-3 h-3 rounded-full',
-                    boiledEgg.gi_absorbed ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                    boiledEgg.gi_absorbed ? 'bg-amber-700 dark:bg-amber-300' : 'bg-gray-300 dark:bg-gray-600'
                   )} />
                   <span className="text-xs text-[var(--color-text-secondary)]">GI Absorbed</span>
                 </div>

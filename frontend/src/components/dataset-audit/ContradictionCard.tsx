@@ -173,7 +173,7 @@ function CopyInChIKey({ inchikey }: { inchikey: string }) {
       title="Copy InChIKey"
     >
       {copied ? (
-        <Check className="w-3 h-3 text-emerald-500" />
+        <Check className="w-3 h-3 text-status-success-dark dark:text-status-success" />
       ) : (
         <Copy className="w-3 h-3 text-[var(--color-text-muted)]" />
       )}

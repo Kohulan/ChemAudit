@@ -138,14 +138,14 @@ function FilterCard({
         'bg-[var(--color-surface-sunken)]',
         'border',
         result.passed
-          ? 'border-emerald-500/20'
+          ? 'border-amber-500/20'
           : 'border-red-500/20'
       )}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {result.passed ? (
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
             <ShieldAlert className="w-4 h-4 text-red-500" />
           )}
@@ -162,7 +162,7 @@ function FilterCard({
           className={cn(
             'text-xs font-medium px-2 py-0.5 rounded-full',
             result.passed
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
               : 'bg-red-500/10 text-red-600 dark:text-red-400'
           )}
         >
@@ -230,7 +230,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
         'rounded-xl p-3',
         'bg-[var(--color-surface-sunken)]',
         'border',
-        chembl.passed ? 'border-emerald-500/20' : 'border-amber-500/20'
+        chembl.passed ? 'border-amber-500/20' : 'border-orange-500/20'
       )}
     >
       <button
@@ -239,9 +239,9 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
       >
         <div className="flex items-center gap-2">
           {chembl.passed ? (
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
-            <ShieldAlert className="w-4 h-4 text-amber-500" />
+            <ShieldAlert className="w-4 h-4 text-orange-500" />
           )}
           <span className="text-sm font-medium text-[var(--color-text-primary)]">ChEMBL Alerts</span>
           <InfoTooltip
@@ -259,8 +259,8 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
             className={cn(
               'text-xs font-medium px-2 py-0.5 rounded-full',
               chembl.passed
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
             )}
           >
             {chembl.passed ? 'Clear' : `${chembl.total_alerts} alert${chembl.total_alerts !== 1 ? 's' : ''}`}
@@ -288,7 +288,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     {filterResult.passed ? (
-                      <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                      <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                     ) : (
                       <ShieldAlert className="w-3 h-3 text-red-500" />
                     )}
@@ -307,7 +307,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                   </div>
                   <span className={cn(
                     'text-xs',
-                    filterResult.passed ? 'text-emerald-500' : 'text-red-500'
+                    filterResult.passed ? 'text-amber-700 dark:text-amber-300' : 'text-red-500'
                   )}>
                     {filterResult.passed ? 'Pass' : `${filterResult.alert_count} alert${filterResult.alert_count !== 1 ? 's' : ''}`}
                   </span>
@@ -350,7 +350,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
         'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface)]',
         'border',
         all_passed
-          ? 'border-emerald-500/20'
+          ? 'border-amber-500/20'
           : 'border-red-500/20'
       )}
     >
@@ -360,7 +360,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
           <div className={cn(
             'w-10 h-10 rounded-xl flex items-center justify-center',
             all_passed
-              ? 'bg-emerald-500/10 text-emerald-500'
+              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
               : 'bg-red-500/10 text-red-500'
           )}>
             <Shield className="w-5 h-5" />
@@ -375,7 +375,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
         <div className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-full',
           all_passed
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
             : 'bg-red-500/10 text-red-600 dark:text-red-400'
         )}>
           {all_passed ? (
@@ -421,7 +421,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
       <div className={cn(
         'mt-4 p-3 rounded-xl text-xs',
         all_passed
-          ? 'bg-emerald-500/5 border border-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+          ? 'bg-amber-500/5 border border-amber-500/10 text-amber-700 dark:text-amber-300'
           : 'bg-red-500/5 border border-red-500/10 text-red-700 dark:text-red-300'
       )}>
         <div className="flex items-start gap-2">

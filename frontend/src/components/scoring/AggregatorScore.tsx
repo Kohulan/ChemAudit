@@ -21,17 +21,17 @@ function getLikelihoodColor(likelihood: string) {
   switch (likelihood) {
     case 'low':
       return {
-        bg: 'bg-emerald-500/10',
-        text: 'text-emerald-600 dark:text-emerald-400',
-        border: 'border-emerald-500/20',
-        gradient: 'from-emerald-500/20 to-emerald-500/5'
+        bg: 'bg-amber-500/10',
+        text: 'text-amber-700 dark:text-amber-300',
+        border: 'border-amber-500/20',
+        gradient: 'from-amber-500/20 to-amber-500/5'
       };
     case 'moderate':
       return {
-        bg: 'bg-amber-500/10',
-        text: 'text-amber-600 dark:text-amber-400',
-        border: 'border-amber-500/20',
-        gradient: 'from-amber-500/20 to-amber-500/5'
+        bg: 'bg-orange-500/10',
+        text: 'text-orange-600 dark:text-orange-400',
+        border: 'border-orange-500/20',
+        gradient: 'from-orange-500/20 to-orange-500/5'
       };
     case 'high':
       return {
@@ -144,8 +144,8 @@ export function AggregatorScore({ result }: AggregatorScoreProps) {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className={cn(
               'h-full rounded-full',
-              likelihood === 'low' && 'bg-emerald-500',
-              likelihood === 'moderate' && 'bg-amber-500',
+              likelihood === 'low' && 'bg-amber-500',
+              likelihood === 'moderate' && 'bg-orange-500',
               likelihood === 'high' && 'bg-red-500'
             )}
           />

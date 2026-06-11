@@ -16,11 +16,11 @@ function getScoreCategory(score: number) {
   if (score >= 1.0) return {
     label: 'Natural-product-like',
     icon: Leaf,
-    gradient: 'from-emerald-500 to-green-400',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    border: 'border-emerald-500/20',
-    glow: 'shadow-emerald-500/30',
+    gradient: 'from-amber-500 to-amber-300',
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-500/20',
+    glow: 'shadow-amber-500/30',
     description: 'Fragments typical of natural products',
   };
   if (score >= -0.3) return {
@@ -145,11 +145,11 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
                 `,
               }}
             >
-              {/* Gradient fill: red (synthetic) → slate (mixed) → green (natural) */}
+              {/* Gradient fill: red (synthetic) → slate (mixed) → gold (natural) */}
               <div
                 className="absolute inset-0"
                 style={{
-                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #34d399 85%, #10b981 100%)',
+                  background: 'linear-gradient(to right, #ef4444 0%, #f87171 15%, #94a3b8 50%, #fbbf24 85%, #d97706 100%)',
                   opacity: 0.85,
                 }}
               />
@@ -197,7 +197,7 @@ export function NPLikenessScore({ result }: NPLikenessScoreProps) {
               Synthetic <span className="text-[var(--color-text-muted)]">(-5)</span>
             </span>
             <span className="text-[var(--color-text-muted)]">0</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <span className="text-amber-700 dark:text-amber-300 font-medium flex items-center gap-1">
               Natural <span className="text-[var(--color-text-muted)]">(+5)</span>
               <Leaf className="w-3 h-3" />
             </span>

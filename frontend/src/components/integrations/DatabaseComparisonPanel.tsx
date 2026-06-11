@@ -18,14 +18,14 @@ const VERDICT_CONFIG: Record<string, {
   Icon: typeof CheckCircle2;
 }> = {
   consistent: {
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
-    ring: 'ring-emerald-500/30',
+    gradient: 'from-amber-400 via-amber-500 to-orange-400',
+    ring: 'ring-amber-500/30',
     label: 'Consistent',
     Icon: CheckCircle2,
   },
   minor_differences: {
-    gradient: 'from-amber-500 via-orange-500 to-yellow-500',
-    ring: 'ring-amber-500/30',
+    gradient: 'from-orange-400 via-orange-500 to-orange-600',
+    ring: 'ring-orange-500/30',
     label: 'Minor Differences',
     Icon: AlertTriangle,
   },
@@ -54,20 +54,20 @@ const STATUS_STYLES: Record<string, {
   glow: string;
 }> = {
   match: {
-    badge: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
+    badge: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
     badgeText: 'Match',
-    accent: 'bg-emerald-500',
-    detailBg: 'bg-emerald-50/60 border-emerald-200/50',
+    accent: 'bg-amber-600',
+    detailBg: 'bg-amber-50/60 border-amber-200/50',
     icon: '●',
-    glow: 'shadow-emerald-500/5',
+    glow: 'shadow-amber-500/5',
   },
   minor_difference: {
-    badge: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
+    badge: 'bg-orange-500/10 text-orange-700 border border-orange-500/20',
     badgeText: 'Minor Difference',
-    accent: 'bg-amber-500',
-    detailBg: 'bg-amber-50/60 border-amber-200/50',
+    accent: 'bg-orange-500',
+    detailBg: 'bg-orange-50/60 border-orange-200/50',
     icon: '◐',
-    glow: 'shadow-amber-500/5',
+    glow: 'shadow-orange-500/5',
   },
   mismatch: {
     badge: 'bg-rose-500/10 text-rose-700 border border-rose-500/20',

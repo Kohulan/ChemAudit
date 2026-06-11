@@ -34,8 +34,8 @@ export function BatchSummary({ jobId: _jobId, statistics, selectedIndices: _sele
 
   const getPassRateColor = (rate: number | null): string => {
     if (rate === null) return 'text-[var(--color-text-muted)]';
-    if (rate >= 80) return 'text-emerald-600 dark:text-emerald-400';
-    if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
+    if (rate >= 80) return 'text-amber-700 dark:text-amber-300';
+    if (rate >= 50) return 'text-orange-600 dark:text-orange-400';
     return 'text-red-600 dark:text-red-400';
   };
 

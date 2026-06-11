@@ -251,8 +251,8 @@ export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
                         {mol.profile.pfi?.pfi?.toFixed(2) ?? '—'}
                         {mol.profile.pfi?.risk && (
                           <span className={`ml-1 text-[10px] ${
-                            mol.profile.pfi.risk === 'low' ? 'text-green-600' :
-                            mol.profile.pfi.risk === 'moderate' ? 'text-amber-600' : 'text-red-600'
+                            mol.profile.pfi.risk === 'low' ? 'text-amber-700 dark:text-amber-300' :
+                            mol.profile.pfi.risk === 'moderate' ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
                           }`}>
                             {mol.profile.pfi.risk}
                           </span>
@@ -276,7 +276,7 @@ export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
                       <div className="flex justify-between text-xs">
                         <span className="text-[var(--color-text-muted)]">Drug-likeness</span>
                         <span className={`font-semibold tabular-nums ${
-                          pass === total ? 'text-green-600' : pass >= total / 2 ? 'text-amber-600' : 'text-red-600'
+                          pass === total ? 'text-amber-700 dark:text-amber-300' : pass >= total / 2 ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
                         }`}>
                           {pass}/{total} rules
                         </span>
@@ -365,7 +365,7 @@ export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
                             style={{
                               color: delta === null ? 'var(--color-text-muted)'
                                 : delta === 0 ? 'var(--color-text-secondary)'
-                                : delta > 0 ? '#16a34a' : '#dc2626',
+                                : delta > 0 ? '#d97706' : '#dc2626',
                             }}
                           >
                             {delta !== null ? formatDelta(delta, prop.decimals) : '—'}

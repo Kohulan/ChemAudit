@@ -14,11 +14,11 @@ interface QSARMoleculeRowProps {
 function getStatusColor(status: QSARReadyResult['status']): string {
   switch (status) {
     case 'ok':
-      return '#16a34a';
+      return '#b45309';
     case 'rejected':
       return '#dc2626';
     case 'duplicate':
-      return '#d97706';
+      return '#ea580c';
     case 'error':
       // Neutral warm stone (theme-aware) so error stays distinct from
       // the amber duplicate state in both modes.
@@ -31,11 +31,11 @@ function getStatusColor(status: QSARReadyResult['status']): string {
 function getStatusBgClass(status: QSARReadyResult['status']): string {
   switch (status) {
     case 'ok':
-      return 'bg-green-50 text-green-700';
+      return 'bg-amber-50 text-amber-700';
     case 'rejected':
       return 'bg-red-50 text-red-700';
     case 'duplicate':
-      return 'bg-amber-50 text-amber-700';
+      return 'bg-orange-50 text-orange-700';
     case 'error':
       return 'bg-chem-dark-100 text-chem-dark-700 dark:bg-chem-dark-800 dark:text-chem-dark-300';
     default:

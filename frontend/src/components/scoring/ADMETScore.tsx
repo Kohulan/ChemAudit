@@ -29,15 +29,15 @@ function getClassColor(classification: string): { bg: string; text: string; bord
     case 'soluble':
     case '3d':
       return {
-        bg: 'bg-emerald-500/10',
-        text: 'text-emerald-600 dark:text-emerald-400',
-        border: 'border-emerald-500/20'
+        bg: 'bg-amber-500/10',
+        text: 'text-amber-700 dark:text-amber-300',
+        border: 'border-amber-500/20'
       };
     case 'moderate':
       return {
-        bg: 'bg-amber-500/10',
-        text: 'text-amber-600 dark:text-amber-400',
-        border: 'border-amber-500/20'
+        bg: 'bg-orange-500/10',
+        text: 'text-orange-600 dark:text-orange-400',
+        border: 'border-orange-500/20'
       };
     case 'difficult':
     case 'poor':
@@ -149,22 +149,22 @@ function RuleCard({
         'rounded-lg p-2',
         'bg-[var(--color-surface-sunken)]',
         'border',
-        passed ? 'border-emerald-500/20' : 'border-amber-500/20'
+        passed ? 'border-amber-500/20' : 'border-orange-500/20'
       )}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {passed ? (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
           ) : (
-            <XCircle className="w-3.5 h-3.5 text-amber-500" />
+            <XCircle className="w-3.5 h-3.5 text-orange-500" />
           )}
           <span className="text-xs font-medium text-[var(--color-text-primary)]">{name}</span>
           <InfoTooltip title={name} content={tooltip} />
         </div>
         <span className={cn(
           'text-xs font-medium',
-          passed ? 'text-emerald-500' : 'text-amber-500'
+          passed ? 'text-amber-700 dark:text-amber-300' : 'text-orange-600 dark:text-orange-400'
         )}>
           {passed ? 'Pass' : 'Fail'}
         </span>
@@ -342,7 +342,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 {pfizer_rule && (
                   <span className={cn(
                     'inline-flex items-center gap-1 text-xs',
-                    pfizer_rule.passed ? 'text-emerald-500' : 'text-amber-500'
+                    pfizer_rule.passed ? 'text-amber-700 dark:text-amber-300' : 'text-orange-600 dark:text-orange-400'
                   )}>
                     {pfizer_rule.passed ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                     Pfizer
@@ -351,7 +351,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 {gsk_rule && (
                   <span className={cn(
                     'inline-flex items-center gap-1 text-xs',
-                    gsk_rule.passed ? 'text-emerald-500' : 'text-amber-500'
+                    gsk_rule.passed ? 'text-amber-700 dark:text-amber-300' : 'text-orange-600 dark:text-orange-400'
                   )}>
                     {gsk_rule.passed ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                     GSK
@@ -360,7 +360,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 {golden_triangle && (
                   <span className={cn(
                     'inline-flex items-center gap-1 text-xs',
-                    golden_triangle.in_golden_triangle ? 'text-emerald-500' : 'text-amber-500'
+                    golden_triangle.in_golden_triangle ? 'text-amber-700 dark:text-amber-300' : 'text-orange-600 dark:text-orange-400'
                   )}>
                     {golden_triangle.in_golden_triangle ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                     Triangle
@@ -462,7 +462,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
             <span>Bioavailability Indicators</span>
             <div className="flex items-center gap-2">
               {bioavailability.oral_absorption_likely ? (
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
                   <CheckCircle2 className="w-3 h-3" /> Oral
                 </span>
               ) : (
@@ -471,7 +471,7 @@ export function ADMETScore({ result }: ADMETScoreProps) {
                 </span>
               )}
               {bioavailability.cns_penetration_likely ? (
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
                   <CheckCircle2 className="w-3 h-3" /> CNS
                 </span>
               ) : (

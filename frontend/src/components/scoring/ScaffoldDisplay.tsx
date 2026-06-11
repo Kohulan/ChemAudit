@@ -58,8 +58,8 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement 
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setActiveView('murcko')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeView === 'murcko'
-                  ? 'bg-blue-600 text-white'
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${activeView === 'murcko'
+                  ? 'bg-chem-primary-600 text-white'
                   : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-strong)]'
                 }`}
             >
@@ -67,8 +67,8 @@ export function ScaffoldDisplay({ result }: ScaffoldDisplayProps): ReactElement 
             </button>
             <button
               onClick={() => setActiveView('generic')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeView === 'generic'
-                  ? 'bg-blue-600 text-white'
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${activeView === 'generic'
+                  ? 'bg-chem-primary-600 text-white'
                   : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-strong)]'
                 }`}
             >

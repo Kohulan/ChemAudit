@@ -270,8 +270,8 @@ export function ContradictoryLabelsTab({
           animate={{ opacity: 1 }}
           className="flex flex-col items-center justify-center py-10 text-center"
         >
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center mb-3">
-            <AlertTriangle className="w-6 h-6 text-emerald-500" />
+          <div className="w-12 h-12 rounded-2xl bg-status-success-light dark:bg-status-success/15 flex items-center justify-center mb-3">
+            <AlertTriangle className="w-6 h-6 text-status-success-dark dark:text-status-success" />
           </div>
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
             No contradictory labels detected

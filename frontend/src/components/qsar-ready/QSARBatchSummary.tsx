@@ -24,9 +24,9 @@ interface MetricCard {
 
 function getMetricCards(summary: QSARBatchSummaryType): MetricCard[] {
   return [
-    { label: 'OK', value: summary.ok, color: '#16a34a' },
+    { label: 'OK', value: summary.ok, color: '#b45309' },
     { label: 'Rejected', value: summary.rejected, color: '#dc2626' },
-    { label: 'Duplicate', value: summary.duplicate, color: '#d97706' },
+    { label: 'Duplicate', value: summary.duplicate, color: '#ea580c' },
     { label: 'Error', value: summary.error, color: 'var(--color-text-secondary)' },
   ];
 }
