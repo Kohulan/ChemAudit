@@ -469,7 +469,7 @@ export function SplashScreen({ isVisible, onComplete }: SplashScreenProps) {
                 }}
               />
               <img
-                src="/logo.png"
+                src="/logo-512.png"
                 alt="ChemAudit"
                 className="relative w-[110px] h-[110px] object-contain"
                 style={{

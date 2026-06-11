@@ -29,7 +29,7 @@ function PropertyRow({
           passed === undefined
             ? 'text-[var(--color-text-primary)]'
             : passed
-              ? 'text-emerald-600 dark:text-emerald-400'
+              ? 'text-amber-700 dark:text-amber-300'
               : 'text-red-600 dark:text-red-400'
         )}>
           {typeof value === 'number' ? value.toFixed(2) : value}
@@ -45,9 +45,9 @@ function PropertyRow({
 function CategoryBadge({ category }: { category: string }) {
   const colors: Record<string, string> = {
     counterion: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    salt: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    solvent: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    drug: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    salt: 'bg-chem-secondary-500/10 text-chem-secondary-700 dark:text-chem-secondary-400',
+    solvent: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    drug: 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success',
     unknown: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
   };
 
@@ -73,7 +73,7 @@ export function LeadFragmentCard({ leadLikeness, ro3, saltInventory, ligandEffic
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
               leadLikeness.passed
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success'
                 : 'bg-red-500/10 text-red-600 dark:text-red-400'
             )}>
               {leadLikeness.passed ? 'PASS' : `${leadLikeness.violations} violation${leadLikeness.violations !== 1 ? 's' : ''}`}
@@ -102,7 +102,7 @@ export function LeadFragmentCard({ leadLikeness, ro3, saltInventory, ligandEffic
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
               ro3.passed
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success'
                 : 'bg-red-500/10 text-red-600 dark:text-red-400'
             )}>
               {ro3.passed ? 'PASS' : `${ro3.violations} violation${ro3.violations !== 1 ? 's' : ''}`}

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useThemeContext } from '../../contexts/ThemeContext';
 import type { Theme } from '../../hooks/useTheme';
@@ -21,6 +21,7 @@ const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
  */
 export function ThemeToggle({ className, showLabel = false, variant = 'button' }: ThemeToggleProps) {
   const { theme, setTheme, resolvedTheme } = useThemeContext();
+  const reduceMotion = useReducedMotion();
 
   if (variant === 'dropdown') {
     return <ThemeDropdown className={className} />;
@@ -55,13 +56,13 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
         'transition-all duration-300',
         className
       )}
-      whileHover={{
+      whileHover={reduceMotion ? undefined : {
         scale: 1.08,
         boxShadow: isDark
           ? 'inset 2px 2px 8px rgba(255,255,255,0.08), inset -2px -2px 8px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5)'
           : 'inset 2px 2px 8px rgba(255,255,255,1), inset -2px -2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(251,191,36,0.3)'
       }}
-      whileTap={{
+      whileTap={reduceMotion ? undefined : {
         scale: 0.92,
         boxShadow: isDark
           ? 'inset 3px 3px 8px rgba(0,0,0,0.5), inset -1px -1px 4px rgba(255,255,255,0.03), 0 2px 8px rgba(0,0,0,0.3)'
@@ -77,8 +78,8 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
             ? 'bg-gradient-to-br from-chem-primary-600/20 via-chem-accent-600/20 to-chem-primary-600/20'
             : 'bg-gradient-to-br from-chem-accent-300/40 via-chem-accent-400/30 to-chem-accent-200/40'
         )}
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        animate={reduceMotion ? { opacity: 0.45 } : { opacity: [0.3, 0.6, 0.3] }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <AnimatePresence mode="wait" initial={false}>
@@ -94,7 +95,7 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
             className={cn(
               'w-5 h-5',
               isDark
-                ? 'text-indigo-300 drop-shadow-[0_0_8px_rgba(165,180,252,0.6)]'
+                ? 'text-chem-primary-300 drop-shadow-[0_0_8px_theme(colors.chem-primary.300/60%)]'
                 : 'text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]'
             )}
           />
@@ -118,6 +119,7 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
  */
 function ThemeDropdown({ className }: { className?: string }) {
   const { theme, setTheme, resolvedTheme } = useThemeContext();
+  const reduceMotion = useReducedMotion();
   const isDark = resolvedTheme === 'dark';
 
   return (
@@ -141,14 +143,14 @@ function ThemeDropdown({ className }: { className?: string }) {
                 'relative p-2.5 rounded-xl transition-colors duration-200',
                 isActive
                   ? isDark
-                    ? 'text-indigo-300'
+                    ? 'text-chem-primary-300'
                     : 'text-amber-600'
                   : isDark
                     ? 'text-slate-500 hover:text-slate-300'
                     : 'text-slate-400 hover:text-slate-600'
               )}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={reduceMotion ? undefined : { scale: 1.1 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.9 }}
               aria-label={`Switch to ${value} theme`}
             >
               {isActive && (
@@ -182,6 +184,7 @@ function ThemeDropdown({ className }: { className?: string }) {
  */
 export function ThemeSelector({ className }: { className?: string }) {
   const { theme, setTheme, resolvedTheme } = useThemeContext();
+  const reduceMotion = useReducedMotion();
   const isDark = resolvedTheme === 'dark';
 
   return (
@@ -213,8 +216,8 @@ export function ThemeSelector({ className }: { className?: string }) {
                       'shadow-[inset_1px_1px_3px_rgba(255,255,255,0.5),inset_-1px_-1px_3px_rgba(0,0,0,0.05)]'
                     )
               )}
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={reduceMotion ? undefined : { scale: 1.02, y: -1 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.98 }}
             >
               <Icon className={cn(
                 'w-4 h-4',

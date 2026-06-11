@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, FileText, Table2, FlaskConical, Braces, FileBarChart, Fingerprint, Copy, Network, LayoutGrid, Image } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
@@ -43,6 +43,30 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   );
   const [sheetLayout, setSheetLayout] = useState<'single' | 'multi'>('single');
   const [includeAudit, setIncludeAudit] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // Refs mirror props/state so the effects below depend only on isOpen:
+  // parents pass onClose as an inline arrow, and re-running these effects on
+  // every parent render would re-steal focus mid-interaction.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const isExportingRef = useRef(isExporting);
+  isExportingRef.current = isExporting;
+
+  // Initial focus: exactly once per open, never again while open.
+  useEffect(() => {
+    if (isOpen) closeButtonRef.current?.focus();
+  }, [isOpen]);
+
+  // Close on Escape, except while an export is in flight (mirrors the
+  // disabled Cancel button, which guards the same window).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isExportingRef.current) onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -135,7 +159,7 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   };
 
   return (
-    <div className="fixed inset-0 bg-[var(--color-text-primary)]/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-[var(--color-text-primary)]/50 flex items-center justify-center z-50" onClick={onClose} role="presentation">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -143,11 +167,14 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
         transition={{ duration: 0.2 }}
         className="bg-[var(--color-surface-elevated)] rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden border border-[var(--color-border)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-dialog-title"
       >
         {/* Header */}
         <div className="border-b border-[var(--color-border)] px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="text-xl font-semibold text-[var(--color-text-primary)] font-display">Export Results</h2>
+            <h2 id="export-dialog-title" className="text-xl font-semibold text-[var(--color-text-primary)] font-display">Export Results</h2>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">
               {isSelectedMode ? (
                 <>Export {selectedIndices.size} selected molecules</>
@@ -157,8 +184,10 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--color-surface-sunken)] transition-colors"
+            aria-label="Close export dialog"
+            className="p-2 rounded-lg hover:bg-[var(--color-surface-sunken)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
             <X className="w-5 h-5 text-[var(--color-text-muted)]" />
           </button>

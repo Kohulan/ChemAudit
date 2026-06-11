@@ -1,6 +1,6 @@
 import { type ReactNode, type Ref } from 'react';
 import { motion } from 'framer-motion';
-import { Atom, Download, Lock } from 'lucide-react';
+import { Atom, Download, Layers, Lock } from 'lucide-react';
 
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { cn } from '../../lib/utils';
@@ -149,10 +149,8 @@ export function MoleculeViewerPanel({
           animate={{ opacity: 1 }}
           className="mt-3 flex items-center justify-center gap-2"
         >
-          <div className="flex items-center gap-1.5 text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded-lg">
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
+          <div className="flex items-center gap-1.5 text-xs bg-chem-secondary-500/10 text-chem-secondary-700 dark:text-chem-secondary-400 px-2 py-1 rounded-lg">
+            <Layers className="w-3 h-3" aria-hidden="true" />
             <span>
               {stereo.numStereocenters > 0 &&
                 `${stereo.numStereocenters} stereocenter${stereo.numStereocenters > 1 ? 's' : ''}`}

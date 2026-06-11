@@ -350,7 +350,7 @@ export function CinematicFooter() {
             color: 'var(--color-text-primary)',
           }}
         >
-          <div className="footer-aurora absolute left-1/2 top-1/2 h-[60vh] w-[80vw] -translate-x-1/2 -translate-y-1/2 animate-footer-breathe rounded-[50%] blur-[80px] pointer-events-none z-0" />
+          <div className="footer-aurora absolute left-1/2 top-1/2 h-[60vh] w-[80vw] -translate-x-1/2 -translate-y-1/2 animate-footer-breathe rounded-[50%] blur-[56px] pointer-events-none z-0" />
           <div className="footer-bg-grid absolute inset-0 z-0 pointer-events-none" />
 
           <div
@@ -361,11 +361,11 @@ export function CinematicFooter() {
           </div>
 
           <div
-            className="absolute top-12 left-0 w-full overflow-hidden py-4 z-10 -rotate-2 scale-110 shadow-2xl backdrop-blur-md"
+            className="absolute top-12 left-0 w-full overflow-hidden py-4 z-10 -rotate-2 scale-110 shadow-2xl"
             style={{
               borderTop: '1px solid var(--color-border)',
               borderBottom: '1px solid var(--color-border)',
-              backgroundColor: 'color-mix(in oklch, var(--color-surface) 60%, transparent)',
+              backgroundColor: 'color-mix(in oklch, var(--color-surface) 88%, transparent)',
             }}
           >
             <div

@@ -8,6 +8,8 @@ import {
 } from 'recharts';
 import { ClayCard } from '../ui/ClayCard';
 import { Badge } from '../ui/Badge';
+import { useThemeContext } from '../../contexts/ThemeContext';
+import { referenceZoneFill } from '../../lib/chartColors';
 import type { ComplexityResult } from '../../types/safety';
 
 interface ComplexityRadarProps {
@@ -64,14 +66,21 @@ function CustomTick(props: {
  * Complexity Percentile Radar Chart (D-17).
  *
  * Renders a Recharts RadarChart with dual polygons:
- * - Green polygon (#bbf7d0) for the 5th-95th percentile reference zone (locked D-17)
- * - Blue polygon (#93c5fd) for molecule values (locked D-17)
+ * - Translucent amber zone for the 5th-95th percentile reference range
+ *   (theme-aware; amber is the brand's "good/target" signal)
+ * - Brand-primary polygon for molecule values (the molecule is the hero)
+ * The original D-17 green/blue hexes were off-palette with no dark-mode
+ * variants; superseded by the frontend audit remediation.
  *
  * Normalizes molecule values to [0, 1] relative to [p5, p95] with slight
  * overshoot allowed (clamped to [0, 1.5]) for visual clarity.
  * Outlier axis labels are colored red (#ef4444).
  */
 export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
+  const { isDark } = useThemeContext();
+  // Tinted amber reference zone; alpha is baked in, so no extra fillOpacity.
+  const zoneFill = referenceZoneFill(isDark);
+
   const radarData: RadarDataPoint[] = Object.entries(complexity.properties).map(
     ([name, prop]) => ({
       property: name,
@@ -113,19 +122,19 @@ export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
                 tick={false}
                 axisLine={false}
               />
-              {/* Green reference zone polygon: 5th-95th percentile range per D-17 */}
+              {/* Amber reference zone polygon: 5th-95th percentile range */}
               <Radar
                 dataKey="reference"
                 stroke="none"
-                fill="#bbf7d0"
-                fillOpacity={0.3}
+                fill={zoneFill}
+                fillOpacity={1}
                 name="Reference Zone"
               />
-              {/* Blue molecule polygon per D-17 */}
+              {/* Brand-primary molecule polygon */}
               <Radar
                 dataKey="molecule"
-                stroke="#93c5fd"
-                fill="#93c5fd"
+                stroke="var(--color-primary)"
+                fill="var(--color-primary)"
                 fillOpacity={0.5}
                 name="Molecule"
               />
@@ -136,15 +145,15 @@ export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
         <div className="flex items-center gap-6 text-xs text-text-muted justify-center">
           <span className="flex items-center gap-1.5">
             <span
-              className="inline-block w-3 h-3 rounded-sm"
-              style={{ background: '#bbf7d0', opacity: 0.7 }}
+              className="inline-block w-3 h-3 rounded-sm border border-[var(--color-border)]"
+              style={{ background: zoneFill }}
             />
             Reference zone (p5–p95)
           </span>
           <span className="flex items-center gap-1.5">
             <span
               className="inline-block w-3 h-3 rounded-sm"
-              style={{ background: '#93c5fd', opacity: 0.7 }}
+              style={{ background: 'var(--color-primary)', opacity: 0.7 }}
             />
             Molecule
           </span>

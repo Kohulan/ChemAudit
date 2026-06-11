@@ -146,7 +146,7 @@ export function HistoryPage() {
             <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Total</div>
           </div>
           <div className="card p-4 text-center">
-            <div className="text-2xl font-bold text-green-500">{stats.outcome_distribution?.pass ?? 0}</div>
+            <div className="text-2xl font-bold text-status-success-dark dark:text-status-success">{stats.outcome_distribution?.pass ?? 0}</div>
             <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Passed</div>
           </div>
           <div className="card p-4 text-center">
@@ -317,7 +317,7 @@ export function HistoryPage() {
                       <span className={cn(
                         'text-sm font-medium tabular-nums',
                         entry.score !== null && entry.score >= 70
-                          ? 'text-green-500'
+                          ? 'text-status-success-dark dark:text-status-success'
                           : entry.score !== null && entry.score >= 40
                           ? 'text-amber-500'
                           : 'text-red-500'

@@ -139,24 +139,24 @@ function PropertyHistogram({ config, data }: { config: PropertyConfig; data: His
           {/* Drug-space reference boundary lines (dashed) */}
           <ReferenceLine
             x={findClosestBin(barData, config.refLow)}
-            stroke="#059669"
+            stroke="var(--color-accent)"
             strokeDasharray="4 4"
             strokeWidth={2}
             label={{
               value: String(config.refLow),
               position: 'top',
-              style: { fontSize: 9, fill: '#059669' },
+              style: { fontSize: 9, fill: 'var(--color-accent)' },
             }}
           />
           <ReferenceLine
             x={findClosestBin(barData, config.refHigh)}
-            stroke="#059669"
+            stroke="var(--color-accent)"
             strokeDasharray="4 4"
             strokeWidth={2}
             label={{
               value: String(config.refHigh),
               position: 'top',
-              style: { fontSize: 9, fill: '#059669' },
+              style: { fontSize: 9, fill: 'var(--color-accent)' },
             }}
           />
         </BarChart>
@@ -194,8 +194,8 @@ function findClosestBin(
  *
  * Per UI-SPEC:
  * - Responsive grid: lg:grid-cols-3, md:grid-cols-2, mobile: stack
- * - Blue bars for dataset distribution
- * - Dashed green reference lines at drug-space boundaries
+ * - Brand-primary bars for dataset distribution
+ * - Dashed amber (var(--color-accent)) reference lines at drug-space boundaries
  * - MW: Lipinski 150-500
  * - LogP: Lipinski -0.4 to 5
  * - TPSA: Veber 20-130

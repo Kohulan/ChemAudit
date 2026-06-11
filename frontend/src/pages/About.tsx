@@ -1,68 +1,44 @@
 import { useRef, useState } from 'react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import {
-  Building2,
   Mail,
   Globe,
   Github,
-  Code2,
-  Database,
-  Server,
-  Layout,
-  TestTube,
-  Heart,
   Coffee,
+  ArrowRight,
+  ChevronDown,
   ExternalLink,
   MapPin,
-  Sparkles,
-  Zap,
-  Shield,
-  BarChart3,
-  Pill,
-  Beaker,
-  AlertTriangle,
-  ShieldCheck,
-  FlaskConical,
-  Activity,
-  Target,
-  Brain,
-  BookOpen,
-  Workflow,
-  Microscope,
-  Search,
-  Filter,
-  Layers,
   User,
+  FlaskConical,
+  Layers,
+  Microscope,
+  BookOpen,
+  TestTube,
+  Boxes,
+  BookMarked,
+  Code2,
+  Building2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-// Floating molecule configurations for background
-// Reduced from 7 to 2 — DESIGN.md "Earn every flourish": background decoration
-// should support, not compete with, page content.
-const moleculeConfigs = [
-  { x: '10%', y: '15%', size: 60, delay: 0, duration: 20, opacity: 0.15 },
-  { x: '85%', y: '70%', size: 55, delay: 2, duration: 22, opacity: 0.13 },
-];
-
-// Glowing orb configurations — static (no perpetual scale/opacity animation).
-// Reduced from 3 to 2 to lower ambient motion on the page.
+// Static ambient glow. No floating molecules, no perpetual animation:
+// the About page is read, not watched.
 const glowOrbConfigs = [
   { x: '20%', y: '30%', size: 300, color: 'var(--color-primary)', opacity: 0.08, blur: 100 },
   { x: '70%', y: '50%', size: 250, color: 'var(--color-accent)', opacity: 0.06, blur: 80 },
 ];
 
 /**
- * Stunning About page with claymorphism, animations, and visual effects
+ * About page. One claim per section, every number stated once,
+ * methods traceable to their citations.
  */
 export function AboutPage() {
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -100]);
-
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Animated gradient mesh background */}
+      {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Aurora gradient — static, no perpetual breathing animation */}
         <div
           className="absolute inset-0"
           style={{
@@ -73,8 +49,6 @@ export function AboutPage() {
             `,
           }}
         />
-
-        {/* Static glowing orbs */}
         {glowOrbConfigs.map((orb, i) => (
           <div
             key={i}
@@ -91,155 +65,40 @@ export function AboutPage() {
             }}
           />
         ))}
-
-        {/* Floating molecules */}
-        {moleculeConfigs.map((mol, i) => (
-          <FloatingMolecule key={i} {...mol} />
-        ))}
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section with parallax */}
-        <motion.div style={{ y: heroY }} className="mb-10">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-12">
           <HeroSection />
-        </motion.div>
+        </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-          {/* What is ChemAudit - Large card spanning 8 columns */}
-          <AnimatedCard className="lg:col-span-8" delay={0.1}>
+        {/* Alternating chrome: card, open, card, open, warm card. Six identical
+            containers read as monotony; the rhythm is the design. */}
+        <div className="space-y-6">
+          <AnimatedCard>
             <WhatIsChemAudit />
           </AnimatedCard>
 
-          {/* Research Group + Developer - Tall card spanning 4 columns, 2 rows */}
-          <AnimatedCard className="lg:col-span-4 lg:row-span-2" delay={0.2}>
-            <ResearchGroup />
+          <AnimatedCard variant="open">
+            <Capabilities />
           </AnimatedCard>
 
-          {/* Tech Stack - Wide card */}
-          <AnimatedCard className="lg:col-span-8" delay={0.3}>
-            <TechStack />
+          <AnimatedCard>
+            <ScientificReferences />
+          </AnimatedCard>
+
+          <AnimatedCard variant="open">
+            <BuiltInTheOpen />
+          </AnimatedCard>
+
+          <AnimatedCard tone="warm">
+            <BuiltInJena />
           </AnimatedCard>
         </div>
 
-        {/* At a Glance Stats - Full width */}
-        <AnimatedCard delay={0.35} className="mb-6">
-          <QuickStats />
-        </AnimatedCard>
-
-        {/* Advanced Scoring Section - Full width */}
-        <AnimatedCard delay={0.4} className="mb-6">
-          <AdvancedScoring />
-        </AnimatedCard>
-
-        {/* Platform Capabilities - Full width */}
-        <AnimatedCard delay={0.43} className="mb-6">
-          <PlatformCapabilities />
-        </AnimatedCard>
-
-        {/* Scientific References - Full width */}
-        <AnimatedCard delay={0.45} className="mb-6">
-          <ScientificReferences />
-        </AnimatedCard>
-
-        {/* Acknowledgments - Full width */}
-        <AnimatedCard delay={0.5} className="mb-6">
-          <Acknowledgments />
-        </AnimatedCard>
-
-        {/* Connect Section - Combined Source & Contact */}
-        <AnimatedCard delay={0.6} className="mb-6">
-          <ConnectSection />
-        </AnimatedCard>
-
-        {/* License Footer */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.5 }}
-          className={cn(
-            'text-center py-8 px-6 rounded-2xl',
-            'bg-gradient-to-r from-[var(--color-surface-sunken)]/50 via-transparent to-[var(--color-surface-sunken)]/50'
-          )}
-        >
-          <div className="flex items-center justify-center gap-1.5 mb-2">
-            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-              Made with
-            </span>
-            <Coffee className="w-4 h-4 text-amber-600" />
-            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-              for the chemistry community
-            </span>
-          </div>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            ChemAudit is open-source software released under the{' '}
-            <a
-              href="https://opensource.org/licenses/MIT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--color-primary)] hover:underline transition-colors"
-            >
-              MIT License
-            </a>
-          </p>
-        </motion.div>
+        <LicenseFooter />
       </div>
     </div>
-  );
-}
-
-// ============================================================================
-// FLOATING MOLECULE COMPONENT
-// ============================================================================
-
-interface FloatingMoleculeProps {
-  x: string;
-  y: string;
-  size: number;
-  delay: number;
-  duration: number;
-  opacity: number;
-}
-
-function FloatingMolecule({ x, y, size, delay, duration, opacity }: FloatingMoleculeProps) {
-  return (
-    <motion.div
-      className="absolute pointer-events-none"
-      style={{ left: x, top: y }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        opacity: [0, opacity, opacity, 0],
-        scale: [0.8, 1, 1, 0.8],
-        y: [0, -30, -60, -90],
-        rotate: [0, 90, 180, 270],
-      }}
-      transition={{
-        duration,
-        delay,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 100 100"
-        fill="none"
-        className="text-[var(--color-primary)]"
-      >
-        {/* Benzene-like ring */}
-        <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="2" opacity="0.5" />
-        {/* Atoms */}
-        <circle cx="50" cy="25" r="6" fill="currentColor" opacity="0.6" />
-        <circle cx="71.65" cy="37.5" r="6" fill="currentColor" opacity="0.6" />
-        <circle cx="71.65" cy="62.5" r="6" fill="currentColor" opacity="0.6" />
-        <circle cx="50" cy="75" r="6" fill="currentColor" opacity="0.6" />
-        <circle cx="28.35" cy="62.5" r="6" fill="currentColor" opacity="0.6" />
-        <circle cx="28.35" cy="37.5" r="6" fill="currentColor" opacity="0.6" />
-        {/* Bonds */}
-        <line x1="50" y1="31" x2="50" y2="69" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
-      </svg>
-    </motion.div>
   );
 }
 
@@ -250,64 +109,65 @@ function FloatingMolecule({ x, y, size, delay, duration, opacity }: FloatingMole
 interface AnimatedCardProps {
   children: React.ReactNode;
   className?: string;
-  delay?: number;
+  /** 'card' wraps in claymorphism chrome; 'open' breathes directly on the page surface. */
+  variant?: 'card' | 'open';
+  /** 'warm' washes the card with the brand gradient tint. */
+  tone?: 'default' | 'warm';
 }
 
-function AnimatedCard({ children, className, delay = 0 }: AnimatedCardProps) {
+function AnimatedCard({ children, className, variant = 'card', tone = 'default' }: AnimatedCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{
-        duration: 0.6,
-        delay,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={className}
     >
-      <ClayCard>{children}</ClayCard>
+      {variant === 'open' ? (
+        <section className="px-1 sm:px-2 py-10 sm:py-14">{children}</section>
+      ) : (
+        <ClayCard tone={tone}>{children}</ClayCard>
+      )}
     </motion.div>
   );
 }
 
 // ============================================================================
 // CLAYMORPHISM CARD
+// Static surface: these sections are read, not clicked, so no hover lift.
 // ============================================================================
 
-function ClayCard({ children, className }: { children: React.ReactNode; className?: string }) {
+function ClayCard({
+  children,
+  className,
+  tone = 'default',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  tone?: 'default' | 'warm';
+}) {
   return (
-    <motion.div
+    <div
+      style={tone === 'warm' ? { backgroundImage: 'var(--gradient-primary-subtle)' } : undefined}
       className={cn(
-        'relative h-full p-6 rounded-3xl overflow-hidden',
-        // Claymorphism base
+        'relative h-full p-6 sm:p-8 rounded-3xl overflow-hidden',
         'bg-[var(--color-surface-elevated)]',
-        // Soft outer shadow for depth
         'shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]',
         'dark:shadow-[0_8px_32px_rgba(0,0,0,0.3),0_2px_8px_rgba(0,0,0,0.2)]',
-        // Inner highlight for 3D effect
         'before:absolute before:inset-0 before:rounded-3xl',
         'before:bg-gradient-to-br before:from-white/50 before:via-transparent before:to-transparent',
         'before:dark:from-white/10 before:dark:via-transparent before:dark:to-transparent',
         'before:pointer-events-none',
-        // Border for definition
         'border border-[var(--color-border)]/50',
-        // Hover effects
-        'transition-all duration-300',
-        'hover:shadow-[0_12px_48px_rgba(var(--color-primary-rgb,220,38,38),0.12),0_4px_16px_rgba(0,0,0,0.06)]',
-        'hover:dark:shadow-[0_12px_48px_rgba(var(--color-primary-rgb,220,38,38),0.2),0_4px_16px_rgba(0,0,0,0.3)]',
-        'hover:border-[var(--color-primary)]/30',
-        'hover:-translate-y-1',
         className
       )}
-      whileHover={{ scale: 1.01 }}
-      transition={{ duration: 0.2 }}
     >
       <div className="relative z-10">{children}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -323,65 +183,88 @@ function HeroSection() {
       transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="text-center"
     >
-      {/* Logo with glow effect */}
-      <motion.div
-        className="relative inline-block mb-8"
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.3 }}
-      >
-        {/* Glow behind logo */}
-        <motion.div
+      <div className="relative inline-block mb-8">
+        {/* Static glow behind logo */}
+        <div
           className="absolute inset-0 rounded-3xl blur-2xl"
           style={{
             background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))',
-            opacity: 0.3,
-          }}
-          animate={{
-            opacity: [0.2, 0.4, 0.2],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            opacity: 0.25,
           }}
         />
         <div className="relative w-28 h-28 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20">
-          <img src="/logo.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
+          <img src="/logo-512.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
         </div>
-      </motion.div>
+      </div>
 
-      {/* Title with gradient */}
-      <motion.h1
-        className="text-5xl md:text-6xl font-bold mb-6 font-display"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-      >
-        <span className="text-[var(--color-text-primary)]">
-          About <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit
-        </span>
-      </motion.h1>
+      <h1 className="text-5xl md:text-7xl font-bold mb-6 font-display tracking-tight text-[var(--color-text-primary)]">
+        About <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit
+      </h1>
 
-      {/* Subtitle */}
-      <motion.p
-        className="text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.6 }}
-      >
-        A comprehensive web-based chemical structure validation and quality assessment platform
-        for cheminformatics workflows, drug discovery, and ML dataset curation.
-      </motion.p>
+      <p className="text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed">
+        Validation, standardization, and quality scoring for chemical structures:
+        built for cheminformatics workflows, drug discovery, and ML dataset curation.
+      </p>
 
-      {/* Decorative line */}
-      <motion.div
-        className="mt-8 mx-auto w-24 h-1 rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
-      />
+      <ReactionScheme />
     </motion.div>
+  );
+}
+
+// ============================================================================
+// REACTION SCHEME
+// The product stated in the audience's native notation: reactant, conditions
+// over the arrow, product. The arrow draws itself once on load.
+// ============================================================================
+
+function ReactionScheme() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+      <Link
+        to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
+        title="Run this structure through the validator"
+        className={cn(
+          'font-mono text-xs sm:text-sm px-3 py-1.5 rounded-lg',
+          'bg-[var(--color-surface-elevated)] border border-[var(--color-border)]',
+          'text-[var(--color-text-secondary)] shadow-sm',
+          'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40 transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
+        )}
+      >
+        CC(=O)Oc1ccccc1C(=O)O
+      </Link>
+
+      <div className="relative flex flex-col items-center rotate-90 sm:rotate-0 my-2 sm:my-0" aria-hidden="true">
+        <span className="-rotate-90 sm:rotate-0 font-display text-sm font-semibold text-[var(--color-primary)] mb-1">
+          ChemAudit
+        </span>
+        <svg width="120" height="12" viewBox="0 0 120 12" fill="none" className="overflow-visible">
+          <motion.path
+            d="M2 6 H 112 M 106 1.5 L 114 6 L 106 10.5"
+            stroke="var(--color-text-secondary)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={reduceMotion ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.9, delay: 0.5, ease: [0.25, 1, 0.5, 1] }}
+          />
+        </svg>
+      </div>
+
+      <span
+        className={cn(
+          'text-xs sm:text-sm font-medium px-3 py-1.5 rounded-lg',
+          'bg-chem-accent-400/[0.12] dark:bg-chem-accent-400/[0.15]',
+          'text-chem-accent-700 dark:text-chem-accent-300',
+          'border border-chem-accent-400/30'
+        )}
+      >
+        valid &middot; standardized &middot; scored
+      </span>
+    </div>
   );
 }
 
@@ -389,27 +272,22 @@ function HeroSection() {
 // SECTION HEADER
 // ============================================================================
 
-function SectionHeader({ icon, title, isChemAudit }: { icon: React.ReactNode; title: string; isChemAudit?: boolean }) {
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <motion.div
+    <div className="flex items-center gap-3 mb-6">
+      <div
         className={cn(
-          'p-2.5 rounded-2xl',
+          'w-10 h-10 rounded-2xl flex items-center justify-center',
           'bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-accent)]/10',
           'text-[var(--color-primary)]',
           'shadow-inner'
         )}
-        whileHover={{ rotate: [0, -10, 10, 0] }}
-        transition={{ duration: 0.5 }}
+        aria-hidden="true"
       >
         {icon}
-      </motion.div>
-      <h2 className="text-xl font-bold text-[var(--color-text-primary)] font-display">
-        {isChemAudit ? (
-          <>What is <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit?</>
-        ) : (
-          title
-        )}
+      </div>
+      <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] font-display tracking-tight">
+        {title}
       </h2>
     </div>
   );
@@ -417,793 +295,257 @@ function SectionHeader({ icon, title, isChemAudit }: { icon: React.ReactNode; ti
 
 // ============================================================================
 // WHAT IS CHEMAUDIT
+// The numbers live here, once. No stat tiles restating them below.
 // ============================================================================
 
 function WhatIsChemAudit() {
-  const features = [
-    { icon: <Shield className="w-4 h-4" />, title: '27 Validation Checks', desc: 'Comprehensive analysis' },
-    { icon: <Zap className="w-4 h-4" />, title: 'ChEMBL Standardization', desc: 'Trusted pipeline' },
-    { icon: <BarChart3 className="w-4 h-4" />, title: '10+ Scoring Modules', desc: 'Drug-likeness, ADMET & more' },
-    { icon: <Pill className="w-4 h-4" />, title: '1,500+ Safety Filters', desc: 'PAINS, Brenk, NIH, ChEMBL' },
-    { icon: <Activity className="w-4 h-4" />, title: 'ADMET Predictions', desc: 'Pharmacokinetics' },
-    { icon: <Sparkles className="w-4 h-4" />, title: 'Batch Processing', desc: 'Millions of molecules' },
-  ];
-
   return (
     <>
-      <SectionHeader icon={<TestTube className="w-5 h-5" />} title="What is ChemAudit?" isChemAudit />
-      <div className="space-y-4 text-[var(--color-text-secondary)]">
-        <p className="leading-relaxed">
-          ChemAudit is an open-source platform designed to validate, standardize, and assess
-          the quality of chemical structures. It provides researchers and data scientists with
-          powerful tools to ensure their molecular data is accurate and ready for downstream
-          applications.
-        </p>
-        <p className="leading-relaxed">
-          Whether you're preparing datasets for machine learning, curating compound libraries,
-          or validating structures for publication, ChemAudit offers a comprehensive suite of
-          validation checks, standardization pipelines, and quality scoring metrics.
-        </p>
-
-        {/* Feature grid with staggered animation */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-4">
-          {features.map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 + i * 0.1, duration: 0.4 }}
-              className={cn(
-                'p-4 rounded-2xl',
-                'bg-[var(--color-surface-sunken)]',
-                'border border-[var(--color-border)]/30',
-                'hover:border-[var(--color-primary)]/30',
-                'hover:bg-[var(--color-primary)]/5',
-                'transition-all duration-300',
-                'group'
-              )}
+      <SectionHeader
+        icon={<TestTube className="w-5 h-5" />}
+        title={
+          <>
+            What is <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit?
+          </>
+        }
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10">
+        {/* self-center splits any column-height difference evenly instead of
+            pooling it under the shorter prose. Justified + hyphenated body
+            matches the page's journal-article voice. */}
+        <div className="lg:col-span-3 lg:self-center space-y-5 text-[var(--color-text-secondary)] text-justify hyphens-auto">
+          {/* Lede: the opening claim runs one step larger so the card has an
+              entry point before the detail. Key figures carry the brand's
+              gold (gold = quality throughout this product). */}
+          <p className="text-lg leading-relaxed">
+            ChemAudit is an open-source platform that checks chemical structures before they reach
+            your model, your library, or your paper. Every molecule passes through{' '}
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">27 validation checks</strong>,
+            the ChEMBL standardization pipeline, and screening against more than{' '}
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">1,500 structural-alert patterns</strong>.
+          </p>
+          <p className="leading-relaxed">
+            It scales from{' '}
+            <Link
+              to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
+              title="Try it: this link validates aspirin"
+              className="underline decoration-dotted decoration-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-primary)] hover:decoration-[var(--color-primary)] transition-colors"
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[var(--color-primary)] group-hover:scale-110 transition-transform">
-                  {feature.icon}
-                </span>
-                <span className="font-semibold text-[var(--color-text-primary)] text-sm">
-                  {feature.title}
-                </span>
-              </div>
-              <p className="text-xs text-[var(--color-text-muted)]">{feature.desc}</p>
-            </motion.div>
-          ))}
+              a single pasted SMILES
+            </Link>{' '}
+            to batch jobs of millions of molecules, computing{' '}
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">451 descriptors</strong> and
+            seven fingerprint types along the way, with results exportable in five formats. The
+            verdicts are traceable: every score links back to the published method that produced it.
+          </p>
+        </div>
+
+        <div className="lg:col-span-2 lg:border-l lg:border-[var(--color-border)] lg:pl-8">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2">
+            Start here
+          </h3>
+          <ul className="space-y-0.5">
+            {START_HERE.map((entry) => (
+              <li key={entry.title}>
+                {entry.external ? (
+                  <a
+                    href={entry.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
+                  >
+                    <StartHereEntry entry={entry} />
+                  </a>
+                ) : (
+                  <Link
+                    to={entry.href}
+                    className="group block rounded-xl px-3 py-2 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
+                  >
+                    <StartHereEntry entry={entry} />
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </>
   );
 }
 
-// ============================================================================
-// RESEARCH GROUP
-// ============================================================================
+interface StartHereItem {
+  title: string;
+  desc: string;
+  href: string;
+  icon: React.ReactNode;
+  external?: boolean;
+}
 
-function ResearchGroup() {
-  const mapUrl = 'https://www.google.com/maps/place/Lessingstra%C3%9Fe+8,+07743+Jena,+Germany';
+const START_HERE: StartHereItem[] = [
+  {
+    title: 'Validate a molecule',
+    desc: 'Paste a SMILES, get a verdict in seconds.',
+    href: '/',
+    icon: <FlaskConical className="w-4 h-4" />,
+  },
+  {
+    title: 'Process a batch',
+    desc: 'Upload an SDF or CSV and watch progress live.',
+    href: '/batch',
+    icon: <Layers className="w-4 h-4" />,
+  },
+  {
+    title: 'Audit a dataset',
+    desc: 'Health-check an entire collection before training on it.',
+    href: '/dataset-audit',
+    icon: <Microscope className="w-4 h-4" />,
+  },
+  {
+    title: 'Read the docs',
+    desc: 'Guides, API reference, and deployment.',
+    href: 'https://kohulan.github.io/ChemAudit/',
+    icon: <BookOpen className="w-4 h-4" />,
+    external: true,
+  },
+];
 
-  const devLinks = [
-    { icon: <Github className="w-6 h-6" />, href: 'https://github.com/Kohulan', label: 'GitHub', sphere: 'radial-gradient(circle at 35% 30%, #4b5563, #1f2937 50%, #111827)', glow: 'rgba(31,41,55,0.5)' },
-    { icon: <Globe className="w-6 h-6" />, href: 'https://kohulanr.com', label: 'Website', sphere: 'radial-gradient(circle at 35% 30%, #60a5fa, #3b82f6 50%, #1d4ed8)', glow: 'rgba(59,130,246,0.5)' },
-    { icon: <Mail className="w-6 h-6" />, href: 'mailto:kohulan.rajan@uni-jena.de', label: 'Email', sphere: 'radial-gradient(circle at 35% 30%, #fb7185, #f43f5e 50%, #be123c)', glow: 'rgba(244,63,94,0.5)' },
-  ];
-
+function StartHereEntry({ entry }: { entry: StartHereItem }) {
   return (
-    <div className="h-full flex flex-col">
-      <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Research Group" />
-
-      {/* Logo */}
-      <a
-        href="http://cheminf.uni-jena.de/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block mb-4 group"
+    <span className="flex items-start gap-3">
+      <span
+        className={cn(
+          'flex items-center justify-center w-8 h-8 rounded-lg shrink-0 mt-0.5',
+          'bg-gradient-to-br from-[var(--color-primary)]/15 to-[var(--color-accent)]/10',
+          'text-[var(--color-primary)]',
+          'group-hover:from-[var(--color-primary)]/25 group-hover:to-[var(--color-accent)]/15 transition-colors'
+        )}
+        aria-hidden="true"
       >
-        <div className="rounded-xl bg-white dark:bg-white/10 p-2 transition-shadow hover:shadow-md">
-          <img
-            src="/cheminf-logo.png"
-            alt="Natural Products Cheminformatics"
-            className="h-20 mx-auto object-contain"
+        {entry.icon}
+      </span>
+      <span>
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+          {entry.title}
+          <ArrowRight
+            className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out"
+            aria-hidden="true"
           />
-        </div>
-      </a>
-
-      {/* Description */}
-      <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-        Research focus on chemical structure annotation, deep learning for chemical
-        information mining, and development of open-source cheminformatics tools.
-      </p>
-
-      {/* Map - fills remaining space */}
-      <a
-        href={mapUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative block flex-1 min-h-[100px] rounded-xl overflow-hidden mb-4 border border-[var(--color-border)]/50 hover:border-[var(--color-primary)]/30 transition-colors"
-      >
-        <iframe
-          src="https://www.openstreetmap.org/export/embed.html?bbox=11.5825%2C50.9245%2C11.5955%2C50.9305&layer=mapnik&marker=50.9275%2C11.589"
-          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-          title="Location Map"
-        />
-      </a>
-
-      {/* Address */}
-      <div className="flex items-start gap-2 text-sm text-[var(--color-text-muted)] mb-4">
-        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
-        <span>
-          Friedrich Schiller University Jena<br />
-          Lessingstr 8, 07743 Jena, Germany
         </span>
-      </div>
+        <span className="block text-sm text-[var(--color-text-secondary)] leading-snug">
+          {entry.desc}
+        </span>
+      </span>
+    </span>
+  );
+}
 
-      {/* Divider + Developer */}
-      <div className="border-t border-[var(--color-border)]/50 pt-4">
-        <SectionHeader icon={<User className="w-5 h-5" />} title="Developed By" />
-        <div className="flex flex-col items-center text-center group">
-          {/* Avatar */}
-          <motion.div
-            className="relative mb-3"
-            whileHover={{ y: -6, rotate: 3 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-          >
-            {/* Spinning glow ring on hover */}
-            <motion.div
-              className={cn(
-                'absolute -inset-1.5 rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-300',
-                'bg-[conic-gradient(from_0deg,var(--color-primary),var(--color-accent),var(--color-primary))]'
-              )}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-            />
-            <div
-              className={cn(
-                'relative w-20 h-20 rounded-full overflow-hidden',
-                'bg-[var(--color-surface-sunken)]',
-                'shadow-[inset_4px_4px_8px_rgba(0,0,0,0.1),inset_-4px_-4px_8px_rgba(255,255,255,0.7)]',
-                'dark:shadow-[inset_4px_4px_8px_rgba(0,0,0,0.3),inset_-4px_-4px_8px_rgba(255,255,255,0.05)]',
-                'border-2 border-[var(--color-surface-elevated)]',
-                'transition-all duration-500 group-hover:scale-110'
-              )}
-            >
-              <img
-                src="https://github.com/Kohulan.png"
-                alt="Kohulan Rajan"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {/* Online status */}
-            <div className="absolute bottom-0.5 right-0.5">
-              <div className="relative">
-                <div className="h-3 w-3 rounded-full bg-emerald-500 border-2 border-[var(--color-surface-elevated)]" />
-                <motion.div
-                  className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500"
-                  animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </div>
-            </div>
-          </motion.div>
+// ============================================================================
+// CAPABILITIES
+// One inventory for the whole platform. Typographic list, not a card wall:
+// the references section below documents the methods behind each line.
+// ============================================================================
 
-          {/* Info */}
-          <h3 className="text-base font-bold text-[var(--color-text-primary)] transition-colors duration-300 group-hover:text-[var(--color-primary)]">
-            Kohulan Rajan
-          </h3>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            Senior Researcher
-          </p>
+interface Capability {
+  title: string;
+  desc: string;
+}
 
-          {/* Tags */}
-          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-            {['AI', 'Deep Learning', 'Cheminformatics', 'Open Source'].map((tag) => (
+const SCORING_CAPABILITIES: Capability[] = [
+  {
+    title: 'Drug-likeness',
+    desc: "Lipinski, QED, Veber, Rule of Three, Ghose, and Muegge filters in one pass.",
+  },
+  {
+    title: 'ADMET predictions',
+    desc: 'Solubility (ESOL), CNS MPO, synthetic accessibility, and the Pfizer 3/75, GSK 4/400, and Golden Triangle rules.',
+  },
+  {
+    title: 'Safety filters',
+    desc: 'Structural alerts across PAINS (480 patterns), Brenk, NIH, ZINC, and seven ChEMBL filter sets.',
+  },
+  {
+    title: 'Aggregator likelihood',
+    desc: 'Flags colloidal aggregation risk before it produces false positives in your screen.',
+  },
+  {
+    title: 'ML-readiness',
+    desc: 'Descriptor and fingerprint coverage scored for QSAR/QSPR suitability, with dataset-level quality metrics.',
+  },
+  {
+    title: 'Natural-product likeness',
+    desc: 'Positions each molecule on the synthetic-to-natural axis for library triage.',
+  },
+];
+
+const PIPELINE_CAPABILITIES: Capability[] = [
+  {
+    title: 'QSAR-ready pipeline',
+    desc: 'Configurable standardization with salt stripping, neutralization, tautomer canonicalization, and duplicate removal.',
+  },
+  {
+    title: 'Structure filter',
+    desc: 'Sequential property and SMARTS funnels that narrow generative-chemistry output to viable candidates.',
+  },
+  {
+    title: 'Dataset intelligence',
+    desc: 'Health scoring, contradictory-label detection, dataset diffing, and curation reports.',
+  },
+  {
+    title: 'Identifier resolution',
+    desc: 'SMILES, InChI, InChIKey, CAS, ChEBI, UNII, PubChem CID, ChEMBL ID, and compound names, cross-linked through UniChem.',
+  },
+  {
+    title: 'Batch analytics',
+    desc: 'Butina clustering, chemotype taxonomy, t-SNE chemical space, scaffold analysis, outlier detection, and registration hashing.',
+  },
+  {
+    title: 'Diagnostics & provenance',
+    desc: 'SMILES diagnostics, InChI layer diffs, round-trip validation, and a full audit trail of every transformation applied.',
+  },
+];
+
+function CapabilityGroup({ label, items }: { label: string; items: Capability[] }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] pb-2 mb-4 border-b border-[var(--color-border)]">
+        {label}
+      </h3>
+      <dl className="space-y-4">
+        {items.map((item, i) => (
+          <div key={item.title} className="grid grid-cols-[2rem_1fr]">
+            <dt className="contents">
               <span
-                key={tag}
-                className={cn(
-                  'px-3 py-1 rounded-2xl text-[10px] font-semibold',
-                  'bg-[var(--color-surface-elevated)]',
-                  'text-[var(--color-text-secondary)]',
-                  'border border-[var(--color-border)]/20',
-                  'shadow-[inset_1px_1px_3px_rgba(255,255,255,0.7),inset_-1px_-1px_3px_rgba(0,0,0,0.06),0_3px_8px_rgba(0,0,0,0.08)]',
-                  'dark:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.04),inset_-1px_-1px_3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.25)]',
-                  'transition-all duration-300',
-                  'group-hover:text-[var(--color-primary)] group-hover:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.8),inset_-1px_-1px_3px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.1)]'
-                )}
+                className="font-mono text-xs text-[var(--color-accent-dark)] dark:text-[var(--color-accent)] pt-0.5"
+                aria-hidden="true"
               >
-                {tag}
+                {String(i + 1).padStart(2, '0')}
               </span>
-            ))}
+              <span className="font-semibold text-sm text-[var(--color-text-primary)]">
+                {item.title}
+              </span>
+            </dt>
+            <dd className="col-start-2 text-sm text-[var(--color-text-secondary)] leading-relaxed">
+              {item.desc}
+            </dd>
           </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-2.5 mt-3">
-            {devLinks.map((link) => (
-              <motion.a
-                key={link.label}
-                href={link.href}
-                target={link.href.startsWith('mailto') ? undefined : '_blank'}
-                rel={link.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
-                aria-label={link.label}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95, y: 1 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="relative w-9 h-9 rounded-full text-white transition-all duration-200 overflow-hidden"
-                style={{
-                  background: link.sphere,
-                  boxShadow: `inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 8px rgba(255,255,255,0.2), 0 6px 16px ${link.glow}`,
-                }}
-              >
-                {/* Glossy highlight */}
-                <div
-                  className="absolute inset-0 rounded-full pointer-events-none"
-                  style={{
-                    background: 'radial-gradient(ellipse 60% 40% at 35% 25%, rgba(255,255,255,0.5), transparent)',
-                  }}
-                />
-                {/* Centered icon with emboss shadow */}
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4)) drop-shadow(0 -1px 1px rgba(255,255,255,0.3))' }}
-                >
-                  {link.icon}
-                </div>
-              </motion.a>
-            ))}
-          </div>
-        </div>
-      </div>
+        ))}
+      </dl>
     </div>
   );
 }
 
-// ============================================================================
-// TECH STACK
-// ============================================================================
-
-function TechStack() {
-  const categories = [
-    {
-      icon: <Layout className="w-5 h-5" />,
-      title: 'Frontend',
-      items: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'Framer Motion', 'Recharts', 'RDKit.js'],
-      color: 'from-blue-500/20 to-cyan-500/10',
-    },
-    {
-      icon: <Server className="w-5 h-5" />,
-      title: 'Backend',
-      items: ['Python 3.11+', 'FastAPI', 'Celery', 'Redis', 'Pandas', 'asyncpg'],
-      color: 'from-amber-500/20 to-yellow-500/10',
-    },
-    {
-      icon: <TestTube className="w-5 h-5" />,
-      title: 'Chemistry',
-      items: ['RDKit', 'RDKit.js', 'MolVS', 'ChEMBL Pipeline', 'openTSNE'],
-      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
-    },
-    {
-      icon: <Database className="w-5 h-5" />,
-      title: 'Infrastructure',
-      items: ['PostgreSQL', 'Docker', 'Nginx', 'Prometheus'],
-      color: 'from-orange-500/20 to-amber-500/10',
-    },
-  ];
-
+function Capabilities() {
   return (
     <>
-      <SectionHeader icon={<Code2 className="w-5 h-5" />} title="Technology Stack" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {categories.map((cat, i) => (
-          <motion.div
-            key={cat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
-            className={cn(
-              'p-4 rounded-2xl',
-              'bg-gradient-to-br',
-              cat.color,
-              'border border-[var(--color-border)]/20'
-            )}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[var(--color-primary)]">{cat.icon}</span>
-              <span className="font-semibold text-sm text-[var(--color-text-primary)]">{cat.title}</span>
-            </div>
-            <ul className="space-y-1">
-              {cat.items.map((item) => (
-                <li key={item} className="text-xs text-[var(--color-text-muted)]">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-// ============================================================================
-// CONNECT SECTION (Combined Source Code & Contact)
-// ============================================================================
-
-function ConnectSection() {
-  const links = [
-    {
-      icon: <Github className="w-5 h-5" />,
-      title: 'ChemAudit',
-      description: 'Source Code on GitHub',
-      href: 'https://github.com/Kohulan/ChemAudit',
-      color: 'from-gray-600 to-gray-800',
-      hoverColor: 'hover:border-gray-500/50',
-    },
-    {
-      icon: <Github className="w-5 h-5" />,
-      title: 'Steinbeck Lab',
-      description: 'Organization GitHub',
-      href: 'https://github.com/Steinbeck-Lab',
-      color: 'from-chem-primary-600 to-chem-accent-600',
-      hoverColor: 'hover:border-chem-primary-600/50',
-    },
-    {
-      icon: <Mail className="w-5 h-5" />,
-      title: 'Email',
-      description: 'kohulan.rajan@uni-jena.de',
-      href: 'mailto:kohulan.rajan@uni-jena.de',
-      color: 'from-chem-primary-600 to-chem-accent-600',
-      hoverColor: 'hover:border-chem-primary-600/50',
-    },
-    {
-      icon: <Globe className="w-5 h-5" />,
-      title: 'Research Group',
-      description: 'cheminf.uni-jena.de',
-      href: 'http://cheminf.uni-jena.de/',
-      color: 'from-emerald-500 to-teal-500',
-      hoverColor: 'hover:border-emerald-500/50',
-    },
-  ];
-
-  return (
-    <>
-      <SectionHeader icon={<Zap className="w-5 h-5" />} title="Connect With Us" />
-      <p className="text-[var(--color-text-secondary)] mb-5">
-        ChemAudit is open-source software. Contributions, bug reports, and feature requests are welcome!
+      <SectionHeader icon={<Boxes className="w-5 h-5" />} title="What's inside" />
+      <p className="text-[var(--color-text-secondary)] mb-8 max-w-prose">
+        Twelve modules: six for scoring and screening, six for dataset preparation and analysis.
+        The scoring side implements industry rules from Pfizer, GSK, Lilly, and BMS alongside the
+        academic literature; each method is cited in the references below.
       </p>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {links.map((link, i) => (
-          <motion.a
-            key={link.title}
-            href={link.href}
-            target={link.href.startsWith('mailto') ? undefined : '_blank'}
-            rel={link.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
-            whileHover={{ scale: 1.03, y: -4 }}
-            whileTap={{ scale: 0.98 }}
-            className={cn(
-              'relative overflow-hidden',
-              'flex flex-col items-center text-center p-5 rounded-2xl',
-              'bg-[var(--color-surface-sunken)]',
-              'border border-[var(--color-border)]/30',
-              link.hoverColor,
-              'transition-all duration-300',
-              'group'
-            )}
-          >
-            {/* Background glow */}
-            <div
-              className={cn(
-                'absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300',
-                'bg-gradient-to-br',
-                link.color,
-                'opacity-5'
-              )}
-            />
-
-            {/* Icon */}
-            <div
-              className={cn(
-                'relative w-12 h-12 rounded-2xl mb-3',
-                'flex items-center justify-center',
-                'bg-gradient-to-br',
-                link.color,
-                'text-white shadow-lg',
-                'group-hover:scale-110 group-hover:shadow-xl transition-all duration-300'
-              )}
-            >
-              {link.icon}
-            </div>
-
-            {/* Text */}
-            <div className="relative">
-              <div className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">
-                {link.title}
-              </div>
-              <div className="text-xs text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors">
-                {link.description}
-              </div>
-            </div>
-
-            {/* External link indicator */}
-            <ExternalLink className="absolute top-3 right-3 w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          </motion.a>
-        ))}
-      </div>
-    </>
-  );
-}
-
-// ============================================================================
-// QUICK STATS
-// ============================================================================
-
-function QuickStats() {
-  const stats = [
-    {
-      label: 'Validation Checks',
-      value: '27',
-      icon: <Shield className="w-4 h-4" />,
-      color: 'from-chem-primary-600 to-chem-accent-600',
-      bgColor: 'from-blue-500/10 to-cyan-500/10',
-    },
-    {
-      label: 'Scoring Modules',
-      value: '10+',
-      icon: <FlaskConical className="w-4 h-4" />,
-      color: 'from-chem-primary-600 to-chem-accent-600',
-      bgColor: 'from-chem-primary-600/10 to-chem-accent-600/10',
-    },
-    {
-      label: 'Safety Filters',
-      value: '1,500+',
-      icon: <ShieldCheck className="w-4 h-4" />,
-      color: 'from-red-500 to-orange-500',
-      bgColor: 'from-red-500/10 to-orange-500/10',
-    },
-    {
-      label: 'Descriptors',
-      value: '451',
-      icon: <Brain className="w-4 h-4" />,
-      color: 'from-emerald-500 to-teal-500',
-      bgColor: 'from-emerald-500/10 to-teal-500/10',
-    },
-    {
-      label: 'Export Formats',
-      value: '5',
-      icon: <Database className="w-4 h-4" />,
-      color: 'from-amber-500 to-yellow-500',
-      bgColor: 'from-amber-500/10 to-yellow-500/10',
-    },
-    {
-      label: 'License',
-      value: 'MIT',
-      icon: <Heart className="w-4 h-4" />,
-      color: 'from-rose-500 to-pink-500',
-      bgColor: 'from-rose-500/10 to-pink-500/10',
-    },
-  ];
-
-  return (
-    <>
-      <SectionHeader icon={<Sparkles className="w-5 h-5" />} title="At a Glance" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              delay: 0.4 + i * 0.08,
-              duration: 0.5,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
-            whileHover={{ scale: 1.05, y: -4 }}
-            className={cn(
-              'relative overflow-hidden',
-              'p-4 rounded-2xl',
-              'bg-gradient-to-br',
-              stat.bgColor,
-              'border border-[var(--color-border)]/30',
-              'hover:border-[var(--color-primary)]/40',
-              'transition-colors duration-300',
-              'group cursor-default'
-            )}
-          >
-            {/* Decorative gradient orb */}
-            <div
-              className={cn(
-                'absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-40',
-                'bg-gradient-to-br',
-                stat.color,
-                'group-hover:opacity-60 transition-opacity duration-300'
-              )}
-            />
-
-            {/* Content */}
-            <div className="relative">
-              {/* Icon badge */}
-              <div
-                className={cn(
-                  'inline-flex items-center justify-center',
-                  'w-8 h-8 rounded-xl mb-3',
-                  'bg-gradient-to-br',
-                  stat.color,
-                  'text-white shadow-lg',
-                  'group-hover:scale-110 transition-transform duration-300'
-                )}
-              >
-                {stat.icon}
-              </div>
-
-              {/* Value */}
-              <div className="text-3xl font-bold mb-1 text-[var(--color-primary)]">
-                {stat.value}
-              </div>
-
-              {/* Label */}
-              <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
-                {stat.label}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-// ============================================================================
-// ADVANCED SCORING
-// ============================================================================
-
-function AdvancedScoring() {
-  const scoringModules = [
-    {
-      icon: <Activity className="w-5 h-5" />,
-      title: 'ADMET Predictions',
-      description: 'Comprehensive pharmacokinetic profiling including synthetic accessibility, solubility (ESOL), CNS MPO score, molecular complexity, and bioavailability indicators.',
-      features: ['Synthetic Accessibility', 'ESOL Solubility', 'CNS MPO Score', 'Pfizer 3/75 Rule', 'GSK 4/400 Rule', 'Golden Triangle'],
-      color: 'from-emerald-500/20 to-teal-500/10',
-    },
-    {
-      icon: <Pill className="w-5 h-5" />,
-      title: 'Drug-Likeness',
-      description: 'Multi-filter assessment using established pharmaceutical rules to predict oral bioavailability and drug-like properties.',
-      features: ["Lipinski's Rule of Five", 'QED Score', 'Veber Rules', 'Rule of Three', 'Ghose Filter', 'Muegge Filter'],
-      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
-    },
-    {
-      icon: <Beaker className="w-5 h-5" />,
-      title: 'Aggregator Likelihood',
-      description: 'Predicts colloidal aggregation risk that causes false positives in high-throughput screening assays.',
-      features: ['LogP Analysis', 'TPSA Assessment', 'Aromatic Stacking', 'Known Scaffolds', 'Size Analysis', 'Counter-screen Recommendations'],
-      color: 'from-amber-500/20 to-orange-500/10',
-    },
-    {
-      icon: <ShieldCheck className="w-5 h-5" />,
-      title: 'Safety Filters',
-      description: 'Structural alert screening using 1,500+ patterns across PAINS, Brenk, NIH, ZINC, and 7 ChEMBL filter sets to identify potentially problematic substructures.',
-      features: ['PAINS A/B/C (480 patterns)', 'Brenk Alerts (105 patterns)', 'NIH Filters', 'ZINC Filters', 'ChEMBL: BMS, Dundee, Glaxo, Inpharmatica, LINT, MLSMR, SureChEMBL'],
-      color: 'from-red-500/20 to-rose-500/10',
-    },
-    {
-      icon: <Brain className="w-5 h-5" />,
-      title: 'ML-Readiness',
-      description: 'Evaluates molecular suitability for machine learning with 451 descriptors and 7 fingerprint types for QSAR/QSPR models.',
-      features: ['217 Standard Descriptors', 'AUTOCORR2D (192)', 'MQN (42)', '7 Fingerprint Types', 'Size Assessment', 'Dataset Quality Score'],
-      color: 'from-chem-primary-600/20 to-chem-secondary-600/10',
-    },
-    {
-      icon: <Target className="w-5 h-5" />,
-      title: 'Natural-Product Likeness',
-      description: 'Score a molecule against natural-product fragments (Ertl et al., 2008) to position it on the synthetic-to-natural axis. Useful for triaging compound libraries by chemical-space origin.',
-      features: ['NP-likeness Score', 'Scaffold Analysis', 'Fragment Matching', 'Chemical Space', 'Lead-likeness', 'Bioactivity Potential'],
-      color: 'from-lime-500/20 to-green-500/10',
-    },
-  ];
-
-  return (
-    <>
-      <SectionHeader icon={<FlaskConical className="w-5 h-5" />} title="Advanced Molecular Scoring" />
-      <p className="text-[var(--color-text-secondary)] mb-6">
-        ChemAudit provides comprehensive molecular assessment through six specialized scoring modules,
-        implementing industry-standard rules from Pfizer, GSK, Abbott, and academic research to evaluate
-        compounds for drug discovery and ML applications.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {scoringModules.map((module, i) => (
-          <motion.div
-            key={module.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
-            className={cn(
-              'p-5 rounded-2xl',
-              'bg-gradient-to-br',
-              module.color,
-              'border border-[var(--color-border)]/20',
-              'hover:border-[var(--color-primary)]/30',
-              'transition-all duration-300',
-              'group'
-            )}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className={cn(
-                'p-2 rounded-xl',
-                'bg-[var(--color-surface-elevated)]',
-                'text-[var(--color-primary)]',
-                'group-hover:scale-110 transition-transform'
-              )}>
-                {module.icon}
-              </div>
-              <h3 className="font-semibold text-[var(--color-text-primary)]">{module.title}</h3>
-            </div>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-3 leading-relaxed">
-              {module.description}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {module.features.map((feature) => (
-                <span
-                  key={feature}
-                  className={cn(
-                    'inline-flex items-center px-2 py-0.5 rounded-md text-xs',
-                    'bg-[var(--color-surface-elevated)]/80',
-                    'text-[var(--color-text-muted)]',
-                    'border border-[var(--color-border)]/30'
-                  )}
-                >
-                  {feature}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Industrial Rules Highlight */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.4 }}
-        className={cn(
-          'mt-6 p-4 rounded-2xl',
-          'bg-gradient-to-r from-[var(--color-primary)]/5 via-[var(--color-accent)]/5 to-[var(--color-primary)]/5',
-          'border border-[var(--color-primary)]/10'
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-[var(--color-primary)]/10">
-            <AlertTriangle className="w-4 h-4 text-[var(--color-primary)]" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">
-              Industry-Standard Rules & Filters
-            </h4>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Implements validated pharmaceutical guidelines including Lipinski's Rule of Five,
-              Pfizer's 3/75 and CNS MPO rules, GSK's 4/400 rule, Abbott's Golden Triangle,
-              and comprehensive structural alert screening with 1,500+ patterns from PAINS, Brenk, NIH, ZINC, and 7 ChEMBL filter sets,
-              NIH, and major pharmaceutical companies.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-// ============================================================================
-// PLATFORM CAPABILITIES
-// ============================================================================
-
-function PlatformCapabilities() {
-  const capabilities = [
-    {
-      icon: <Workflow className="w-5 h-5" />,
-      title: 'QSAR-Ready Pipeline',
-      description: 'Multi-step pipeline to prepare molecules for quantitative structure-activity relationship modeling. Configurable standardization, salt stripping, neutralization, and tautomer canonicalization.',
-      features: ['Standardization Pipeline', 'Salt Stripping', 'Charge Neutralization', 'Tautomer Canonicalization', 'Duplicate Removal', 'Batch Export'],
-      color: 'from-chem-secondary-600/20 to-chem-primary-600/10',
-    },
-    {
-      icon: <Filter className="w-5 h-5" />,
-      title: 'Structure Filter',
-      description: 'Multi-stage funnel filtering for generative chemistry outputs. Apply sequential property and substructure filters to narrow large compound sets down to drug-like candidates.',
-      features: ['Property Filters', 'Substructure Matching', 'Funnel Visualization', 'Stage-by-Stage Results', 'Export Survivors', 'Custom SMARTS'],
-      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
-    },
-    {
-      icon: <Microscope className="w-5 h-5" />,
-      title: 'Dataset Intelligence',
-      description: 'Comprehensive dataset health auditing with quality scoring, contradictory label detection, dataset comparison, and curation reports for ML-ready datasets.',
-      features: ['Health Score', 'Contradictory Labels', 'Dataset Diff', 'Curation Reports', 'Treemap Drill-down', 'Quality Metrics'],
-      color: 'from-amber-500/20 to-orange-500/10',
-    },
-    {
-      icon: <Search className="w-5 h-5" />,
-      title: 'Identifier Resolution',
-      description: 'Universal chemical identifier resolver supporting SMILES, InChI, InChIKey, PubChem CID, ChEMBL ID, CAS, ChEBI, UNII, and compound names with cross-database linking via UniChem.',
-      features: ['10+ Identifier Types', 'Auto-Detection', 'UniChem Cross-refs', 'PubChem Integration', 'Resolution Chain', 'Batch Resolve'],
-      color: 'from-teal-500/20 to-emerald-500/10',
-    },
-    {
-      icon: <Layers className="w-5 h-5" />,
-      title: 'Batch Analytics',
-      description: 'Interactive analytics for batch results including Butina clustering with configurable Tanimoto cutoff, SMARTS-based chemotype taxonomy, chemical space visualization, and scaffold analysis.',
-      features: ['Butina Clustering', 'Chemotype Taxonomy', 't-SNE Chemical Space', 'Scaffold Analysis', 'Registration Hashing', 'Outlier Detection'],
-      color: 'from-rose-500/20 to-pink-500/10',
-    },
-    {
-      icon: <Zap className="w-5 h-5" />,
-      title: 'Diagnostics & Provenance',
-      description: 'Deep SMILES diagnostics, InChI layer analysis, round-trip validation, and full standardization provenance tracking showing every transformation applied to a molecule.',
-      features: ['SMILES Diagnostics', 'InChI Layer Diff', 'Round-trip Validation', 'Provenance Timeline', 'File Pre-validation', 'Coordinate Analysis'],
-      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
-    },
-  ];
-
-  return (
-    <>
-      <SectionHeader icon={<Sparkles className="w-5 h-5" />} title="Platform Capabilities" />
-      <p className="text-[var(--color-text-secondary)] mb-6">
-        Beyond validation and scoring, ChemAudit provides a full suite of cheminformatics
-        tools for dataset curation, generative chemistry post-processing, and cross-database integration.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {capabilities.map((cap, i) => (
-          <motion.div
-            key={cap.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
-            className={cn(
-              'p-5 rounded-2xl',
-              'bg-gradient-to-br',
-              cap.color,
-              'border border-[var(--color-border)]/20',
-              'hover:border-[var(--color-primary)]/30',
-              'transition-all duration-300',
-              'group'
-            )}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className={cn(
-                'p-2 rounded-xl',
-                'bg-[var(--color-surface-elevated)]',
-                'text-[var(--color-primary)]',
-                'group-hover:scale-110 transition-transform'
-              )}>
-                {cap.icon}
-              </div>
-              <h3 className="font-semibold text-[var(--color-text-primary)]">{cap.title}</h3>
-            </div>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-3 leading-relaxed">
-              {cap.description}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {cap.features.map((feature) => (
-                <span
-                  key={feature}
-                  className={cn(
-                    'inline-flex items-center px-2 py-0.5 rounded-md text-xs',
-                    'bg-[var(--color-surface-elevated)]/80',
-                    'text-[var(--color-text-muted)]',
-                    'border border-[var(--color-border)]/30'
-                  )}
-                >
-                  {feature}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+        <CapabilityGroup label="Score & screen" items={SCORING_CAPABILITIES} />
+        <CapabilityGroup label="Prepare & analyze" items={PIPELINE_CAPABILITIES} />
       </div>
     </>
   );
@@ -1215,13 +557,10 @@ function PlatformCapabilities() {
 
 interface ReferenceCategory {
   title: string;
-  icon: React.ReactNode;
-  color: string;
   references: {
     method: string;
     citation: string;
     doi?: string;
-    tooltip: string;
   }[];
 }
 
@@ -1231,291 +570,216 @@ function ScientificReferences() {
   const categories: ReferenceCategory[] = [
     {
       title: 'Drug-likeness Rules',
-      icon: <Pill className="w-4 h-4" />,
-      color: 'from-chem-primary-600/20 to-chem-secondary-600/10',
       references: [
         {
           method: "Lipinski's Rule of Five",
           citation: 'Lipinski CA, Lombardo F, Dominy BW, Feeney PJ. Experimental and computational approaches to estimate solubility and permeability in drug discovery and development settings. Adv Drug Deliv Rev. 2001;46(1-3):3-26.',
           doi: '10.1016/S0169-409X(00)00129-0',
-          tooltip: 'Lipinski et al. Adv Drug Deliv Rev (2001)',
         },
         {
           method: 'QED (Quantitative Estimate of Drug-likeness)',
           citation: 'Bickerton GR, Paolini GV, Besnard J, Muresan S, Hopkins AL. Quantifying the chemical beauty of drugs. Nat Chem. 2012;4(2):90-98.',
           doi: '10.1038/nchem.1243',
-          tooltip: 'Bickerton et al. Nat Chem (2012)',
         },
         {
           method: 'Veber Rules',
           citation: 'Veber DF, Johnson SR, Cheng HY, Smith BR, Ward KW, Kopple KD. Molecular properties that influence the oral bioavailability of drug candidates. J Med Chem. 2002;45(12):2615-2623.',
           doi: '10.1021/jm020017n',
-          tooltip: 'Veber et al. J Med Chem (2002)',
         },
         {
           method: 'Rule of Three (Ro3)',
           citation: "Congreve M, Carr R, Murray C, Jhoti H. A 'rule of three' for fragment-based lead discovery? Drug Discov Today. 2003;8(19):876-877.",
           doi: '10.1016/S1359-6446(03)02831-9',
-          tooltip: 'Congreve et al. Drug Discov Today (2003)',
         },
         {
           method: 'Ghose Filter',
           citation: 'Ghose AK, Viswanadhan VN, Wendoloski JJ. A knowledge-based approach in designing combinatorial or medicinal chemistry libraries for drug discovery. J Comb Chem. 1999;1(1):55-68.',
           doi: '10.1021/cc9800071',
-          tooltip: 'Ghose et al. J Comb Chem (1999)',
         },
         {
           method: 'Muegge Filter',
           citation: 'Muegge I, Heald SL, Brittelli D. Simple selection criteria for drug-like chemical matter. J Med Chem. 2001;44(12):1841-1846.',
           doi: '10.1021/jm015507e',
-          tooltip: 'Muegge et al. J Med Chem (2001)',
         },
       ],
     },
     {
       title: 'ADMET Predictions',
-      icon: <Activity className="w-4 h-4" />,
-      color: 'from-cyan-500/20 to-teal-500/10',
       references: [
         {
           method: 'Synthetic Accessibility (SA) Score',
           citation: 'Ertl P, Schuffenhauer A. Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions. J Cheminform. 2009;1:8.',
           doi: '10.1186/1758-2946-1-8',
-          tooltip: 'Ertl & Schuffenhauer. J Cheminform (2009)',
         },
         {
           method: 'ESOL Solubility',
           citation: 'Delaney JS. ESOL: estimating aqueous solubility directly from molecular structure. J Chem Inf Comput Sci. 2004;44(3):1000-1005.',
           doi: '10.1021/ci034243x',
-          tooltip: 'Delaney. J Chem Inf Comput Sci (2004)',
         },
         {
           method: 'Fsp3 (3D Complexity)',
           citation: 'Lovering F, Bikker J, Humblet C. Escape from flatland: increasing saturation as an approach to improving clinical success. J Med Chem. 2009;52(21):6752-6756.',
           doi: '10.1021/jm901241e',
-          tooltip: 'Lovering et al. J Med Chem (2009)',
         },
         {
           method: 'CNS MPO Score',
           citation: 'Wager TT, Hou X, Verhoest PR, Villalobos A. Moving beyond rules: the development of a central nervous system multiparameter optimization (CNS MPO) approach. ACS Chem Neurosci. 2010;1(6):435-449.',
           doi: '10.1021/cn100008c',
-          tooltip: 'Wager et al. ACS Chem Neurosci (2010)',
         },
         {
           method: 'Pfizer 3/75 Rule',
           citation: 'Hughes JD, Blagg J, Price DA, et al. Physiochemical drug properties associated with in vivo toxicological outcomes. Bioorg Med Chem Lett. 2008;18(17):4872-4875.',
           doi: '10.1016/j.bmcl.2008.07.071',
-          tooltip: 'Hughes et al. Bioorg Med Chem Lett (2008)',
         },
         {
           method: 'GSK 4/400 Rule',
           citation: 'Gleeson MP. Generation of a set of simple, interpretable ADMET rules of thumb. J Med Chem. 2008;51(4):817-834.',
           doi: '10.1021/jm701122q',
-          tooltip: 'Gleeson. J Med Chem (2008)',
         },
         {
           method: 'Golden Triangle',
           citation: 'Johnson TW, Dress KR, Edwards M. Using the Golden Triangle to optimize clearance and oral absorption. Bioorg Med Chem Lett. 2009;19(19):5560-5564.',
           doi: '10.1016/j.bmcl.2009.08.045',
-          tooltip: 'Johnson et al. Bioorg Med Chem Lett (2009)',
         },
       ],
     },
     {
       title: 'Safety Filters & Structural Alerts',
-      icon: <ShieldCheck className="w-4 h-4" />,
-      color: 'from-red-500/20 to-rose-500/10',
       references: [
         {
           method: 'PAINS (Pan-Assay Interference Compounds)',
           citation: 'Baell JB, Holloway GA. New substructure filters for removal of pan assay interference compounds (PAINS) from screening libraries and for their exclusion in bioassays. J Med Chem. 2010;53(7):2719-2740.',
           doi: '10.1021/jm901137j',
-          tooltip: 'Baell & Holloway. J Med Chem (2010)',
         },
         {
           method: 'Brenk / Dundee NTD Screening Alerts',
           citation: 'Brenk R, Schipani A, James D, et al. Lessons learnt from assembling screening libraries for drug discovery for neglected diseases. ChemMedChem. 2008;3(3):435-444.',
           doi: '10.1002/cmdc.200700139',
-          tooltip: 'Brenk et al. ChemMedChem (2008)',
         },
         {
           method: 'NIH MLPCN Exclusion Filters',
           citation: 'Jadhav A, Ferreira RS, Klumpp C, et al. Quantitative analyses of aggregation, autofluorescence, and reactivity artifacts in a screen for inhibitors of a thiol protease. J Med Chem. 2010;53(1):37-51.',
           doi: '10.1021/jm901070c',
-          tooltip: 'Jadhav et al. J Med Chem (2010)',
         },
         {
           method: 'ZINC Druglike Filters',
           citation: 'Irwin JJ, Shoichet BK. ZINC — a free database of commercially available compounds for virtual screening. J Chem Inf Model. 2005;45(1):177-182.',
           doi: '10.1021/ci049714+',
-          tooltip: 'Irwin & Shoichet. J Chem Inf Model (2005)',
         },
         {
           method: 'BMS HTS Desirability Filters',
           citation: 'Pearce BC, Sofia MJ, Good AC, Drexler DM, Stock DA. An empirical process for the design of high-throughput screening deck filters. J Chem Inf Model. 2006;46(3):1060-1068.',
           doi: '10.1021/ci050504m',
-          tooltip: 'Pearce et al. J Chem Inf Model (2006)',
         },
         {
           method: 'Glaxo Hard Filters',
           citation: 'Hann M, Hudson B, Lewell X, Lifely R, Miller L, Ramsden N. Strategic pooling of compounds for high-throughput screening. J Chem Inf Comput Sci. 1999;39(5):897-902.',
           doi: '10.1021/ci990423o',
-          tooltip: 'Hann et al. J Chem Inf Comput Sci (1999)',
         },
         {
           method: 'Lilly MedChem Rules (LINT)',
           citation: 'Bruns RF, Watson IA. Rules for identifying potentially reactive or promiscuous compounds. J Med Chem. 2012;55(22):9763-9772.',
           doi: '10.1021/jm301008n',
-          tooltip: 'Bruns & Watson. J Med Chem (2012)',
         },
         {
           method: 'SureChEMBL Non-chemical Filters',
           citation: 'Papadatos G, Davies M, Dedber N, et al. SureChEMBL: a large-scale, chemically annotated patent document database. Nucleic Acids Res. 2016;44(D1):D1220-D1228.',
           doi: '10.1093/nar/gkv1253',
-          tooltip: 'Papadatos et al. Nucleic Acids Res (2016)',
         },
         {
-          method: 'Phantom PAINS — Context for Alerts',
+          method: 'Phantom PAINS: Context for Alerts',
           citation: 'Jasial S, Hu Y, Bajorath J. How frequently are pan-assay interference compounds active? Large-scale analysis of screening data reveals diverse activity profiles, low global hit frequency, and many consistently inactive compounds. J Med Chem. 2017;60(9):3879-3886.',
           doi: '10.1021/acs.jmedchem.7b00154',
-          tooltip: 'Jasial et al. J Med Chem (2017)',
         },
       ],
     },
     {
       title: 'Scoring & Analysis',
-      icon: <Target className="w-4 h-4" />,
-      color: 'from-emerald-500/20 to-green-500/10',
       references: [
         {
           method: 'NP-likeness Score',
           citation: 'Ertl P, Roggo S, Schuffenhauer A. Natural product-likeness score and its application for prioritization of compound libraries. J Chem Inf Model. 2008;48(1):68-74.',
           doi: '10.1021/ci700286x',
-          tooltip: 'Ertl et al. J Chem Inf Model (2008)',
         },
         {
           method: 'Murcko Scaffold',
           citation: 'Bemis GW, Murcko MA. The properties of known drugs. 1. Molecular frameworks. J Med Chem. 1996;39(15):2887-2893.',
           doi: '10.1021/jm9602928',
-          tooltip: 'Bemis & Murcko. J Med Chem (1996)',
         },
         {
           method: 'Aggregator Detection',
           citation: 'McGovern SL, Caselli E, Grigorieff N, Shoichet BK. A common mechanism underlying promiscuous inhibitors from virtual and high-throughput screening. J Med Chem. 2002;45(8):1712-1722.',
           doi: '10.1021/jm010533y',
-          tooltip: 'McGovern et al. J Med Chem (2002)',
         },
         {
           method: 'Ligand Efficiency (LE)',
           citation: 'Hopkins AL, Keserü GM, Leeson PD, Rees DC, Reynolds CH. The role of ligand efficiency metrics in drug discovery. Nat Rev Drug Discov. 2014;13(2):105-121.',
           doi: '10.1038/nrd4163',
-          tooltip: 'Hopkins et al. Nat Rev Drug Discov (2014)',
         },
       ],
     },
     {
       title: 'Bioavailability & Permeation',
-      icon: <Activity className="w-4 h-4" />,
-      color: 'from-chem-accent-600/20 to-chem-primary-600/10',
       references: [
         {
           method: 'SwissADME / Bioavailability Radar',
           citation: 'Daina A, Michielin O, Zoete V. SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemistry friendliness of small molecules. Sci Rep. 2017;7:42717.',
           doi: '10.1038/srep42717',
-          tooltip: 'Daina et al. Sci Rep (2017)',
         },
         {
           method: 'BOILED-Egg (GI Absorption / BBB Permeation)',
           citation: 'Daina A, Zoete V. A BOILED-Egg to predict gastrointestinal absorption and brain penetration of small molecules. ChemMedChem. 2016;11(11):1117-1121.',
           doi: '10.1002/cmdc.201600182',
-          tooltip: 'Daina & Zoete. ChemMedChem (2016)',
         },
         {
           method: 'Wildman-Crippen LogP (WLOGP)',
           citation: 'Wildman SA, Crippen GM. Prediction of physicochemical parameters by atomic contributions. J Chem Inf Comput Sci. 1999;39(5):868-873.',
           doi: '10.1021/ci990307l',
-          tooltip: 'Wildman & Crippen. J Chem Inf Comput Sci (1999)',
         },
       ],
     },
     {
       title: 'Clustering & Analytics',
-      icon: <Layers className="w-4 h-4" />,
-      color: 'from-rose-500/20 to-pink-500/10',
       references: [
         {
           method: 'Butina Clustering',
           citation: 'Butina D. Unsupervised data base clustering based on Daylight\'s fingerprint and Tanimoto similarity: a fast and automated way to cluster small and large data sets. J Chem Inf Comput Sci. 1999;39(4):747-750.',
           doi: '10.1021/ci9803381',
-          tooltip: 'Butina. J Chem Inf Comput Sci (1999)',
         },
         {
           method: 'Morgan Fingerprints (ECFP)',
           citation: 'Rogers D, Hahn M. Extended-connectivity fingerprints. J Chem Inf Model. 2010;50(5):742-754.',
           doi: '10.1021/ci100050t',
-          tooltip: 'Rogers & Hahn. J Chem Inf Model (2010)',
         },
         {
           method: 'Tanimoto Similarity',
           citation: 'Bajusz D, Rácz A, Héberger K. Why is Tanimoto index an appropriate choice for fingerprint-based similarity calculations? J Cheminform. 2015;7:20.',
           doi: '10.1186/s13321-015-0069-3',
-          tooltip: 'Bajusz et al. J Cheminform (2015)',
         },
         {
           method: 't-SNE Visualization',
           citation: 'van der Maaten L, Hinton G. Visualizing data using t-SNE. J Mach Learn Res. 2008;9:2579-2605.',
           doi: undefined,
-          tooltip: 'van der Maaten & Hinton. JMLR (2008)',
-        },
-      ],
-    },
-    {
-      title: 'Bioavailability & Permeation',
-      icon: <Activity className="w-4 h-4" />,
-      color: 'from-indigo-500/20 to-blue-500/10',
-      references: [
-        {
-          method: 'SwissADME / Bioavailability Radar',
-          citation: 'Daina A, Michielin O, Zoete V. SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemistry friendliness of small molecules. Sci Rep. 2017;7:42717.',
-          doi: '10.1038/srep42717',
-          tooltip: 'Daina et al. Sci Rep (2017)',
-        },
-        {
-          method: 'BOILED-Egg (GI Absorption / BBB Permeation)',
-          citation: 'Daina A, Zoete V. A BOILED-Egg to predict gastrointestinal absorption and brain penetration of small molecules. ChemMedChem. 2016;11(11):1117-1121.',
-          doi: '10.1002/cmdc.201600182',
-          tooltip: 'Daina & Zoete. ChemMedChem (2016)',
-        },
-        {
-          method: 'Wildman-Crippen LogP (WLOGP)',
-          citation: 'Wildman SA, Crippen GM. Prediction of physicochemical parameters by atomic contributions. J Chem Inf Comput Sci. 1999;39(5):868-873.',
-          doi: '10.1021/ci990307l',
-          tooltip: 'Wildman & Crippen. J Chem Inf Comput Sci (1999)',
         },
       ],
     },
     {
       title: 'Software & Pipelines',
-      icon: <Code2 className="w-4 h-4" />,
-      color: 'from-chem-primary-600/20 to-chem-accent-600/10',
       references: [
         {
           method: 'RDKit',
           citation: 'Landrum G. RDKit: Open-Source Cheminformatics Software.',
           doi: undefined,
-          tooltip: 'RDKit (Landrum) - rdkit.org',
         },
         {
           method: 'ChEMBL Structure Pipeline',
           citation: 'Bento AP, Hersey A, Félix E, et al. An open source chemical structure curation pipeline using RDKit. J Cheminform. 2020;12:51.',
           doi: '10.1186/s13321-020-00456-1',
-          tooltip: 'Bento et al. J Cheminform (2020)',
         },
         {
           method: 'MolVS Standardizer',
           citation: 'Swain M. MolVS: Molecule Validation and Standardization.',
           doi: undefined,
-          tooltip: 'MolVS (Swain) - github.com/mcs07/MolVS',
         },
       ],
     },
@@ -1523,81 +787,60 @@ function ScientificReferences() {
 
   return (
     <>
-      <SectionHeader icon={<BookOpen className="w-5 h-5" />} title="Methods & Scientific References" />
-      <p className="text-[var(--color-text-secondary)] mb-6">
-        ChemAudit implements well-established methods from the scientific literature. Below are the primary
-        references for the algorithms and scoring functions used throughout the platform.
+      <SectionHeader icon={<BookMarked className="w-5 h-5" />} title="Methods & scientific references" />
+      <p className="text-[var(--color-text-secondary)] mb-6 max-w-prose">
+        Every algorithm and scoring function in ChemAudit comes from the published literature.
+        These are the primary references.
       </p>
 
       <div className="space-y-3">
-        {categories.map((category, catIndex) => (
-          <motion.div
+        {categories.map((category) => {
+          const panelId = `refs-${category.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+          return (
+          <div
             key={category.title}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + catIndex * 0.05 }}
-            className={cn(
-              'rounded-xl overflow-hidden',
-              'border border-[var(--color-border)]/30',
-              'bg-gradient-to-br',
-              category.color
-            )}
+            className="rounded-xl overflow-hidden border border-[var(--color-border)]/50 bg-[var(--color-surface-sunken)]/50"
           >
             <button
               onClick={() => setExpandedCategory(expandedCategory === category.title ? null : category.title)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
+              aria-expanded={expandedCategory === category.title}
+              aria-controls={panelId}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--color-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-inset"
             >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-8 h-8 rounded-lg flex items-center justify-center',
-                  'bg-[var(--color-surface-elevated)]',
-                  'text-[var(--color-primary)]'
-                )}>
-                  {category.icon}
-                </div>
-                <div>
-                  <span className="font-semibold text-sm text-[var(--color-text-primary)]">
-                    {category.title}
-                  </span>
-                  <span className="ml-2 text-xs text-[var(--color-text-muted)]">
-                    ({category.references.length} references)
-                  </span>
-                </div>
+              <div>
+                <span className="font-semibold text-sm text-[var(--color-text-primary)]">
+                  {category.title}
+                </span>
+                <span className="ml-2 text-xs text-[var(--color-text-muted)]">
+                  ({category.references.length} references)
+                </span>
               </div>
               <motion.div
                 animate={{ rotate: expandedCategory === category.title ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <svg className="w-5 h-5 text-[var(--color-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" aria-hidden="true" />
               </motion.div>
             </button>
 
             {expandedCategory === category.title && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                id={panelId}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
                 className="px-4 pb-4"
               >
                 <div className="space-y-3">
-                  {category.references.map((ref, refIndex) => (
-                    <motion.div
+                  {category.references.map((ref) => (
+                    <div
                       key={ref.method}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: refIndex * 0.05 }}
-                      className={cn(
-                        'p-3 rounded-lg',
-                        'bg-[var(--color-surface-elevated)]/80',
-                        'border border-[var(--color-border)]/20'
-                      )}
+                      className="p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/30"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-medium text-sm text-[var(--color-text-primary)]">
+                        <h3 className="font-medium text-sm text-[var(--color-text-primary)]">
                           {ref.method}
-                        </h4>
+                        </h3>
                         {ref.doi && (
                           <a
                             href={`https://doi.org/${ref.doi}`}
@@ -1610,252 +853,422 @@ function ScientificReferences() {
                             )}
                           >
                             DOI
-                            <ExternalLink className="w-2.5 h-2.5" />
+                            <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
                           </a>
                         )}
                       </div>
                       <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                         {ref.citation}
                       </p>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </motion.div>
             )}
-          </motion.div>
-        ))}
+          </div>
+          );
+        })}
       </div>
 
-      {/* Note about tooltips */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className={cn(
-          'mt-5 p-4 rounded-xl',
-          'bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/10'
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-1.5 rounded-lg bg-[var(--color-primary)]/10">
-            <BookOpen className="w-4 h-4 text-[var(--color-primary)]" />
-          </div>
-          <div>
-            <h4 className="font-medium text-sm text-[var(--color-text-primary)] mb-1">
-              In-App References
-            </h4>
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              Throughout ChemAudit, hover over the{' '}
-              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--color-text-muted)]/40 bg-[var(--color-surface-sunken)] text-[9px] font-semibold mx-0.5">i</span>
-              {' '}icons next to scores and metrics to see brief citations. Each tooltip includes the original
-              publication reference for that specific method.
-            </p>
-          </div>
-        </div>
-      </motion.div>
+      <p className="mt-5 text-xs text-[var(--color-text-muted)]">
+        Throughout the app, hover the{' '}
+        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--color-text-muted)]/40 bg-[var(--color-surface-sunken)] text-[9px] font-semibold mx-0.5">
+          i
+        </span>{' '}
+        icons next to scores for the citation behind each method.
+      </p>
     </>
   );
 }
 
 // ============================================================================
-// ACKNOWLEDGMENTS
+// BUILT IN THE OPEN (tech stack + acknowledgments)
 // ============================================================================
 
-function Acknowledgments() {
-  const acknowledgments = [
-    {
-      name: 'RDKit',
-      description: 'Open-source cheminformatics toolkit powering molecular operations',
-      href: 'https://www.rdkit.org/',
-      logo: 'https://www.rdkit.org/Images/logo.png',
-      color: 'from-blue-600 to-blue-800',
-    },
-    {
-      name: 'ChEMBL',
-      description: 'Bioactivity database for drug discovery from EMBL-EBI',
-      href: 'https://www.ebi.ac.uk/chembl/',
-      logo: 'https://cfde-gene-pages.cloud/logos/chEMBL_logo.png',
-      color: 'from-teal-600 to-cyan-700',
-    },
-    {
-      name: 'PubChem',
-      description: 'World\'s largest collection of freely accessible chemical information',
-      href: 'https://pubchem.ncbi.nlm.nih.gov/',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/PubChem_logo.svg/1280px-PubChem_logo.svg.png',
-      color: 'from-chem-primary-600 to-chem-accent-700',
-    },
-    {
-      name: 'COCONUT',
-      description: 'Collection of Open Natural Products database',
-      href: 'https://coconut.naturalproducts.net/',
-      logo: 'https://raw.githubusercontent.com/Steinbeck-Lab/coconut/main/public/img/logo.svg',
-      color: 'from-chem-accent-700 to-chem-accent-800',
-    },
-    {
-      name: 'ChEBI',
-      description: 'Chemical Entities of Biological Interest ontology from EMBL-EBI',
-      href: 'https://www.ebi.ac.uk/chebi/',
-      logo: 'https://www.ebi.ac.uk/chebi/chebi_logo.svg',
-      color: 'from-chem-accent-700 to-chem-primary-700',
-    },
-    {
-      name: 'UniChem',
-      description: 'Cross-reference mapping between chemistry databases from EMBL-EBI',
-      href: 'https://www.ebi.ac.uk/unichem/',
-      logo: 'https://www.ebi.ac.uk/unichem/_nuxt/img/unichem_logo.de3b448.png',
-      color: 'from-sky-600 to-cyan-700',
-    },
-    {
-      name: 'Wikidata',
-      description: 'Free and open knowledge base for structured chemical data',
-      href: 'https://www.wikidata.org/',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Wikidata-logo-en.svg/1920px-Wikidata-logo-en.svg.png',
-      color: 'from-red-600 to-rose-700',
-    },
-    {
-      name: 'SureChEMBL',
-      description: 'Patent chemistry database for compound-patent literature linkage',
-      href: 'https://www.surechembl.org/',
-      logo: 'https://www.surechembl.org/img/icons/chembl_logo_pink.png',
-      color: 'from-rose-600 to-pink-700',
-    },
-  ];
+// Each layer keys to a brand color via its dot; technologies render as mono
+// code chips (they are package names, and this section is about code).
+const TECH_STACK: { label: string; dot: string; items: string[] }[] = [
+  {
+    label: 'Frontend',
+    dot: 'bg-chem-primary-600 dark:bg-chem-primary-400',
+    items: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'Framer Motion', 'Recharts', 'RDKit.js'],
+  },
+  {
+    label: 'Backend',
+    dot: 'bg-chem-accent-600 dark:bg-chem-accent-400',
+    items: ['Python 3.11+', 'FastAPI', 'Celery', 'Redis', 'Pandas', 'asyncpg'],
+  },
+  {
+    label: 'Chemistry',
+    dot: 'bg-chem-secondary-600 dark:bg-chem-secondary-400',
+    items: ['RDKit', 'MolVS', 'ChEMBL Structure Pipeline', 'openTSNE'],
+  },
+  {
+    label: 'Infrastructure',
+    dot: 'bg-chem-dark-400 dark:bg-chem-dark-500',
+    items: ['PostgreSQL', 'Docker', 'Nginx', 'Prometheus'],
+  },
+];
 
-  const additionalThanks = [
-    { name: 'FastAPI', href: 'https://fastapi.tiangolo.com/' },
-    { name: 'React', href: 'https://react.dev/' },
-    { name: 'Tailwind CSS', href: 'https://tailwindcss.com/' },
-    { name: 'Framer Motion', href: 'https://www.framer.com/motion/' },
-    { name: 'MolVS', href: 'https://github.com/mcs07/MolVS' },
-    { name: 'Celery', href: 'https://docs.celeryq.dev/' },
-    { name: 'Recharts', href: 'https://recharts.org/' },
-    { name: 'openTSNE', href: 'https://opentsne.readthedocs.io/' },
-    { name: 'Pandas', href: 'https://pandas.pydata.org/' },
-    { name: 'asyncpg', href: 'https://github.com/MagicStack/asyncpg' },
-  ];
+const ACKNOWLEDGMENTS = [
+  {
+    name: 'RDKit',
+    description: 'Open-source cheminformatics toolkit powering molecular operations',
+    href: 'https://www.rdkit.org/',
+    logo: 'https://www.rdkit.org/Images/logo.png',
+  },
+  {
+    name: 'ChEMBL',
+    description: 'Bioactivity database for drug discovery from EMBL-EBI',
+    href: 'https://www.ebi.ac.uk/chembl/',
+    logo: 'https://cfde-gene-pages.cloud/logos/chEMBL_logo.png',
+  },
+  {
+    name: 'PubChem',
+    description: "World's largest collection of freely accessible chemical information",
+    href: 'https://pubchem.ncbi.nlm.nih.gov/',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/PubChem_logo.svg/1280px-PubChem_logo.svg.png',
+  },
+  {
+    name: 'COCONUT',
+    description: 'Collection of Open Natural Products database',
+    href: 'https://coconut.naturalproducts.net/',
+    logo: 'https://raw.githubusercontent.com/Steinbeck-Lab/coconut/main/public/img/logo.svg',
+  },
+  {
+    name: 'ChEBI',
+    description: 'Chemical Entities of Biological Interest ontology from EMBL-EBI',
+    href: 'https://www.ebi.ac.uk/chebi/',
+    logo: 'https://www.ebi.ac.uk/chebi/chebi_logo.svg',
+  },
+  {
+    name: 'UniChem',
+    description: 'Cross-reference mapping between chemistry databases from EMBL-EBI',
+    href: 'https://www.ebi.ac.uk/unichem/',
+    logo: 'https://www.ebi.ac.uk/unichem/_nuxt/img/unichem_logo.de3b448.png',
+  },
+  {
+    name: 'Wikidata',
+    description: 'Free and open knowledge base for structured chemical data',
+    href: 'https://www.wikidata.org/',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Wikidata-logo-en.svg/1920px-Wikidata-logo-en.svg.png',
+  },
+  {
+    name: 'SureChEMBL',
+    description: 'Patent chemistry database for compound-patent literature linkage',
+    href: 'https://www.surechembl.org/',
+    logo: 'https://www.surechembl.org/img/icons/chembl_logo_pink.png',
+  },
+];
 
+function BuiltInTheOpen() {
   return (
     <>
-      <SectionHeader icon={<Heart className="w-5 h-5 text-red-500" />} title="Acknowledgments" />
-      <p className="text-[var(--color-text-secondary)] mb-6">
-        ChemAudit is built upon the shoulders of giants. We gratefully acknowledge these
-        amazing open-source projects and communities:
+      <SectionHeader icon={<Code2 className="w-5 h-5" />} title="Built in the open" />
+
+      {/* Tech stack: brand-keyed layer rows, technologies as mono code chips */}
+      <div className="mb-8 divide-y divide-[var(--color-border)]/50">
+        {TECH_STACK.map((row) => (
+          <div key={row.label} className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-4 py-3">
+            <span className="w-32 shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] sm:pt-0.5">
+              <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', row.dot)} aria-hidden="true" />
+              {row.label}
+            </span>
+            <span className="flex flex-wrap gap-1.5">
+              {row.items.map((item) => (
+                <code
+                  key={item}
+                  className={cn(
+                    'font-mono text-xs px-2 py-1 rounded-md',
+                    'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',
+                    'text-[var(--color-text-secondary)]',
+                    'transition-colors hover:border-[var(--color-primary)]/40 hover:text-[var(--color-text-primary)]'
+                  )}
+                >
+                  {item}
+                </code>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[var(--color-text-secondary)] mb-5 max-w-prose">
+        ChemAudit stands on open scientific resources. We gratefully acknowledge:
       </p>
 
-      {/* Main acknowledgments with logos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-5">
-        {acknowledgments.map((ack, i) => (
-          <motion.a
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {ACKNOWLEDGMENTS.map((ack) => (
+          <a
             key={ack.name}
             href={ack.href}
             target="_blank"
             rel="noopener noreferrer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
-            whileHover={{ scale: 1.03, y: -4 }}
             className={cn(
-              'relative overflow-hidden',
               'flex flex-col p-4 rounded-2xl',
               'bg-[var(--color-surface-sunken)]',
               'border border-[var(--color-border)]/30',
               'hover:border-[var(--color-primary)]/40',
-              'hover:shadow-lg hover:shadow-[var(--color-primary)]/10',
-              'transition-all duration-300',
+              'transition-colors duration-200',
               'group'
             )}
           >
-            {/* Logo container with gradient fallback */}
-            <div
-              className={cn(
-                'relative w-full h-14 rounded-xl mb-3 flex items-center justify-center',
-                'bg-white dark:bg-white/95',
-                'overflow-hidden',
-                'group-hover:shadow-md transition-shadow duration-300'
-              )}
-            >
+            <div className="relative w-full h-14 rounded-xl mb-3 flex items-center justify-center bg-white dark:bg-white/95 overflow-hidden">
               <img
                 src={ack.logo}
                 alt={`${ack.name} logo`}
-                className="max-h-10 max-w-[85%] object-contain group-hover:scale-105 transition-transform duration-300"
+                className="max-h-10 max-w-[85%] object-contain"
                 onError={(e) => {
-                  // Fallback to styled gradient text
+                  // Neutral text fallback when a remote logo fails to load
                   const target = e.target as HTMLImageElement;
                   const parent = target.parentElement as HTMLDivElement;
                   target.style.display = 'none';
-                  parent.className = cn(
-                    parent.className.replace('bg-white dark:bg-white/95', ''),
-                    'bg-gradient-to-br',
-                    ack.color
-                  );
-                  parent.textContent = '';
+                  parent.classList.remove('bg-white', 'dark:bg-white/95');
+                  parent.classList.add('bg-chem-dark-800');
                   const span = document.createElement('span');
-                  span.className = 'text-lg font-bold text-white drop-shadow-sm';
+                  span.className = 'text-base font-bold text-white';
                   span.textContent = ack.name;
                   parent.appendChild(span);
                 }}
               />
             </div>
-
-            {/* Text content */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
-                  {ack.name}
-                </h4>
-                <ExternalLink className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                {ack.description}
-              </p>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+                {ack.name}
+              </h3>
+              <ExternalLink
+                className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-hidden="true"
+              />
             </div>
-          </motion.a>
+            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{ack.description}</p>
+          </a>
         ))}
       </div>
-
-      {/* Additional thanks */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7, duration: 0.4 }}
-        className={cn(
-          'p-4 rounded-2xl',
-          'bg-gradient-to-r from-[var(--color-primary)]/5 via-transparent to-[var(--color-accent)]/5',
-          'border border-[var(--color-border)]/20'
-        )}
-      >
-        <p className="text-sm text-[var(--color-text-secondary)] mb-3">
-          Also powered by:
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {additionalThanks.map((item) => (
-            <motion.a
-              key={item.name}
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={cn(
-                'inline-flex items-center gap-1 px-3 py-1.5 rounded-full',
-                'bg-[var(--color-surface-elevated)]',
-                'border border-[var(--color-border)]/30',
-                'text-xs font-medium text-[var(--color-text-secondary)]',
-                'hover:border-[var(--color-primary)]/40',
-                'hover:text-[var(--color-primary)]',
-                'transition-all duration-200'
-              )}
-            >
-              {item.name}
-              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-            </motion.a>
-          ))}
-        </div>
-      </motion.div>
     </>
   );
 }
 
 // ============================================================================
-// EXTERNAL LINK BUTTON
+// BUILT IN JENA (research group, developer, contact)
+// ============================================================================
+
+const CONTACT_LINKS = [
+  { icon: <Github className="w-4 h-4" />, label: 'Source on GitHub', href: 'https://github.com/Kohulan/ChemAudit' },
+  { icon: <Github className="w-4 h-4" />, label: 'Steinbeck Lab', href: 'https://github.com/Steinbeck-Lab' },
+  { icon: <Mail className="w-4 h-4" />, label: 'kohulan.rajan@uni-jena.de', href: 'mailto:kohulan.rajan@uni-jena.de' },
+  { icon: <Globe className="w-4 h-4" />, label: 'cheminf.uni-jena.de', href: 'http://cheminf.uni-jena.de/' },
+];
+
+function BuiltInJena() {
+  const mapUrl = 'https://www.google.com/maps/place/Lessingstra%C3%9Fe+8,+07743+Jena,+Germany';
+
+  return (
+    <>
+      <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Built in Jena" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-7">
+        {/* Research group */}
+        <div>
+          <a
+            href="http://cheminf.uni-jena.de/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mb-4"
+          >
+            <span className="inline-flex items-center rounded-xl bg-white dark:bg-white/95 px-4 py-2.5 shadow-sm hover:shadow-md transition-shadow">
+              <img
+                src="/cheminf-logo.png"
+                alt="Natural Products Cheminformatics research group"
+                className="h-12 object-contain"
+              />
+            </span>
+          </a>
+          <p className="text-sm text-[var(--color-text-secondary)] max-w-prose leading-relaxed">
+            The group works on chemical structure annotation, deep learning for chemical
+            information mining, and open-source cheminformatics tools.
+          </p>
+        </div>
+
+        {/* Developer + contact */}
+        <div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--color-surface-elevated)] shadow-md bg-[var(--color-surface-sunken)] shrink-0">
+              <img
+                src="https://github.com/Kohulan.png"
+                alt="Kohulan Rajan"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-[var(--color-primary)]" aria-hidden="true" />
+                <h3 className="text-base font-bold text-[var(--color-text-primary)]">Kohulan Rajan</h3>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Senior Researcher: AI, deep learning, and cheminformatics
+              </p>
+              <div className="flex items-center gap-4 mt-1.5">
+                <a
+                  href="https://kohulanr.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+                >
+                  <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                  kohulanr.com
+                </a>
+                <a
+                  href="https://github.com/Kohulan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+                >
+                  <Github className="w-3.5 h-3.5" aria-hidden="true" />
+                  github.com/Kohulan
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-[var(--color-text-secondary)] mb-3 max-w-prose">
+            ChemAudit is open source. Contributions, bug reports, and feature requests are welcome.
+          </p>
+
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+            {CONTACT_LINKS.map((link) => (
+              <li key={link.label}>
+                <a
+                  href={link.href}
+                  target={link.href.startsWith('mailto') ? undefined : '_blank'}
+                  rel={link.href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
+                  className={cn(
+                    'inline-flex items-center gap-2.5 text-sm',
+                    'text-[var(--color-text-secondary)]',
+                    'hover:text-[var(--color-primary)] transition-colors',
+                    'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
+                  )}
+                >
+                  <span className="text-[var(--color-primary)]">{link.icon}</span>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Map anchors the section's base at full width; the address rides on it.
+          Top-left so the OpenStreetMap attribution stays unobstructed. */}
+      <a
+        href={mapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block h-40 md:h-48 rounded-2xl overflow-hidden border border-[var(--color-border)]/50 hover:border-[var(--color-primary)]/30 transition-colors"
+      >
+        <iframe
+          src="https://www.openstreetmap.org/export/embed.html?bbox=11.5825%2C50.9245%2C11.5955%2C50.9305&layer=mapnik&marker=50.9275%2C11.589"
+          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          title="Location Map"
+        />
+        <span
+          className={cn(
+            'absolute top-3 left-3 z-10 inline-flex items-start gap-2',
+            'rounded-lg px-3 py-2 text-xs leading-snug',
+            'bg-[var(--color-surface-elevated)]/95 text-[var(--color-text-secondary)]',
+            'border border-[var(--color-border)] shadow-md'
+          )}
+        >
+          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--color-primary)]" aria-hidden="true" />
+          <span>
+            Friedrich Schiller University Jena
+            <br />
+            Lessingstr 8, 07743 Jena, Germany
+          </span>
+        </span>
+      </a>
+    </>
+  );
+}
+
+// ============================================================================
+// LICENSE FOOTER
+// The coffee icon hides this page's one easter egg: caffeine, with a SMILES
+// that really runs through the validator. Discovery reward for the curious;
+// screen-reader users get it through the button label.
+// ============================================================================
+
+const CAFFEINE_SMILES = 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C';
+
+function LicenseFooter() {
+  const [brewing, setBrewing] = useState(false);
+
+  return (
+    <div className="text-center py-10">
+      <div className="flex items-center justify-center gap-1.5 mb-2">
+        <span className="text-sm font-medium text-[var(--color-text-secondary)]">Made with</span>
+        <button
+          onClick={() => setBrewing((v) => !v)}
+          aria-expanded={brewing}
+          aria-controls="caffeine-note"
+          aria-label="About the coffee in this line"
+          className="group p-1 -m-1 rounded-lg cursor-pointer hover:bg-[var(--color-accent)]/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+        >
+          <Coffee
+            className="w-4 h-4 text-[var(--color-accent)] transition-transform duration-200 ease-out group-hover:-rotate-12"
+            aria-hidden="true"
+          />
+        </button>
+        <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+          for the chemistry community
+        </span>
+      </div>
+
+      {brewing && (
+        <motion.div
+          id="caffeine-note"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+          className="mx-auto mb-4 max-w-sm"
+        >
+          <p className="text-xs text-[var(--color-text-secondary)] mb-2">
+            Caffeine (C&#8328;H&#8321;&#8320;N&#8324;O&#8322;). The project's other dependency.
+          </p>
+          <Link
+            to={`/?smiles=${encodeURIComponent(CAFFEINE_SMILES)}`}
+            title="Run it through the validator"
+            className={cn(
+              'inline-block font-mono text-[11px] px-2.5 py-1 rounded-lg',
+              'bg-[var(--color-surface-sunken)] border border-[var(--color-border)]',
+              'text-[var(--color-text-secondary)]',
+              'hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/40',
+              'transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2'
+            )}
+          >
+            {CAFFEINE_SMILES}
+          </Link>
+        </motion.div>
+      )}
+
+      <p className="text-xs text-[var(--color-text-muted)]">
+        ChemAudit is open-source software released under the{' '}
+        <a
+          href="https://opensource.org/licenses/MIT"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--color-primary)] hover:underline transition-colors"
+        >
+          MIT License
+        </a>
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
 export default AboutPage;

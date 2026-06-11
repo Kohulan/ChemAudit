@@ -24,7 +24,7 @@ const BADGES = [
     key: 'added',
     prefix: '+',
     label: 'Added',
-    classes: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    classes: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   },
   {
     key: 'removed',
@@ -36,7 +36,7 @@ const BADGES = [
     key: 'modified',
     prefix: '~',
     label: 'Modified',
-    classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    classes: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
   },
   {
     key: 'unchanged',
@@ -53,10 +53,10 @@ const BADGES = [
 /**
  * Row of 4 inline count badges summarizing dataset diff results.
  *
- * Per UI-SPEC D-12:
- * - Added (green): "+{N} Added"
+ * Per UI-SPEC D-12 (warm palette; no green-for-status):
+ * - Added (amber/gold): "+{N} Added"
  * - Removed (red): "-{N} Removed"
- * - Modified (amber): "~{N} Modified"
+ * - Modified (orange): "~{N} Modified"
  * - Unchanged (stone): "{N} Unchanged"
  *
  * Entry animation: opacity 0->1, scale 0.9->1, stagger 0.1s, 0.3s ease-out.

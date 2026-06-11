@@ -112,7 +112,7 @@ export function ProvenanceTimeline({ provenance }: ProvenanceTimelineProps) {
       <div className="relative">
         {/* Vertical connector line */}
         <div
-          className="absolute left-[22px] top-5 bottom-5 w-0.5 bg-gray-200 z-0"
+          className="absolute left-[22px] top-5 bottom-5 w-0.5 bg-[var(--color-border-strong)] z-0"
           aria-hidden="true"
         />
 
@@ -120,7 +120,7 @@ export function ProvenanceTimeline({ provenance }: ProvenanceTimelineProps) {
           {provenance.stages.map((stage, idx) => (
             <div key={`${stage.stage_name}-${idx}`} className="flex items-start gap-3">
               {/* Timeline dot */}
-              <div className="flex-shrink-0 w-[18px] h-[18px] mt-[13px] rounded-full border-2 border-gray-300 bg-white z-10" />
+              <div className="flex-shrink-0 w-[18px] h-[18px] mt-[13px] rounded-full border-2 border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] z-10" />
 
               {/* Stage card */}
               <div className="flex-1 min-w-0">
@@ -136,7 +136,7 @@ export function ProvenanceTimeline({ provenance }: ProvenanceTimelineProps) {
       </div>
 
       {/* Stage count summary */}
-      <p className="text-xs text-gray-400 text-right">
+      <p className="text-xs text-[var(--color-text-muted)] text-right">
         {provenance.stages.filter((s) => s.applied).length} of {provenance.stages.length} stages applied
       </p>
     </div>

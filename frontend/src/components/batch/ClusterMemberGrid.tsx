@@ -70,7 +70,7 @@ export function ClusterMemberGrid({
             initial="hidden"
             animate="visible"
             variants={thumbVariants}
-            className="relative rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow group"
+            className="relative rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow group"
             title={smiles ? `${smiles}\nClick to copy` : `Molecule ${idx}`}
             style={{ width: 80, height: 60 }}
             onClick={() => handleCopy(smiles, idx)}
@@ -80,7 +80,7 @@ export function ClusterMemberGrid({
             {smiles && (
               <span className="absolute inset-0 flex items-center justify-center bg-[var(--color-text-primary)]/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                 {copiedIdx === idx ? (
-                  <Check className="w-4 h-4 text-green-400" />
+                  <Check className="w-4 h-4 text-status-success" aria-hidden="true" />
                 ) : (
                   <Copy className="w-3 h-3 text-white" />
                 )}

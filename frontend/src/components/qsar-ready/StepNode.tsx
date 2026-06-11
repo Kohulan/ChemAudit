@@ -48,7 +48,7 @@ function StatusBadge({ status }: { status: QSARStepResult['status'] }) {
 
 function dotColorClass(status: QSARStepResult['status']): string {
   switch (status) {
-    case 'applied':  return 'bg-green-500 border-green-600';
+    case 'applied':  return 'bg-status-success border-status-success-dark';
     case 'no_change': return 'bg-blue-500 border-blue-600';
     case 'skipped':  return 'bg-[var(--color-border)] border-[var(--color-border)]';
     case 'error':    return 'bg-red-500 border-red-600';

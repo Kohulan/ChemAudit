@@ -115,8 +115,8 @@ export function MoleculeViewer({
 
   if (error || !isValid) {
     return (
-      <div className={`${PLACEHOLDER_BASE} bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 ${className}`} style={placeholderStyle}>
-        <span className="text-red-500 text-sm px-4 text-center">{error || 'Invalid molecule'}</span>
+      <div className={`${PLACEHOLDER_BASE} bg-status-error-light dark:bg-red-900/20 border border-red-200 dark:border-red-800 ${className}`} style={placeholderStyle}>
+        <span className="text-red-700 dark:text-red-400 text-sm px-4 text-center">{error || 'Invalid molecule'}</span>
       </div>
     );
   }
@@ -132,9 +132,12 @@ export function MoleculeViewer({
       ? '[&>svg]:block [&>svg]:w-full [&>svg]:h-full'
       : '[&>svg]:block [&>svg]:w-full [&>svg]:h-auto';
 
+  // 'rdkit-drawing' opts the RDKit-generated SVG into the dark-mode inversion
+  // filter (see index.css). Placeholder/loading/error states above return
+  // early, so decorative SVGs are never inverted.
   return (
     <div
-      className={`rounded-lg w-full ${fitClasses} ${className}`}
+      className={`rdkit-drawing rounded-lg w-full ${fitClasses} ${className}`}
       dangerouslySetInnerHTML={{ __html: responsiveSvg }}
     />
   );

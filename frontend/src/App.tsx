@@ -1,15 +1,17 @@
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
 import { MoleculeLoader } from './components/ui/MoleculeLoader';
 import { SplashScreen } from './components/ui/SplashScreen';
 import { ErrorFallback } from './components/error/ErrorFallback';
+import { ScrollToTop } from './components/common/ScrollToTop';
 import { ConfigProvider } from './context/ConfigContext';
 import { useRDKit } from './hooks/useRDKit';
 import { logger } from './lib/logger';
 import { cn } from './lib/utils';
+import { routeNeedsRDKit } from './lib/rdkitRoutes';
 
 // Eagerly import the home page to avoid Suspense flash after splash
 import { SingleValidationPage } from './pages/SingleValidation';
@@ -295,8 +297,11 @@ function AppRoutes() {
  * App content with splash screen - handles RDKit loading states
  */
 function AppWithSplash() {
-  const { loading, error } = useRDKit();
-  const [showSplash, setShowSplash] = useState(true);
+  const { pathname } = useLocation();
+  const needsRDKit = routeNeedsRDKit(pathname);
+  const { loading, error } = useRDKit(needsRDKit);
+  // Splash only gates structure routes; /about, /privacy, /diagnostics render immediately.
+  const [showSplash, setShowSplash] = useState(needsRDKit);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
   // Ensure splash shows for minimum time (matches splash animation duration)
@@ -330,8 +335,8 @@ function AppWithSplash() {
     );
   }
 
-  // Show error state
-  if (error) {
+  // Show error state (only meaningful on routes that require RDKit)
+  if (needsRDKit && error) {
     return (
       <Layout>
         <RDKitErrorState error={error} />
@@ -360,6 +365,7 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
+        <ScrollToTop />
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
           onError={(error, errorInfo) => {

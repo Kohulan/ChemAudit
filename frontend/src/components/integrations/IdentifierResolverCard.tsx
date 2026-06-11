@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import { safeHref } from '../../lib/sanitize';
 import type { ResolvedCompound } from '../../types/integrations';
 
@@ -20,9 +21,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
-  high: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  low: 'bg-red-100 text-red-800',
+  high: 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success',
+  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  low: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
 export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) {
@@ -68,22 +69,22 @@ export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) 
   }
 
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+    <div className="bg-[var(--color-surface-sunken)] border border-[var(--color-border)] rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
-        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">
+        <span className="px-2 py-0.5 bg-chem-primary-100 text-chem-primary-800 dark:bg-chem-primary-900/30 dark:text-chem-primary-300 text-xs font-medium rounded-full">
           {TYPE_LABELS[result.identifier_type_detected] || result.identifier_type_detected}
         </span>
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${CONFIDENCE_COLORS[result.confidence] || 'bg-gray-100 text-gray-600'}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${CONFIDENCE_COLORS[result.confidence] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]'}`}>
           {result.confidence} confidence
         </span>
-        <span className="text-xs text-gray-500 ml-auto">
+        <span className="text-xs text-[var(--color-text-secondary)] ml-auto">
           via {result.resolution_source}
         </span>
       </div>
 
       {/* Resolution chain */}
       {result.resolution_chain.length > 0 && (
-        <div className="text-xs text-gray-600 mb-3 font-mono bg-white rounded px-2 py-1">
+        <div className="text-xs text-[var(--color-text-secondary)] mb-3 font-mono bg-[var(--color-surface-elevated)] rounded px-2 py-1">
           {result.resolution_chain.join(' → ')}
         </div>
       )}
@@ -91,7 +92,7 @@ export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) 
       {/* Cross-references */}
       {dbLinks.length > 0 && (
         <div className="mt-2">
-          <span className="text-xs text-gray-500 font-medium">Cross-references:</span>
+          <span className="text-xs text-[var(--color-text-secondary)] font-medium">Cross-references:</span>
           <div className="flex flex-wrap gap-2 mt-1">
             {dbLinks.map((link) => (
               <a
@@ -99,13 +100,11 @@ export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) 
                 href={safeHref(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded text-xs text-blue-600 hover:text-blue-800 hover:border-blue-300 transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded text-xs text-blue-600 hover:text-blue-800 hover:border-blue-300 transition-colors"
               >
-                <span className="font-medium text-gray-700">{link.label}:</span>
+                <span className="font-medium text-[var(--color-text-primary)]">{link.label}:</span>
                 <span className="font-mono">{link.id}</span>
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
+                <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
               </a>
             ))}
           </div>

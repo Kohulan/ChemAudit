@@ -29,7 +29,7 @@ interface TimelinePhase {
 function getStatusColor(status: PhaseStatus): string {
   switch (status) {
     case 'complete':
-      return 'bg-emerald-500 text-white';
+      return 'bg-status-success-dark dark:bg-status-success text-white dark:text-stone-900';
     case 'computing':
       return 'bg-amber-500 text-white animate-pulse';
     case 'failed':
@@ -43,7 +43,7 @@ function getStatusColor(status: PhaseStatus): string {
 function getLineColor(status: PhaseStatus): string {
   switch (status) {
     case 'complete':
-      return 'bg-emerald-500';
+      return 'bg-status-success-dark dark:bg-status-success';
     case 'computing':
       return 'bg-amber-500';
     case 'failed':

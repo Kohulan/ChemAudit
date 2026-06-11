@@ -20,31 +20,30 @@ interface MLReadinessScoreProps {
   breakdownOnly?: boolean;
 }
 
-/** Color config by score thresholds */
+/**
+ * Color config by score thresholds.
+ * Warm hierarchy only (gold -> amber -> orange -> red); success is never
+ * green/teal in this app. Tier boundaries (85/70/50/30) are unchanged.
+ * stroke/track are raw SVG values picked as mid-tones that read on both
+ * themes (this helper is not theme-aware); class fields carry dark variants.
+ */
 function getScoreColor(score: number, maxScore: number) {
   const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  // Excellent tier carries the gold/yellow band (per the ScoreChart and
+  // BatchResultsTable convention) so it stays visually distinct from the
+  // amber >=70 tier, not just one shade apart.
   if (pct >= 85) return {
-    gradient: 'from-emerald-500 to-green-400',
-    bg: 'bg-emerald-500/10',
-    bgRaw: 'emerald',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    border: 'border-emerald-500/20',
-    ring: 'ring-emerald-500/20',
-    stroke: '#10b981',
-    track: 'rgba(16, 185, 129, 0.15)',
+    gradient: 'from-yellow-400 to-yellow-300',
+    bg: 'bg-yellow-500/10 dark:bg-yellow-400/15',
+    bgRaw: 'yellow',
+    text: 'text-amber-600 dark:text-yellow-400',
+    border: 'border-yellow-500/30',
+    ring: 'ring-yellow-500/30',
+    stroke: '#fbbf24',
+    track: 'rgba(251, 191, 36, 0.15)',
   };
   if (pct >= 70) return {
-    gradient: 'from-teal-500 to-cyan-400',
-    bg: 'bg-teal-500/10',
-    bgRaw: 'teal',
-    text: 'text-teal-600 dark:text-teal-400',
-    border: 'border-teal-500/20',
-    ring: 'ring-teal-500/20',
-    stroke: '#14b8a6',
-    track: 'rgba(20, 184, 166, 0.15)',
-  };
-  if (pct >= 50) return {
-    gradient: 'from-amber-500 to-yellow-400',
+    gradient: 'from-amber-500 to-amber-400',
     bg: 'bg-amber-500/10',
     bgRaw: 'amber',
     text: 'text-amber-600 dark:text-amber-400',
@@ -53,8 +52,8 @@ function getScoreColor(score: number, maxScore: number) {
     stroke: '#f59e0b',
     track: 'rgba(245, 158, 11, 0.15)',
   };
-  if (pct >= 30) return {
-    gradient: 'from-orange-500 to-orange-400',
+  if (pct >= 50) return {
+    gradient: 'from-orange-500 to-amber-400',
     bg: 'bg-orange-500/10',
     bgRaw: 'orange',
     text: 'text-orange-600 dark:text-orange-400',
@@ -62,6 +61,16 @@ function getScoreColor(score: number, maxScore: number) {
     ring: 'ring-orange-500/20',
     stroke: '#f97316',
     track: 'rgba(249, 115, 22, 0.15)',
+  };
+  if (pct >= 30) return {
+    gradient: 'from-orange-600 to-orange-500',
+    bg: 'bg-orange-500/10',
+    bgRaw: 'orange',
+    text: 'text-orange-700 dark:text-orange-400',
+    border: 'border-orange-500/20',
+    ring: 'ring-orange-500/20',
+    stroke: '#ea580c',
+    track: 'rgba(234, 88, 12, 0.15)',
   };
   return {
     gradient: 'from-red-500 to-red-400',
@@ -356,7 +365,7 @@ function ItemRow({ item }: { item: MLDimensionItem }) {
           <div className={cn(
             'w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0',
             item.passed
-              ? 'bg-emerald-500/15 text-emerald-500'
+              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
               : 'bg-red-500/15 text-red-500',
           )}>
             {item.passed
@@ -472,13 +481,13 @@ function SupplementaryPills({ supplementary }: { supplementary: Record<string, u
             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
             'transition-colors duration-150',
             pill.ok
-              ? 'bg-emerald-500/8 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15'
-              : 'bg-red-500/8 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/15'
+              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:bg-amber-500/15'
+              : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/15'
           )}
         >
           <div className={cn(
             'w-4 h-4 rounded flex items-center justify-center',
-            pill.ok ? 'bg-emerald-500/20' : 'bg-red-500/20',
+            pill.ok ? 'bg-amber-500/20' : 'bg-red-500/20',
           )}>
             {pill.ok ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : <X className="w-2.5 h-2.5" strokeWidth={3} />}
           </div>

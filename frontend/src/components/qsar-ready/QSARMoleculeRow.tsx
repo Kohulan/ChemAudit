@@ -14,13 +14,15 @@ interface QSARMoleculeRowProps {
 function getStatusColor(status: QSARReadyResult['status']): string {
   switch (status) {
     case 'ok':
-      return '#16a34a';
+      return '#b45309';
     case 'rejected':
       return '#dc2626';
     case 'duplicate':
-      return '#d97706';
+      return '#ea580c';
     case 'error':
-      return '#7c3aed';
+      // Neutral warm stone (theme-aware) so error stays distinct from
+      // the amber duplicate state in both modes.
+      return 'var(--color-text-secondary)';
     default:
       return 'var(--color-text-muted)';
   }
@@ -29,13 +31,13 @@ function getStatusColor(status: QSARReadyResult['status']): string {
 function getStatusBgClass(status: QSARReadyResult['status']): string {
   switch (status) {
     case 'ok':
-      return 'bg-green-50 text-green-700';
+      return 'bg-amber-50 text-amber-700';
     case 'rejected':
       return 'bg-red-50 text-red-700';
     case 'duplicate':
-      return 'bg-amber-50 text-amber-700';
+      return 'bg-orange-50 text-orange-700';
     case 'error':
-      return 'bg-violet-50 text-violet-700';
+      return 'bg-chem-dark-100 text-chem-dark-700 dark:bg-chem-dark-800 dark:text-chem-dark-300';
     default:
       return 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]';
   }
@@ -44,7 +46,7 @@ function getStatusBgClass(status: QSARReadyResult['status']): string {
 function getStepChipClass(status: QSARStepResult['status']): string {
   switch (status) {
     case 'applied':
-      return 'bg-green-50 text-green-700';
+      return 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success';
     case 'no_change':
       return 'bg-blue-50 text-blue-700';
     case 'skipped':
@@ -59,7 +61,7 @@ function getStepChipClass(status: QSARStepResult['status']): string {
 function getStepDotColor(status: QSARStepResult['status']): string {
   switch (status) {
     case 'applied':
-      return '#16a34a';
+      return '#d97706';
     case 'no_change':
       return '#2563eb';
     case 'skipped':

@@ -13,12 +13,12 @@ import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
 const CATEGORY_BADGE: Record<string, string> = {
-  'Reactive Group': 'bg-red-100 text-red-700',
-  'Toxicophore': 'bg-rose-100 text-rose-700',
-  'Metabolic Liability': 'bg-amber-100 text-amber-700',
-  'Assay Interference': 'bg-purple-100 text-purple-700',
-  'Physicochemical': 'bg-slate-100 text-slate-700',
-  'Unwanted Functionality': 'bg-gray-100 text-gray-600',
+  'Reactive Group': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  'Toxicophore': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  'Metabolic Liability': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  'Assay Interference': 'bg-chem-secondary-100 text-chem-secondary-700 dark:bg-chem-secondary-900/30 dark:text-chem-secondary-300',
+  'Physicochemical': 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
+  'Unwanted Functionality': 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
 };
 
 function formatPatternName(name: string): string {
@@ -138,14 +138,14 @@ function FilterCard({
         'bg-[var(--color-surface-sunken)]',
         'border',
         result.passed
-          ? 'border-emerald-500/20'
+          ? 'border-amber-500/20'
           : 'border-red-500/20'
       )}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {result.passed ? (
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
             <ShieldAlert className="w-4 h-4 text-red-500" />
           )}
@@ -162,7 +162,7 @@ function FilterCard({
           className={cn(
             'text-xs font-medium px-2 py-0.5 rounded-full',
             result.passed
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
               : 'bg-red-500/10 text-red-600 dark:text-red-400'
           )}
         >
@@ -200,7 +200,7 @@ function FilterCard({
                 <div key={i} className="flex items-center gap-1.5 py-0.5">
                   <AlertTriangle className="w-3 h-3 flex-shrink-0 text-red-500" />
                   <span className="text-[var(--color-text-secondary)]">{formatPatternName(detail.name)}</span>
-                  <span className={cn('px-1.5 py-0 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                  <span className={cn('px-1.5 py-0 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]')}>
                     {detail.category}
                   </span>
                 </div>
@@ -230,7 +230,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
         'rounded-xl p-3',
         'bg-[var(--color-surface-sunken)]',
         'border',
-        chembl.passed ? 'border-emerald-500/20' : 'border-amber-500/20'
+        chembl.passed ? 'border-amber-500/20' : 'border-orange-500/20'
       )}
     >
       <button
@@ -239,9 +239,9 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
       >
         <div className="flex items-center gap-2">
           {chembl.passed ? (
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
-            <ShieldAlert className="w-4 h-4 text-amber-500" />
+            <ShieldAlert className="w-4 h-4 text-orange-500" />
           )}
           <span className="text-sm font-medium text-[var(--color-text-primary)]">ChEMBL Alerts</span>
           <InfoTooltip
@@ -259,8 +259,8 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
             className={cn(
               'text-xs font-medium px-2 py-0.5 rounded-full',
               chembl.passed
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
             )}
           >
             {chembl.passed ? 'Clear' : `${chembl.total_alerts} alert${chembl.total_alerts !== 1 ? 's' : ''}`}
@@ -288,7 +288,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     {filterResult.passed ? (
-                      <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                      <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                     ) : (
                       <ShieldAlert className="w-3 h-3 text-red-500" />
                     )}
@@ -307,7 +307,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                   </div>
                   <span className={cn(
                     'text-xs',
-                    filterResult.passed ? 'text-emerald-500' : 'text-red-500'
+                    filterResult.passed ? 'text-amber-700 dark:text-amber-300' : 'text-red-500'
                   )}>
                     {filterResult.passed ? 'Pass' : `${filterResult.alert_count} alert${filterResult.alert_count !== 1 ? 's' : ''}`}
                   </span>
@@ -319,7 +319,7 @@ function ChEMBLAlertsSection({ chembl }: { chembl: ChEMBLAlertsResult }) {
                       <div key={i} className="flex items-center gap-1.5 text-[11px]">
                         <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-red-400" />
                         <span className="text-[var(--color-text-muted)]">{formatPatternName(detail.name)}</span>
-                        <span className={cn('px-1.5 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-gray-100 text-gray-600')}>
+                        <span className={cn('px-1.5 rounded-full text-[10px] font-medium', CATEGORY_BADGE[detail.category] || 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]')}>
                           {detail.category}
                         </span>
                       </div>
@@ -350,7 +350,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
         'bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-surface)]',
         'border',
         all_passed
-          ? 'border-emerald-500/20'
+          ? 'border-amber-500/20'
           : 'border-red-500/20'
       )}
     >
@@ -360,7 +360,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
           <div className={cn(
             'w-10 h-10 rounded-xl flex items-center justify-center',
             all_passed
-              ? 'bg-emerald-500/10 text-emerald-500'
+              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
               : 'bg-red-500/10 text-red-500'
           )}>
             <Shield className="w-5 h-5" />
@@ -375,7 +375,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
         <div className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-full',
           all_passed
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
             : 'bg-red-500/10 text-red-600 dark:text-red-400'
         )}>
           {all_passed ? (
@@ -421,7 +421,7 @@ export function SafetyFiltersScore({ result }: SafetyFiltersScoreProps) {
       <div className={cn(
         'mt-4 p-3 rounded-xl text-xs',
         all_passed
-          ? 'bg-emerald-500/5 border border-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+          ? 'bg-amber-500/5 border border-amber-500/10 text-amber-700 dark:text-amber-300'
           : 'bg-red-500/5 border border-red-500/10 text-red-700 dark:text-red-300'
       )}>
         <div className="flex items-start gap-2">

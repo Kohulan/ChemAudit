@@ -21,7 +21,7 @@ export function StepsList({
     <div className="space-y-4">
       {/* Pipeline Steps */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Pipeline Steps</h4>
+        <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Pipeline Steps</h4>
         <div className="space-y-2">
           {steps.map((step, index) => (
             <div
@@ -29,14 +29,14 @@ export function StepsList({
               className={`flex items-start gap-3 p-3 rounded-lg border ${
                 step.applied
                   ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20'
-                  : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface-sunken)]'
               }`}
             >
               {/* Status Icon */}
               <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
                 step.applied
                   ? 'bg-amber-500 text-white'
-                  : 'bg-gray-300 dark:bg-gray-600 text-white'
+                  : 'bg-chem-dark-300 dark:bg-chem-dark-600 text-white'
               }`}>
                 {step.applied ? '✓' : '−'}
               </div>
@@ -44,20 +44,20 @@ export function StepsList({
               {/* Step Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900 text-sm">
+                  <span className="font-medium text-[var(--color-text-primary)] text-sm">
                     {formatStepName(step.step_name)}
                   </span>
                   {!step.applied && (
-                    <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-200 rounded">
+                    <span className="text-xs text-[var(--color-text-secondary)] px-1.5 py-0.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded">
                       skipped
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-600 mt-0.5">
+                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                   {step.description}
                 </p>
                 {step.changes && (
-                  <p className="text-xs text-gray-500 mt-1 italic">
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1 italic">
                     {step.changes}
                   </p>
                 )}
@@ -70,7 +70,7 @@ export function StepsList({
       {/* Checker Issues */}
       {checkerIssues.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+          <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
             Checker Issues ({checkerIssues.length})
           </h4>
           <div className="space-y-2">
@@ -88,7 +88,7 @@ export function StepsList({
                 }`}>
                   -{issue.penalty_score}
                 </div>
-                <p className="text-sm text-gray-700">{issue.message}</p>
+                <p className="text-sm text-[var(--color-text-primary)]">{issue.message}</p>
               </div>
             ))}
           </div>
@@ -98,20 +98,20 @@ export function StepsList({
       {/* Excluded Fragments */}
       {excludedFragments.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+          <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
             Removed Fragments ({excludedFragments.length})
           </h4>
           <div className="flex flex-wrap gap-2">
             {excludedFragments.map((fragment, index) => (
               <span
                 key={index}
-                className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 border border-gray-200"
+                className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--color-surface-sunken)] border border-[var(--color-border)]"
               >
-                <code className="text-xs text-gray-700 font-mono">{fragment}</code>
+                <code className="text-xs text-[var(--color-text-primary)] font-mono">{fragment}</code>
               </span>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-[var(--color-text-secondary)] mt-2">
             These salts, solvents, or counterions were removed during standardization.
           </p>
         </div>

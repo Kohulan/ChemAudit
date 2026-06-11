@@ -200,39 +200,6 @@ function PropertyRow({ prop, index, onChange, onRemove, activePropIndex, onActiv
 }
 
 // =============================================================================
-// Delete confirmation modal
-// =============================================================================
-interface DeleteConfirmProps {
-  profileName: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteConfirmModal({ profileName, onConfirm, onCancel }: DeleteConfirmProps) {
-  return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center">
-      <div className="absolute inset-0 bg-surface-overlay backdrop-blur-sm" onClick={onCancel} />
-      <motion.div
-        className="relative bg-surface-elevated rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
-        initial={{ scale: 0.94, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        role="dialog"
-        aria-modal="true"
-      >
-        <p className="text-sm text-text-primary mb-4">
-          Delete &ldquo;{profileName}&rdquo;? This cannot be undone.
-        </p>
-        <div className="flex gap-2 justify-end">
-          <ClayButton variant="ghost" size="sm" onClick={onCancel}>Cancel</ClayButton>
-          <ClayButton variant="danger" size="sm" onClick={onConfirm}>Delete</ClayButton>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-// =============================================================================
 // Main modal
 // =============================================================================
 interface DesirabilityEditorModalProps {
@@ -263,12 +230,37 @@ export function DesirabilityEditorModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const deleteBtnRef = useRef<HTMLButtonElement>(null);
+  const confirmDeleteBtnRef = useRef<HTMLButtonElement>(null);
+  // Mirror for the keydown handler so Escape can dismiss the inline confirm
+  // without re-registering the focus-trap effect
+  const showDeleteConfirmRef = useRef(false);
 
   // Sync when incoming profile changes
   useEffect(() => {
     setEditedProfile(profile);
     setActivePropertyIndex(0);
   }, [profile]);
+
+  // Disarm a pending delete confirmation only when the EDITED PROFILE
+  // actually changes. Keyed on id, not the object: the parent rebuilds the
+  // profile prop every render, and keying on the reference would dismiss
+  // the confirmation under the user on unrelated re-renders.
+  useEffect(() => {
+    setShowDeleteConfirm(false);
+  }, [profile.id]);
+
+  // Keep the ref in sync and move focus to the inline confirm button when revealed
+  useEffect(() => {
+    showDeleteConfirmRef.current = showDeleteConfirm;
+    if (showDeleteConfirm) confirmDeleteBtnRef.current?.focus();
+  }, [showDeleteConfirm]);
+
+  const cancelDelete = useCallback(() => {
+    setShowDeleteConfirm(false);
+    // Return focus to the Delete Profile button once it is back in the DOM
+    requestAnimationFrame(() => deleteBtnRef.current?.focus());
+  }, []);
 
   // Focus trap + return focus
   useEffect(() => {
@@ -280,7 +272,12 @@ export function DesirabilityEditorModal({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        // Escape first dismisses the inline delete confirmation, then the modal
+        if (showDeleteConfirmRef.current) {
+          cancelDelete();
+        } else {
+          onClose();
+        }
         return;
       }
       if (e.key !== 'Tab') return;
@@ -310,7 +307,7 @@ export function DesirabilityEditorModal({
       document.removeEventListener('keydown', handleKeyDown);
       previousFocusRef.current?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, cancelDelete]);
 
   const handlePropertyChange = useCallback((index: number, updated: MPOProperty) => {
     setEditedProfile((prev) => {
@@ -481,14 +478,38 @@ export function DesirabilityEditorModal({
               profileIsPreset ? 'justify-end' : 'justify-between'
             )}>
               {!profileIsPreset && (
-                <ClayButton
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                >
-                  Delete Profile
-                </ClayButton>
+                showDeleteConfirm ? (
+                  <div
+                    role="group"
+                    aria-label={`Confirm deleting profile ${editedProfile.name}`}
+                    className="flex items-center gap-2 rounded-2xl border border-status-error/40 bg-status-error/10 px-3 py-1.5"
+                  >
+                    <span className="text-xs font-medium text-status-error max-w-[160px] truncate">
+                      Delete &ldquo;{editedProfile.name}&rdquo;?
+                    </span>
+                    <ClayButton
+                      ref={confirmDeleteBtnRef}
+                      variant="danger"
+                      size="sm"
+                      onClick={handleDeleteConfirm}
+                    >
+                      Delete
+                    </ClayButton>
+                    <ClayButton variant="ghost" size="sm" onClick={cancelDelete}>
+                      Cancel
+                    </ClayButton>
+                  </div>
+                ) : (
+                  <ClayButton
+                    ref={deleteBtnRef}
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    Delete Profile
+                  </ClayButton>
+                )
               )}
               <div className="flex gap-2">
                 <ClayButton variant="ghost" size="sm" onClick={onClose}>
@@ -507,15 +528,6 @@ export function DesirabilityEditorModal({
               </div>
             </div>
           </motion.div>
-
-          {/* Delete confirmation sub-modal */}
-          {showDeleteConfirm && (
-            <DeleteConfirmModal
-              profileName={editedProfile.name}
-              onConfirm={handleDeleteConfirm}
-              onCancel={() => setShowDeleteConfirm(false)}
-            />
-          )}
         </div>
       )}
     </AnimatePresence>

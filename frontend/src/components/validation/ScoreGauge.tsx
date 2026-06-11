@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 import { CalculationTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
+import { chartTrackFill } from '../../lib/chartColors';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
 interface ScoreGaugeProps {
@@ -65,7 +66,7 @@ export function ScoreGauge({ score, size = 140, className = '', showCalculation 
   };
 
   const color = getColor(clampedScore);
-  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
+  const backgroundFill = chartTrackFill(isDark);
 
   const data = [
     {

@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const badgeVariants = cva(
@@ -45,12 +46,30 @@ export function Badge({
   className,
   ...props
 }: BadgeProps) {
+  // Color alone must not distinguish success from warning (WCAG 1.4.1):
+  // both live in the warm amber/orange band, so default a redundant icon.
+  // Pass icon={null} to opt out (numeric CountBadge does). When the dot
+  // indicator is shown the auto-icon is suppressed; the dot itself is
+  // currentColor in every variant, so call sites using dot must
+  // differentiate via label text (ScoreTiles does: Ready vs Review).
+  // An explicit icon prop still wins.
+  const resolvedIcon =
+    icon !== undefined
+      ? icon
+      : dot
+        ? null
+        : variant === 'success'
+          ? <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+          : variant === 'warning'
+            ? <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+            : null;
+
   return (
     <span
       className={cn(badgeVariants({ variant, size }), dot && 'badge-dot', className)}
       {...props}
     >
-      {icon && <span className="flex-shrink-0">{icon}</span>}
+      {resolvedIcon && <span className="flex-shrink-0">{resolvedIcon}</span>}
       {children}
     </span>
   );
@@ -73,6 +92,7 @@ export function CountBadge({ count, max = 99, variant = 'default', className }: 
     <Badge
       variant={variant}
       size="sm"
+      icon={null}
       className={cn('min-w-[1.25rem] justify-center tabular-nums', className)}
     >
       {displayCount}

@@ -42,7 +42,7 @@ function GroupTable({ groups }: { groups: { group_name: string; contribution: nu
               <td className="px-3 py-2 text-[var(--color-text-primary)]">{g.group_name}</td>
               <td className={cn(
                 'px-3 py-2 text-right font-mono',
-                g.contribution > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--color-text-secondary)]'
+                g.contribution > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--color-text-secondary)]'
               )}>
                 {g.contribution > 0 ? '+' : ''}{g.contribution.toFixed(2)}
               </td>
@@ -154,9 +154,9 @@ export function PropertyBreakdownCard({ tpsa, logp, bertz, fsp3 }: PropertyBreak
                     className={cn(
                       'inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-mono font-medium',
                       c.hybridization === 'sp3'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
                         : c.hybridization === 'sp2'
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                          ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
                           : c.hybridization === 'sp'
                             ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
                             : 'bg-gray-500/10 text-gray-500'
@@ -169,10 +169,10 @@ export function PropertyBreakdownCard({ tpsa, logp, bertz, fsp3 }: PropertyBreak
               </div>
               <div className="flex gap-3 mt-2 text-xs text-[var(--color-text-muted)]">
                 <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded bg-emerald-500/30" /> sp3
+                  <span className="w-2.5 h-2.5 rounded bg-amber-500/30" /> sp3
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded bg-amber-500/30" /> sp2
+                  <span className="w-2.5 h-2.5 rounded bg-orange-500/30" /> sp2
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded bg-blue-500/30" /> sp

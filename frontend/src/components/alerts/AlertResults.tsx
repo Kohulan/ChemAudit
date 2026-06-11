@@ -73,13 +73,13 @@ export function AlertResults({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Summary Header */}
-      <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="bg-[var(--color-surface-elevated)] rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
               {alerts.length} Structural Alert{alerts.length !== 1 ? 's' : ''} Found
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Screened: {screenedCatalogs.join(', ')}
             </p>
           </div>
@@ -105,13 +105,13 @@ export function AlertResults({
 
         {/* Group toggle for multiple catalogs */}
         {screenedCatalogs.length > 1 && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <div className="mt-3 pt-3 border-t border-[var(--color-border-subtle)]">
+            <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={groupByCatalog}
                 onChange={(e) => setGroupByCatalog(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Group by catalog
             </label>
@@ -156,15 +156,15 @@ export function AlertResults({
               <div key={catalog}>
                 <div className="mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-[var(--color-surface-sunken)] text-[var(--color-text-primary)]">
                       {sampleAlert?.catalog_description || catalog}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[var(--color-text-secondary)]">
                       ({catalogAlerts.length} alert{catalogAlerts.length !== 1 ? 's' : ''})
                     </span>
                   </div>
                   {sampleAlert?.scope && (
-                    <p className="text-xs text-gray-500 mt-1 ml-0.5 italic">{sampleAlert.scope}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-1 ml-0.5 italic">{sampleAlert.scope}</p>
                   )}
                 </div>
                 <div className="space-y-3">

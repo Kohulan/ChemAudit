@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { ClayCard } from '../ui/ClayCard';
 import { cn } from '../../lib/utils';
+import { chartTrackFill } from '../../lib/chartColors';
 import { useThemeContext } from '../../contexts/ThemeContext';
 import type { SubScoreDetail } from '../../types/dataset_intelligence';
 
@@ -85,7 +86,7 @@ function MiniGauge({ score }: { score: number }) {
 
   const percent = Math.max(0, Math.min(100, score * 100));
   const color = getSubScoreColor(score);
-  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
+  const backgroundFill = chartTrackFill(isDark);
 
   const data = [
     {

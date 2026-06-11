@@ -71,7 +71,7 @@ export function QSARProgressBar({ status }: QSARProgressBarProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 font-medium"
+          className="bg-amber-50 dark:bg-status-success/15 border border-amber-200 dark:border-status-success/30 rounded-lg px-4 py-3 text-sm text-amber-800 dark:text-status-success font-medium"
         >
           Curation complete &mdash;{' '}
           {status.total > 0 ? status.total : status.processed} molecules curated successfully

@@ -9,12 +9,12 @@ interface AlertCardProps {
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
-  'Reactive Group': { bg: 'bg-red-100', text: 'text-red-700' },
-  'Toxicophore': { bg: 'bg-rose-100', text: 'text-rose-700' },
-  'Metabolic Liability': { bg: 'bg-amber-100', text: 'text-amber-700' },
-  'Assay Interference': { bg: 'bg-purple-100', text: 'text-purple-700' },
-  'Physicochemical': { bg: 'bg-slate-100', text: 'text-slate-700' },
-  'Unwanted Functionality': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'Reactive Group': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' },
+  'Toxicophore': { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300' },
+  'Metabolic Liability': { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
+  'Assay Interference': { bg: 'bg-chem-secondary-100 dark:bg-chem-secondary-900/30', text: 'text-chem-secondary-700 dark:text-chem-secondary-300' },
+  'Physicochemical': { bg: 'bg-[var(--color-surface-sunken)]', text: 'text-[var(--color-text-secondary)]' },
+  'Unwanted Functionality': { bg: 'bg-[var(--color-surface-sunken)]', text: 'text-[var(--color-text-secondary)]' },
 };
 
 /**
@@ -47,30 +47,30 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
     switch (severity) {
       case 'critical':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          badge: 'bg-red-100 text-red-800',
+          bg: 'bg-red-50 dark:bg-red-900/20',
+          border: 'border-red-200 dark:border-red-800',
+          badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
           icon: '!!!',
         };
       case 'warning':
         return {
-          bg: 'bg-amber-50',
-          border: 'border-amber-200',
-          badge: 'bg-amber-100 text-amber-800',
+          bg: 'bg-amber-50 dark:bg-amber-900/20',
+          border: 'border-amber-200 dark:border-amber-800',
+          badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
           icon: '!',
         };
       case 'info':
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          badge: 'bg-blue-100 text-blue-800',
+          bg: 'bg-blue-50 dark:bg-blue-900/20',
+          border: 'border-blue-200 dark:border-blue-800',
+          badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
           icon: 'i',
         };
       default:
         return {
-          bg: 'bg-gray-50',
-          border: 'border-gray-200',
-          badge: 'bg-gray-100 text-gray-800',
+          bg: 'bg-[var(--color-surface-sunken)]',
+          border: 'border-[var(--color-border)]',
+          badge: 'bg-[var(--color-surface-sunken)] text-[var(--color-text-primary)]',
           icon: '?',
         };
     }
@@ -107,7 +107,7 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
         <div className="flex-1 min-w-0">
           {/* Row 1: Pattern name + badges */}
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <h4 className="font-medium text-gray-900">
+            <h4 className="font-medium text-[var(--color-text-primary)]">
               {formatPatternName(alert.pattern_name)}
             </h4>
             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${styles.badge}`}>
@@ -123,16 +123,16 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
           </div>
 
           {/* Row 2: Human-readable catalog name */}
-          <p className="text-sm text-gray-600 mb-1.5">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-1.5">
             {alert.catalog_description || alert.catalog_source}
           </p>
 
           {/* Row 3: Scope — what this filter screens for */}
-          {alert.scope && <p className="text-sm text-gray-500 italic mb-2">{alert.scope}</p>}
+          {alert.scope && <p className="text-sm text-[var(--color-text-secondary)] italic mb-2">{alert.scope}</p>}
 
           {/* Matched atoms */}
           {alert.matched_atoms.length > 0 && (
-            <div className="text-xs text-gray-500 mb-2">
+            <div className="text-xs text-[var(--color-text-secondary)] mb-2">
               <span className="font-medium">Matched atoms:</span>{' '}
               {alert.matched_atoms.join(', ')}
               <span className="ml-2 text-amber-600">(hover to highlight)</span>
@@ -153,7 +153,7 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
                 e.stopPropagation();
                 setExpanded(!expanded);
               }}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
             >
               {expanded ? (
                 <ChevronUp className="w-3 h-3" />
@@ -164,7 +164,7 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
             </button>
           )}
           {expanded && alert.reference && (
-            <div className="mt-2 text-xs text-gray-500 bg-white/50 rounded p-2 border border-gray-100">
+            <div className="mt-2 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-elevated)]/50 rounded p-2 border border-[var(--color-border-subtle)]">
               <span className="font-medium">Reference:</span> {alert.reference}
             </div>
           )}

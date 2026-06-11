@@ -25,7 +25,7 @@ function StatusBadge({ passed, label }: { passed: boolean; label: string }) {
       className={cn(
         'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
         passed
-          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          ? 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success'
           : 'bg-red-500/10 text-red-600 dark:text-red-400'
       )}
     >
@@ -58,7 +58,7 @@ function PropertyRow({
           passed === undefined
             ? 'text-[var(--color-text-primary)]'
             : passed
-              ? 'text-emerald-600 dark:text-emerald-400'
+              ? 'text-amber-700 dark:text-amber-300'
               : 'text-red-600 dark:text-red-400'
         )}>
           {typeof value === 'number' ? (Number.isInteger(value) ? String(value) : value.toFixed(2)) : value}
@@ -81,9 +81,9 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
 
   // QED color based on score
   const qedColor = qed.score >= 0.67
-    ? 'text-emerald-500'
+    ? 'text-amber-700 dark:text-amber-300'
     : qed.score >= 0.49
-      ? 'text-amber-500'
+      ? 'text-orange-600 dark:text-orange-400'
       : 'text-red-500';
 
   return (
@@ -100,7 +100,7 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
       <div className="flex items-center gap-3 mb-4">
         <div className={cn(
           'w-10 h-10 rounded-xl flex items-center justify-center',
-          'bg-purple-500/10 text-purple-500'
+          'bg-chem-secondary-500/10 text-chem-secondary-500'
         )}>
           <Pill className="w-5 h-5" />
         </div>
@@ -261,7 +261,7 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
       {/* Interpretation */}
       <div className={cn(
         'mt-3 p-3 rounded-xl text-xs',
-        'bg-purple-500/5 border border-purple-500/10',
+        'bg-chem-secondary-500/5 border border-chem-secondary-500/10',
         'text-[var(--color-text-secondary)]'
       )}>
         {interpretation}

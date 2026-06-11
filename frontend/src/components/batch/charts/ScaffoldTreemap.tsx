@@ -230,7 +230,7 @@ export const ScaffoldTreemap = React.memo(function ScaffoldTreemap({
                 {/* Structure depiction (DOMPurify-sanitized SVG from RDKit.js) */}
                 {svg && !isOther && (
                   <div
-                    className="w-[200px] h-[150px] mb-2 rounded bg-white dark:bg-gray-100"
+                    className="w-[200px] h-[150px] mb-2 rounded bg-chem-dark-50 dark:bg-chem-dark-100"
                     dangerouslySetInnerHTML={{ __html: svg }}
                   />
                 )}

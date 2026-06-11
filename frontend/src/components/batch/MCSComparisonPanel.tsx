@@ -34,9 +34,9 @@ function getSimilarityConfig(score: number): {
   if (score >= 0.85) {
     return {
       label: 'Very Similar',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-500/10',
-      barColor: 'bg-emerald-500',
+      color: 'text-amber-700 dark:text-amber-300',
+      bgColor: 'bg-amber-500/15',
+      barColor: 'bg-amber-600',
     };
   }
   if (score >= 0.7) {
@@ -120,6 +120,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-[var(--color-text-primary)]/30 z-40"
             onClick={onClose}
+            role="presentation"
           />
 
           {/* Drawer */}
@@ -170,7 +171,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="flex items-center justify-center rounded-lg bg-white dark:bg-gray-900/50 border border-[var(--color-border-subtle)] min-h-[140px]">
+                    <div className="flex items-center justify-center rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] min-h-[140px]">
                       <MoleculeViewer
                         smiles={mol.standardization?.standardized_smiles || mol.smiles}
                         width={180}
@@ -225,7 +226,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
 
                   {/* MCS SMARTS as 2D structure */}
                   <div
-                    className="flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-white dark:bg-gray-900/50 p-3 min-h-[120px]"
+                    className="flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 min-h-[120px]"
                     aria-label={`Maximum common substructure: ${mcsResult.mcs_smarts}`}
                   >
                     <MoleculeViewer smiles={mcsResult.mcs_smarts} width={200} height={120} />
