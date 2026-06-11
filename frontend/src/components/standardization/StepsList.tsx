@@ -48,7 +48,7 @@ export function StepsList({
                     {formatStepName(step.step_name)}
                   </span>
                   {!step.applied && (
-                    <span className="text-xs text-[var(--color-text-secondary)] px-1.5 py-0.5 bg-[var(--color-surface-sunken)] rounded">
+                    <span className="text-xs text-[var(--color-text-secondary)] px-1.5 py-0.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded">
                       skipped
                     </span>
                   )}

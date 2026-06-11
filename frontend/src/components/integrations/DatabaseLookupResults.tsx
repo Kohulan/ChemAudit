@@ -53,12 +53,12 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
   }
 
   return (
-    <div className={`border rounded-lg p-4 ${result.found ? 'border-blue-200 bg-blue-50' : 'border-[var(--color-border)]'}`}>
+    <div className={`border rounded-lg p-4 ${result.found ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' : 'border-[var(--color-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <img src={pubchemLogo} alt="PubChem" className="w-5 h-5 rounded-sm object-contain" />
         <span className="font-medium text-[var(--color-text-primary)]">PubChem</span>
         {result.found ? (
-          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Found</span>
+          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-xs rounded-full">Found</span>
         ) : (
           <span className="px-2 py-0.5 bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)] text-xs rounded-full">Not Found</span>
         )}
@@ -69,7 +69,7 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-[var(--color-text-secondary)]">CID:</span>{' '}
-              <span className="font-mono text-blue-700">{result.cid}</span>
+              <span className="font-mono text-blue-700 dark:text-blue-400">{result.cid}</span>
             </div>
             {result.iupac_name && (
               <div className="col-span-2">
@@ -101,7 +101,7 @@ function PubChemCard({ result }: { result: PubChemResult | null }) {
               href={safeHref(result.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View on PubChem
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,12 +137,12 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
   };
 
   return (
-    <div className={`border rounded-lg p-4 ${result.found ? 'border-purple-200 bg-purple-50' : 'border-[var(--color-border)]'}`}>
+    <div className={`border rounded-lg p-4 ${result.found ? 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20' : 'border-[var(--color-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <img src={chemblLogo} alt="ChEMBL" className="w-5 h-5 rounded-sm object-contain" />
         <span className="font-medium text-[var(--color-text-primary)]">ChEMBL</span>
         {result.found ? (
-          <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Found</span>
+          <span className="px-2 py-0.5 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 text-xs rounded-full">Found</span>
         ) : (
           <span className="px-2 py-0.5 bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)] text-xs rounded-full">Not Found</span>
         )}
@@ -158,7 +158,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-[var(--color-text-secondary)]">ChEMBL ID:</span>{' '}
-              <span className="font-mono text-purple-700">{result.chembl_id}</span>
+              <span className="font-mono text-purple-700 dark:text-purple-400">{result.chembl_id}</span>
             </div>
             {result.pref_name && (
               <div>
@@ -183,7 +183,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
               <span className="text-[var(--color-text-secondary)] text-xs">Top bioactivities:</span>
               <div className="mt-1 space-y-1">
                 {result.bioactivities.slice(0, 3).map((act, i) => (
-                  <div key={i} className="text-xs bg-[var(--color-surface-elevated)] rounded px-2 py-1 border border-purple-100">
+                  <div key={i} className="text-xs bg-[var(--color-surface-elevated)] rounded px-2 py-1 border border-purple-100 dark:border-purple-800">
                     <span className="font-medium">{act.target_name || act.target_chembl_id}</span>
                     {act.activity_value && (
                       <span className="ml-2 text-[var(--color-text-secondary)]">
@@ -201,7 +201,7 @@ function ChEMBLCard({ result }: { result: ChEMBLResult | null }) {
               href={safeHref(result.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800"
+              className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300"
             >
               View on ChEMBL
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

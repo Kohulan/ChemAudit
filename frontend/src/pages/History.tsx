@@ -317,7 +317,7 @@ export function HistoryPage() {
                       <span className={cn(
                         'text-sm font-medium tabular-nums',
                         entry.score !== null && entry.score >= 70
-                          ? 'text-amber-700 dark:text-amber-300'
+                          ? 'text-status-success-dark dark:text-status-success'
                           : entry.score !== null && entry.score >= 40
                           ? 'text-amber-500'
                           : 'text-red-500'

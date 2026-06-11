@@ -48,9 +48,11 @@ export function Badge({
 }: BadgeProps) {
   // Color alone must not distinguish success from warning (WCAG 1.4.1):
   // both live in the warm amber/orange band, so default a redundant icon.
-  // Pass icon={null} to opt out (numeric CountBadge does). When the pulsing
-  // dot indicator is shown it already provides the non-color cue, so the
-  // auto-icon is suppressed (an explicit icon prop still wins).
+  // Pass icon={null} to opt out (numeric CountBadge does). When the dot
+  // indicator is shown the auto-icon is suppressed; the dot itself is
+  // currentColor in every variant, so call sites using dot must
+  // differentiate via label text (ScoreTiles does: Ready vs Review).
+  // An explicit icon prop still wins.
   const resolvedIcon =
     icon !== undefined
       ? icon

@@ -21,8 +21,8 @@ const TYPE_LABELS: Record<string, string> = {
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   high: 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success',
-  medium: 'bg-yellow-100 text-yellow-800',
-  low: 'bg-red-100 text-red-800',
+  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  low: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
 export function IdentifierResolverCard({ result }: IdentifierResolverCardProps) {

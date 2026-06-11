@@ -13,11 +13,11 @@ import { InfoTooltip, DoiLink } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
 
 const CATEGORY_BADGE: Record<string, string> = {
-  'Reactive Group': 'bg-red-100 text-red-700',
-  'Toxicophore': 'bg-rose-100 text-rose-700',
-  'Metabolic Liability': 'bg-amber-100 text-amber-700',
+  'Reactive Group': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  'Toxicophore': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  'Metabolic Liability': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   'Assay Interference': 'bg-chem-secondary-100 text-chem-secondary-700 dark:bg-chem-secondary-900/30 dark:text-chem-secondary-300',
-  'Physicochemical': 'bg-slate-100 text-slate-700',
+  'Physicochemical': 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
   'Unwanted Functionality': 'bg-[var(--color-surface-sunken)] text-[var(--color-text-secondary)]',
 };
 

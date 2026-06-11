@@ -94,7 +94,7 @@ export function ThemeToggle({ className, showLabel = false, variant = 'button' }
             className={cn(
               'w-5 h-5',
               isDark
-                ? 'text-chem-primary-300 drop-shadow-[0_0_8px_rgba(252,165,165,0.6)]'
+                ? 'text-chem-primary-300 drop-shadow-[0_0_8px_theme(colors.chem-primary.300/60%)]'
                 : 'text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]'
             )}
           />

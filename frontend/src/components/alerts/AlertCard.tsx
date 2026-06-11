@@ -9,11 +9,11 @@ interface AlertCardProps {
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string }> = {
-  'Reactive Group': { bg: 'bg-red-100', text: 'text-red-700' },
-  'Toxicophore': { bg: 'bg-rose-100', text: 'text-rose-700' },
-  'Metabolic Liability': { bg: 'bg-amber-100', text: 'text-amber-700' },
+  'Reactive Group': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' },
+  'Toxicophore': { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300' },
+  'Metabolic Liability': { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
   'Assay Interference': { bg: 'bg-chem-secondary-100 dark:bg-chem-secondary-900/30', text: 'text-chem-secondary-700 dark:text-chem-secondary-300' },
-  'Physicochemical': { bg: 'bg-slate-100', text: 'text-slate-700' },
+  'Physicochemical': { bg: 'bg-[var(--color-surface-sunken)]', text: 'text-[var(--color-text-secondary)]' },
   'Unwanted Functionality': { bg: 'bg-[var(--color-surface-sunken)]', text: 'text-[var(--color-text-secondary)]' },
 };
 
@@ -47,23 +47,23 @@ export function AlertCard({ alert, onAtomHover, className = '' }: AlertCardProps
     switch (severity) {
       case 'critical':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          badge: 'bg-red-100 text-red-800',
+          bg: 'bg-red-50 dark:bg-red-900/20',
+          border: 'border-red-200 dark:border-red-800',
+          badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
           icon: '!!!',
         };
       case 'warning':
         return {
-          bg: 'bg-amber-50',
-          border: 'border-amber-200',
-          badge: 'bg-amber-100 text-amber-800',
+          bg: 'bg-amber-50 dark:bg-amber-900/20',
+          border: 'border-amber-200 dark:border-amber-800',
+          badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
           icon: '!',
         };
       case 'info':
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          badge: 'bg-blue-100 text-blue-800',
+          bg: 'bg-blue-50 dark:bg-blue-900/20',
+          border: 'border-blue-200 dark:border-blue-800',
+          badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
           icon: 'i',
         };
       default:

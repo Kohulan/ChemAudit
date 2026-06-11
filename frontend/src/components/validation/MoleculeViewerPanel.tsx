@@ -149,7 +149,7 @@ export function MoleculeViewerPanel({
           animate={{ opacity: 1 }}
           className="mt-3 flex items-center justify-center gap-2"
         >
-          <div className="flex items-center gap-1.5 text-xs bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400 px-2 py-1 rounded-lg">
+          <div className="flex items-center gap-1.5 text-xs bg-chem-secondary-500/10 text-chem-secondary-700 dark:text-chem-secondary-400 px-2 py-1 rounded-lg">
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
