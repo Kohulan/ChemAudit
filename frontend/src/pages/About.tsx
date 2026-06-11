@@ -9,6 +9,7 @@ import {
   Code2,
   TestTube,
   Coffee,
+  ArrowRight,
   ExternalLink,
   MapPin,
   BookOpen,
@@ -217,29 +218,100 @@ function WhatIsChemAudit() {
           </>
         }
       />
-      <div className="max-w-prose space-y-4 text-[var(--color-text-secondary)]">
-        <p className="leading-relaxed">
-          ChemAudit is an open-source platform that checks chemical structures before they reach
-          your model, your library, or your paper. Every molecule passes through{' '}
-          <strong className="font-semibold text-[var(--color-text-primary)]">27 validation checks</strong>,
-          the ChEMBL standardization pipeline, and screening against more than{' '}
-          <strong className="font-semibold text-[var(--color-text-primary)]">1,500 structural-alert patterns</strong>.
-        </p>
-        <p className="leading-relaxed">
-          It scales from{' '}
-          <Link
-            to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
-            title="Try it: this link validates aspirin"
-            className="underline decoration-dotted decoration-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-primary)] hover:decoration-[var(--color-primary)] transition-colors"
-          >
-            a single pasted SMILES
-          </Link>{' '}
-          to batch jobs of millions of molecules, computing{' '}
-          <strong className="font-semibold text-[var(--color-text-primary)]">451 descriptors</strong> and
-          seven fingerprint types along the way, with results exportable in five formats. The
-          verdicts are traceable: every score links back to the published method that produced it.
-        </p>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="lg:col-span-3 space-y-4 text-[var(--color-text-secondary)]">
+          <p className="leading-relaxed">
+            ChemAudit is an open-source platform that checks chemical structures before they reach
+            your model, your library, or your paper. Every molecule passes through{' '}
+            <strong className="font-semibold text-[var(--color-text-primary)]">27 validation checks</strong>,
+            the ChEMBL standardization pipeline, and screening against more than{' '}
+            <strong className="font-semibold text-[var(--color-text-primary)]">1,500 structural-alert patterns</strong>.
+          </p>
+          <p className="leading-relaxed">
+            It scales from{' '}
+            <Link
+              to={`/?smiles=${encodeURIComponent('CC(=O)Oc1ccccc1C(=O)O')}`}
+              title="Try it: this link validates aspirin"
+              className="underline decoration-dotted decoration-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-primary)] hover:decoration-[var(--color-primary)] transition-colors"
+            >
+              a single pasted SMILES
+            </Link>{' '}
+            to batch jobs of millions of molecules, computing{' '}
+            <strong className="font-semibold text-[var(--color-text-primary)]">451 descriptors</strong> and
+            seven fingerprint types along the way, with results exportable in five formats. The
+            verdicts are traceable: every score links back to the published method that produced it.
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] pb-2 mb-4 border-b border-[var(--color-border)]">
+            Start here
+          </h3>
+          <ul className="space-y-4">
+            {START_HERE.map((entry) => (
+              <li key={entry.title}>
+                {entry.external ? (
+                  <a href={entry.href} target="_blank" rel="noopener noreferrer" className="group block">
+                    <StartHereEntry entry={entry} />
+                  </a>
+                ) : (
+                  <Link to={entry.href} className="group block">
+                    <StartHereEntry entry={entry} />
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
+    </>
+  );
+}
+
+interface StartHereItem {
+  title: string;
+  desc: string;
+  href: string;
+  external?: boolean;
+}
+
+const START_HERE: StartHereItem[] = [
+  {
+    title: 'Validate a molecule',
+    desc: 'Paste a SMILES, get a verdict in seconds.',
+    href: '/',
+  },
+  {
+    title: 'Process a batch',
+    desc: 'Upload an SDF or CSV and watch progress live.',
+    href: '/batch',
+  },
+  {
+    title: 'Audit a dataset',
+    desc: 'Health-check an entire collection before training on it.',
+    href: '/dataset-audit',
+  },
+  {
+    title: 'Read the docs',
+    desc: 'Guides, API reference, and deployment.',
+    href: 'https://kohulan.github.io/ChemAudit/',
+    external: true,
+  },
+];
+
+function StartHereEntry({ entry }: { entry: StartHereItem }) {
+  return (
+    <>
+      <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+        {entry.title}
+        <ArrowRight
+          className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out"
+          aria-hidden="true"
+        />
+      </span>
+      <span className="block text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        {entry.desc}
+      </span>
     </>
   );
 }
