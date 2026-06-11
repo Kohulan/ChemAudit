@@ -262,7 +262,8 @@ function COCONUTCard({ result }: { result: COCONUTResult | null }) {
             {result.nplikeness != null && (
               <div>
                 <span className="text-[var(--color-text-secondary)]">NP-likeness:</span>{' '}
-                <span className={result.nplikeness > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--color-text-secondary)]'}>
+                {/* Positive = natural -> green (synthetic<->natural axis, not a quality verdict) */}
+                <span className={result.nplikeness > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-[var(--color-text-secondary)]'}>
                   {result.nplikeness.toFixed(2)}
                 </span>
               </div>
