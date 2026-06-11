@@ -94,7 +94,10 @@ export function DatabaseLookupControls({
             onClick={onToggleAutoCompare}
             className={`relative w-8 h-[18px] rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${autoCompare ? 'bg-[var(--color-primary)]' : 'bg-chem-dark-300 dark:bg-chem-dark-600'}`}
           >
-            <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-chem-dark-50 shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+            {/* left-0 anchors the knob: buttons default to text-align:center, which
+                would otherwise shift the absolutely-positioned span's static position
+                to the track's midpoint and strand the knob off the right edge */}
+            <span className={`absolute left-0 top-[2px] w-[14px] h-[14px] rounded-full bg-chem-dark-50 shadow-sm transition-transform ${autoCompare ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
           </button>
           <span id={autoCompareLabelId} className="text-[11px] text-[var(--color-text-muted)] font-medium">Auto-compare</span>
         </label>
