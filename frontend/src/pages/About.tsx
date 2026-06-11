@@ -14,6 +14,11 @@ import {
   Layers,
   Microscope,
   BookOpen,
+  TestTube,
+  Boxes,
+  BookMarked,
+  Code2,
+  Building2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -265,20 +270,19 @@ function ReactionScheme() {
 // SECTION HEADER
 // ============================================================================
 
-// Sections are numbered like a paper: this audience navigates by section
-// number. The mono index replaces generic icon tiles.
-function SectionHeader({ index, title }: { index: string; title: React.ReactNode }) {
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-6">
       <div
         className={cn(
           'w-10 h-10 rounded-2xl flex items-center justify-center',
           'bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-accent)]/10',
+          'text-[var(--color-primary)]',
           'shadow-inner'
         )}
         aria-hidden="true"
       >
-        <span className="font-mono text-sm font-semibold text-[var(--color-primary)]">{index}</span>
+        {icon}
       </div>
       <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] font-display tracking-tight">
         {title}
@@ -296,7 +300,7 @@ function WhatIsChemAudit() {
   return (
     <>
       <SectionHeader
-        index="01"
+        icon={<TestTube className="w-5 h-5" />}
         title={
           <>
             What is <span className="font-extrabold text-[var(--color-primary)]">Chem</span>Audit?
@@ -531,7 +535,7 @@ function CapabilityGroup({ label, items }: { label: string; items: Capability[] 
 function Capabilities() {
   return (
     <>
-      <SectionHeader index="02" title="What's inside" />
+      <SectionHeader icon={<Boxes className="w-5 h-5" />} title="What's inside" />
       <p className="text-[var(--color-text-secondary)] mb-8 max-w-prose">
         Twelve modules: six for scoring and screening, six for dataset preparation and analysis.
         The scoring side implements industry rules from Pfizer, GSK, Lilly, and BMS alongside the
@@ -781,7 +785,7 @@ function ScientificReferences() {
 
   return (
     <>
-      <SectionHeader index="03" title="Methods & Scientific References" />
+      <SectionHeader icon={<BookMarked className="w-5 h-5" />} title="Methods & Scientific References" />
       <p className="text-[var(--color-text-secondary)] mb-6 max-w-prose">
         Every algorithm and scoring function in ChemAudit comes from the published literature.
         These are the primary references.
@@ -948,7 +952,7 @@ const ACKNOWLEDGMENTS = [
 function BuiltInTheOpen() {
   return (
     <>
-      <SectionHeader index="04" title="Built in the open" />
+      <SectionHeader icon={<Code2 className="w-5 h-5" />} title="Built in the open" />
 
       {/* Tech stack as quiet definition rows */}
       <div className="mb-8 divide-y divide-[var(--color-border)]/50">
@@ -1034,7 +1038,7 @@ function BuiltInJena() {
 
   return (
     <>
-      <SectionHeader index="05" title="Built in Jena" />
+      <SectionHeader icon={<Building2 className="w-5 h-5" />} title="Built in Jena" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-7">
         {/* Research group */}
