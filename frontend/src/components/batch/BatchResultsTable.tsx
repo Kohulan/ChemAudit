@@ -484,7 +484,7 @@ export function BatchResultsTable({
                       {result.name || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] font-mono">
-                      <span className="group/smiles inline-flex items-center gap-1 max-w-[280px]">
+                      <span className="group/smiles inline-flex items-center gap-1 max-w-[120px] sm:max-w-[180px] md:max-w-[280px]">
                         <span className="truncate" title={result.smiles}>
                           {result.smiles}
                         </span>
