@@ -6,6 +6,7 @@ import { Layout } from './components/layout/Layout';
 import { MoleculeLoader } from './components/ui/MoleculeLoader';
 import { SplashScreen } from './components/ui/SplashScreen';
 import { ErrorFallback } from './components/error/ErrorFallback';
+import { ScrollToTop } from './components/common/ScrollToTop';
 import { ConfigProvider } from './context/ConfigContext';
 import { useRDKit } from './hooks/useRDKit';
 import { logger } from './lib/logger';
@@ -364,6 +365,7 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
+        <ScrollToTop />
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
           onError={(error, errorInfo) => {
