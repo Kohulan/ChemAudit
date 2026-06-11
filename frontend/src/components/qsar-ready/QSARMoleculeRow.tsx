@@ -20,7 +20,9 @@ function getStatusColor(status: QSARReadyResult['status']): string {
     case 'duplicate':
       return '#d97706';
     case 'error':
-      return '#b45309';
+      // Neutral warm stone (theme-aware) so error stays distinct from
+      // the amber duplicate state in both modes.
+      return 'var(--color-text-secondary)';
     default:
       return 'var(--color-text-muted)';
   }
@@ -35,7 +37,7 @@ function getStatusBgClass(status: QSARReadyResult['status']): string {
     case 'duplicate':
       return 'bg-amber-50 text-amber-700';
     case 'error':
-      return 'bg-chem-accent-50 dark:bg-chem-accent-900/20 text-chem-accent-700 dark:text-chem-accent-300';
+      return 'bg-chem-dark-100 text-chem-dark-700 dark:bg-chem-dark-800 dark:text-chem-dark-300';
     default:
       return 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]';
   }
@@ -44,7 +46,7 @@ function getStatusBgClass(status: QSARReadyResult['status']): string {
 function getStepChipClass(status: QSARStepResult['status']): string {
   switch (status) {
     case 'applied':
-      return 'bg-green-50 text-green-700';
+      return 'bg-status-success-light dark:bg-status-success/15 text-status-success-dark dark:text-status-success';
     case 'no_change':
       return 'bg-blue-50 text-blue-700';
     case 'skipped':
@@ -59,7 +61,7 @@ function getStepChipClass(status: QSARStepResult['status']): string {
 function getStepDotColor(status: QSARStepResult['status']): string {
   switch (status) {
     case 'applied':
-      return '#16a34a';
+      return '#d97706';
     case 'no_change':
       return '#2563eb';
     case 'skipped':

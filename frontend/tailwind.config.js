@@ -85,12 +85,12 @@ export default {
         'status-success': {
           DEFAULT: '#fbbf24',
           light: '#fef3c7',
-          dark: '#d97706',
+          dark: '#b45309',
         },
         'status-warning': {
-          DEFAULT: '#f59e0b',
+          DEFAULT: '#ea580c',
           light: '#fef3c7',
-          dark: '#b45309',
+          dark: '#c2410c',
         },
         'status-error': {
           DEFAULT: '#ef4444',

@@ -32,3 +32,16 @@ export function scoreBucket(score: number): ScoreBucket {
 export function chartTrackFill(isDark: boolean): string {
   return isDark ? '#292524' : '#e7e5e4'; // stone-800 / stone-200
 }
+
+/**
+ * Translucent reference-zone tint for radar/area charts.
+ * Derived from the "good" fill at 12% alpha so the amber hue lives in
+ * one place (used e.g. for the 5th-95th percentile band in ComplexityRadar).
+ */
+export function referenceZoneFill(isDark: boolean): string {
+  const hex = SCORE_FILL.good[isDark ? 'dark' : 'light'];
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.12)`;
+}

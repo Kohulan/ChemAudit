@@ -45,7 +45,7 @@ function PropertyRow({
 function CategoryBadge({ category }: { category: string }) {
   const colors: Record<string, string> = {
     counterion: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    salt: 'bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400',
+    salt: 'bg-chem-secondary-500/10 text-chem-secondary-700 dark:text-chem-secondary-400',
     solvent: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     drug: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     unknown: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',

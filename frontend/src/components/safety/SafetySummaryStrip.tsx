@@ -33,7 +33,7 @@ function toStatusDot(status: 'default' | 'success' | 'warning' | 'error'): DotSt
  *
  * Colors per UI-SPEC:
  * - success → status-success (warm amber #fbbf24, NOT green)
- * - warning → status-warning (#f59e0b)
+ * - warning → status-warning (orange #ea580c)
  * - error   → status-error (#ef4444)
  * - default → --color-text-muted (token value defined per theme in index.css)
  */

@@ -117,7 +117,7 @@ function StructureCard({ entry }: { entry: DatabaseEntry & { canonical_smiles: s
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -2 }}
-      className="group relative border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-elevated)] hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 cursor-pointer"
+      className="group relative border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-elevated)] hover:shadow-xl transition-all duration-300 cursor-pointer"
     >
       <div className={`h-1 ${c.dot}`} />
       <div className="p-2.5">
@@ -248,7 +248,7 @@ export function DatabaseComparisonPanel({ result }: DatabaseComparisonPanelProps
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden shadow-lg shadow-gray-200/40 ring-1 ${config.ring}`}
+      className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden shadow-lg ring-1 ${config.ring}`}
     >
       {/* ── Gradient header ── */}
       <div className={`relative bg-gradient-to-r ${config.gradient} px-6 py-4 overflow-hidden`}>

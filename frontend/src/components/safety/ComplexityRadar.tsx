@@ -9,6 +9,7 @@ import {
 import { ClayCard } from '../ui/ClayCard';
 import { Badge } from '../ui/Badge';
 import { useThemeContext } from '../../contexts/ThemeContext';
+import { referenceZoneFill } from '../../lib/chartColors';
 import type { ComplexityResult } from '../../types/safety';
 
 interface ComplexityRadarProps {
@@ -78,7 +79,7 @@ function CustomTick(props: {
 export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
   const { isDark } = useThemeContext();
   // Tinted amber reference zone; alpha is baked in, so no extra fillOpacity.
-  const referenceZoneFill = isDark ? 'rgba(251, 191, 36, 0.12)' : 'rgba(217, 119, 6, 0.12)';
+  const zoneFill = referenceZoneFill(isDark);
 
   const radarData: RadarDataPoint[] = Object.entries(complexity.properties).map(
     ([name, prop]) => ({
@@ -125,7 +126,7 @@ export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
               <Radar
                 dataKey="reference"
                 stroke="none"
-                fill={referenceZoneFill}
+                fill={zoneFill}
                 fillOpacity={1}
                 name="Reference Zone"
               />
@@ -145,7 +146,7 @@ export function ComplexityRadar({ complexity }: ComplexityRadarProps) {
           <span className="flex items-center gap-1.5">
             <span
               className="inline-block w-3 h-3 rounded-sm border border-[var(--color-border)]"
-              style={{ background: referenceZoneFill }}
+              style={{ background: zoneFill }}
             />
             Reference zone (p5–p95)
           </span>

@@ -422,11 +422,11 @@ export function BatchUpload({
               {/* Ready indicator */}
               {selectedSmilesColumn && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-status-success/10 border border-status-success/20">
-                  <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <div className="text-sm text-status-success-dark dark:text-status-success">
                     <p>Ready to process ~{csvColumns.row_count_estimate.toLocaleString()} molecules</p>
                     {csvColumns.columns.length > 2 && (
-                      <p className="text-xs text-status-success-dark/70 dark:text-status-success/70 mt-1">
+                      <p className="text-xs text-status-success-dark dark:text-status-success mt-1">
                         Only selected columns will be uploaded (faster upload)
                       </p>
                     )}
@@ -440,7 +440,7 @@ export function BatchUpload({
           {isSDF && (
             <div className="p-4">
               <div className="flex items-center gap-2 p-3 rounded-lg bg-status-success/10 border border-status-success/20">
-                <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success" />
+                <CheckCircle2 className="w-4 h-4 text-status-success-dark dark:text-status-success" aria-hidden="true" />
                 <span className="text-sm text-status-success-dark dark:text-status-success">
                   SDF file ready to process
                 </span>

@@ -111,7 +111,7 @@ export function AlertResults({
                 type="checkbox"
                 checked={groupByCatalog}
                 onChange={(e) => setGroupByCatalog(e.target.checked)}
-                className="rounded border-[var(--color-border-strong)] text-blue-600 focus:ring-blue-500"
+                className="rounded border-[var(--color-border-strong)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Group by catalog
             </label>

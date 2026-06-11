@@ -22,7 +22,7 @@ function getSeverityColor(severity: string): string {
     case 'warning':
       return 'bg-status-warning';
     case 'info':
-      return 'bg-status-info';
+      return 'bg-chem-primary-300';
     default:
       return 'bg-chem-dark-400';
   }
@@ -59,9 +59,9 @@ function getNibrLabel(alert: AlertResult): string | null {
 function NibrBadge({ label }: { label: string }) {
   const colorClass =
     label === 'Excluded'
-      ? 'bg-status-error-light text-status-error-dark dark:bg-status-error/15 dark:text-red-400'
+      ? 'bg-status-error-light text-red-700 dark:bg-status-error/15 dark:text-red-400'
       : label === 'Flag'
-        ? 'bg-status-warning-light text-status-warning-dark dark:bg-status-warning/15 dark:text-amber-400'
+        ? 'bg-status-warning-light text-status-warning-dark dark:bg-status-warning/15 dark:text-orange-400'
         : 'bg-chem-dark-100 text-chem-dark-600 dark:bg-chem-dark-800 dark:text-chem-dark-300';
 
   return (
