@@ -249,8 +249,8 @@ function WhatIsChemAudit() {
         <p className="leading-relaxed">
           It scales from a single pasted SMILES to batch jobs of millions of molecules, computing{' '}
           <strong className="font-semibold text-[var(--color-text-primary)]">451 descriptors</strong> and
-          ten scoring modules along the way, with results exportable in five formats. The verdicts
-          are traceable: every score links back to the published method that produced it.
+          seven fingerprint types along the way, with results exportable in five formats. The
+          verdicts are traceable: every score links back to the published method that produced it.
         </p>
       </div>
     </>
@@ -279,7 +279,7 @@ const SCORING_CAPABILITIES: Capability[] = [
   },
   {
     title: 'Safety filters',
-    desc: 'Structural alerts across PAINS, Brenk, NIH, ZINC, and seven ChEMBL filter sets.',
+    desc: 'Structural alerts across PAINS (480 patterns), Brenk, NIH, ZINC, and seven ChEMBL filter sets.',
   },
   {
     title: 'Aggregator likelihood',
@@ -298,7 +298,7 @@ const SCORING_CAPABILITIES: Capability[] = [
 const PIPELINE_CAPABILITIES: Capability[] = [
   {
     title: 'QSAR-ready pipeline',
-    desc: 'Configurable standardization with salt stripping, neutralization, and tautomer canonicalization.',
+    desc: 'Configurable standardization with salt stripping, neutralization, tautomer canonicalization, and duplicate removal.',
   },
   {
     title: 'Structure filter',
@@ -310,15 +310,15 @@ const PIPELINE_CAPABILITIES: Capability[] = [
   },
   {
     title: 'Identifier resolution',
-    desc: 'SMILES, InChI, CAS, ChEMBL, PubChem, and compound names, cross-linked through UniChem.',
+    desc: 'SMILES, InChI, InChIKey, CAS, ChEBI, UNII, PubChem CID, ChEMBL ID, and compound names, cross-linked through UniChem.',
   },
   {
     title: 'Batch analytics',
-    desc: 'Butina clustering, chemotype taxonomy, t-SNE chemical space, and scaffold analysis.',
+    desc: 'Butina clustering, chemotype taxonomy, t-SNE chemical space, scaffold analysis, outlier detection, and registration hashing.',
   },
   {
     title: 'Diagnostics & provenance',
-    desc: 'SMILES diagnostics, InChI layer diffs, and a full audit trail of every transformation applied.',
+    desc: 'SMILES diagnostics, InChI layer diffs, round-trip validation, and a full audit trail of every transformation applied.',
   },
 ];
 
@@ -347,8 +347,9 @@ function Capabilities() {
     <>
       <SectionHeader icon={<FlaskConical className="w-5 h-5" />} title="What's inside" />
       <p className="text-[var(--color-text-secondary)] mb-8 max-w-prose">
-        Twelve modules implementing validated rules from Pfizer, GSK, Abbott, and the academic
-        literature. Each method is cited in the references below.
+        Twelve modules: six for scoring and screening, six for dataset preparation and analysis.
+        The scoring side implements industry rules from Pfizer, GSK, Lilly, and BMS alongside the
+        academic literature; each method is cited in the references below.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
         <CapabilityGroup label="Score & screen" items={SCORING_CAPABILITIES} />
@@ -494,7 +495,7 @@ function ScientificReferences() {
           doi: '10.1093/nar/gkv1253',
         },
         {
-          method: 'Phantom PAINS — Context for Alerts',
+          method: 'Phantom PAINS: Context for Alerts',
           citation: 'Jasial S, Hu Y, Bajorath J. How frequently are pan-assay interference compounds active? Large-scale analysis of screening data reveals diverse activity profiles, low global hit frequency, and many consistently inactive compounds. J Med Chem. 2017;60(9):3879-3886.',
           doi: '10.1021/acs.jmedchem.7b00154',
         },
@@ -601,7 +602,9 @@ function ScientificReferences() {
       </p>
 
       <div className="space-y-3">
-        {categories.map((category) => (
+        {categories.map((category) => {
+          const panelId = `refs-${category.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+          return (
           <div
             key={category.title}
             className="rounded-xl overflow-hidden border border-[var(--color-border)]/50 bg-[var(--color-surface-sunken)]/50"
@@ -609,6 +612,7 @@ function ScientificReferences() {
             <button
               onClick={() => setExpandedCategory(expandedCategory === category.title ? null : category.title)}
               aria-expanded={expandedCategory === category.title}
+              aria-controls={panelId}
               className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--color-primary)]/5 transition-colors"
             >
               <div>
@@ -637,6 +641,7 @@ function ScientificReferences() {
 
             {expandedCategory === category.title && (
               <motion.div
+                id={panelId}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
@@ -649,9 +654,9 @@ function ScientificReferences() {
                       className="p-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)]/30"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-medium text-sm text-[var(--color-text-primary)]">
+                        <h3 className="font-medium text-sm text-[var(--color-text-primary)]">
                           {ref.method}
-                        </h4>
+                        </h3>
                         {ref.doi && (
                           <a
                             href={`https://doi.org/${ref.doi}`}
@@ -677,7 +682,8 @@ function ScientificReferences() {
               </motion.div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="mt-5 text-xs text-[var(--color-text-muted)]">
@@ -810,9 +816,9 @@ function BuiltInTheOpen() {
               />
             </div>
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+              <h3 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
                 {ack.name}
-              </h4>
+              </h3>
               <ExternalLink
                 className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-hidden="true"
@@ -905,6 +911,26 @@ function BuiltInJena() {
               <p className="text-sm text-[var(--color-text-secondary)]">
                 Senior Researcher: AI, deep learning, and cheminformatics
               </p>
+              <div className="flex items-center gap-4 mt-1.5">
+                <a
+                  href="https://kohulanr.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+                >
+                  <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                  kohulanr.com
+                </a>
+                <a
+                  href="https://github.com/Kohulan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+                >
+                  <Github className="w-3.5 h-3.5" aria-hidden="true" />
+                  github.com/Kohulan
+                </a>
+              </div>
             </div>
           </div>
 
