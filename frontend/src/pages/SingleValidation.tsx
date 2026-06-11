@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useValidationCache, type TabType } from '../contexts/ValidationCacheContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,8 +41,12 @@ import {
   AlertsTabPanel,
   StandardizeTabPanel,
 } from '../components/validation/TabInputPanels';
-import { ScoringResults } from '../components/scoring/ScoringResults';
-import { StandardizationResults } from '../components/standardization/StandardizationResults';
+const ScoringResults = lazy(() =>
+  import('../components/scoring/ScoringResults').then((m) => ({ default: m.ScoringResults }))
+);
+const StandardizationResults = lazy(() =>
+  import('../components/standardization/StandardizationResults').then((m) => ({ default: m.StandardizationResults }))
+);
 import { DatabaseLookupControls, DatabaseResultsBox } from '../components/integrations/DatabaseLookupTab';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Badge } from '../components/ui/Badge';
@@ -1210,7 +1214,7 @@ export function SingleValidationPage() {
                       {/* Stats row — distinct icon + warm-spectrum tint per metric so the
                           five tiles read as five different things at a glance, not one
                           repeated card. Stays inside the brand palette per DESIGN.md. */}
-                      <div className="grid grid-cols-5 gap-2 text-center">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center">
                         {result.molecule_info.num_atoms != null && (
                           <div className="rounded-lg p-2 bg-[rgba(var(--color-primary-rgb),0.06)] border border-[rgba(var(--color-primary-rgb),0.12)]">
                             <Atom className="w-3.5 h-3.5 mx-auto mb-1 text-[var(--color-primary)]" />
@@ -1302,7 +1306,7 @@ export function SingleValidationPage() {
                                   }
                                 />
                                 {result.input_interpretation?.detected_as === 'iupac' && (
-                                  <span className="text-[10px] text-green-600 dark:text-green-400">(converted from IUPAC name)</span>
+                                  <span className="text-[10px] text-status-success-dark dark:text-status-success">(converted from IUPAC name)</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
@@ -1359,7 +1363,7 @@ export function SingleValidationPage() {
                     </div>
                   ) : moleculeInfo ? (
                     <>
-                      <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                         <div className="bg-[var(--color-surface-sunken)] rounded-lg p-2">
                           <div className="text-lg font-bold text-[var(--color-text-primary)]">{moleculeInfo.numAtoms}</div>
                           <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Atoms</div>
@@ -1627,7 +1631,9 @@ export function SingleValidationPage() {
                   {standardizationResult.result.steps_applied.filter(s => s.applied).length} changes
                 </Badge>
               </div>
-              <StandardizationResults result={standardizationResult.result} />
+              <Suspense fallback={null}>
+                <StandardizationResults result={standardizationResult.result} />
+              </Suspense>
               <p className="mt-4 text-xs text-[var(--color-text-muted)] text-right">
                 Completed in {standardizationResult.execution_time_ms}ms
               </p>
@@ -1772,7 +1778,9 @@ export function SingleValidationPage() {
             exit={{ opacity: 0, y: -20 }}
             className="card p-6 sm:p-8"
           >
-            <ScoringResults scoringResponse={scoringResult} />
+            <Suspense fallback={null}>
+              <ScoringResults scoringResponse={scoringResult} />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1787,7 +1795,7 @@ export function SingleValidationPage() {
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
           >
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border-strong)] shadow-2xl">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-status-success-dark dark:text-status-success" />
               <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 Share URL copied to clipboard!
               </span>

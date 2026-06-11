@@ -131,7 +131,7 @@ export function TaxonomyTable({ taxonomyResult, searchQuery, nameMap, onNavigate
                     <button
                       type="button"
                       onClick={() => row.exampleIndex >= 0 && onNavigateToMolecule?.(row.exampleIndex)}
-                      className="rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow"
+                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow"
                       style={{ width: 100, height: 70 }}
                       title={row.exampleName ? `${row.exampleName}\nClick to show in results` : 'Click to show in results'}
                     >

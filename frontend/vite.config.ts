@@ -39,6 +39,18 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            recharts: ['recharts'],
+            motion: ['framer-motion'],
+            gsap: ['gsap'],
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+          },
+        },
+      },
+    },
     define: {
       'process.env.VITE_API_URL': JSON.stringify(
         process.env.VITE_API_URL || '/api/v1'

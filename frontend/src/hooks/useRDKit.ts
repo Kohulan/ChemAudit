@@ -46,13 +46,19 @@ export function getRDKit(): Promise<RDKitModule> {
   return rdkitPromise;
 }
 
-export function useRDKit() {
+export function useRDKit(enabled: boolean = true) {
   const [rdkit, setRDKit] = useState<RDKitModule | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
+    setLoading(true);
 
     getRDKit()
       .then((module) => {
@@ -71,7 +77,7 @@ export function useRDKit() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [enabled]);
 
   return { rdkit, loading, error };
 }

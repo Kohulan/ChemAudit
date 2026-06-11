@@ -142,7 +142,7 @@ export function RegistrationTab({ analyticsData, results, onNavigateToMolecule, 
         </div>
       ) : (
         /* No collisions success state */
-        <div className="rounded-2xl p-5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-500/20">
+        <div className="rounded-2xl p-5 bg-status-success-light text-status-success-dark dark:bg-status-success/15 dark:text-status-success border border-status-success/20">
           <p className="text-sm font-medium">
             No hash collisions detected. All molecules have unique registration hashes.
           </p>

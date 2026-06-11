@@ -245,7 +245,7 @@ function ValidationCard({
         <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-out">
           <div className="overflow-hidden">
             <div
-              className="mb-2 rounded-lg bg-white dark:bg-gray-100 p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              className="mb-2 rounded-lg bg-chem-dark-50 dark:bg-chem-dark-100 p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               dangerouslySetInnerHTML={{ __html: svgHtml }}
             />
           </div>

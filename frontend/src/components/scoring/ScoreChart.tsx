@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 import { CalculationTooltip } from '../ui/Tooltip';
 import { cn } from '../../lib/utils';
+import { chartTrackFill } from '../../lib/chartColors';
 import { useThemeContext } from '../../contexts/ThemeContext';
 
 interface ScoreChartProps {
@@ -38,7 +39,9 @@ type ScoreColorConfig = {
 };
 
 /**
- * Get color configuration based on score value
+ * Get color configuration based on score value.
+ * Shared score-bucket fills live in src/lib/chartColors.ts; the gradient
+ * stop pairs here are gauge-specific. Keep both in the warm spectrum.
  */
 function getScoreColor(score: number, isDark: boolean, variant: 'warm' | 'cool' = 'warm'): ScoreColorConfig {
   if (variant === 'cool') return getCoolColor(score, isDark);
@@ -132,7 +135,7 @@ export function ScoreChart({
   const [animated, setAnimated] = useState(false);
   const clampedScore = Math.max(0, Math.min(100, score));
   const color = getScoreColor(clampedScore, isDark, variant);
-  const backgroundFill = isDark ? '#374151' : '#e5e7eb';
+  const backgroundFill = chartTrackFill(isDark);
 
   // Trigger mount animation for compact gauge
   useEffect(() => {
@@ -213,7 +216,7 @@ export function ScoreChart({
               <line
                 key={i}
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={filled ? color.endColor : (isDark ? '#374151' : '#d1d5db')}
+                stroke={filled ? color.endColor : chartTrackFill(isDark)}
                 strokeWidth={1.5}
                 strokeLinecap="round"
                 opacity={filled ? 0.7 : 0.3}
@@ -406,7 +409,7 @@ export function ScoreBreakdownBar({
           )}
         </span>
       </div>
-      <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-chem-dark-200 dark:bg-chem-dark-800 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{

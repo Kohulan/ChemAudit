@@ -35,7 +35,7 @@ function toStatusDot(status: 'default' | 'success' | 'warning' | 'error'): DotSt
  * - success → status-success (warm amber #fbbf24, NOT green)
  * - warning → status-warning (#f59e0b)
  * - error   → status-error (#ef4444)
- * - default → --color-text-muted (#9c958d)
+ * - default → --color-text-muted (token value defined per theme in index.css)
  */
 export function SafetySummaryStrip({
   totalAlerts,

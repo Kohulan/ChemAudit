@@ -459,7 +459,7 @@ export function Header() {
               whileHover={{ scale: 1.08, rotate: -3 }}
               whileTap={{ scale: 0.93 }}
             >
-              <img src="/logo.png" alt="ChemAudit" className="w-full h-full object-contain" />
+              <img src="/logo-192.png" alt="ChemAudit" className="w-full h-full object-contain" />
             </motion.div>
             <motion.div
               className="hidden sm:block"
@@ -603,7 +603,7 @@ export function Header() {
             <motion.button
               onClick={() => setMobileOpen(v => !v)}
               className={cn(
-                'p-2 rounded-xl cursor-pointer',
+                'min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl cursor-pointer',
                 'text-[var(--color-text-secondary)]',
                 'hover:bg-[var(--color-surface-sunken)]',
                 'transition-colors duration-150',

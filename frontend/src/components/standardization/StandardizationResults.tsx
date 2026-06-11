@@ -91,7 +91,7 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
             </span>
           </div>
           {result.structure_comparison && (
-            <p className="text-xs mt-1 text-gray-600">
+            <p className="text-xs mt-1 text-[var(--color-text-secondary)]">
               {result.structure_comparison.original_mw?.toFixed(2)} Da
               {' → '}
               {result.structure_comparison.standardized_mw?.toFixed(2)} Da
@@ -101,8 +101,8 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
       )}
 
       {/* Side-by-side Comparison */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-900 mb-4 text-center">
+      <div className="bg-[var(--color-surface-elevated)] p-4 rounded-lg border border-[var(--color-border)]">
+        <h4 className="font-semibold text-[var(--color-text-primary)] mb-4 text-center">
           Structure Comparison
         </h4>
         <ComparisonView
@@ -112,8 +112,8 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
 
         {/* Diff Summary */}
         {result.structure_comparison && result.structure_comparison.diff_summary.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-600 text-center">
+          <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)]">
+            <p className="text-xs text-[var(--color-text-secondary)] text-center">
               {result.structure_comparison.diff_summary.join(' | ')}
             </p>
           </div>
@@ -137,8 +137,8 @@ export function StandardizationResults({ result }: StandardizationResultsProps) 
       )}
 
       {/* Pipeline Steps / Provenance Timeline */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-900 mb-4">
+      <div className="bg-[var(--color-surface-sunken)] p-4 rounded-lg border border-[var(--color-border)]">
+        <h4 className="font-semibold text-[var(--color-text-primary)] mb-4">
           Standardization Pipeline
         </h4>
         {result.provenance ? (

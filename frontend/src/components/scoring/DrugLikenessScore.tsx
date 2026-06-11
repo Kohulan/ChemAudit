@@ -100,7 +100,7 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
       <div className="flex items-center gap-3 mb-4">
         <div className={cn(
           'w-10 h-10 rounded-xl flex items-center justify-center',
-          'bg-purple-500/10 text-purple-500'
+          'bg-chem-secondary-500/10 text-chem-secondary-500'
         )}>
           <Pill className="w-5 h-5" />
         </div>
@@ -261,7 +261,7 @@ export function DrugLikenessScore({ result }: DrugLikenessScoreProps) {
       {/* Interpretation */}
       <div className={cn(
         'mt-3 p-3 rounded-xl text-xs',
-        'bg-purple-500/5 border border-purple-500/10',
+        'bg-chem-secondary-500/5 border border-chem-secondary-500/10',
         'text-[var(--color-text-secondary)]'
       )}>
         {interpretation}

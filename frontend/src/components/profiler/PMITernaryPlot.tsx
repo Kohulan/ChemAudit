@@ -65,10 +65,11 @@ export function PMITernaryPlot({ npr1, npr2, shapeClass }: PMITernaryPlotProps) 
         fill="var(--color-accent, #d97706)"
         opacity="0.05"
       />
-      {/* Sphere region (bottom-right) */}
+      {/* Sphere region (bottom-right) — rose secondary keeps the three
+          categorical region tints on-palette (crimson / amber / rose) */}
       <path
         d="M290,250 L220,130 L150,250 Z"
-        fill="#22c55e"
+        fill="var(--color-secondary, #e11d48)"
         opacity="0.05"
       />
 

@@ -23,7 +23,7 @@
     --color-surface-overlay: rgba(255, 255, 255, 0.92);
     --color-text-primary: #1a1815;
     --color-text-secondary: #5c5650;
-    --color-text-muted: #9c958d;
+    --color-text-muted: #6f655c;
 
     /* Primary: Laboratory Crimson - refined, scientific */
     --color-primary: #c41e3a;
@@ -102,7 +102,7 @@
     --color-surface-overlay: rgba(28, 25, 23, 0.92);
     --color-text-primary: #fafaf9;
     --color-text-secondary: #a8a29e;
-    --color-text-muted: #57534e;
+    --color-text-muted: #8a857e;
 
     /* Primary: Vibrant crimson in dark */
     --color-primary: #f87171;
@@ -664,12 +664,12 @@
   }
 
   .badge-warning {
-    background: rgba(245, 158, 11, 0.12);
-    color: #b45309;
+    background: rgba(234, 88, 12, 0.12);
+    color: #c2410c;
   }
   .dark .badge-warning {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
+    background: rgba(249, 115, 22, 0.18);
+    color: #fb923c;
   }
 
   .badge-error {
@@ -722,6 +722,16 @@
   .molecule-preview > * {
     position: relative;
     z-index: 1;
+  }
+
+  /* RDKit draws black bonds/labels for white backgrounds. In dark mode,
+     invert the drawing; hue-rotate(180deg) flips the inverted hues back so
+     heteroatom colors (red O, blue N) stay recognizable. The .rdkit-drawing
+     class is applied by MoleculeViewer to the container of the RDKit SVG,
+     so every MoleculeViewer call site (including MoleculeViewerPanel's
+     .molecule-preview wrapper) gets the filter. */
+  .dark .rdkit-drawing svg {
+    filter: invert(0.88) hue-rotate(180deg) saturate(1.35);
   }
 
   /* Refined dot grid pattern */
@@ -1097,4 +1107,17 @@
 
 .pulse-subtle {
   animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+/* ================================================
+   RENDER-COST UTILITIES
+   ================================================ */
+@layer utilities {
+  /* Skip layout/paint for offscreen table rows (batch results).
+     contain-intrinsic-size approximates the collapsed row height so the
+     scrollbar stays stable. No-op in browsers without support. */
+  .cv-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+  }
 }

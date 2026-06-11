@@ -238,8 +238,8 @@ export function ComparisonView({ molecules, onClose }: ComparisonViewProps) {
                     </span>
                   </div>
 
-                  {/* 2D structure — white background for proper contrast */}
-                  <div className="w-full rounded-lg overflow-hidden bg-white border border-[var(--color-border)]">
+                  {/* 2D structure — elevated surface keeps depiction contrast in both themes */}
+                  <div className="w-full rounded-lg overflow-hidden bg-[var(--color-surface-elevated)] border border-[var(--color-border)]">
                     <MoleculeViewer smiles={mol.smiles} width={280} height={160} />
                   </div>
 

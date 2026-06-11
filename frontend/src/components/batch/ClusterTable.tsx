@@ -170,7 +170,7 @@ export function ClusterTable({
                       <button
                         type="button"
                         onClick={() => handleCopySmiles(repSmiles)}
-                        className="relative rounded-lg border border-[var(--color-border)] bg-white dark:bg-gray-900/50 overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow group"
+                        className="relative rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)]/30 transition-shadow group"
                         style={{ width: 120, height: 100 }}
                         title={repSmiles ? 'Click to copy SMILES' : ''}
                         disabled={!repSmiles}
@@ -179,7 +179,7 @@ export function ClusterTable({
                         {repSmiles && (
                           <span className="absolute inset-0 flex items-center justify-center bg-[var(--color-text-primary)]/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                             {copiedSmiles === repSmiles ? (
-                              <Check className="w-5 h-5 text-green-400" />
+                              <Check className="w-5 h-5 text-status-success" />
                             ) : (
                               <Copy className="w-4 h-4 text-white" />
                             )}

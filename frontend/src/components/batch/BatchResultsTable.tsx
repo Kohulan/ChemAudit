@@ -458,7 +458,7 @@ export function BatchResultsTable({
                   <tr
                     ref={result.index === focusedMoleculeIndex ? focusedRowRef : undefined}
                     className={`
-                      hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
+                      cv-row hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors
                       ${result.status === 'error' ? 'bg-red-500/5' : ''}
                       ${expandedRow === result.index ? 'bg-[var(--color-primary)]/5' : ''}
                       ${result.index === focusedMoleculeIndex ? 'ring-2 ring-inset ring-[var(--color-primary)]/40' : ''}
@@ -519,7 +519,7 @@ export function BatchResultsTable({
                           content={`QED: ${result.scoring.druglikeness.qed_score.toFixed(2)} — Lipinski: ${result.scoring.druglikeness.lipinski_passed ? 'Pass' : `Fail (${result.scoring.druglikeness.lipinski_violations} violations)`}`}
                           position="bottom"
                         >
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-chem-secondary-500/10 text-chem-secondary-600 dark:text-chem-secondary-400">
                             {result.scoring.druglikeness.qed_score.toFixed(2)}
                           </span>
                         </Tooltip>
@@ -565,9 +565,9 @@ export function BatchResultsTable({
                           <span className={cn(
                             'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                             result.scoring.profile.score >= 80
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              ? 'bg-yellow-500/10 dark:bg-yellow-400/15 text-amber-600 dark:text-yellow-400'
                               : result.scoring.profile.score >= 50
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              ? 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-400'
                               : 'bg-red-500/10 text-red-600 dark:text-red-400'
                           )}>
                             {result.scoring.profile.score.toFixed(1)}
@@ -756,7 +756,7 @@ export function BatchResultsTable({
                                 aria-label="Copy registration hash to clipboard"
                               >
                                 {copiedIndex === result.index ? (
-                                  <Check className="w-3 h-3 text-green-500" />
+                                  <Check className="w-3 h-3 text-status-success-dark dark:text-status-success" />
                                 ) : (
                                   <Clipboard className="w-3 h-3" />
                                 )}
@@ -843,7 +843,7 @@ export function BatchResultsTable({
                                         {result.scoring.druglikeness && (
                                           <div className="rounded-lg bg-gradient-to-br from-chem-secondary-600/[0.07] to-transparent border border-[var(--color-border-subtle)] p-2 text-center">
                                             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-medium">QED</p>
-                                            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
+                                            <p className="text-xl font-bold text-chem-secondary-600 dark:text-chem-secondary-400">{result.scoring.druglikeness.qed_score.toFixed(2)}</p>
                                             <p className={cn("text-xs font-medium", result.scoring.druglikeness.lipinski_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                                               Lipinski: {result.scoring.druglikeness.lipinski_passed ? 'Pass' : 'Fail'}
                                             </p>
@@ -891,7 +891,7 @@ export function BatchResultsTable({
                                         {result.name && <p className="text-sm text-[var(--color-text-muted)] truncate">{result.name}</p>}
                                       </div>
                                     </div>
-                                    <div className="flex-1 flex items-center justify-center rounded-lg bg-white dark:bg-gray-900/50 border border-[var(--color-border-subtle)]">
+                                    <div className="flex-1 flex items-center justify-center rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)]">
                                       <MoleculeViewer smiles={result.standardization?.standardized_smiles || result.smiles} highlightAtoms={highlightedAtoms} width={240} height={162} />
                                     </div>
                                     {highlightedAtoms.length > 0 && (

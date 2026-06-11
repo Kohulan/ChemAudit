@@ -32,6 +32,8 @@ import { RegistrationTab } from './RegistrationTab';
 import type { BatchStatistics, BatchResult } from '../../types/batch';
 import type { AnalyticsHookStatus, AnalyticsProgressInfo } from '../../hooks/useBatchAnalytics';
 import { cn } from '../../lib/utils';
+import { useThemeContext } from '../../contexts/ThemeContext';
+import { scoreFill } from '../../lib/chartColors';
 
 interface BatchAnalyticsPanelProps {
   statistics: BatchStatistics | null;
@@ -170,6 +172,7 @@ function downloadSvgAsPng(containerRef: React.RefObject<HTMLDivElement | null>, 
 }
 
 function ProfileScoreHistogram({ results }: { results: BatchResult[] }) {
+  const { isDark } = useThemeContext();
   const buckets = { Excellent: 0, Good: 0, Moderate: 0, Poor: 0 };
   for (const r of results) {
     const score = r.scoring?.profile?.score;
@@ -180,10 +183,10 @@ function ProfileScoreHistogram({ results }: { results: BatchResult[] }) {
     else buckets.Poor++;
   }
   const data = [
-    { name: 'Excellent', count: buckets.Excellent, fill: '#22c55e' },
-    { name: 'Good', count: buckets.Good, fill: '#eab308' },
-    { name: 'Moderate', count: buckets.Moderate, fill: '#f97316' },
-    { name: 'Poor', count: buckets.Poor, fill: '#ef4444' },
+    { name: 'Excellent', count: buckets.Excellent, fill: scoreFill('excellent', isDark) },
+    { name: 'Good', count: buckets.Good, fill: scoreFill('good', isDark) },
+    { name: 'Moderate', count: buckets.Moderate, fill: scoreFill('moderate', isDark) },
+    { name: 'Poor', count: buckets.Poor, fill: scoreFill('poor', isDark) },
   ];
   return (
     <ResponsiveContainer width="100%" height={250}>
@@ -268,13 +271,13 @@ function AnalyticsProgressBar({ progress, status, error, onRetrigger }: {
             key={type}
             className={cn(
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
-              st.status === 'complete' && 'bg-green-500/10 text-green-600 dark:text-green-400',
+              st.status === 'complete' && 'bg-status-success/10 text-status-success-dark dark:text-status-success',
               st.status === 'computing' && 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
               st.status === 'pending' && 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]',
               st.status === 'failed' && 'bg-red-500/10 text-red-500',
             )}
           >
-            {st.status === 'complete' && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            {st.status === 'complete' && <span className="w-1.5 h-1.5 rounded-full bg-status-success" />}
             {st.status === 'computing' && <Loader2 className="w-3 h-3 animate-spin" />}
             {st.status === 'failed' && <AlertTriangle className="w-3 h-3" />}
             {typeLabels[type] || type}

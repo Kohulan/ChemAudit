@@ -347,7 +347,7 @@ function HeroSection() {
           }}
         />
         <div className="relative w-28 h-28 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20">
-          <img src="/logo.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
+          <img src="/logo-512.png" alt="ChemAudit Logo" className="w-full h-full object-contain" />
         </div>
       </motion.div>
 
@@ -1472,7 +1472,7 @@ function ScientificReferences() {
     {
       title: 'Bioavailability & Permeation',
       icon: <Activity className="w-4 h-4" />,
-      color: 'from-indigo-500/20 to-blue-500/10',
+      color: 'from-chem-primary-600/15 to-chem-accent-600/10',
       references: [
         {
           method: 'SwissADME / Bioavailability Radar',

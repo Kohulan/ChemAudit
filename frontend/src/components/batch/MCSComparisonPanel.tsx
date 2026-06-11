@@ -170,7 +170,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="flex items-center justify-center rounded-lg bg-white dark:bg-gray-900/50 border border-[var(--color-border-subtle)] min-h-[140px]">
+                    <div className="flex items-center justify-center rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] min-h-[140px]">
                       <MoleculeViewer
                         smiles={mol.standardization?.standardized_smiles || mol.smiles}
                         width={180}
@@ -225,7 +225,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
 
                   {/* MCS SMARTS as 2D structure */}
                   <div
-                    className="flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-white dark:bg-gray-900/50 p-3 min-h-[120px]"
+                    className="flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 min-h-[120px]"
                     aria-label={`Maximum common substructure: ${mcsResult.mcs_smarts}`}
                   >
                     <MoleculeViewer smiles={mcsResult.mcs_smarts} width={200} height={120} />
