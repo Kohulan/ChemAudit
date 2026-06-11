@@ -206,7 +206,7 @@ export function QSARReady() {
             {/* ── Loading skeleton ── */}
             {qsarState.singleLoading && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <ClayCard variant="flat" size="sm" className="p-4 space-y-3">
                     <Skeleton variant="text" height={12} width="40%" />
                     <Skeleton variant="rectangular" height={200} className="rounded-lg" />

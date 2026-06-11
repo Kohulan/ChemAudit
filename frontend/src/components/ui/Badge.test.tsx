@@ -20,6 +20,11 @@ describe('Badge status differentiation', () => {
     expect(container.querySelector('svg')).toBeNull();
   });
 
+  it('suppresses the auto-icon when the dot indicator is shown', () => {
+    const { container } = render(<Badge variant="success" dot>x</Badge>);
+    expect(container.querySelector('svg')).toBeNull();
+  });
+
   it('keeps numeric CountBadge icon-free', () => {
     const { container } = render(<CountBadge count={5} variant="success" />);
     expect(container.querySelector('svg')).toBeNull();

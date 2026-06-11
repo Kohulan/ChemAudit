@@ -34,15 +34,17 @@ function formatRange(range: ThresholdRange | undefined, unit?: string): string {
 
 const PROFILE_ICONS = [FlaskConical, Dna, Pill, Microscope, Atom, TestTube, Beaker, FlaskConical];
 
+// NOTE: /12 is not a default Tailwind opacity step and silently emits no CSS;
+// stick to scale steps (/10, /20) so the tinted backgrounds actually render.
 const ACCENT = [
-  { bg: 'bg-rose-500/12', text: 'text-rose-500', border: 'border-rose-500/20' },
-  { bg: 'bg-chem-secondary-500/12', text: 'text-chem-secondary-500', border: 'border-chem-secondary-500/20' },
-  { bg: 'bg-emerald-500/12', text: 'text-emerald-500', border: 'border-emerald-500/20' },
-  { bg: 'bg-sky-500/12', text: 'text-sky-500', border: 'border-sky-500/20' },
-  { bg: 'bg-amber-500/12', text: 'text-amber-600', border: 'border-amber-500/20' },
-  { bg: 'bg-pink-500/12', text: 'text-pink-500', border: 'border-pink-500/20' },
-  { bg: 'bg-cyan-500/12', text: 'text-cyan-500', border: 'border-cyan-500/20' },
-  { bg: 'bg-lime-500/12', text: 'text-lime-600', border: 'border-lime-500/20' },
+  { bg: 'bg-rose-500/10', text: 'text-rose-500', border: 'border-rose-500/20' },
+  { bg: 'bg-chem-secondary-500/10', text: 'text-chem-secondary-500', border: 'border-chem-secondary-500/20' },
+  { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+  { bg: 'bg-sky-500/10', text: 'text-sky-500', border: 'border-sky-500/20' },
+  { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
+  { bg: 'bg-pink-500/10', text: 'text-pink-500', border: 'border-pink-500/20' },
+  { bg: 'bg-cyan-500/10', text: 'text-cyan-500', border: 'border-cyan-500/20' },
+  { bg: 'bg-lime-500/10', text: 'text-lime-600', border: 'border-lime-500/20' },
 ];
 
 export function ProfileSidebar({ selectedProfileId, onProfileChange, disabled }: ProfileSidebarProps) {

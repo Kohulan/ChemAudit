@@ -726,8 +726,11 @@
 
   /* RDKit draws black bonds/labels for white backgrounds. In dark mode,
      invert the drawing; hue-rotate(180deg) flips the inverted hues back so
-     heteroatom colors (red O, blue N) stay recognizable. */
-  .dark .molecule-preview svg {
+     heteroatom colors (red O, blue N) stay recognizable. The .rdkit-drawing
+     class is applied by MoleculeViewer to the container of the RDKit SVG,
+     so every MoleculeViewer call site (including MoleculeViewerPanel's
+     .molecule-preview wrapper) gets the filter. */
+  .dark .rdkit-drawing svg {
     filter: invert(0.88) hue-rotate(180deg) saturate(1.35);
   }
 

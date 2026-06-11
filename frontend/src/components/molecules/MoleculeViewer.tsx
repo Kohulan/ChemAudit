@@ -132,9 +132,12 @@ export function MoleculeViewer({
       ? '[&>svg]:block [&>svg]:w-full [&>svg]:h-full'
       : '[&>svg]:block [&>svg]:w-full [&>svg]:h-auto';
 
+  // 'rdkit-drawing' opts the RDKit-generated SVG into the dark-mode inversion
+  // filter (see index.css). Placeholder/loading/error states above return
+  // early, so decorative SVGs are never inverted.
   return (
     <div
-      className={`rounded-lg w-full ${fitClasses} ${className}`}
+      className={`rdkit-drawing rounded-lg w-full ${fitClasses} ${className}`}
       dangerouslySetInnerHTML={{ __html: responsiveSvg }}
     />
   );

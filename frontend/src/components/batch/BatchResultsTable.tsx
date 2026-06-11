@@ -565,9 +565,9 @@ export function BatchResultsTable({
                           <span className={cn(
                             'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                             result.scoring.profile.score >= 80
-                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                              ? 'bg-yellow-500/10 dark:bg-yellow-400/15 text-amber-600 dark:text-yellow-400'
                               : result.scoring.profile.score >= 50
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              ? 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-400'
                               : 'bg-red-500/10 text-red-600 dark:text-red-400'
                           )}>
                             {result.scoring.profile.score.toFixed(1)}
