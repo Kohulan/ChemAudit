@@ -300,13 +300,16 @@ function WhatIsChemAudit() {
         }
       />
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
-        <div className="lg:col-span-3 space-y-4 text-[var(--color-text-secondary)]">
-          <p className="leading-relaxed">
+        <div className="lg:col-span-3 space-y-5 text-[var(--color-text-secondary)]">
+          {/* Lede: the opening claim runs one step larger so the card has an
+              entry point before the detail. Key figures carry the brand's
+              gold (gold = quality throughout this product). */}
+          <p className="text-lg leading-relaxed">
             ChemAudit is an open-source platform that checks chemical structures before they reach
             your model, your library, or your paper. Every molecule passes through{' '}
-            <strong className="font-semibold text-[var(--color-text-primary)]">27 validation checks</strong>,
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">27 validation checks</strong>,
             the ChEMBL standardization pipeline, and screening against more than{' '}
-            <strong className="font-semibold text-[var(--color-text-primary)]">1,500 structural-alert patterns</strong>.
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">1,500 structural-alert patterns</strong>.
           </p>
           <p className="leading-relaxed">
             It scales from{' '}
@@ -318,25 +321,33 @@ function WhatIsChemAudit() {
               a single pasted SMILES
             </Link>{' '}
             to batch jobs of millions of molecules, computing{' '}
-            <strong className="font-semibold text-[var(--color-text-primary)]">451 descriptors</strong> and
+            <strong className="font-semibold text-[var(--color-accent-dark)] dark:text-[var(--color-accent)]">451 descriptors</strong> and
             seven fingerprint types along the way, with results exportable in five formats. The
             verdicts are traceable: every score links back to the published method that produced it.
           </p>
         </div>
 
-        <div className="lg:col-span-2">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] pb-2 mb-4 border-b border-[var(--color-border)]">
+        <div className="lg:col-span-2 lg:border-l lg:border-[var(--color-border)] lg:pl-10">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-3">
             Start here
           </h3>
-          <ul className="space-y-4">
+          <ul className="space-y-1">
             {START_HERE.map((entry) => (
               <li key={entry.title}>
                 {entry.external ? (
-                  <a href={entry.href} target="_blank" rel="noopener noreferrer" className="group block">
+                  <a
+                    href={entry.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-xl px-3 py-2.5 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                  >
                     <StartHereEntry entry={entry} />
                   </a>
                 ) : (
-                  <Link to={entry.href} className="group block">
+                  <Link
+                    to={entry.href}
+                    className="group block rounded-xl px-3 py-2.5 -mx-3 hover:bg-[var(--color-primary)]/5 transition-colors"
+                  >
                     <StartHereEntry entry={entry} />
                   </Link>
                 )}
