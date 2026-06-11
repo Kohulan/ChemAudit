@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ReactNode, useCallback } from 'react';
+import { useState, useRef, useEffect, useId, ReactNode, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -28,6 +28,7 @@ export function Tooltip({
   className = '',
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const tooltipId = useId();
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [actualPosition, setActualPosition] = useState(position);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -161,11 +162,13 @@ export function Tooltip({
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
+      aria-describedby={isVisible ? tooltipId : undefined}
     >
       {children}
 
       {isVisible && createPortal(
         <div
+          id={tooltipId}
           ref={tooltipRef}
           className={cn(
             'fixed z-[9999] px-3 py-2 rounded-lg shadow-xl',

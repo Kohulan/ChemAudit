@@ -120,6 +120,7 @@ export const MCSComparisonPanel = React.memo(function MCSComparisonPanel({
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-[var(--color-text-primary)]/30 z-40"
             onClick={onClose}
+            role="presentation"
           />
 
           {/* Drawer */}

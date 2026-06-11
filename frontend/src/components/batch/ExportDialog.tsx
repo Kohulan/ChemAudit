@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, FileText, Table2, FlaskConical, Braces, FileBarChart, Fingerprint, Copy, Network, LayoutGrid, Image } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';
@@ -43,6 +43,18 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
   );
   const [sheetLayout, setSheetLayout] = useState<'single' | 'multi'>('single');
   const [includeAudit, setIncludeAudit] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close on Escape and move initial focus into the dialog when it opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    closeButtonRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -160,9 +172,10 @@ export function ExportDialog({ jobId, isOpen, onClose, selectedIndices }: Export
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close export dialog"
-            className="p-2 rounded-lg hover:bg-[var(--color-surface-sunken)] transition-colors"
+            className="p-2 rounded-lg hover:bg-[var(--color-surface-sunken)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
             <X className="w-5 h-5 text-[var(--color-text-muted)]" />
           </button>
