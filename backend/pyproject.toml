@@ -8,7 +8,11 @@ version = "1.0.0"
 description = "ChemAudit Backend API"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.115.0",
+    # Cap below 0.137: that release makes include_router() store lazy _IncludedRouter
+    # objects (no .path attr) in app.routes, which crashes prometheus-fastapi-instrumentator
+    # 8.0.0 (latest) in _get_route_name -> every request 500s. Lift cap once the
+    # instrumentator gains FastAPI 0.137+ lazy-router support.
+    "fastapi>=0.115.0,<0.137",
     "uvicorn[standard]>=0.30.0",
     "gunicorn>=21.2.0",
     "pydantic>=2.8.0",
