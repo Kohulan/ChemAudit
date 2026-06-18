@@ -1,5 +1,100 @@
 # Changelog
 
+## [1.8.0](https://github.com/Kohulan/ChemAudit/compare/v1.7.0...v1.8.0) (2026-06-18)
+
+
+### Features
+
+* **analytics:** make Butina clustering molecule cap deployment-configurable ([d84c3fd](https://github.com/Kohulan/ChemAudit/commit/d84c3fd614dd94e3aa4951b7644f0b20c4ee983a))
+* **profiler:** enable SCScore via vendored weights + self-contained inference ([009d221](https://github.com/Kohulan/ChemAudit/commit/009d221e7a0bd3e67f89d1844952f7d4ad1e2ffe))
+* **security:** add opt-in HMAC-signed admin tokens for replay resistance ([360ef54](https://github.com/Kohulan/ChemAudit/commit/360ef547e65b581f02d9b8843e8c86d7edcd5b5d))
+* **theme:** add shared theme-aware chart color module ([4f25f2c](https://github.com/Kohulan/ChemAudit/commit/4f25f2c63dd27343a220a3e215f10199f59d929e))
+* **ui:** replace native window.prompt/confirm with accessible, testable React modals ([0df42d0](https://github.com/Kohulan/ChemAudit/commit/0df42d01d013b6f2d16a1350883aa985c7d6f48f))
+
+
+### Bug Fixes
+
+* **a11y:** add dialog semantics and close-button label to ExportDialog ([0bb1bd2](https://github.com/Kohulan/ChemAudit/commit/0bb1bd2c59377d77df08f0f72f632964e621dd04))
+* **a11y:** distinguish success/warning badges by icon and hue, not color alone ([ed66a07](https://github.com/Kohulan/ChemAudit/commit/ed66a073e430676ed1503ede138f33d5366d029b))
+* **a11y:** keyboard-operable switch, modal semantics, tooltip associations ([497b703](https://github.com/Kohulan/ChemAudit/commit/497b703ffe1a9e4399e7242da0ab840bf618a7e6))
+* **a11y:** raise text-muted contrast to WCAG AA in both themes ([41b7760](https://github.com/Kohulan/ChemAudit/commit/41b77603ddf0d6373b44e93690b1e01410e82dbe))
+* **about:** address adversarial review of the distill pass ([646d48d](https://github.com/Kohulan/ChemAudit/commit/646d48da6c64cd1aa75222136205395f73bd6204))
+* accessibility P0, palette stragglers, and responsive corners from re-audit ([e2cb165](https://github.com/Kohulan/ChemAudit/commit/e2cb165f9c2dddb18567dfc9d477525574ea0a11))
+* address adversarial review findings from remediation pass ([c9c49a2](https://github.com/Kohulan/ChemAudit/commit/c9c49a2f5dbbb406a0a4d1f83588b91352257e75))
+* **batch:** make ProgressTracker lazy Redis init thread-safe ([a06f400](https://github.com/Kohulan/ChemAudit/commit/a06f40083ae35a5003114d642c400076047b8672))
+* **batch:** narrow Celery autoretry_for to transient errors only ([693ff3b](https://github.com/Kohulan/ChemAudit/commit/693ff3b7118800161893d40326b53b82584e2046))
+* **celery:** add global task time limits to prevent worker starvation ([5bce2c1](https://github.com/Kohulan/ChemAudit/commit/5bce2c122473496b0a45279d55ceb0b88c28423a))
+* **deps:** bump dompurify &gt;=3.4.11 and patch frontend audit findings ([c86bc0f](https://github.com/Kohulan/ChemAudit/commit/c86bc0fd84ad301c5091201379823718a9813578))
+* **deps:** bump dompurify &gt;=3.4.11 and patch frontend audit findings ([a16142c](https://github.com/Kohulan/ChemAudit/commit/a16142c1234db4b511d7c1cc6940e0dadb814ac4))
+* **deps:** bump joi to &gt;=18.2.1 in docs-site (CVE-2026-48038) ([5324d8e](https://github.com/Kohulan/ChemAudit/commit/5324d8ee186d211e83e1258e0aad0a1803e81c6e))
+* **deps:** bump joi to &gt;=18.2.1 in docs-site (CVE-2026-48038) ([e4e7a4a](https://github.com/Kohulan/ChemAudit/commit/e4e7a4ac84a1c07f2332e6caa158513a256f61d3))
+* **deps:** cap fastapi &lt;0.137 to avoid instrumentator route crash ([053ff43](https://github.com/Kohulan/ChemAudit/commit/053ff436f6e12c22cca33edb5059d87ab62a739f))
+* **deps:** cap fastapi &lt;0.137 to avoid instrumentator route crash ([937b7f0](https://github.com/Kohulan/ChemAudit/commit/937b7f08f9b62a0515cca664267e79892601b513))
+* **deps:** force esbuild &gt;=0.28.1 in frontend (GHSA-gv7w-rqvm-qjhr, GHSA-g7r4-m6w7-qqqr) ([35c8b41](https://github.com/Kohulan/ChemAudit/commit/35c8b41c7a79ff592de2a391a261382d3dbcc3c2))
+* **deps:** force esbuild &gt;=0.28.1 in frontend (GHSA-gv7w-rqvm-qjhr, GHSA-g7r4-m6w7-qqqr) ([d78ce28](https://github.com/Kohulan/ChemAudit/commit/d78ce28a7c5ec2808dfb2d8adb8433e0da5aafd8))
+* **deps:** fully resolve js-yaml alert by moving gray-matter to js-yaml 4 ([0a347c1](https://github.com/Kohulan/ChemAudit/commit/0a347c1eaf3d131bc37c25e8b8d0bdbd05ec58bf))
+* **deps:** patch docs-site Dependabot alerts via npm overrides ([f74abf4](https://github.com/Kohulan/ChemAudit/commit/f74abf4723d83e55c42e64c477aef0f436d859c2))
+* **deps:** resolve Dependabot security alerts in frontend and docs-site ([f81646a](https://github.com/Kohulan/ChemAudit/commit/f81646ac4b59cf5f911fb99b903060d93ffe6782))
+* **deps:** resolve Dependabot security alerts in frontend and docs-site ([236dfbd](https://github.com/Kohulan/ChemAudit/commit/236dfbdc295abd1255a6363bf0ed3dfc06c14111))
+* **deps:** sync frontend lockfile after vitest 4 bump ([00f17c0](https://github.com/Kohulan/ChemAudit/commit/00f17c0902e03026a63cebb0cbcc727e2566fd86))
+* **deps:** sync frontend lockfile after vitest 4 bump ([9c155dc](https://github.com/Kohulan/ChemAudit/commit/9c155dc743850027c66fcc269529367d9c39d7ad))
+* frontend audit remediation (a11y, performance, responsive, theming) ([e1e71ff](https://github.com/Kohulan/ChemAudit/commit/e1e71ff35ad626729f7d9a95ad1eba45c421841d))
+* **iupac:** skip OPSIN re-init after failure to avoid inconsistent JVM state ([03b6708](https://github.com/Kohulan/ChemAudit/commit/03b670867d5719b815c167c5e0c5f91045718a33))
+* **profiler:** make SCScore unavailability observable + document NumPy 2.x enablement ([11abdc6](https://github.com/Kohulan/ChemAudit/commit/11abdc6daa278a60279d0e501ed11418b805742a))
+* **profiler:** validate SYBA SMILES input and make subprocess shell=False explicit ([982e9cd](https://github.com/Kohulan/ChemAudit/commit/982e9cd4e7d90f3ea1c74abd3942696e56978aac))
+* **redis:** bound memory and use volatile-lru so broker messages are never evicted ([1f0ec2e](https://github.com/Kohulan/ChemAudit/commit/1f0ec2ea311c0a9ca5b37be2048c2a6d3228ea83))
+* regressions found by adversarial sweep of the cleanup branch ([bdf0b75](https://github.com/Kohulan/ChemAudit/commit/bdf0b7525ec5527b8e7e8a0033278300af8953b5))
+* **responsive:** add mobile breakpoints to stat and comparison grids ([daf3d0b](https://github.com/Kohulan/ChemAudit/commit/daf3d0b2d901667bddd1640e7fcaeb457afde572))
+* **responsive:** enforce 44px touch target on mobile menu button ([0ea6ed8](https://github.com/Kohulan/ChemAudit/commit/0ea6ed8dcc3896e08d0b9f71145fdb0041ef8519))
+* **responsive:** mobile-safe dropdown and SMILES column, intermediate grid breakpoints ([b84d09e](https://github.com/Kohulan/ChemAudit/commit/b84d09e9551edf41bea2cc280e1e3e1300b936e1))
+* **scoring:** guard module-level sascorer imports against missing RDKit Contrib ([e1afd70](https://github.com/Kohulan/ChemAudit/commit/e1afd70bac5f9db2a36c48771343536944293637))
+* **security:** escalate insecure-default warnings and add ALLOW_INSECURE_DEFAULTS gate ([7f4a1cf](https://github.com/Kohulan/ChemAudit/commit/7f4a1cf48f14344ff92e99caec0ed091d2fd11d9))
+* **security:** stop logging secret-named settings; document HMAC-SHA256 intent ([b547823](https://github.com/Kohulan/ChemAudit/commit/b547823dfc090d046280b2a9586d917417b35ddc))
+* **theme:** AlertGroupCard severity colors use status tokens with dark variants ([ded142c](https://github.com/Kohulan/ChemAudit/commit/ded142c2eeff3a6fc0e6c063af67614d7f0f2544))
+* **theme:** batch and shared components use tokens; success is amber not green ([b449847](https://github.com/Kohulan/ChemAudit/commit/b449847a1e47e0ff546d06aac2afad98d2170e22))
+* **theme:** batch score histogram uses warm brand scale, not green ([df65c6e](https://github.com/Kohulan/ChemAudit/commit/df65c6ea20671b2691d38c763e3b7f37ebe40e8e))
+* **theme:** integrations panels use surface/border tokens ([e4c2fe0](https://github.com/Kohulan/ChemAudit/commit/e4c2fe00b939cb0e7d327d2cc9951ca272b962bc))
+* **theme:** legible molecule renderings in dark mode via inversion filter ([bb17acc](https://github.com/Kohulan/ChemAudit/commit/bb17acc5d089ba1d5cd258ece260dae8f0e3d7d7))
+* **theme:** NP-likeness reads red (synthetic) to green (natural) ([ad44bb7](https://github.com/Kohulan/ChemAudit/commit/ad44bb7fffc33c0b29e857dd70afa2561946f15b))
+* **theme:** replace decorative purple/indigo with brand palette (database identity colors kept) ([1a66ea8](https://github.com/Kohulan/ChemAudit/commit/1a66ea8801884acc401d958a19a69a0caaceff6f))
+* **theme:** retire green-for-success and cool score palettes; badge contrast to AA ([2d2148b](https://github.com/Kohulan/ChemAudit/commit/2d2148bc7364d75622675c6f29fdd236360a936d))
+* **theme:** standardization components use surface/border tokens ([d48c311](https://github.com/Kohulan/ChemAudit/commit/d48c311dc0ea0a30c6cd0f63386f365ab884a267))
+* **theme:** warm gauge tracks and on-palette chart reference colors ([cb62e41](https://github.com/Kohulan/ChemAudit/commit/cb62e417de81077a081b0bf5cde74a9761e8db09))
+* **ui:** anchor auto-compare knob to the track's left edge ([f7028ec](https://github.com/Kohulan/ChemAudit/commit/f7028ecc92c9478073a57305081ca5efa7dbbd0f))
+* **ui:** inline delete confirmation, lucide icon swaps, copy and asset cleanup ([01ae4c8](https://github.com/Kohulan/ChemAudit/commit/01ae4c8ae0d20491211dd204227f3464d8bff63e))
+* **ux:** scroll to top on link navigation app-wide ([a7063c3](https://github.com/Kohulan/ChemAudit/commit/a7063c3875cd9e687a6db6ffc7eb22d4afe7f8aa))
+* **websockets:** prevent duplicate broadcasts from superseded subscriber + add WS test suite ([4cbfb5e](https://github.com/Kohulan/ChemAudit/commit/4cbfb5ebb2448eccb41c67cbd7d2daadae5d2c06))
+* **websockets:** use redis aclose() instead of deprecated close() ([b6ca465](https://github.com/Kohulan/ChemAudit/commit/b6ca4656f3b99b0259de47efca6fa016af0140f7))
+
+
+### Performance Improvements
+
+* **analytics:** isolate expensive analytics on dedicated queue + worker with time limits ([dc82cd1](https://github.com/Kohulan/ChemAudit/commit/dc82cd18c89ea7cec56deba7ede1a7433244fedb))
+* **batch:** store results as Redis list for range-query pagination without full deserialize ([f75fcc0](https://github.com/Kohulan/ChemAudit/commit/f75fcc0ffe770cdb63b1952ad57d39d56f9b641f))
+* **clustering:** vectorize Tanimoto distance matrix with BulkTanimotoSimilarity ([b6107bc](https://github.com/Kohulan/ChemAudit/commit/b6107bc6ad86ae1dde634a4270ac8b29d2a370f0))
+* lazy-load scoring and standardization result panels on home page ([c7bb63d](https://github.com/Kohulan/ChemAudit/commit/c7bb63d751daf1479279241d1b136dd6aa3c6bea))
+* opacity-only ambient orbs, capped blur radii, reduced-motion support ([ad5d20c](https://github.com/Kohulan/ChemAudit/commit/ad5d20cad8d1593cb20695e56de4ff83abdbc7cb))
+* **profiler:** replace per-call SYBA subprocess with persistent worker (JSON pipe, restart, timeout) ([24057f5](https://github.com/Kohulan/ChemAudit/commit/24057f502bd99084601c8bfb886be7a4a322930a))
+* **redis:** use pooled singleton clients instead of per-call connections ([30f0898](https://github.com/Kohulan/ChemAudit/commit/30f0898e5bc8a435c1187a3eaee6adac9f5f9928))
+* route-gate RDKit WASM init; skip splash on structure-free pages ([ec20890](https://github.com/Kohulan/ChemAudit/commit/ec20890e454839e8a6b4094f46492f7ba4e30e85))
+* **security:** pin RDKit loader version, add SRI, defer parsing ([29d627b](https://github.com/Kohulan/ChemAudit/commit/29d627be09807278fc814ef8e56c2ac00ba33ae5))
+* serve resized logo variants instead of 764KB original ([8be0f74](https://github.com/Kohulan/ChemAudit/commit/8be0f74a85586806c0c6b2799d71f9cdd4f590d3))
+* skip offscreen row rendering in batch results table ([3ead8ec](https://github.com/Kohulan/ChemAudit/commit/3ead8ec5490d7f48ab170d4825578079f350aed2))
+* split recharts, framer-motion, gsap, and react vendor chunks ([b0c9a10](https://github.com/Kohulan/ChemAudit/commit/b0c9a10f201eba3c0347e5583b38403525e7f672))
+* **validation:** run blocking Celery task.get in executor to free event loop ([a7a082a](https://github.com/Kohulan/ChemAudit/commit/a7a082a2bc32046be9c31883e963d45d577f5943))
+
+
+### Documentation
+
+* add frontend audit remediation plan ([224fa7d](https://github.com/Kohulan/ChemAudit/commit/224fa7d6438223c2587528c0c42cc4545f766ca8))
+* **plan:** mark 2.5 SCScore done; all audit items now resolved ([c790061](https://github.com/Kohulan/ChemAudit/commit/c790061c5680d0f4b2ca69a2def72e64ae05f5d0))
+* **plan:** mark 4.1 complete; reconcile 2.6/3.3/3.5 as done (were stale 'deferred') ([e611777](https://github.com/Kohulan/ChemAudit/commit/e611777efe102fdad5bc974e9bd0e04a29449588))
+* **plan:** record [#7](https://github.com/Kohulan/ChemAudit/issues/7) documented + [#21](https://github.com/Kohulan/ChemAudit/issues/21) made configurable (gaps closed) ([7affa7d](https://github.com/Kohulan/ChemAudit/commit/7affa7d9baf100189d16aabaa56794e3216e56be))
+* **plan:** record Wave 3 + Wave 4.3 completion and remaining-item status ([2654fa0](https://github.com/Kohulan/ChemAudit/commit/2654fa08f509dcb8001667eaf1418a40e9831c8d))
+* **plan:** record Wave 4.2/4.4/4.5 completion + real-stack validation ([c88f583](https://github.com/Kohulan/ChemAudit/commit/c88f583e8453e96f628da4bcb8e3022853837793))
+* **plan:** record WS fail-open decision and Wave 2 completion status ([91e6e1f](https://github.com/Kohulan/ChemAudit/commit/91e6e1f3aa8dd80fa6229ee9392314751cb3ffdd))
+* **ws:** document deliberate fail-open WebSocket ownership posture ([b644e5a](https://github.com/Kohulan/ChemAudit/commit/b644e5af5801414abb1024d87d3cf5521ae02236))
+
 ## [1.7.0](https://github.com/Kohulan/ChemAudit/compare/v1.6.0...v1.7.0) (2026-05-11)
 
 
