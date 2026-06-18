@@ -1,6 +1,8 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import matter from 'gray-matter';
+import yaml from 'js-yaml';
 
 const config: Config = {
   title: 'ChemAudit',
@@ -23,6 +25,21 @@ const config: Config = {
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: 'warn',
+    },
+    // Docusaurus' default front matter parser calls gray-matter, whose default
+    // YAML engine uses yaml.safeLoad — removed in js-yaml 4. We pin js-yaml to
+    // the patched 4.x (GHSA-h67p-54hq-rp68) everywhere, so we supply a js-yaml 4
+    // engine here. Mirrors DEFAULT_PARSE_FRONT_MATTER (structuredClone + trim).
+    parseFrontMatter: async ({fileContent}) => {
+      const {data, content} = matter(fileContent, {
+        engines: {
+          yaml: {
+            parse: (str: string) => yaml.load(str) as object,
+            stringify: (obj: object) => yaml.dump(obj),
+          },
+        },
+      });
+      return {frontMatter: structuredClone(data), content: content.trim()};
     },
   },
 
