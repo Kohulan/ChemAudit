@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { Star, Beaker } from 'lucide-react';
 import { BookmarkList } from '../components/bookmarks/BookmarkList';

@@ -19,7 +19,7 @@ interface AnimatedSectionProps {
   delay: number;
 }
 
-function AnimatedSection({ children, delay }: AnimatedSectionProps): JSX.Element {
+function AnimatedSection({ children, delay }: AnimatedSectionProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

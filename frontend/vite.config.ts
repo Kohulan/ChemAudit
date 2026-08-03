@@ -46,7 +46,14 @@ export default defineConfig(({ mode }) => {
             recharts: ['recharts'],
             motion: ['framer-motion'],
             gsap: ['gsap'],
-            vendor: ['react', 'react-dom', 'react-router-dom'],
+            // ponytail: since React 19, react-dom is reached via the
+            // react-dom/client subpath and no longer lands in `vendor`, so it
+            // rides along in the entry chunk. Adding 'react-dom/client' here
+            // does pull it in, but reorders chunk init so recharts evaluates
+            // before React exists ("cannot read forwardRef of undefined", blank
+            // page). Only worth revisiting if entry-chunk cache churn is
+            // measurably hurting; needs the manualChunks function form.
+            vendor: ['react', 'react-dom', 'react-router'],
           },
         },
       },

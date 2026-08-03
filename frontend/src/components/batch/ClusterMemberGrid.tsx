@@ -34,7 +34,7 @@ export function ClusterMemberGrid({
   clusterId,
 }: ClusterMemberGridProps) {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleCopy = useCallback((smiles: string | null, idx: number) => {
     if (!smiles) return;

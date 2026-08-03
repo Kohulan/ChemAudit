@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ClayButton } from '../ui/ClayButton';
 import { integrationsApi } from '../../services/api';

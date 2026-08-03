@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter, useNavigate, useSearchParams } from 'react-router-dom';
+import { MemoryRouter, useNavigate, useSearchParams } from 'react-router';
 import { ScrollToTop } from './ScrollToTop';
 
 const scrollToMock = vi.fn();
