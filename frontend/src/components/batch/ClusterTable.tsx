@@ -52,7 +52,7 @@ export function ClusterTable({
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedSmiles, setCopiedSmiles] = useState<string | null>(null);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleCopySmiles = useCallback((smiles: string | null) => {
     if (!smiles) return;

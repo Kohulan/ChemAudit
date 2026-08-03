@@ -1,6 +1,6 @@
 # Multi-stage production build for ChemAudit frontend
 # Stage 1: Builder - Build the React application
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 

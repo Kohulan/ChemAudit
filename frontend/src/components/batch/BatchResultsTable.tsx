@@ -1,5 +1,5 @@
 import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { AlertTriangle, ShieldAlert, FlaskConical, Atom, ExternalLink, Clipboard, Check, CheckCircle2, XCircle, Beaker, Activity } from 'lucide-react';
 import { MoleculeViewer } from '../molecules/MoleculeViewer';
 import { CopyButton } from '../ui/CopyButton';
