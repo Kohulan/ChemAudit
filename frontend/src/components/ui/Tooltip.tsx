@@ -33,7 +33,7 @@ export function Tooltip({
   const [actualPosition, setActualPosition] = useState(position);
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const OFFSET = 8; // Gap between trigger and tooltip
 

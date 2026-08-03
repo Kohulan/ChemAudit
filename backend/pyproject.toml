@@ -42,6 +42,11 @@ dependencies = [
     "pillow>=12.1.1",
     "protobuf>=5.29.6",
     "fastapi-mcp>=0.4.0",
+    # fastapi-mcp 0.4.0 (its latest) declares only mcp>=1.12.0, but mcp 2.0.0
+    # made every Server() arg after `name` keyword-only, so its internal
+    # Server(name, description) call raises TypeError at import time. Cap until
+    # fastapi-mcp ships mcp 2.x support.
+    "mcp>=1.12.0,<2",
     "typer>=0.12.0",
 ]
 

@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { PRESET_CONFIGS, PRESET_IDS, STAGE_COLORS } from '../types/structure_filter';
 
 // =============================================================================

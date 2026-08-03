@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { Upload } from 'lucide-react';
 import { ClayButton } from '../ui/ClayButton';

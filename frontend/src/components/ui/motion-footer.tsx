@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useRef, type ReactNode, type ElementType, type ButtonHTMLAttributes, type AnchorHTMLAttributes } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '../../lib/utils';

@@ -2,7 +2,7 @@
 # Frontend files are baked into the image, eliminating shared volume issues
 
 # Stage 1: Build the React frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
