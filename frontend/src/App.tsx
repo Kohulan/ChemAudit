@@ -359,12 +359,8 @@ function AppWithSplash() {
 function App() {
   return (
     <ConfigProvider>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
+      {/* ponytail: v7_startTransition / v7_relativeSplatPath are defaults in react-router 7 */}
+      <Router>
         <ScrollToTop />
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
