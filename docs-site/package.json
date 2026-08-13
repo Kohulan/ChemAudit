@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "postinstall": "node scripts/patch-image-size.mjs",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
@@ -29,7 +30,7 @@
     "@docusaurus/types": "^3.10.0",
     "@types/js-yaml": "^4.0.9",
     "gray-matter": "^4.0.3",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.1",
     "typescript": "~5.5.2"
   },
   "browserslist": {
@@ -58,7 +59,7 @@
     "picomatch": ">=2.3.2",
     "uuid": ">=14.0.0",
     "follow-redirects": ">=1.15.12",
-    "fast-uri": ">=3.1.4",
+    "fast-uri": ">=4.1.2",
     "body-parser": ">=1.20.6",
     "shell-quote": ">=1.9.0",
     "svgo": ">=3.3.4",
