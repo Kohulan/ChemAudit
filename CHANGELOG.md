@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/Kohulan/ChemAudit/compare/v1.8.0...v1.8.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **deps:** clear open Dependabot alerts and harden image-size parsers ([6f3cbf8](https://github.com/Kohulan/ChemAudit/commit/6f3cbf80debaf99534a4e123f6243e39d189b2cc))
+* **deps:** clear open Dependabot alerts and harden image-size parsers ([8e30aa7](https://github.com/Kohulan/ChemAudit/commit/8e30aa79abbea71f46c8b5205f209028805c6c92))
+
 ## [2.0.0](https://github.com/Kohulan/ChemAudit/compare/v1.7.0...v2.0.0) (2026-08-06)
 
 
