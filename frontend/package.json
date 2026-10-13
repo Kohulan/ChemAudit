@@ -63,6 +63,7 @@
     "follow-redirects": ">=1.15.12",
     "js-yaml": ">=5.4.1",
     "postcss": "$postcss",
+    "postcss-selector-parser": "^7.1.6",
     "ws": ">=8.20.1"
   },
   "engines": {

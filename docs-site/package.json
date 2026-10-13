@@ -73,6 +73,8 @@
     "webpack-dev-server": {
       ".": ">=5.2.6",
       "ws": ">=8.21.0"
-    }
+    },
+    "postcss-selector-parser": "^7.1.6",
+    "tinypool": "^2.2.0"
   }
 }
