@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.1](https://github.com/Kohulan/ChemAudit/compare/v1.8.0...v1.8.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* alters ([a080d6f](https://github.com/Kohulan/ChemAudit/commit/a080d6f4ae3ae9b32b75c0a42f0177d926f6821d))
+* **deps:** clear open Dependabot alerts (axios, vitest, image-size, docs-site) ([c9b5da6](https://github.com/Kohulan/ChemAudit/commit/c9b5da6a486dec74978f77963ad0e8c96b7a50bb))
+* **deps:** clear open Dependabot alerts (axios, vitest, image-size, docs-site) ([6678acb](https://github.com/Kohulan/ChemAudit/commit/6678acb8019332c69d45a2b55296ec53db99e0e0))
+* **deps:** clear open Dependabot alerts and harden image-size parsers ([6f3cbf8](https://github.com/Kohulan/ChemAudit/commit/6f3cbf80debaf99534a4e123f6243e39d189b2cc))
+* **deps:** clear open Dependabot alerts and harden image-size parsers ([8e30aa7](https://github.com/Kohulan/ChemAudit/commit/8e30aa79abbea71f46c8b5205f209028805c6c92))
+* **deps:** clear tinypool and postcss-selector-parser Dependabot alerts ([f768e19](https://github.com/Kohulan/ChemAudit/commit/f768e19cb2d6ad4ffe4889549fa90dac511d0f8d))
+* **deps:** clear tinypool and postcss-selector-parser Dependabot alerts ([81baeaa](https://github.com/Kohulan/ChemAudit/commit/81baeaa0ed937a28ea7d25378559c9b39561822a))
+* **deps:** require sqlalchemy[asyncio] so greenlet is installed ([6165d71](https://github.com/Kohulan/ChemAudit/commit/6165d716d7158762f6e4b79931317863f2d7907e))
+
 ## [2.0.0](https://github.com/Kohulan/ChemAudit/compare/v1.7.0...v2.0.0) (2026-08-06)
 
 
