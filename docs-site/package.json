@@ -18,6 +18,7 @@
     "@docusaurus/core": "^3.10.0",
     "@docusaurus/preset-classic": "^3.10.0",
     "@mdx-js/react": "^3.0.0",
+    "braces": "file:vendor/braces",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
@@ -75,6 +76,7 @@
       "ws": ">=8.21.0"
     },
     "postcss-selector-parser": "^7.1.6",
-    "tinypool": "^2.2.0"
+    "tinypool": "^2.2.0",
+    "braces": "$braces"
   }
 }
