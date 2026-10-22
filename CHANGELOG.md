@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.2](https://github.com/Kohulan/ChemAudit/compare/v1.8.1...v1.8.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **deps:** bump follow-redirects to 1.16.1 and apply safe audit fixes ([82baa81](https://github.com/Kohulan/ChemAudit/commit/82baa810c91827106b0f8a8e68de409ce6d8d484))
+* **deps:** bump follow-redirects to 1.16.1 and apply safe audit fixes ([85df308](https://github.com/Kohulan/ChemAudit/commit/85df30894a35b3a77d16462a9a4c47ee0f294ee3))
+* **deps:** bump follow-redirects to 1.16.1 and apply safe audit fixes ([949b893](https://github.com/Kohulan/ChemAudit/commit/949b8933723fe96dc6460c19f92540e5bb1cde95))
+* **deps:** patch braces stack overflow in docs-site (GHSA-vfj7-8cjw-p6xm) ([e84b5c6](https://github.com/Kohulan/ChemAudit/commit/e84b5c6916c8b26cc341ebf1c5a3dc3e73880189))
+* **deps:** patch braces stack overflow in docs-site (GHSA-vfj7-8cjw-p6xm) ([b065ab8](https://github.com/Kohulan/ChemAudit/commit/b065ab8523ddc4fd0b552ec7fc0bbbd5c957dc4f))
+
 ## [1.8.1](https://github.com/Kohulan/ChemAudit/compare/v1.8.0...v1.8.1) (2026-10-13)
 
 
