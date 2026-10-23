@@ -77,7 +77,7 @@ curl -H "X-API-Key: your-api-key" \
   http://localhost:8001/api/v1/validate
 ```
 
-API keys are managed via the `/api-keys` endpoints (requires admin secret). Keys are stored as hashes in Redis with expiration support. Authenticated requests get higher rate limits (300 req/min vs 10 req/min).
+API keys are managed via the `/api-keys` endpoints (requires admin secret). Keys are stored as hashes in Redis with expiration support. Requests with an API key are rate-limited per key instead of per IP address; the limits are the same.
 
 ---
 
@@ -255,7 +255,7 @@ Screen molecule for structural alerts (PAINS, BRENK, NIH, ZINC, ChEMBL).
 {
   "status": "completed",
   "molecule_info": {
-    "input_string": "c1ccc2c(c1)nc(n2)Sc3nnnn3C",
+    "input_smiles": "c1ccc2c(c1)nc(n2)Sc3nnnn3C",
     "canonical_smiles": "Cn1nnnc1Sc1nc2ccccc2[nH]1",
     "molecular_formula": "C9H8N5S",
     "num_atoms": 15
@@ -371,7 +371,7 @@ Calculate comprehensive molecular scores.
 ```json
 {
   "molecule_info": {
-    "input_string": "CCO",
+    "input_smiles": "CCO",
     "canonical_smiles": "CCO",
     "molecular_formula": "C2H6O",
     "molecular_weight": 46.07
@@ -838,7 +838,7 @@ Upload a file for batch QSAR-ready processing. Rate limit: **3/minute**.
 |-------|------|----------|-------------|
 | `file` | file | No | CSV or SDF file |
 | `smiles_text` | string | No | Pasted SMILES, one per line (alternative to file) |
-| `config` | string | No | JSON-encoded pipeline configuration |
+| `config` | string | Yes | JSON-encoded pipeline configuration (`{}` for defaults) |
 
 **Response:**
 ```json
@@ -1129,8 +1129,7 @@ Search PubChem database.
 **Request:**
 ```json
 {
-  "molecule": "CCO",
-  "format": "smiles"
+  "smiles": "CCO"
 }
 ```
 
@@ -1156,8 +1155,7 @@ Search ChEMBL for bioactivity data.
 **Request:**
 ```json
 {
-  "molecule": "CCO",
-  "format": "smiles"
+  "smiles": "CCO"
 }
 ```
 
@@ -1191,8 +1189,7 @@ Search COCONUT natural products database.
 **Request:**
 ```json
 {
-  "molecule": "CCO",
-  "format": "smiles"
+  "smiles": "CCO"
 }
 ```
 
@@ -1211,7 +1208,7 @@ Search COCONUT natural products database.
 
 ---
 
-#### `POST /integrations/resolve`
+#### `POST /resolve`
 
 Resolve any chemical identifier to canonical SMILES and cross-references. Supports SMILES, InChI, InChIKey, CID, ChEMBL ID, CAS, DrugBank ID, ChEBI ID, UNII, Wikipedia URL, and compound names.
 
@@ -1338,6 +1335,10 @@ Revoke an API key. Returns 204 No Content on success.
 
 Real-time batch processing progress updates via WebSocket.
 
+### `WS /ws/qsar/{job_id}`
+
+Real-time QSAR-ready batch progress. Same message format and keep-alive protocol as batch WebSocket. Connect after `POST /qsar-ready/batch/upload` returns a job_id.
+
 ### `WS /ws/structure-filter/{job_id}`
 
 Real-time structure filter job progress. Same message format and keep-alive protocol as batch WebSocket. Connect after `POST /structure-filter/batch/upload` returns a job_id.
@@ -1353,11 +1354,12 @@ Real-time dataset audit progress. Same message format and keep-alive protocol as
 const ws = new WebSocket('ws://localhost:8001/ws/batch/' + jobId);
 
 ws.onmessage = (event) => {
+  if (event.data === 'pong') return;  // keep-alive reply is plain text
   const data = JSON.parse(event.data);
   console.log(`Progress: ${data.progress}% (${data.processed}/${data.total})`);
 };
 
-// Keep alive
+// Keep alive (the server answers with plain text "pong")
 setInterval(() => ws.send('ping'), 30000);
 ```
 
@@ -1427,7 +1429,7 @@ Default rate limits (anonymous / unauthenticated):
 | `POST /score` | 10 req/min |
 | `POST /score/compare` | 10 req/min |
 | `POST /standardize` | 10 req/min |
-| `POST /batch/upload` | 10 req/min |
+| `POST /batch/upload` | 3 req/min |
 | `GET /batch/{job_id}` | 60 req/min |
 | `GET /batch/{job_id}/status` | 10 req/min |
 | `GET /batch/{job_id}/stats` | 10 req/min |
@@ -1451,17 +1453,26 @@ Default rate limits (anonymous / unauthenticated):
 | `GET /dataset/*/download/*` | 10 req/min |
 | `POST /integrations/*` | 30 req/min |
 | `POST /integrations/compare` | 10 req/min |
-| `POST /integrations/resolve` | 30 req/min |
+| `POST /resolve` | 30 req/min |
 
-API key authenticated requests: **300 req/min** for all endpoints.
+Requests with an `X-API-Key` header are counted per key instead of per IP address. The limits are the same.
 
 Repeated rate limit violations (100+ within the tracking window) result in a temporary IP ban (default: 60 minutes).
 
-**Rate Limit Headers:**
+**Rate limit responses:** only a `429` response carries rate limit headers (`Retry-After` and `X-RateLimit-Limit`). Successful responses do not include them.
 ```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 8
-X-RateLimit-Reset: 1706500800
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+X-RateLimit-Limit: 10 per 1 minute
+```
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Rate limit exceeded: 10 per 1 minute",
+  "retry_after": 60,
+  "violations": 1,
+  "ban_threshold": 100
+}
 ```
 
 ---

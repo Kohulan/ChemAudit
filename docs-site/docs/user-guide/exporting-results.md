@@ -330,16 +330,16 @@ PDF exports support selecting specific sections via the `sections` parameter:
 
 | Section Key | Content |
 |-------------|---------|
-| `validation_summary` | Overall statistics and pass rates |
-| `score_distribution` | Score histogram charts |
-| `alert_frequency` | Alert count bar charts |
-| `chemical_space` | Chemical space scatter plot |
-| `scaffold_treemap` | Scaffold frequency visualization |
-| `statistics` | Property statistics tables |
-| `correlation_matrix` | Property correlation heatmap |
-| `mmp_pairs` | Matched molecular pair summary |
+| `validation_summary` | Summary statistics and the top critical issues |
+| `score_distribution` | Validation score distribution chart |
+| `alert_frequency` | Structural alert counts per catalog |
+| `chemical_space` | PCA scatter plot of Morgan fingerprints, colored by validation score |
+| `scaffold_treemap` | Most frequent Murcko scaffolds and scaffold diversity |
+| `statistics` | Descriptive statistics for numeric properties |
+| `correlation_matrix` | Pearson correlation heatmap between numeric properties |
+| `mmp_pairs` | Top 20 matched molecular pairs (batches up to 5,000 molecules) |
 
-All sections are included by default. To select specific sections:
+All sections are included by default. The molecule details table is always included. To select specific sections:
 
 ```bash
 curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=pdf&sections=validation_summary,score_distribution" -o summary.pdf
@@ -394,6 +394,7 @@ curl "http://localhost:8001/api/v1/batch/{job_id}/export?format=sdf&indices=0,1,
 **POST Example (large selections):**
 ```bash
 curl -X POST "http://localhost:8001/api/v1/batch/{job_id}/export?format=json" \
+  -H "Content-Type: application/json" \
   -d '{"indices": [0,1,2,3,4,5,6,7,8,9]}'
 ```
 

@@ -4,6 +4,8 @@ Tests for ChemAudit API client.
 Uses respx for HTTP mocking to test client behavior without a live server.
 """
 
+import json
+
 import pytest
 import httpx
 import respx
@@ -32,6 +34,12 @@ def client(base_url):
 
 
 @pytest.fixture
+def mock_molecule_info():
+    """Mock molecule_info block shared by most responses."""
+    return {"input_smiles": "CCO", "canonical_smiles": "CCO"}
+
+
+@pytest.fixture
 def mock_validation_response():
     """Mock validation response data."""
     return {
@@ -51,7 +59,7 @@ def mock_validation_response():
             {
                 "check_name": "parsability",
                 "passed": True,
-                "severity": "INFO",
+                "severity": "info",
                 "message": "Molecule parsed successfully",
                 "affected_atoms": [],
                 "details": {},
@@ -151,27 +159,164 @@ def test_validate_success(client, base_url, mock_validation_response):
 
 
 @respx.mock
-def test_validate_with_options(client, base_url, mock_validation_response):
-    """Test validation with options."""
+def test_validate_sends_molecule_and_format(client, base_url, mock_validation_response):
+    """Test validation request body."""
     route = respx.post(f"{base_url}/api/v1/validate").mock(
         return_value=httpx.Response(200, json=mock_validation_response)
     )
 
-    result = client.validate(
-        molecule="CCO",
-        format="smiles",
-        include_alerts=True,
-        include_scores=True,
-        standardize=True,
+    client.validate(molecule="CCO", format="smiles")
+
+    request = route.calls.last.request
+    assert json.loads(request.content) == {"molecule": "CCO", "format": "smiles"}
+    assert request.headers["Content-Type"] == "application/json"
+
+
+@respx.mock
+def test_validate_parses_all_server_severities(client, base_url, mock_validation_response):
+    """Server severities are lowercase and include "pass"."""
+    checks = [
+        {**mock_validation_response["all_checks"][0], "severity": sev}
+        for sev in ("critical", "error", "warning", "info", "pass")
+    ]
+    respx.post(f"{base_url}/api/v1/validate").mock(
+        return_value=httpx.Response(200, json={**mock_validation_response, "all_checks": checks})
     )
 
-    assert route.called
-    # Check query parameters were passed
-    request = route.calls.last.request
-    params = dict(request.url.params)
-    assert params["include_alerts"] == "true"
-    assert params["include_scores"] == "true"
-    assert params["standardize"] == "true"
+    result = client.validate("CCO")
+
+    assert [c.severity.value for c in result.all_checks] == [
+        "critical", "error", "warning", "info", "pass"
+    ]
+
+
+@respx.mock
+def test_screen_alerts(client, base_url, mock_molecule_info):
+    """Alert screening sends `molecule` and parses the server response."""
+    route = respx.post(f"{base_url}/api/v1/alerts").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "molecule_info": mock_molecule_info,
+                "alerts": [
+                    {
+                        "pattern_name": "quinone_A",
+                        "description": "Quinone",
+                        "severity": "warning",
+                        "matched_atoms": [0, 1],
+                        "catalog_source": "PAINS",
+                        "smarts": "O=C1C=CC(=O)C=C1",
+                    }
+                ],
+                "total_alerts": 1,
+                "screened_catalogs": ["PAINS", "BRENK"],
+                "has_critical": False,
+                "has_warning": True,
+                "execution_time_ms": 4,
+            },
+        )
+    )
+
+    result = client.screen_alerts("O=C1C=CC(=O)C=C1", catalogs=["PAINS", "BRENK"])
+
+    body = json.loads(route.calls.last.request.content)
+    assert body == {"molecule": "O=C1C=CC(=O)C=C1", "catalogs": ["PAINS", "BRENK"]}
+    assert result.alerts[0].catalog_source == "PAINS"
+    assert result.screened_catalogs == ["PAINS", "BRENK"]
+
+
+@respx.mock
+def test_score(client, base_url, mock_molecule_info):
+    """Scoring sends `molecule` and exposes score blocks as attributes."""
+    route = respx.post(f"{base_url}/api/v1/score").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "molecule_info": mock_molecule_info,
+                "ml_readiness": {"score": 70, "label": "Good"},
+                "execution_time_ms": 9,
+            },
+        )
+    )
+
+    result = client.score("CCO", include=["ml_readiness"])
+
+    body = json.loads(route.calls.last.request.content)
+    assert body == {"molecule": "CCO", "include": ["ml_readiness"]}
+    assert result.ml_readiness["score"] == 70
+    assert result.np_likeness is None
+
+
+@respx.mock
+def test_standardize(client, base_url, mock_molecule_info):
+    """Standardization sends `molecule` + options and parses the nested result."""
+    route = respx.post(f"{base_url}/api/v1/standardize").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "molecule_info": mock_molecule_info,
+                "result": {
+                    "original_smiles": "CCN.Cl",
+                    "standardized_smiles": "CCN",
+                    "success": True,
+                    "steps_applied": [{"step_name": "get_parent", "applied": True}],
+                },
+                "execution_time_ms": 12,
+            },
+        )
+    )
+
+    result = client.standardize("CCN.Cl", tautomer=True)
+
+    body = json.loads(route.calls.last.request.content)
+    assert body == {"molecule": "CCN.Cl", "options": {"include_tautomer": True}}
+    assert result.result.standardized_smiles == "CCN"
+
+
+@respx.mock
+def test_session_cookie_is_not_sent_back(base_url, mock_validation_response):
+    """A server session cookie would make CSRF protection reject later POSTs."""
+    route = respx.post(f"{base_url}/api/v1/validate").mock(
+        return_value=httpx.Response(
+            200,
+            json=mock_validation_response,
+            headers={"Set-Cookie": "chemaudit_sid=abc; Path=/"},
+        )
+    )
+    anonymous = ChemAuditClient(base_url=base_url)
+
+    anonymous.validate("CCO")
+    anonymous.validate("CCO")
+
+    assert "cookie" not in route.calls.last.request.headers
+
+
+@respx.mock
+def test_error_message_from_error_body(client, base_url):
+    """Errors with {"error", "message"} bodies (CSRF, rate limit) keep the message."""
+    respx.post(f"{base_url}/api/v1/validate").mock(
+        return_value=httpx.Response(
+            403, json={"error": "csrf_validation_failed", "message": "Invalid CSRF token"}
+        )
+    )
+
+    with pytest.raises(APIError, match="Invalid CSRF token"):
+        client.validate("CCO")
+
+
+@respx.mock
+def test_error_with_non_json_body(client, base_url):
+    """An HTML error page (e.g. from nginx) still raises APIError."""
+    respx.post(f"{base_url}/api/v1/validate").mock(
+        return_value=httpx.Response(413, text="<html>Request Entity Too Large</html>")
+    )
+
+    with pytest.raises(APIError) as exc_info:
+        client.validate("CCO")
+
+    assert exc_info.value.status_code == 413
 
 
 @respx.mock
@@ -237,11 +382,11 @@ def test_validation_error(client, base_url):
 @respx.mock
 def test_api_error_404(client, base_url):
     """Test 404 not found error."""
-    route = respx.get(f"{base_url}/api/v1/batch/nonexistent").mock(
+    route = respx.get(f"{base_url}/api/v1/batch/nonexistent/status").mock(
         return_value=httpx.Response(404, json={"detail": "Job not found"})
     )
 
-    with pytest.raises(APIError) as exc_info:
+    with pytest.raises(BatchJobNotFoundError) as exc_info:
         client.get_batch_status("nonexistent")
 
     assert route.called
@@ -272,9 +417,16 @@ def test_batch_submit(client, base_url, mock_batch_upload_response, tmp_path):
         return_value=httpx.Response(200, json=mock_batch_upload_response)
     )
 
-    response = client.submit_batch(str(csv_file), smiles_column="smiles")
+    response = client.submit_batch(
+        str(csv_file), smiles_column="smiles", include_standardization=True
+    )
 
     assert route.called
+    request = route.calls.last.request
+    assert request.headers["Content-Type"].startswith("multipart/form-data")
+    body = request.read()
+    assert b'name="file"; filename="test.csv"' in body
+    assert b'name="include_standardization"\r\n\r\ntrue' in body
     assert response.job_id == "test-job-123"
     assert response.total_molecules == 5
 
@@ -282,7 +434,7 @@ def test_batch_submit(client, base_url, mock_batch_upload_response, tmp_path):
 @respx.mock
 def test_batch_status(client, base_url, mock_batch_status_response):
     """Test getting batch status."""
-    route = respx.get(f"{base_url}/api/v1/batch/test-job-123").mock(
+    route = respx.get(f"{base_url}/api/v1/batch/test-job-123/status").mock(
         return_value=httpx.Response(200, json=mock_batch_status_response)
     )
 
@@ -330,16 +482,16 @@ def test_batch_results_with_filters(client, base_url, mock_batch_result_response
     assert route.called
     request = route.calls.last.request
     params = dict(request.url.params)
-    assert params["score_min"] == "70"
-    assert params["score_max"] == "90"
-    assert params["status"] == "success"
+    assert params["min_score"] == "70"
+    assert params["max_score"] == "90"
+    assert params["status_filter"] == "success"
 
 
 @respx.mock
 def test_wait_for_batch_complete(client, base_url):
     """Test waiting for batch completion."""
     # Mock status calls: processing -> processing -> complete
-    route = respx.get(f"{base_url}/api/v1/batch/test-job-123").mock(
+    route = respx.get(f"{base_url}/api/v1/batch/test-job-123/status").mock(
         side_effect=[
             httpx.Response(
                 200,
@@ -384,7 +536,7 @@ def test_wait_for_batch_complete(client, base_url):
 @respx.mock
 def test_wait_for_batch_failed(client, base_url):
     """Test waiting for batch that fails."""
-    route = respx.get(f"{base_url}/api/v1/batch/test-job-123").mock(
+    route = respx.get(f"{base_url}/api/v1/batch/test-job-123/status").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -500,6 +652,39 @@ def test_export_batch(client, base_url, tmp_path):
     request = route.calls.last.request
     params = dict(request.url.params)
     assert params["format"] == "csv"
+
+
+@respx.mock
+def test_export_batch_uses_server_filename(client, base_url, tmp_path, monkeypatch):
+    """Without output_path, the file gets the server's name and extension."""
+    monkeypatch.chdir(tmp_path)
+    respx.get(f"{base_url}/api/v1/batch/test-job-123/export").mock(
+        return_value=httpx.Response(
+            200,
+            content=b"%PDF-1.7",
+            headers={"Content-Disposition": 'attachment; filename="report_test.pdf"'},
+        )
+    )
+
+    path = client.export_batch("test-job-123", format="pdf")
+
+    assert path == "report_test.pdf"
+    assert (tmp_path / "report_test.pdf").read_bytes() == b"%PDF-1.7"
+
+
+@respx.mock
+def test_get_batch_stats(client, base_url):
+    """Statistics come from the dedicated /stats endpoint."""
+    route = respx.get(f"{base_url}/api/v1/batch/test-job-123/stats").mock(
+        return_value=httpx.Response(
+            200, json={"total": 3, "successful": 3, "errors": 0, "avg_validation_score": 86.7}
+        )
+    )
+
+    stats = client.get_batch_stats("test-job-123")
+
+    assert route.called
+    assert stats.avg_validation_score == 86.7
 
 
 def test_client_properties(client, base_url):

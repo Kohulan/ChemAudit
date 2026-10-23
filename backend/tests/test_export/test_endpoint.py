@@ -313,3 +313,36 @@ class TestExportEndpoint:
             disposition = response.headers["content-disposition"]
             assert 'attachment; filename="chemaudit_batch_test-job' in disposition
             assert ".csv" in disposition
+
+
+@pytest.mark.asyncio
+async def test_post_export_passes_pdf_sections():
+    """POST export (large selections) must honour the sections query param like GET."""
+    with patch("app.api.routes.export.verify_job_access"), patch(
+        "app.api.routes.export._export_results", return_value={}
+    ) as export:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            await ac.post(
+                "/api/v1/batch/job-1/export",
+                params={"format": "pdf", "sections": "statistics, score_distribution"},
+                json={"indices": [0, 1]},
+            )
+
+    args = export.call_args.args
+    assert args[5] == [0, 1]
+    assert args[6] == ["statistics", "score_distribution"]
+
+
+@pytest.mark.asyncio
+async def test_export_reads_every_result_of_the_job():
+    """Exports must not stop at 10,000 rows for larger jobs."""
+    with (
+        patch("app.api.routes.export.progress_tracker"),
+        patch("app.api.routes.export.verify_job_access"),
+        patch("app.api.routes.export.result_storage") as storage,
+    ):
+        storage.get_results.return_value = {"results": []}
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            await ac.get("/api/v1/batch/job-1/export", params={"format": "csv"})
+
+    assert storage.get_results.call_args.kwargs["page_size"] is None

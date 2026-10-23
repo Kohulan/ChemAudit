@@ -17,6 +17,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 
 from app.services.export.base import BaseExporter, ExporterFactory, ExportFormat
+from app.services.export.pdf_analytics import SCORE_BANDS, build_analytics_sections
 
 # Lazy import for weasyprint - requires system libraries (pango, gobject)
 # Import only when PDF generation is actually needed
@@ -96,6 +97,7 @@ class PDFReportGenerator(BaseExporter):
         template_dir = Path(__file__).parent.parent.parent / "templates" / "reports"
         if not template_dir.exists():
             raise FileNotFoundError(f"Template directory not found: {template_dir}")
+        self._template_dir = template_dir
         self.env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         try:
             self.template = self.env.get_template("batch_report.html")
@@ -137,6 +139,9 @@ class PDFReportGenerator(BaseExporter):
         # Get all molecules with full validation data
         all_molecules = self._get_all_molecules(results)
 
+        # Optional analytics sections (chemical space, scaffolds, statistics, ...)
+        analytics = build_analytics_sections(results, self.sections)
+
         # Build audit data per molecule when requested
         audit_sections: Optional[Dict[str, Any]] = None
         if self._include_audit:
@@ -156,6 +161,7 @@ class PDFReportGenerator(BaseExporter):
             critical_issues=critical_issues,
             all_molecules=all_molecules,
             sections=self.sections,
+            analytics=analytics,
             include_audit=self._include_audit,
             audit_sections=audit_sections,
         )
@@ -163,7 +169,8 @@ class PDFReportGenerator(BaseExporter):
         # Convert HTML to PDF
         pdf_buffer = BytesIO()
         html_class = _get_weasyprint_html()
-        html_class(string=html_content, base_url=str(Path(__file__).parent)).write_pdf(pdf_buffer)
+        # base_url must be the template dir so <link href="styles.css"> resolves
+        html_class(string=html_content, base_url=str(self._template_dir)).write_pdf(pdf_buffer)
         pdf_buffer.seek(0)
 
         return pdf_buffer
@@ -320,12 +327,9 @@ class PDFReportGenerator(BaseExporter):
         }
 
         # Colors matching CSS
-        colors = {
-            "excellent": "#16a34a",
-            "good": "#2563eb",
-            "moderate": "#d97706",
-            "poor": "#dc2626",
-        }
+        colors = dict(
+            zip(["excellent", "good", "moderate", "poor"], (c for _, c, _ in SCORE_BANDS))
+        )
 
         # Build SVG
         svg_parts = [

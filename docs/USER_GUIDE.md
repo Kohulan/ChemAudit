@@ -717,22 +717,22 @@ Look up molecules in major chemical databases.
 # Search PubChem
 curl -X POST http://localhost:8001/api/v1/integrations/pubchem/lookup \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 
 # Search ChEMBL
 curl -X POST http://localhost:8001/api/v1/integrations/chembl/bioactivity \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 
 # Search COCONUT
 curl -X POST http://localhost:8001/api/v1/integrations/coconut/lookup \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 
 # Search Wikidata
 curl -X POST http://localhost:8001/api/v1/integrations/wikidata/lookup \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 ```
 
 ### Identifier Resolution
@@ -757,7 +757,7 @@ The identifier type is auto-detected, or you can specify it explicitly.
 
 **API:**
 ```bash
-curl -X POST http://localhost:8001/api/v1/integrations/resolve \
+curl -X POST http://localhost:8001/api/v1/resolve \
   -H "Content-Type: application/json" \
   -d '{"identifier": "CHEMBL25", "identifier_type": "auto"}'
 ```

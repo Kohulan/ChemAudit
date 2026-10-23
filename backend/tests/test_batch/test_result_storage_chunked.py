@@ -118,3 +118,14 @@ def test_statistics_round_trip(storage):
     assert isinstance(stats, BatchStatisticsData)
     assert stats.total == 6
     assert stats.errors == 1
+
+
+def test_page_size_none_returns_every_result(storage):
+    """page_size=None returns all matching results in one page (used by exports)."""
+    _store(storage, _results(120, statuses={3, 50}))
+
+    unfiltered = storage.get_results("job1", page=1, page_size=None)
+    filtered = storage.get_results("job1", page=1, page_size=None, status_filter="success")
+
+    assert len(unfiltered["results"]) == 120 and unfiltered["total_pages"] == 1
+    assert len(filtered["results"]) == 118 and filtered["total_pages"] == 1

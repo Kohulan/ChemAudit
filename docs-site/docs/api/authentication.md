@@ -6,14 +6,14 @@ description: API key authentication and CSRF protection for ChemAudit API
 
 # Authentication
 
-ChemAudit supports API key authentication for higher rate limits and CSRF protection for browser-based clients.
+ChemAudit supports API key authentication, which gives each key its own rate limit bucket, and CSRF protection for browser-based clients.
 
 ## Authentication Methods
 
-| Method | Use Case | Rate Limit |
+| Method | Use Case | Rate Limit Counted By |
 |--------|----------|------------|
-| **Anonymous** | Development, testing | 10 req/min |
-| **API Key** | Production, integration | 300 req/min |
+| **Anonymous** | Development, testing | Client IP address |
+| **API Key** | Production, integration | API key |
 
 ## API Key Authentication
 
@@ -210,16 +210,9 @@ def validate_molecule(smiles):
     return response.json()
 ```
 
-## Rate Limit Benefits
+## Rate Limits with API Keys
 
-Authenticated requests get significantly higher rate limits:
-
-| Endpoint Type | Anonymous | Authenticated |
-|--------------|-----------|---------------|
-| Validation | 10/min | 300/min |
-| Scoring | 10/min | 300/min |
-| Batch results | 60/min | 300/min |
-| All other endpoints | 10/min | 300/min |
+Requests with an API key are counted per key instead of per client IP address, so they do not share a bucket with other clients on the same network. The per-endpoint limits are the same as for anonymous requests.
 
 See [Rate Limits](/docs/api/rate-limits) for complete details.
 

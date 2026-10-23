@@ -29,3 +29,22 @@ def test_get_redis_returns_single_instance_under_concurrency():
 
     assert len(results) == 16
     assert len({id(r) for r in results}) == 1
+
+
+def test_mark_complete_reports_all_molecules_processed():
+    """Throttled progress writes can lag; a complete job must report processed == total."""
+    import json
+    from unittest.mock import MagicMock
+
+    tracker = ProgressTracker()
+    redis = MagicMock()
+    redis.get.return_value = json.dumps(
+        {"job_id": "j1", "status": "processing", "progress": 33, "processed": 1, "total": 3}
+    )
+    tracker._get_redis = lambda: redis
+
+    tracker.mark_complete("j1")
+
+    stored = json.loads(redis.set.call_args.args[1])
+    assert stored["status"] == "complete"
+    assert stored["processed"] == 3

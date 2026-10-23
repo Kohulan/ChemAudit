@@ -163,11 +163,11 @@ export const PDF_SECTION_OPTIONS: PDFSectionOption[] = [
   { id: 'validation_summary', label: 'Validation Summary', description: 'Overall validation statistics and pass/fail counts', defaultChecked: true },
   { id: 'score_distribution', label: 'Score Distribution', description: 'Histogram of validation scores across all molecules', defaultChecked: true },
   { id: 'alert_frequency', label: 'Alert Frequency', description: 'Bar chart of structural alert catalog hits', defaultChecked: true },
-  { id: 'chemical_space', label: 'Chemical Space', description: 'PCA/t-SNE chemical space projection', defaultChecked: true },
-  { id: 'scaffold_treemap', label: 'Scaffold Treemap', description: 'Murcko scaffold frequency distribution', defaultChecked: true },
-  { id: 'statistics', label: 'Statistics', description: 'Property distribution statistics and correlations', defaultChecked: true },
+  { id: 'chemical_space', label: 'Chemical Space', description: 'PCA projection of Morgan fingerprints, colored by score', defaultChecked: true },
+  { id: 'scaffold_treemap', label: 'Scaffold Distribution', description: 'Most frequent Murcko scaffolds and scaffold diversity', defaultChecked: true },
+  { id: 'statistics', label: 'Statistics', description: 'Descriptive statistics for numeric properties', defaultChecked: true },
   { id: 'correlation_matrix', label: 'Correlation Matrix', description: 'Property correlation heatmap', defaultChecked: true },
-  { id: 'mmp_pairs', label: 'MMP Pairs', description: 'Matched molecular pair analysis results', defaultChecked: true },
+  { id: 'mmp_pairs', label: 'MMP Pairs', description: 'Top matched molecular pairs (up to 5,000 molecules)', defaultChecked: true },
 ];
 
 export interface ExportFormatInfo {

@@ -128,7 +128,8 @@ CELERY_MEMORY_LIMIT: 4g
 The frontend fetches deployment limits from the `/api/v1/config` endpoint:
 
 ```bash
-curl http://localhost:8000/api/v1/config
+# Development stack (docker-compose.yml); behind nginx use http://localhost/api/v1/config
+curl http://localhost:8001/api/v1/config
 ```
 
 ```json
@@ -148,12 +149,11 @@ This ensures the UI always displays accurate limits for your deployment.
 
 ### Custom Profiles
 
-Create a custom profile by copying an existing one:
+`deploy.sh` only accepts the built-in profile names (`small`, `medium`, `large`, `xl`, `coconut`). To change settings, edit the matching file in `config/` and deploy with that profile:
 
 ```bash
-cp config/medium.yml config/custom.yml
-# Edit config/custom.yml with your settings
-./deploy.sh custom
+# Edit config/medium.yml with your settings
+./deploy.sh medium
 ```
 
 ---
@@ -382,7 +382,7 @@ sudo crontab -e
 |---------|-----|---------------------|
 | **Grafana** | http://localhost:3001 | admin / (from .env) |
 | **Prometheus** | http://localhost:9090 | - |
-| **Backend Metrics** | http://localhost:8000/metrics | - |
+| **Backend Metrics** | http://localhost:8001/metrics | - |
 
 ### Key Metrics
 
@@ -553,7 +553,7 @@ docker-compose -f docker-compose.prod.yml exec postgres pg_isready
 
 # Test connection from backend
 docker-compose -f docker-compose.prod.yml exec backend \
-  python -c "from app.database import engine; print('Connected!')"
+  python -c "from app.db import sync_engine; sync_engine.connect().close(); print('Connected!')"
 
 # View PostgreSQL logs
 docker-compose -f docker-compose.prod.yml logs postgres

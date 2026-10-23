@@ -151,7 +151,7 @@ import type {
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || '/docs';
+export const API_DOCS_URL = import.meta.env.VITE_API_DOCS_URL || '/api/v1/docs';
 
 // Debug logging in development
 logger.info('[ChemAudit API] Configuration:', {
@@ -192,14 +192,16 @@ export const refreshCsrfToken = async (): Promise<void> => {
   await fetchCsrfToken();
 };
 
+// No default Content-Type: axios sets application/json for plain objects and lets
+// the browser set multipart/form-data (with boundary) for FormData.
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
+
+// Large files on slow links need more than the 30 s default.
+const UPLOAD_TIMEOUT_MS = 600000;
 
 // Add request interceptor to include CSRF token for state-changing requests
 api.interceptors.request.use(async (config) => {
@@ -221,7 +223,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 403) {
-      const errorData = error.response.data;
+      let errorData = error.response.data;
+      // Blob requests (file exports) get the JSON error body as a Blob
+      if (errorData instanceof Blob) {
+        try {
+          errorData = JSON.parse(await errorData.text());
+        } catch {
+          errorData = null;
+        }
+      }
       if (errorData?.error === 'csrf_validation_failed') {
         // Token expired or invalid, refresh and retry once
         csrfToken = null;
@@ -483,7 +493,7 @@ export const batchApi = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 600000, // 10 minute timeout for large file upload
+      timeout: UPLOAD_TIMEOUT_MS,
       onUploadProgress: (progressEvent) => {
         if (onUploadProgress && progressEvent.total) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -976,7 +986,8 @@ export const bookmarksApi = {
 
   /** Bulk delete bookmarks. */
   bulkDeleteBookmarks: async (ids: number[]): Promise<void> => {
-    await api.delete('/bookmarks/bulk', { data: { ids } });
+    // Backend reads repeated query keys: ?ids=1&ids=2
+    await api.delete('/bookmarks/bulk', { params: { ids }, paramsSerializer: { indexes: null } });
   },
 };
 
@@ -1262,7 +1273,7 @@ export const qsarReadyApi = {
       const response = await api.post<QSARBatchUploadResponse>(
         '/qsar-ready/batch/upload',
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
+        { headers: { 'Content-Type': 'multipart/form-data' }, timeout: UPLOAD_TIMEOUT_MS },
       );
       return response.data;
     } catch (error) {
@@ -1443,7 +1454,7 @@ export const diagnosticsApi = {
       const response = await api.post<FilePreValidationResponse>(
         '/diagnostics/file-prevalidate',
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
+        { headers: { 'Content-Type': 'multipart/form-data' }, timeout: UPLOAD_TIMEOUT_MS },
       );
       return response.data;
     } catch (error) {
@@ -1522,7 +1533,7 @@ export const structureFilterApi = {
     const response = await api.post<StructureFilterBatchUploadResponse>(
       '/structure-filter/batch/upload',
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
+      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: UPLOAD_TIMEOUT_MS },
     );
     return response.data;
   },
@@ -1579,6 +1590,7 @@ export const datasetApi = {
     if (activityColumn) formData.append('activity_column', activityColumn);
     const { data } = await api.post<DatasetUploadResponse>('/dataset/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: UPLOAD_TIMEOUT_MS,
     });
     return data;
   },
@@ -1604,6 +1616,7 @@ export const datasetApi = {
     formData.append('file', file);
     const { data } = await api.post<DatasetDiffResults>(`/dataset/${jobId}/diff`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: UPLOAD_TIMEOUT_MS,
     });
     return data;
   },

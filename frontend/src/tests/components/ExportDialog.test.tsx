@@ -77,7 +77,7 @@ describe('ExportDialog', () => {
       expect(screen.getByText('Score Distribution')).toBeInTheDocument();
       expect(screen.getByText('Alert Frequency')).toBeInTheDocument();
       expect(screen.getByText('Chemical Space')).toBeInTheDocument();
-      expect(screen.getByText('Scaffold Treemap')).toBeInTheDocument();
+      expect(screen.getByText('Scaffold Distribution')).toBeInTheDocument();
       expect(screen.getByText('Statistics')).toBeInTheDocument();
       expect(screen.getByText('Correlation Matrix')).toBeInTheDocument();
       expect(screen.getByText('MMP Pairs')).toBeInTheDocument();

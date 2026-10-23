@@ -220,6 +220,10 @@ class ProgressTracker:
             progress = json.loads(data)
             progress["completed_at"] = time.time()
             progress.update(updates)
+            # Progress writes are throttled, so the stored count can lag behind.
+            # A complete job has processed every molecule.
+            if updates["status"] == "complete":
+                progress["processed"] = progress.get("total", progress.get("processed", 0))
 
             r.set(f"batch:job:{job_id}", json.dumps(progress), ex=self.COMPLETED_TTL)
             publish_count = r.publish(f"batch:progress:{job_id}", json.dumps(progress))

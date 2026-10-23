@@ -59,7 +59,7 @@ def main():
         print("\n2. Check Job Status")
         print("-" * 60)
         status = client.get_batch_status(job_id)
-        print(f"Status: {status.status}")
+        print(f"Status: {status.status.value}")
         print(f"Progress: {status.progress}%")
         print(f"Processed: {status.processed}/{status.total}")
         if status.eta_seconds:
@@ -69,14 +69,14 @@ def main():
         print("\n3. Wait for Job Completion")
         print("-" * 60)
         try:
-            print("Waiting for job to complete (polling every 2 seconds)...")
+            print("Waiting for job to complete (polling every 10 seconds)...")
             job = client.wait_for_batch(
                 job_id,
-                poll_interval=2.0,
+                poll_interval=10.0,  # status endpoint allows 10 requests/minute
                 timeout=300.0,  # 5 minutes
             )
             print(f"\nJob completed!")
-            print(f"Final Status: {job.status}")
+            print(f"Final Status: {job.status.value}")
             print(f"Processed: {job.processed}/{job.total} molecules")
         except TimeoutError as e:
             print(f"Timeout: {e}")

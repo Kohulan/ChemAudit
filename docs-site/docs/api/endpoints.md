@@ -380,8 +380,7 @@ Search PubChem database.
 
 ```json
 {
-  "molecule": "CCO",
-  "format": "smiles"
+  "smiles": "CCO"
 }
 ```
 
@@ -484,7 +483,7 @@ Delete a single bookmark. Returns 204 on success.
 
 ### DELETE /bookmarks/bulk
 
-Bulk delete bookmarks by IDs. Query parameter: `ids` (list of integers). Returns 204.
+Bulk delete bookmarks by IDs. Pass each ID as a repeated `ids` query parameter, e.g. `DELETE /bookmarks/bulk?ids=1&ids=2`. Returns 204.
 
 ### POST /bookmarks/batch-submit
 
@@ -562,7 +561,7 @@ Get analytics status and cached results for a completed batch job.
 
 ### POST /batch/\{job_id\}/analytics/\{type\}
 
-Trigger an on-demand analytics computation. Types: `scaffold`, `chemical_space`, `mmp`, `similarity_search`, `rgroup`.
+Trigger an on-demand analytics computation. Types: `scaffold`, `chemical_space`, `mmp`, `similarity_search`, `rgroup`, `clustering`, `taxonomy`.
 
 **Optional body parameters:**
 
@@ -574,6 +573,7 @@ Trigger an on-demand analytics computation. Types: `scaffold`, `chemical_space`,
 | `query_index` | int | similarity_search |
 | `top_k` | int | similarity_search (default: 10) |
 | `core_smarts` | string | rgroup (SMARTS pattern) |
+| `cutoff` | float | clustering (distance cutoff) |
 
 ## Batch Subset Actions
 
