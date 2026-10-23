@@ -4,6 +4,7 @@ ChemAudit API Client
 Synchronous Python client for the ChemAudit API.
 """
 
+import re
 import time
 from http.cookiejar import CookieJar, DefaultCookiePolicy
 from typing import Optional, List, Dict, Any, Iterator
@@ -30,6 +31,10 @@ from .exceptions import (
     BatchJobNotFoundError,
     TimeoutError,
 )
+
+
+# A plain file name: no directories, no leading dot, safe characters only
+_SAFE_FILENAME = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9_.-]{0,200}\.[A-Za-z0-9]{1,10}")
 
 
 def _error_body(response: httpx.Response) -> Dict[str, Any]:
@@ -534,11 +539,15 @@ class ChemAuditClient:
             params=params,
         )
 
-        # Use the server's filename (it has the right extension) if no path given
+        # Use the server's filename (it has the right extension) if no path given.
+        # Accept only a plain, non-hidden file name; anything else falls back.
         if output_path is None:
             disposition = response.headers.get("Content-Disposition", "")
             _, _, filename = disposition.partition('filename="')
-            output_path = Path(filename.rstrip('"')).name or f"batch_{job_id}.{format}"
+            filename = filename.rstrip('"')
+            if not _SAFE_FILENAME.fullmatch(filename):
+                filename = f"batch_{job_id}.{format}"
+            output_path = filename
 
         # Write response to file
         with open(output_path, "wb") as f:
