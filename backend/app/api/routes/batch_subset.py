@@ -230,10 +230,7 @@ async def score_subset_inline(
     weights = parse_json_field(profile.weights)
 
     # Fetch existing batch results for the selected indices
-    result_data = result_storage.get_results(
-        job_id=job_id, page=1, page_size=10000
-    )
-    all_results = result_data.get("results", [])
+    all_results = result_storage.get_all_results(job_id)
     indices_set = set(body.indices)
     subset = [r for r in all_results if r.get("index") in indices_set]
 

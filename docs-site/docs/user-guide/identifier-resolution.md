@@ -62,7 +62,7 @@ The resolved SMILES can be used directly for validation by clicking **Validate T
 ### Resolve Identifier
 
 ```bash
-curl -X POST http://localhost:8001/api/v1/integrations/resolve \
+curl -X POST http://localhost:8001/api/v1/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "identifier": "CHEMBL25",
@@ -116,7 +116,7 @@ import requests
 
 # Resolve a ChEMBL ID
 response = requests.post(
-    "http://localhost:8001/api/v1/integrations/resolve",
+    "http://localhost:8001/api/v1/resolve",
     json={"identifier": "CHEMBL25"}
 )
 result = response.json()
@@ -127,13 +127,13 @@ if result["resolved"]:
 
 # Resolve a CAS number
 response = requests.post(
-    "http://localhost:8001/api/v1/integrations/resolve",
+    "http://localhost:8001/api/v1/resolve",
     json={"identifier": "50-78-2"}
 )
 
 # Resolve a compound name
 response = requests.post(
-    "http://localhost:8001/api/v1/integrations/resolve",
+    "http://localhost:8001/api/v1/resolve",
     json={"identifier": "ibuprofen"}
 )
 ```
@@ -142,7 +142,7 @@ response = requests.post(
 
 | Endpoint | Limit |
 |----------|-------|
-| `POST /integrations/resolve` | 30 req/min |
+| `POST /resolve` | 30 req/min |
 
 ## Next Steps
 

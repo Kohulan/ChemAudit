@@ -255,7 +255,7 @@ def _compute_lle(results: list[dict], activity_column: str) -> list[dict]:
     """
     lle_values = []
     for res in results:
-        idx = res.get("molecule_index")
+        idx = res.get("index")
         props = res.get("properties") or {}
         raw_activity = props.get(activity_column)
         if raw_activity is None:
@@ -313,7 +313,7 @@ def compute_mmp_analysis(
 
     Args:
         results: List of batch validation result dicts. Each must have at minimum:
-                 - ``molecule_index`` (int): position in the original batch
+                 - ``index`` (int): position in the original batch
                  - ``status`` (str): ``"success"`` for processable molecules
                  - ``smiles`` or ``standardized_smiles`` (str): SMILES string
                  - ``properties`` (dict, optional): extra data including activity values
@@ -370,7 +370,7 @@ def compute_mmp_analysis(
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             continue
-        idx = res.get("molecule_index")
+        idx = res.get("index")
         if idx is None:
             continue
         mols.append(mol)
@@ -400,7 +400,7 @@ def compute_mmp_analysis(
         # Extract activity values from properties
         activities: dict[int, float] = {}
         for res in valid_results:
-            idx = res.get("molecule_index")
+            idx = res.get("index")
             props = res.get("properties") or {}
             raw = props.get(activity_column)
             if raw is None:

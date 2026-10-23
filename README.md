@@ -227,7 +227,7 @@ docker-compose logs -f
 | Service | URL |
 |---------|-----|
 | Web UI | http://localhost:3002 |
-| API Docs | http://localhost:8001/docs |
+| API Docs | http://localhost:8001/api/v1/docs |
 | MCP Server | http://localhost:8001/mcp |
 | Metrics | http://localhost:9090 |
 
@@ -298,7 +298,7 @@ chemaudit standardize --smiles "CC(=O)[O-].[Na+]"
 # Profile a molecule
 chemaudit profile --smiles "c1ccccc1"
 
-# Process a file
+# Read the molecule from a file (only the first molecule is validated)
 chemaudit validate --file molecules.csv --format json
 
 # Pipe from stdin
@@ -328,14 +328,18 @@ from chemaudit import ChemAuditClient
 client = ChemAuditClient("http://localhost:8000")
 
 # Upload and process
-job = client.upload_batch("molecules.sdf")
+job = client.submit_batch("molecules.csv", smiles_column="smiles", include_standardization=True)
 
-# Monitor progress
-for update in client.stream_progress(job.job_id):
-    print(f"Progress: {update.progress}%")
+# Wait for the job to finish (polls the status endpoint)
+status = client.wait_for_batch(job.job_id)
+print(f"{status.status.value}: {status.processed}/{status.total} molecules")
 
 # Get results
-results = client.get_results(job.job_id)
+for result in client.iter_batch_results(job.job_id):
+    print(result)
+
+# Or download everything as a file
+client.export_batch(job.job_id, format="csv", output_path="results.csv")
 ```
 
 ---
@@ -392,7 +396,7 @@ results = client.get_results(job.job_id)
 | [Deployment](docs/DEPLOYMENT.md) | Production deployment guide |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues & solutions |
 
-**Interactive API Docs:** http://localhost:8000/docs
+**Interactive API Docs:** http://localhost:8001/api/v1/docs (Docker) or http://localhost:8000/api/v1/docs (manual setup)
 
 ---
 
@@ -409,7 +413,7 @@ curl -X POST http://localhost:8000/api/v1/validate \
 ### Resolve an Identifier
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/integrations/resolve \
+curl -X POST http://localhost:8000/api/v1/resolve \
   -H "Content-Type: application/json" \
   -d '{"identifier": "aspirin"}'
 ```
@@ -419,7 +423,7 @@ curl -X POST http://localhost:8000/api/v1/integrations/resolve \
 ```bash
 curl -X POST http://localhost:8000/api/v1/safety/assess \
   -H "Content-Type: application/json" \
-  -d '{"smiles": "c1ccc2c(c1)nc(n2)Sc3nnnn3C"}'
+  -d '{"molecule": "c1ccc2c(c1)nc(n2)Sc3nnnn3C"}'
 ```
 
 ### Profile a Compound

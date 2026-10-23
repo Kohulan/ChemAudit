@@ -5,6 +5,7 @@ Synchronous Python client for the ChemAudit API.
 """
 
 import time
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 from typing import Optional, List, Dict, Any, Iterator
 from pathlib import Path
 import httpx
@@ -29,6 +30,15 @@ from .exceptions import (
     BatchJobNotFoundError,
     TimeoutError,
 )
+
+
+def _error_body(response: httpx.Response) -> Dict[str, Any]:
+    """Return the JSON error body, or {} if the body is empty or not JSON."""
+    try:
+        data = response.json()
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 class ChemAuditClient:
@@ -62,16 +72,20 @@ class ChemAuditClient:
         self.timeout = timeout
         self.max_retries = max_retries
 
-        # Build headers
-        headers = {"Content-Type": "application/json"}
+        # No global Content-Type: httpx sets it per request (JSON or multipart)
+        headers = {}
         if api_key:
             headers["X-API-Key"] = api_key
 
         # Create synchronous HTTP client
+        # Store no cookies. The server sets a browser session cookie on some calls;
+        # sending it back makes CSRF protection reject later POSTs with 403.
+        no_cookies = CookieJar(policy=DefaultCookiePolicy(allowed_domains=[]))
         self._client = httpx.Client(
             base_url=self.base_url,
             headers=headers,
             timeout=timeout,
+            cookies=no_cookies,
         )
 
     def __enter__(self):
@@ -129,25 +143,14 @@ class ChemAuditClient:
             if response.status_code == 401:
                 raise AuthenticationError()
 
-            # Handle not found errors
-            if response.status_code == 404:
-                error_data = response.json() if response.text else {}
-                raise APIError(
-                    error_data.get("detail", "Resource not found"),
-                    status_code=404,
-                    response_data=error_data,
-                )
-
-            # Handle validation errors
-            if response.status_code == 422:
-                error_data = response.json() if response.text else {}
-                raise ValidationError(error_data.get("detail", "Validation error"))
-
-            # Handle other client/server errors
             if response.status_code >= 400:
-                error_data = response.json() if response.text else {}
+                error_data = _error_body(response)
+                message = error_data.get("detail") or error_data.get("message")
+
+                if response.status_code == 422:
+                    raise ValidationError(message or "Validation error")
                 raise APIError(
-                    error_data.get("detail", f"HTTP {response.status_code}"),
+                    message or f"HTTP {response.status_code}",
                     status_code=response.status_code,
                     response_data=error_data,
                 )
@@ -163,19 +166,13 @@ class ChemAuditClient:
         self,
         molecule: str,
         format: str = "auto",
-        include_alerts: bool = False,
-        include_scores: bool = False,
-        standardize: bool = False,
     ) -> ValidationResult:
         """
         Validate a single molecule.
 
         Args:
             molecule: Molecule string (SMILES, InChI, or MOL block)
-            format: Input format ("auto", "smiles", "inchi", "mol")
-            include_alerts: Include structural alert screening
-            include_scores: Include ML-readiness scoring
-            standardize: Standardize molecule before validation
+            format: Input format ("auto", "smiles", "inchi", "mol", "iupac")
 
         Returns:
             ValidationResult with scores, issues, and molecule info
@@ -195,25 +192,21 @@ class ChemAuditClient:
                 "molecule": molecule,
                 "format": format,
             },
-            params={
-                "include_alerts": include_alerts,
-                "include_scores": include_scores,
-                "standardize": standardize,
-            },
         )
         return ValidationResult(**response.json())
 
     def screen_alerts(
         self,
-        smiles: str,
+        molecule: str,
         catalogs: Optional[List[str]] = None,
     ) -> AlertScreeningResult:
         """
         Screen molecule for structural alerts.
 
         Args:
-            smiles: SMILES string
-            catalogs: Alert catalogs to screen (default: ["PAINS", "BRENK"])
+            molecule: Molecule string (SMILES, InChI, or MOL block)
+            catalogs: Alert catalogs to screen, e.g. ["PAINS", "BRENK"]
+                (default: server default, PAINS)
 
         Returns:
             AlertScreeningResult with detected alerts
@@ -225,59 +218,58 @@ class ChemAuditClient:
         response = self._request(
             "POST",
             "/api/v1/alerts",
-            json={
-                "smiles": smiles,
-                "catalogs": catalogs or ["PAINS", "BRENK"],
-            },
+            json={"molecule": molecule, **({"catalogs": catalogs} if catalogs else {})},
         )
         return AlertScreeningResult(**response.json())
 
-    def score(self, smiles: str) -> ScoreResult:
+    def score(self, molecule: str, include: Optional[List[str]] = None) -> ScoreResult:
         """
         Calculate ML-readiness and other scores.
 
         Args:
-            smiles: SMILES string
+            molecule: Molecule string (SMILES, InChI, or MOL block)
+            include: Score blocks to compute, e.g. ["ml_readiness", "druglikeness"]
+                (default: server default set)
 
         Returns:
-            ScoreResult with various scoring metrics
+            ScoreResult with one entry per computed score block
 
         Example:
             >>> result = client.score("CCO")
-            >>> print(f"ML-readiness: {result.scores['ml_readiness_score']}")
+            >>> print(f"ML-readiness: {result.ml_readiness['score']}")
         """
         response = self._request(
             "POST",
             "/api/v1/score",
-            json={"smiles": smiles},
+            json={"molecule": molecule, **({"include": include} if include else {})},
         )
         return ScoreResult(**response.json())
 
     def standardize(
         self,
-        smiles: str,
+        molecule: str,
         tautomer: bool = False,
     ) -> StandardizationResult:
         """
         Standardize a molecule using ChEMBL pipeline.
 
         Args:
-            smiles: SMILES string
+            molecule: Molecule string (SMILES, InChI, or MOL block)
             tautomer: Apply tautomer canonicalization (may affect E/Z stereo)
 
         Returns:
-            StandardizationResult with standardized SMILES and changes
+            StandardizationResult; the outcome is in ``result``
 
         Example:
             >>> result = client.standardize("[Na+].CC(=O)[O-]")
-            >>> print(result.standardized_smiles)
+            >>> print(result.result.standardized_smiles)
         """
         response = self._request(
             "POST",
             "/api/v1/standardize",
             json={
-                "smiles": smiles,
-                "apply_tautomer": tautomer,
+                "molecule": molecule,
+                "options": {"include_tautomer": tautomer},
             },
         )
         return StandardizationResult(**response.json())
@@ -286,6 +278,7 @@ class ChemAuditClient:
         self,
         file_path: str,
         smiles_column: str = "smiles",
+        include_standardization: bool = False,
     ) -> BatchUploadResponse:
         """
         Submit batch file for processing.
@@ -293,6 +286,7 @@ class ChemAuditClient:
         Args:
             file_path: Path to CSV file with molecules
             smiles_column: Name of column containing SMILES
+            include_standardization: Run ChEMBL standardization on each molecule
 
         Returns:
             BatchUploadResponse with job_id for tracking
@@ -311,7 +305,10 @@ class ChemAuditClient:
                 "POST",
                 "/api/v1/batch/upload",
                 files=files,
-                data={"smiles_column": smiles_column},
+                data={
+                    "smiles_column": smiles_column,
+                    "include_standardization": str(include_standardization).lower(),
+                },
             )
 
         return BatchUploadResponse(**response.json())
@@ -333,9 +330,13 @@ class ChemAuditClient:
             >>> status = client.get_batch_status(job_id)
             >>> print(f"Progress: {status.progress}%")
         """
-        response = self._request("GET", f"/api/v1/batch/{job_id}")
-        data = response.json()
-        return BatchJob(**data)
+        try:
+            response = self._request("GET", f"/api/v1/batch/{job_id}/status")
+        except APIError as e:
+            if e.status_code == 404:
+                raise BatchJobNotFoundError(job_id) from e
+            raise
+        return BatchJob(**response.json())
 
     def get_batch_results(
         self,
@@ -370,11 +371,11 @@ class ChemAuditClient:
             "page_size": page_size,
         }
         if score_min is not None:
-            params["score_min"] = score_min
+            params["min_score"] = score_min
         if score_max is not None:
-            params["score_max"] = score_max
+            params["max_score"] = score_max
         if status:
-            params["status"] = status
+            params["status_filter"] = status
 
         response = self._request("GET", f"/api/v1/batch/{job_id}", params=params)
         return BatchResult(**response.json())
@@ -393,10 +394,8 @@ class ChemAuditClient:
             >>> stats = client.get_batch_stats(job_id)
             >>> print(f"Average score: {stats.avg_validation_score}")
         """
-        result = self.get_batch_results(job_id, page=1, page_size=1)
-        if result.statistics is None:
-            raise APIError("Statistics not available yet")
-        return result.statistics
+        response = self._request("GET", f"/api/v1/batch/{job_id}/stats")
+        return BatchStatistics(**response.json())
 
     def cancel_batch(self, job_id: str) -> Dict[str, str]:
         """
@@ -417,7 +416,7 @@ class ChemAuditClient:
     def wait_for_batch(
         self,
         job_id: str,
-        poll_interval: float = 2.0,
+        poll_interval: float = 10.0,
         timeout: float = 3600.0,
     ) -> BatchJob:
         """
@@ -425,7 +424,8 @@ class ChemAuditClient:
 
         Args:
             job_id: Batch job identifier
-            poll_interval: Seconds between status checks
+            poll_interval: Seconds between status checks (the status endpoint
+                allows 10 requests/minute, so keep this at 6 or more)
             timeout: Maximum wait time in seconds
 
         Returns:
@@ -514,7 +514,7 @@ class ChemAuditClient:
 
         Args:
             job_id: Batch job identifier
-            format: Export format ("csv", "excel", "sdf", "json")
+            format: Export format ("csv", "excel", "sdf", "json", "pdf", ...)
             output_path: Output file path (default: auto-generated)
             **filter_kwargs: Filters (score_min, score_max, status)
 
@@ -534,10 +534,11 @@ class ChemAuditClient:
             params=params,
         )
 
-        # Generate output path if not provided
+        # Use the server's filename (it has the right extension) if no path given
         if output_path is None:
-            ext = {"csv": "csv", "excel": "xlsx", "sdf": "sdf", "json": "json"}
-            output_path = f"batch_{job_id}.{ext.get(format, 'csv')}"
+            disposition = response.headers.get("Content-Disposition", "")
+            _, _, filename = disposition.partition('filename="')
+            output_path = Path(filename.rstrip('"')).name or f"batch_{job_id}.{format}"
 
         # Write response to file
         with open(output_path, "wb") as f:

@@ -33,6 +33,19 @@ class ExportRequest(BaseModel):
     indices: List[int]
 
 
+SECTIONS_DESCRIPTION = (
+    "Comma-separated PDF sections to include (e.g., 'validation_summary,score_distribution'). "
+    "Only used with PDF format. If omitted, all sections included."
+)
+
+
+def _parse_sections(sections: Optional[str]) -> Optional[List[str]]:
+    """Split a comma-separated PDF sections string; None or empty means all sections."""
+    if not sections:
+        return None
+    return [s.strip() for s in sections.split(",") if s.strip()] or None
+
+
 def _parse_indices(indices_str: Optional[str]) -> Optional[List[int]]:
     """
     Parse comma-separated indices string to list of integers.
@@ -92,7 +105,7 @@ def _export_results(
     result_data = result_storage.get_results(
         job_id=job_id,
         page=1,
-        page_size=10000,  # Get all results (max batch size is 10K)
+        page_size=None,  # every matching result, whatever the job size
         status_filter=status,
         min_score=score_min,
         max_score=score_max,
@@ -157,7 +170,7 @@ def _export_results(
 
 @router.get("/batch/{job_id}/export")
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def export_batch_results(
+def export_batch_results(
     request: Request,
     job_id: str,
     format: ExportFormat = Query(..., description="Export format"),
@@ -176,7 +189,7 @@ async def export_batch_results(
     ),
     sections: Optional[str] = Query(
         None,
-        description="Comma-separated PDF sections to include (e.g., 'validation_summary,score_distribution'). Only used with PDF format. If omitted, all sections included.",
+        description=SECTIONS_DESCRIPTION,
     ),
     include_images: bool = Query(
         False,
@@ -225,9 +238,7 @@ async def export_batch_results(
     verify_job_access(request, job_id)
 
     indices_list = _parse_indices(indices)
-    sections_list = (
-        [s.strip() for s in sections.split(",") if s.strip()] if sections else None
-    )
+    sections_list = _parse_sections(sections)
 
     return _export_results(
         job_id, format, score_min, score_max, status,
@@ -238,7 +249,7 @@ async def export_batch_results(
 
 @router.post("/batch/{job_id}/export")
 @limiter.limit("30/minute", key_func=get_rate_limit_key)
-async def export_batch_results_post(
+def export_batch_results_post(
     request: Request,
     job_id: str,
     body: ExportRequest,
@@ -251,6 +262,10 @@ async def export_batch_results_post(
     ),
     status: Optional[str] = Query(
         None, description="Filter by status (success, error, warning)"
+    ),
+    sections: Optional[str] = Query(
+        None,
+        description=SECTIONS_DESCRIPTION,
     ),
     include_images: bool = Query(
         False,
@@ -278,6 +293,7 @@ async def export_batch_results_post(
     - **score_min**: Filter results by minimum score
     - **score_max**: Filter results by maximum score
     - **status**: Filter results by status
+    - **sections**: Comma-separated PDF sections (PDF only)
     - **include_images**: Include 2D structure images (Excel only)
     - **sheet_layout**: Excel sheet layout ('single' or 'multi')
     - **include_audit**: Include full audit data (SDF and PDF only)
@@ -298,6 +314,6 @@ async def export_batch_results_post(
 
     return _export_results(
         job_id, format, score_min, score_max, status,
-        body.indices, include_images=include_images,
+        body.indices, _parse_sections(sections), include_images=include_images,
         sheet_layout=sheet_layout, include_audit=include_audit,
     )

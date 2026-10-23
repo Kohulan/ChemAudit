@@ -27,12 +27,7 @@ def _fetch_subset_smiles(job_id: str, indices: List[int]) -> List[dict]:
     Raises:
         ValueError: If no results found for the given job/indices
     """
-    result_data = result_storage.get_results(
-        job_id=job_id,
-        page=1,
-        page_size=10000,
-    )
-    results = result_data.get("results", [])
+    results = result_storage.get_all_results(job_id)
 
     indices_set = set(indices)
     subset = [r for r in results if r.get("index") in indices_set]
@@ -110,12 +105,7 @@ def export_subset(job_id: str, indices: List[int], format: str) -> BytesIO:
     Returns:
         BytesIO buffer with exported data
     """
-    result_data = result_storage.get_results(
-        job_id=job_id,
-        page=1,
-        page_size=10000,
-    )
-    results = result_data.get("results", [])
+    results = result_storage.get_all_results(job_id)
 
     indices_set = set(indices)
     subset = [r for r in results if r.get("index") in indices_set]

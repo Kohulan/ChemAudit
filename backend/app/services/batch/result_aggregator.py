@@ -300,7 +300,7 @@ class ResultStorage:
         self,
         job_id: str,
         page: int = 1,
-        page_size: int = 50,
+        page_size: Optional[int] = 50,
         status_filter: Optional[str] = None,
         min_score: Optional[int] = None,
         max_score: Optional[int] = None,
@@ -318,7 +318,7 @@ class ResultStorage:
         Args:
             job_id: Job identifier
             page: Page number (1-indexed)
-            page_size: Results per page
+            page_size: Results per page; None returns every matching result in one page
             status_filter: Filter by status ('success', 'error')
             min_score: Minimum validation score
             max_score: Maximum validation score
@@ -358,6 +358,7 @@ class ResultStorage:
         # fetch only this page with LRANGE; never deserialize the whole dataset.
         if no_filter_or_sort and ktype == "list":
             total_results = r.llen(key)
+            page_size = page_size or max(total_results, 1)
             total_pages = (
                 (total_results + page_size - 1) // page_size if total_results > 0 else 0
             )
@@ -401,6 +402,7 @@ class ResultStorage:
 
         # Paginate from the (possibly cached) sorted list
         total_results = len(filtered)
+        page_size = page_size or max(total_results, 1)
         total_pages = (
             (total_results + page_size - 1) // page_size if total_results > 0 else 0
         )

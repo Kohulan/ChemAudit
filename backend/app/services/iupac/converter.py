@@ -12,6 +12,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from rdkit import Chem
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -208,3 +210,23 @@ def detect_input_type(value: str) -> str:
 
     # Could be simple SMILES like "CCO" or abbreviation
     return "ambiguous"
+
+
+def needs_name_resolution(value: str, detected: str, allow_ambiguous: bool) -> bool:
+    """Decide whether an input should go through name-to-SMILES resolution.
+
+    Ambiguous inputs that already parse as SMILES (e.g. "CCO", "CO", "O") stay
+    SMILES. Without this rule the resolver rewrites them to unrelated PubChem
+    hits (CO -> [Co], O -> O=O, CCO -> a thiadiazole).
+
+    Args:
+        value: The raw input string.
+        detected: Result of detect_input_type(), or "iupac" when forced.
+        allow_ambiguous: Whether ambiguous inputs may be resolved (auto mode).
+
+    Returns:
+        True if the input should be resolved as a name.
+    """
+    if detected == "iupac":
+        return True
+    return detected == "ambiguous" and allow_ambiguous and Chem.MolFromSmiles(value) is None

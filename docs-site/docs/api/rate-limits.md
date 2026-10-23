@@ -1,18 +1,18 @@
 ---
 sidebar_position: 6
 title: Rate Limits
-description: API rate limit tiers, headers, and best practices
+description: API rate limits, headers, and best practices
 ---
 
 # Rate Limits
 
-ChemAudit implements rate limiting to ensure fair usage and prevent abuse. Rate limits vary by authentication status and endpoint.
+ChemAudit implements rate limiting to ensure fair usage and prevent abuse. Rate limits are set per endpoint.
 
 ## Rate Limit Tiers
 
-### Anonymous (Unauthenticated)
+### Per-Endpoint Limits
 
-Default rate limits for requests without an API key:
+Requests without an API key are counted per client IP address:
 
 | Endpoint | Limit |
 |----------|-------|
@@ -25,7 +25,7 @@ Default rate limits for requests without an API key:
 | `POST /score` | 10 req/min |
 | `POST /score/compare` | 10 req/min |
 | `POST /standardize` | 10 req/min |
-| `POST /batch/upload` | 10 req/min |
+| `POST /batch/upload` | 3 req/min |
 | `GET /batch/{job_id}` | 60 req/min |
 | `GET /batch/{job_id}/status` | 10 req/min |
 | `GET /batch/{job_id}/stats` | 10 req/min |
@@ -50,35 +50,20 @@ Default rate limits for requests without an API key:
 | `GET /dataset/*/download/*` | 10 req/min |
 | `POST /integrations/*` | 30 req/min |
 | `POST /integrations/compare` | 10 req/min |
-| `POST /integrations/resolve` | 30 req/min |
+| `POST /resolve` | 30 req/min |
 
-### Authenticated (with API Key)
+### With an API Key
 
-Requests with a valid `X-API-Key` header:
-
-| All Endpoints | Limit |
-|--------------|-------|
-| All | **300 req/min** |
-
-:::tip Get an API Key
-Use [API key authentication](/docs/api/authentication) for 30x higher rate limits.
-:::
+Requests with an `X-API-Key` header are counted in a separate bucket for that key instead of the client IP address. The per-endpoint limits above still apply; an API key does not raise them.
 
 ## Rate Limit Headers
 
-Every response includes rate limit headers:
-
-```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 7
-X-RateLimit-Reset: 1706500800
-```
+Only `429` responses carry rate limit headers. Successful responses do not include them.
 
 | Header | Description |
 |--------|-------------|
-| `X-RateLimit-Limit` | Total requests allowed per minute |
-| `X-RateLimit-Remaining` | Requests remaining in current window |
-| `X-RateLimit-Reset` | Unix timestamp when limit resets |
+| `Retry-After` | Seconds to wait before retrying |
+| `X-RateLimit-Limit` | The limit that was exceeded, e.g. `10 per 1 minute` |
 
 ## When Rate Limited
 
@@ -86,16 +71,19 @@ If you exceed the rate limit, you'll receive a 429 response:
 
 ```json
 {
-  "detail": "Rate limit exceeded. Try again in 42 seconds."
+  "error": "rate_limit_exceeded",
+  "message": "Rate limit exceeded: 10 per 1 minute",
+  "retry_after": 60,
+  "violations": 1,
+  "ban_threshold": 100
 }
 ```
 
 **Headers:**
 
 ```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1706500842
+Retry-After: 60
+X-RateLimit-Limit: 10 per 1 minute
 ```
 
 ## IP Banning
@@ -104,7 +92,7 @@ Repeated rate limit violations (100+ within the tracking window) result in a tem
 
 - **Ban duration**: 60 minutes (default)
 - **Response**: 403 Forbidden
-- **Message**: "IP address banned due to excessive rate limit violations"
+- **Message**: "Your IP has been temporarily banned due to repeated rate limit violations"
 
 :::warning Avoid Bans
 Implement proper rate limiting and error handling in your code to avoid IP bans.
@@ -112,35 +100,24 @@ Implement proper rate limiting and error handling in your code to avoid IP bans.
 
 ## Best Practices
 
-### 1. Monitor Rate Limit Headers
+### 1. Respect Retry-After
 
-Check headers before making requests:
+The server does not report remaining requests. When you get a 429, wait for the number of seconds in `Retry-After`:
 
 ```python
 import requests
 import time
 
-def check_rate_limit(response):
-    remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-    reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
-
-    if remaining < 5:
-        print(f"Warning: Only {remaining} requests remaining")
-
-        # Wait if needed
-        if remaining == 0:
-            wait_seconds = reset_time - int(time.time())
-            if wait_seconds > 0:
-                print(f"Waiting {wait_seconds} seconds for rate limit reset...")
-                time.sleep(wait_seconds + 1)
-
 response = requests.post(url, json=data)
-check_rate_limit(response)
+if response.status_code == 429:
+    wait_seconds = int(response.headers.get('Retry-After', 60))
+    print(f"Rate limited. Waiting {wait_seconds} seconds...")
+    time.sleep(wait_seconds)
 ```
 
-### 2. Implement Exponential Backoff
+### 2. Retry When Rate Limited
 
-Retry with increasing delays when rate limited:
+Retry after the delay the server asks for:
 
 ```python
 import time
@@ -153,8 +130,7 @@ def api_call_with_backoff(url, data, max_retries=3):
             return response.json()
         elif response.status_code == 429:
             # Rate limited
-            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
-            wait_time = max(reset_time - int(time.time()), 0) + 1
+            wait_time = int(response.headers.get('Retry-After', 60))
 
             print(f"Rate limited. Waiting {wait_time} seconds...")
             time.sleep(wait_time)
@@ -183,7 +159,7 @@ job_id = response.json()['job_id']
 
 ### 4. Use API Keys
 
-Authenticate to get 300 req/min instead of 10:
+An API key gives your requests their own rate limit bucket, separate from other clients on the same IP address. The limits are the same:
 
 ```python
 import os
@@ -288,17 +264,12 @@ class AdaptiveRateLimiter:
         self.delay = 0.1  # Start with 100ms delay
 
     def on_success(self, response):
-        remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-
-        if remaining > 5:
-            # Plenty of capacity, speed up
-            self.delay = max(0.05, self.delay * 0.9)
-        elif remaining < 3:
-            # Running low, slow down
-            self.delay = min(10.0, self.delay * 1.5)
+        # Request went through, speed up slightly
+        self.delay = max(0.05, self.delay * 0.9)
 
     def on_rate_limit(self, response):
-        # Hit limit, back off significantly
+        # Hit limit: wait as long as the server asks, then slow down
+        time.sleep(int(response.headers.get('Retry-After', 60)))
         self.delay = min(30.0, self.delay * 2.0)
 
     def wait(self):
@@ -319,7 +290,7 @@ for i in range(15):  # More than limit
     response = requests.post("/validate", json={"molecule": "CCO"})
 
     print(f"Request {i+1}: Status {response.status_code}, "
-          f"Remaining: {response.headers.get('X-RateLimit-Remaining')}")
+          f"Retry-After: {response.headers.get('Retry-After')}")
 
     if response.status_code == 429:
         print("Rate limited as expected")
@@ -330,6 +301,6 @@ for i in range(15):  # More than limit
 
 ## Next Steps
 
-- **[Authentication](/docs/api/authentication)** - Get API keys for higher limits
+- **[Authentication](/docs/api/authentication)** - Get API keys
 - **[Error Handling](/docs/api/error-handling)** - Handle 429 responses
 - **[Batch Processing](/docs/user-guide/batch-processing)** - Process many molecules efficiently

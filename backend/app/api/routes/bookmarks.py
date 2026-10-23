@@ -231,7 +231,8 @@ async def update_bookmark(
     return _bookmark_to_response(bm)
 
 
-@router.delete("/bookmarks/{bookmark_id}", status_code=204)
+# ":int" keeps "/bookmarks/bulk" from matching this route (it is registered first)
+@router.delete("/bookmarks/{bookmark_id:int}", status_code=204)
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def delete_bookmark(
     bookmark_id: int,

@@ -207,7 +207,7 @@ docker-compose restart
 docker-compose exec postgres pg_isready
 
 # Check connection from backend
-docker-compose exec backend python -c "from app.database import engine; print('Connected!')"
+docker-compose exec backend python -c "from app.db import sync_engine; sync_engine.connect().close(); print('Connected!')"
 ```
 
 ## Next Steps
