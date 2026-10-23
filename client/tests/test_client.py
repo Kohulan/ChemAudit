@@ -693,3 +693,20 @@ def test_client_properties(client, base_url):
     assert client.api_key == "test-key"
     assert client.timeout == 30.0
     assert client.max_retries == 3
+
+
+@pytest.mark.parametrize("name", ["../evil.csv", ".bashrc", "/etc/passwd", "a/b.csv", ""])
+@respx.mock
+def test_export_batch_ignores_unsafe_server_filename(client, base_url, tmp_path, monkeypatch, name):
+    """A server-chosen name that is hidden or has a path falls back to a safe default."""
+    monkeypatch.chdir(tmp_path)
+    respx.get(f"{base_url}/api/v1/batch/test-job-123/export").mock(
+        return_value=httpx.Response(
+            200, content=b"x", headers={"Content-Disposition": f'attachment; filename="{name}"'}
+        )
+    )
+
+    path = client.export_batch("test-job-123", format="csv")
+
+    assert path == "batch_test-job-123.csv"
+    assert (tmp_path / "batch_test-job-123.csv").exists()
