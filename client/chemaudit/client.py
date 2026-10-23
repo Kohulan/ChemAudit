@@ -4,8 +4,10 @@ ChemAudit API Client
 Synchronous Python client for the ChemAudit API.
 """
 
+import re
 import time
 from http.cookiejar import CookieJar, DefaultCookiePolicy
+from datetime import date
 from typing import Optional, List, Dict, Any, Iterator
 from pathlib import Path
 import httpx
@@ -30,6 +32,20 @@ from .exceptions import (
     BatchJobNotFoundError,
     TimeoutError,
 )
+
+
+# File extension per export format (matches each backend exporter's file_extension)
+_EXPORT_EXTENSIONS = {
+    "csv": "csv",
+    "excel": "xlsx",
+    "sdf": "sdf",
+    "json": "json",
+    "pdf": "pdf",
+    "fingerprint": "zip",
+    "dedup": "zip",
+    "scaffold": "csv",
+    "property_matrix": "zip",
+}
 
 
 def _error_body(response: httpx.Response) -> Dict[str, Any]:
@@ -515,7 +531,8 @@ class ChemAuditClient:
         Args:
             job_id: Batch job identifier
             format: Export format ("csv", "excel", "sdf", "json", "pdf", ...)
-            output_path: Output file path (default: auto-generated)
+            output_path: Output file path (default: chemaudit_batch_<job>_<date>.<ext>
+                in the current directory)
             **filter_kwargs: Filters (score_min, score_max, status)
 
         Returns:
@@ -534,11 +551,12 @@ class ChemAuditClient:
             params=params,
         )
 
-        # Use the server's filename (it has the right extension) if no path given
+        # Default name is built here, never taken from the server, so a server
+        # cannot choose where the file goes or what type it is.
         if output_path is None:
-            disposition = response.headers.get("Content-Disposition", "")
-            _, _, filename = disposition.partition('filename="')
-            output_path = Path(filename.rstrip('"')).name or f"batch_{job_id}.{format}"
+            safe_id = re.sub(r"[^A-Za-z0-9]", "", job_id)[:8] or "job"
+            ext = _EXPORT_EXTENSIONS.get(format, "bin")
+            output_path = f"chemaudit_batch_{safe_id}_{date.today().isoformat()}.{ext}"
 
         # Write response to file
         with open(output_path, "wb") as f:
