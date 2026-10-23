@@ -12,15 +12,16 @@ ChemAudit provides real-time batch processing progress updates via WebSocket, al
 
 ### Endpoints
 
-ChemAudit provides WebSocket endpoints for three types of background jobs:
+ChemAudit provides WebSocket endpoints for four types of background jobs:
 
 | WebSocket | Endpoint | Triggered By |
 |-----------|----------|-------------|
 | **Batch Processing** | `ws://localhost:8001/ws/batch/{job_id}` | POST /batch/upload |
+| **QSAR-Ready Batch** | `ws://localhost:8001/ws/qsar/{job_id}` | POST /qsar-ready/batch/upload |
 | **Structure Filter** | `ws://localhost:8001/ws/structure-filter/{job_id}` | POST /structure-filter/batch/upload |
 | **Dataset Audit** | `ws://localhost:8001/ws/dataset/{job_id}` | POST /dataset/upload |
 
-All three WebSocket endpoints use the same message format, keep-alive protocol, and reconnection strategy described below.
+All four WebSocket endpoints use the same message format, keep-alive protocol, and reconnection strategy described below.
 
 Replace `{job_id}` with the job ID returned from the upload endpoint.
 
@@ -85,6 +86,7 @@ ws.onopen = () => {
 };
 
 ws.onmessage = (event) => {
+  if (event.data === 'pong') return;  // keep-alive reply is plain text, not JSON
   const data = JSON.parse(event.data);
   console.log(`Progress: ${data.progress}% (${data.processed}/${data.total})`);
   console.log(`ETA: ${data.eta_seconds} seconds`);
@@ -127,7 +129,7 @@ import websockets
 import json
 
 async def monitor_batch(job_id):
-    uri = f"ws://localhost:8001/ws/batch/`{job_id}`"
+    uri = f"ws://localhost:8001/ws/batch/{job_id}"
 
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket")
@@ -143,6 +145,8 @@ async def monitor_batch(job_id):
 
         try:
             async for message in websocket:
+                if message == "pong":
+                    continue  # keep-alive reply is plain text, not JSON
                 data = json.loads(message)
 
                 print(f"Progress: {data['progress']}% ({data['processed']}/{data['total']})")
@@ -181,6 +185,7 @@ export function useBatchProgress(jobId: string) {
     const ws = new WebSocket(`ws://localhost:8001/ws/batch/${jobId}`);
 
     ws.onmessage = (event) => {
+      if (event.data === 'pong') return;  // keep-alive reply
       const data = JSON.parse(event.data);
       setProgress(data);
 
@@ -223,7 +228,7 @@ setInterval(() => {
 }, 30000);
 ```
 
-The server will ignore ping messages and continue sending progress updates.
+The server answers each `ping` with the plain-text message `pong` (not JSON), so skip it before parsing progress messages.
 
 ## Error Handling
 

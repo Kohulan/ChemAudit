@@ -50,7 +50,8 @@ For validation and parsing errors, the response includes structured error inform
 | **201** | Created | Resource created (e.g., API key) |
 | **204** | No Content | Successful deletion |
 | **400** | Bad Request | Invalid input, unsupported format, file too large |
-| **403** | Forbidden | IP banned, CSRF validation failed, unauthorized |
+| **401** | Unauthorized | Missing or invalid admin secret |
+| **403** | Forbidden | IP banned, CSRF validation failed |
 | **404** | Not Found | Job ID not found, API key not found, endpoint doesn't exist |
 | **429** | Too Many Requests | Rate limit exceeded |
 | **500** | Internal Server Error | Unexpected server error |
@@ -94,13 +95,27 @@ For validation and parsing errors, the response includes structured error inform
 
 **Solution:** Convert to SDF, CSV, or other supported formats.
 
+### 401 Unauthorized
+
+**Invalid admin secret:**
+
+```json
+{
+  "detail": "Invalid admin credentials"
+}
+```
+
+**Solution:** Use correct X-Admin-Secret header value. A missing header returns `"Admin authentication required"`.
+
 ### 403 Forbidden
 
 **IP banned:**
 
 ```json
 {
-  "detail": "IP address banned due to excessive rate limit violations"
+  "error": "ip_banned",
+  "message": "Your IP has been temporarily banned due to repeated rate limit violations",
+  "retry_after": 3540
 }
 ```
 
@@ -110,21 +125,12 @@ For validation and parsing errors, the response includes structured error inform
 
 ```json
 {
-  "detail": "CSRF validation failed"
+  "error": "csrf_validation_failed",
+  "message": "Invalid or missing CSRF token"
 }
 ```
 
 **Solution:** Include valid CSRF token in X-CSRF-Token header.
-
-**Invalid admin secret:**
-
-```json
-{
-  "detail": "Invalid admin secret"
-}
-```
-
-**Solution:** Use correct X-Admin-Secret header value.
 
 ### 404 Not Found
 
@@ -154,19 +160,22 @@ For validation and parsing errors, the response includes structured error inform
 
 ```json
 {
-  "detail": "Rate limit exceeded. Try again in 42 seconds."
+  "error": "rate_limit_exceeded",
+  "message": "Rate limit exceeded: 10 per 1 minute",
+  "retry_after": 60,
+  "violations": 1,
+  "ban_threshold": 100
 }
 ```
 
 **Headers:**
 
 ```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1706500842
+Retry-After: 60
+X-RateLimit-Limit: 10 per 1 minute
 ```
 
-**Solution:** Wait and retry, or use API key authentication for higher limits.
+**Solution:** Wait for the number of seconds in `Retry-After`, then retry.
 
 ### 500 Internal Server Error
 
@@ -235,8 +244,8 @@ def validate_with_retry(molecule, max_retries=3):
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 429:
-                # Rate limited, wait and retry
-                wait_time = 2 ** attempt  # Exponential backoff
+                # Rate limited, wait as long as the server asks
+                wait_time = int(response.headers.get('Retry-After', 60))
                 time.sleep(wait_time)
                 continue
             elif response.status_code >= 500:
@@ -277,18 +286,15 @@ if not response.ok:
 
 ### Handle Rate Limits
 
-Use rate limit headers to avoid hitting limits:
+Only 429 responses carry rate limit headers. Use `Retry-After` to decide how long to wait:
 
 ```python
 response = requests.post(url, json=data)
 
-remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
-if remaining < 5:
-    print("Warning: approaching rate limit")
-    # Slow down requests
-
-reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
-# Schedule next request after reset time
+if response.status_code == 429:
+    wait_seconds = int(response.headers.get('Retry-After', 60))
+    print(f"Rate limited, retrying in {wait_seconds} seconds")
+    time.sleep(wait_seconds)
 ```
 
 ### Validate Input Locally
@@ -326,5 +332,5 @@ else:
 ## Next Steps
 
 - **[Rate Limits](/docs/api/rate-limits)** - Understanding rate limits
-- **[Authentication](/docs/api/authentication)** - Higher rate limits with API keys
+- **[Authentication](/docs/api/authentication)** - API keys and CSRF tokens
 - **[Endpoints](/docs/api/endpoints)** - Full API reference

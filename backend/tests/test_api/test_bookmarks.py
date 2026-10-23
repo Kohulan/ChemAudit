@@ -203,3 +203,14 @@ class TestBookmarkCRUD:
         assert len(filtered) == 2
         names = {bm.name for bm in filtered}
         assert names == {"Ethanol", "Benzene"}
+
+
+def test_bulk_delete_path_routes_to_bulk_handler():
+    """DELETE /bookmarks/bulk must not be captured by DELETE /bookmarks/{bookmark_id}."""
+    from starlette.routing import Match
+
+    from app.main import app
+
+    scope = {"type": "http", "path": "/api/v1/bookmarks/bulk", "method": "DELETE"}
+    matched = next(r for r in app.router.routes if r.matches(scope)[0] == Match.FULL)
+    assert matched.endpoint.__name__ == "bulk_delete_bookmarks"

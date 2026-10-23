@@ -30,14 +30,11 @@ def main():
                 print(f"  - {issue.check_name}: {issue.message}")
 
         # Example 2: Comprehensive validation
-        print("\n2. Comprehensive Validation (with alerts and scores)")
+        print("\n2. Validation with an explicit input format")
         print("-" * 60)
         result = client.validate(
             molecule="c1ccccc1C(=O)O",  # Benzoic acid
             format="smiles",
-            include_alerts=True,
-            include_scores=True,
-            standardize=True,
         )
         print(f"Molecule: {result.molecule_info.canonical_smiles}")
         print(f"Validation Score: {result.overall_score}/100")
@@ -48,15 +45,15 @@ def main():
         print("\n3. Structural Alert Screening")
         print("-" * 60)
         alerts = client.screen_alerts(
-            smiles="c1ccccc1",
+            molecule="c1ccccc1",
             catalogs=["PAINS", "BRENK"],
         )
-        print(f"Catalogs Screened: {', '.join(alerts.catalogs_screened)}")
+        print(f"Catalogs Screened: {', '.join(alerts.screened_catalogs)}")
         print(f"Total Alerts: {alerts.total_alerts}")
         if alerts.alerts:
             print("\nAlerts Found:")
             for alert in alerts.alerts[:3]:  # Show first 3
-                print(f"  - {alert.catalog}: {alert.description}")
+                print(f"  - {alert.catalog_source}: {alert.description}")
                 print(f"    Severity: {alert.severity}")
         if alerts.educational_note:
             print(f"\nNote: {alerts.educational_note}")
@@ -66,31 +63,26 @@ def main():
         print("-" * 60)
         scores = client.score("CC(C)Cc1ccc(cc1)C(C)C(=O)O")  # Ibuprofen
         print("Scores:")
-        if "ml_readiness_score" in scores.scores:
-            print(f"  - ML-Readiness: {scores.scores['ml_readiness_score']:.2f}")
-        if "np_likeness_score" in scores.scores:
-            print(f"  - NP-Likeness: {scores.scores['np_likeness_score']:.2f}")
-        if "murcko_scaffold" in scores.scores:
-            print(f"  - Murcko Scaffold: {scores.scores['murcko_scaffold']}")
+        if scores.ml_readiness:
+            ml = scores.ml_readiness
+            print(f"  - ML-Readiness: {ml['score']} ({ml['label']})")
+        if scores.np_likeness:
+            print(f"  - NP-Likeness: {scores.np_likeness['score']:.2f}")
+        if scores.scaffold:
+            print(f"  - Murcko Scaffold: {scores.scaffold['scaffold_smiles']}")
 
         # Example 5: Molecule standardization
         print("\n5. Molecule Standardization")
         print("-" * 60)
         result = client.standardize(
-            smiles="[Na+].CC(=O)[O-]",  # Sodium acetate salt
+            molecule="CCN.Cl",  # Ethylamine hydrochloride
             tautomer=False,  # Preserve stereochemistry
         )
-        print(f"Input: {result.input_smiles}")
-        print(f"Standardized: {result.standardized_smiles}")
-        print(f"Stereochemistry Preserved: {result.stereochemistry_preserved}")
-        if result.changes_made:
-            print("\nChanges Made:")
-            for change in result.changes_made:
-                print(f"  - {change}")
-        if result.warnings:
-            print("\nWarnings:")
-            for warning in result.warnings:
-                print(f"  - {warning}")
+        print(f"Input: {result.result.original_smiles}")
+        print(f"Standardized: {result.result.standardized_smiles}")
+        print("\nSteps:")
+        for step in result.result.steps_applied:
+            print(f"  - {step['step_name']}: {step.get('changes', '')}")
 
         # Example 6: Invalid molecule handling
         print("\n6. Error Handling")

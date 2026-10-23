@@ -128,10 +128,7 @@ Validation results are cached by InChIKey for 1 hour. Repeated requests for the 
 
 ### Rate Limiting
 
-API requests are rate-limited based on authentication:
-
-- **Anonymous**: 10 requests/min (most endpoints)
-- **Authenticated**: 300 requests/min (with API key)
+API requests are rate-limited per endpoint (10 requests/min for most endpoints). Requests are counted per API key if an `X-API-Key` header is sent, otherwise per client IP address. The limits are the same either way.
 
 See [Rate Limits](/docs/api/rate-limits) for details.
 

@@ -23,7 +23,7 @@ docker-compose --profile monitoring up -d
 |---------|-----|-------------|
 | **Grafana** | http://localhost:3001 | admin / (from .env) |
 | **Prometheus** | http://localhost:9090 | None |
-| **Backend Metrics** | http://localhost:8000/metrics | None |
+| **Backend Metrics** | http://localhost:8001/metrics | None |
 
 ## Key Metrics
 

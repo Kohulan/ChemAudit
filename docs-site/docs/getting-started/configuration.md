@@ -112,15 +112,12 @@ The script automatically:
 
 ### Custom Profiles
 
-Create a custom profile by copying an existing one:
+`deploy.sh` only accepts the built-in profile names (`small`, `medium`, `large`, `xl`, `coconut`). To change settings, edit the matching file in `config/` and deploy with that profile:
 
 ```bash
-# Copy and edit
-cp config/medium.yml config/custom.yml
-
-# Edit config/custom.yml with your settings
+# Edit config/medium.yml with your settings
 # Then deploy
-./deploy.sh custom
+./deploy.sh medium
 ```
 
 
@@ -132,7 +129,7 @@ cp config/medium.yml config/custom.yml
 | `SMTP_HOST` | SMTP server hostname | None |
 | `SMTP_PORT` | SMTP server port | `587` |
 | `SMTP_USER` | SMTP authentication username | None |
-| `SMTP_PASS` | SMTP authentication password | None |
+| `SMTP_PASSWORD` | SMTP authentication password | None |
 | `WEBHOOK_URL` | Webhook endpoint URL for batch completion callbacks | None |
 | `WEBHOOK_SECRET` | HMAC-SHA256 signing secret for webhook payloads | None |
 | `OPSIN_JAR_PATH` | Path to OPSIN JAR for IUPAC name conversion | Auto-provisioned in Docker |

@@ -100,6 +100,7 @@ async def validate_molecule(
         from app.services.iupac.converter import (
             detect_input_type,
             name_to_smiles,
+            needs_name_resolution,
         )
 
         if effective_input_type == "iupac":
@@ -107,13 +108,8 @@ async def validate_molecule(
         else:
             detected = detect_input_type(molecule_input)
 
-        # For ambiguous inputs that parse as valid SMILES (e.g. "CCO", "CO", "O"),
-        # keep the SMILES interpretation. Without this guard the name resolver
-        # rewrites them to unrelated PubChem hits (CO→[Co], O→O=O, CCO→a thiadiazol).
-        should_resolve_name = detected == "iupac" or (
-            detected == "ambiguous"
-            and effective_input_type == "auto"
-            and Chem.MolFromSmiles(molecule_input) is None
+        should_resolve_name = needs_name_resolution(
+            molecule_input, detected, effective_input_type == "auto"
         )
 
         if should_resolve_name:
@@ -427,8 +423,11 @@ def extract_molecule_info(
             # Note: RDKit's MolToSmiles uses aromatic notation by default
             # We need to use the kekuleSmiles parameter to get kekulized form
             try:
-                Chem.Kekulize(mol, clearAromaticFlags=False)
-                canonical = Chem.MolToSmiles(mol, kekuleSmiles=True)
+                # Kekulize a copy: callers reuse `mol` for scoring, and in-place
+                # kekulization changes bond types (and fingerprint-based scores).
+                kekule_mol = Chem.Mol(mol)
+                Chem.Kekulize(kekule_mol, clearAromaticFlags=False)
+                canonical = Chem.MolToSmiles(kekule_mol, kekuleSmiles=True)
             except Exception:
                 # If kekulization fails, fall back to aromatic form
                 canonical = Chem.MolToSmiles(mol)

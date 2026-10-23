@@ -114,8 +114,8 @@ split -l 10000 large.sdf chunk_
 # Check Celery worker
 docker-compose logs celery-worker
 
-# Check Redis
-docker-compose exec redis redis-cli ping
+# Check Redis (set REDIS_PASSWORD in your shell to the value from .env)
+docker-compose exec redis redis-cli -a "$REDIS_PASSWORD" ping
 
 # Restart workers
 docker-compose restart celery-worker
@@ -132,8 +132,8 @@ Ensure CSV has headers and use supported column names:
 ### HTTP 429 - Rate Limited
 
 You exceeded the rate limit. Solutions:
-- Wait and retry with exponential backoff
-- Use API key for higher limits (300/min)
+- Wait for the number of seconds in the `Retry-After` header, then retry
+- Use an API key so your requests are counted separately from other clients on the same IP (the limits are the same)
 - Use batch processing for many molecules
 
 ### HTTP 500 - Internal Server Error

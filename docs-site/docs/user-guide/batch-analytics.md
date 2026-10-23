@@ -286,7 +286,7 @@ curl http://localhost:8001/api/v1/batch/{job_id}/analytics
 curl -X POST http://localhost:8001/api/v1/batch/{job_id}/analytics/{type}
 ```
 
-**Available types:** `scaffold`, `chemical_space`, `mmp`, `similarity_search`, `rgroup`
+**Available types:** `scaffold`, `chemical_space`, `mmp`, `similarity_search`, `rgroup`, `clustering`, `taxonomy`
 
 **Response:**
 

@@ -110,6 +110,7 @@ body {
 
 /* Chart section */
 .chart-container {
+  page-break-inside: avoid;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
   padding: 0.6cm;

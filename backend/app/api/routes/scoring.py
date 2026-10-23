@@ -98,10 +98,14 @@ async def score_molecule(
     # IUPAC/common name resolution (try OPSIN then PubChem)
     molecule_input = body.molecule
     if body.format in ("auto", "iupac"):
-        from app.services.iupac.converter import detect_input_type, name_to_smiles
+        from app.services.iupac.converter import (
+            detect_input_type,
+            name_to_smiles,
+            needs_name_resolution,
+        )
 
         detected = detect_input_type(molecule_input) if body.format == "auto" else "iupac"
-        if detected == "iupac" or (detected == "ambiguous" and body.format == "auto"):
+        if needs_name_resolution(molecule_input, detected, body.format == "auto"):
             converted, _source = name_to_smiles(molecule_input)
             if converted:
                 molecule_input = converted

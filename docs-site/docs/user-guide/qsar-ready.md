@@ -103,7 +103,8 @@ curl -X POST http://localhost:8001/api/v1/qsar-ready/batch/upload \
 curl -X POST http://localhost:8001/api/v1/qsar-ready/batch/upload \
   -F "smiles_text=CCO
 c1ccccc1
-CC(=O)Oc1ccccc1C(=O)O"
+CC(=O)Oc1ccccc1C(=O)O" \
+  -F 'config={}'
 ```
 
 ### Check Status

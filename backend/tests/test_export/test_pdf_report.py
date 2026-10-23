@@ -391,3 +391,15 @@ class TestPDFExportEndpoint:
         # Should return 404 (job not found) not 422 (invalid format)
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+
+
+@requires_weasyprint
+def test_pdf_respects_selected_sections():
+    """Unselected sections are left out of the PDF."""
+    generator = PDFReportGenerator(sections=["score_distribution"])
+    reader = PdfReader(generator.export(SAMPLE_RESULTS))
+    text = "".join(page.extract_text() for page in reader.pages)
+
+    assert "Validation Score Distribution" in text
+    assert "Summary Statistics" not in text
+    assert "Structural Alerts Summary" not in text

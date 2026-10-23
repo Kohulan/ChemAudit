@@ -358,3 +358,18 @@ class TestMoleculeInfoEnrichedFields:
         assert info["num_atoms"] == 3
         assert info["num_bonds"] == 2
         assert info["num_rings"] == 0
+
+
+def test_extract_molecule_info_does_not_mutate_molecule():
+    """Callers score the same mol afterwards, so its bonds must stay aromatic."""
+    from rdkit import Chem
+
+    from app.api.routes.validation import extract_molecule_info
+
+    mol = Chem.MolFromSmiles("CC(C)Cc1ccc(cc1)C(C)C(=O)O")
+    before = [b.GetBondType() for b in mol.GetBonds()]
+
+    info = extract_molecule_info(mol, "CC(C)Cc1ccc(cc1)C(C)C(=O)O")
+
+    assert info.canonical_smiles == "CC(C)CC1=CC=C(C(C)C(=O)O)C=C1"
+    assert [b.GetBondType() for b in mol.GetBonds()] == before

@@ -14,6 +14,7 @@
 </div>
 
 <!-- Summary Statistics -->
+{% if 'validation_summary' in sections %}
 <div class="summary-section">
     <h2 class="section-title">Summary Statistics</h2>
 
@@ -119,8 +120,10 @@
     {% endif %}
 </div>
 
+{% endif %}
+
 <!-- Score Distribution Chart -->
-{% if chart_data %}
+{% if chart_data and 'score_distribution' in sections %}
 <div class="chart-container">
     <h3 class="chart-title">Validation Score Distribution</h3>
     <img src="data:image/svg+xml;base64,{{ chart_data }}" alt="Score Distribution Chart" class="chart-image">
@@ -128,7 +131,7 @@
 {% endif %}
 
 <!-- Alert Summary -->
-{% if stats.alert_summary %}
+{% if stats.alert_summary and 'alert_frequency' in sections %}
 <div class="alert-box">
     <h3 class="alert-title">Structural Alerts Summary</h3>
     <p class="alert-content">
@@ -139,8 +142,92 @@
 </div>
 {% endif %}
 
+{% macro section_note(text) %}<p style="color: #6b7280; font-size: 11px; margin: 4px 0 12px;">{{ text }}</p>{% endmacro %}
+
+<!-- Chemical Space -->
+{% if analytics.chemical_space %}
+{% set cs = analytics.chemical_space %}
+<div class="chart-container">
+    <h3 class="chart-title">Chemical Space (PCA of Morgan fingerprints)</h3>
+    {% if cs.error %}{{ section_note(cs.error) }}{% else %}
+    <img src="data:image/svg+xml;base64,{{ cs.chart }}" alt="Chemical space PCA plot" class="chart-image">
+    {{ section_note(cs.molecule_count ~ " molecules; PC1 and PC2 explain " ~ cs.variance_explained[0] ~ "% and " ~ cs.variance_explained[1] ~ "% of the variance. Points are colored by validation score." ~ (" " ~ cs.plotted_count ~ " points shown (evenly sampled)." if cs.plotted_count < cs.molecule_count else "")) }}
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Scaffold Distribution -->
+{% if analytics.scaffold_treemap %}
+{% set sc = analytics.scaffold_treemap %}
+<div class="chart-container">
+    <h3 class="chart-title">Murcko Scaffold Distribution</h3>
+    {% if sc.error %}{{ section_note(sc.error) }}{% else %}
+    {{ section_note(sc.unique_count ~ " unique scaffolds in " ~ sc.molecule_count ~ " molecules (Shannon entropy " ~ sc.shannon_entropy ~ " bits). Top " ~ sc.top|length ~ " shown.") }}
+    <img src="data:image/svg+xml;base64,{{ sc.chart }}" alt="Scaffold frequency chart" class="chart-image">
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Property Statistics -->
+{% if analytics.statistics %}
+{% set st = analytics.statistics %}
+<div style="page-break-inside: avoid;">
+    <h2 class="section-title">Property Statistics</h2>
+    {% if st.error %}{{ section_note(st.error) }}{% else %}
+    <table class="results-table">
+        <thead>
+            <tr><th>Property</th><th>N</th><th>Mean</th><th>Median</th><th>Std</th><th>Min</th><th>Q1</th><th>Q3</th><th>Max</th></tr>
+        </thead>
+        <tbody>
+            {% for row in st.rows %}
+            <tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.mean }}</td><td>{{ row.median }}</td><td>{{ row.std }}</td><td>{{ row.min }}</td><td>{{ row.q1 }}</td><td>{{ row.q3 }}</td><td>{{ row.max }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Correlation Matrix -->
+{% if analytics.correlation_matrix %}
+{% set cm = analytics.correlation_matrix %}
+<div class="chart-container">
+    <h3 class="chart-title">Property Correlation Matrix (Pearson r)</h3>
+    {% if cm.error %}{{ section_note(cm.error) }}{% else %}
+    <img src="data:image/svg+xml;base64,{{ cm.chart }}" alt="Property correlation heatmap" class="chart-image">
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Matched Molecular Pairs -->
+{% if analytics.mmp_pairs %}
+{% set mp = analytics.mmp_pairs %}
+<div style="page-break-inside: avoid;">
+    <h2 class="section-title">Matched Molecular Pairs</h2>
+    {% if mp.error %}{{ section_note(mp.error) }}{% else %}
+    {{ section_note(mp.total ~ " pairs found (single-cut BRICS). Top " ~ mp.rows|length ~ " by Tanimoto similarity shown.") }}
+    <table class="results-table">
+        <thead>
+            <tr><th>#A</th><th>#B</th><th>Molecule A</th><th>Molecule B</th><th>Change</th><th>Tanimoto</th></tr>
+        </thead>
+        <tbody>
+            {% for row in mp.rows %}
+            <tr>
+                <td>{{ row.mol_a }}</td><td>{{ row.mol_b }}</td>
+                <td style="font-family: monospace; font-size: 8pt;">{{ row.smiles_a[:35] }}{% if row.smiles_a|length > 35 %}...{% endif %}</td>
+                <td style="font-family: monospace; font-size: 8pt;">{{ row.smiles_b[:35] }}{% if row.smiles_b|length > 35 %}...{% endif %}</td>
+                <td style="font-family: monospace; font-size: 8pt;">{{ row.change }}</td>
+                <td>{{ row.tanimoto }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endif %}
+
 <!-- Critical Issues Table -->
-{% if critical_issues %}
+{% if critical_issues and 'validation_summary' in sections %}
 <div>
     <h2 class="section-title">Critical Issues (Top {{ critical_issues|length }})</h2>
 

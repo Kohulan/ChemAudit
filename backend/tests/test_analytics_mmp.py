@@ -32,14 +32,14 @@ def _make_result(smiles: str, index: int, properties: dict | None = None) -> dic
 
     Args:
         smiles: SMILES string for the molecule.
-        index: Original batch index (molecule_index).
+        index: Original batch index.
         properties: Optional extra properties dict (e.g., for activity columns).
 
     Returns:
         Result dict with status='success' and the supplied fields.
     """
     return {
-        "molecule_index": index,
+        "index": index,
         "status": "success",
         "smiles": smiles,
         "properties": properties or {},
@@ -136,7 +136,7 @@ def test_mmp_pair_deduplication():
     Each (mol_a, mol_b) combination must appear at most once in the output, even
     when multiple molecules could share multiple different core fragments.
     """
-    # Include three molecules; indices 0 and 2 differ only by molecule_index (same SMILES)
+    # Include three molecules; indices 0 and 2 differ only by index (same SMILES)
     results = [
         _make_result(_PHENYLACETIC_ACID, 0),
         _make_result(_PHENYLACETAMIDE, 1),
@@ -356,3 +356,17 @@ def test_mmp_activity_cliff_sali_formula():
     assert cliff["sali"] == pytest.approx(6.0, abs=1e-6)
     assert cliff["activity_diff"] == pytest.approx(3.0, abs=1e-6)
     assert cliff["tanimoto"] == pytest.approx(0.5, abs=1e-6)
+
+
+def test_mmp_accepts_batch_result_index_key():
+    """Batch results store their position as "index", not "molecule_index"."""
+    results = [
+        {"index": 0, "status": "success", "smiles": "CCc1ccccc1"},
+        {"index": 1, "status": "success", "smiles": "NCCc1ccccc1"},
+        {"index": 2, "status": "success", "smiles": "OCCc1ccccc1"},
+    ]
+
+    pairs = compute_mmp_analysis(results)["pairs"]
+
+    assert pairs
+    assert {p["mol_a_index"] for p in pairs} | {p["mol_b_index"] for p in pairs} <= {0, 1, 2}

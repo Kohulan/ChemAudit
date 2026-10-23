@@ -143,3 +143,19 @@ class TestIUPACConversionMocked:
             assert conv.detect_input_type("CCO") == "ambiguous"
         finally:
             conv._nts = original
+
+
+@pytest.mark.asyncio
+async def test_score_keeps_ambiguous_valid_smiles(client):
+    """'CCO' parses as SMILES, so /score must not swap it for a name-resolver hit."""
+    with patch(
+        "app.services.iupac.converter.name_to_smiles",
+        return_value=("O=C(O)CSC1=NC(C2=CC(Cl)=CC=C2)=NO1", "pubchem"),
+    ) as resolver:
+        response = await client.post(
+            "/api/v1/score", json={"molecule": "CCO", "include": ["ml_readiness"]}
+        )
+
+    assert response.status_code == 200
+    assert response.json()["molecule_info"]["canonical_smiles"] == "CCO"
+    resolver.assert_not_called()

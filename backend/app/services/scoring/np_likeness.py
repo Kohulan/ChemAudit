@@ -12,14 +12,11 @@ Score interpretation:
 Typical range: -5 to +5 (most molecules fall within -3 to +3)
 """
 
-import gzip
 import os
-import pickle
 import sys
 from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from rdkit import Chem, RDConfig
 from rdkit.Chem import Descriptors, rdMolDescriptors
@@ -61,18 +58,21 @@ class NPBreakdownResult:
 
 
 @lru_cache(maxsize=1)
-def _load_npscorer_fscore():
-    """Load the npscorer fscore dict from RDKit Contrib (cached)."""
+def _load_npscorer():
+    """Load RDKit Contrib's npscorer module and its fscore model (cached).
+
+    Returns:
+        ``(npscorer_module, fscore)``, or ``(None, None)`` if unavailable.
+    """
     try:
         np_score_path = os.path.join(RDConfig.RDContribDir, "NP_Score")
         if np_score_path not in sys.path:
             sys.path.insert(0, np_score_path)
         import npscorer  # type: ignore[import-untyped]
 
-        fscore = npscorer.readNPModel()
-        return fscore
+        return npscorer, npscorer.readNPModel()
     except Exception:
-        return None
+        return None, None
 
 
 class NPLikenessScorer:
@@ -87,49 +87,6 @@ class NPLikenessScorer:
     MIN_HEAVY_ATOMS = 3
     MAX_HEAVY_ATOMS = 70
     UNUSUAL_ELEMENTS = {"As", "Se", "Te", "Po", "At"}
-
-    def __init__(self, model_path: Optional[str] = None):
-        """
-        Initialize the scorer.
-
-        Args:
-            model_path: Path to NP model file. If None, uses default location.
-        """
-        self._model_path = model_path
-        self._scorer = None
-        self._use_builtin = True  # Use RDKit's built-in NP score calculation
-
-    @lru_cache(maxsize=1)
-    def _load_model(self):
-        """Load NP scoring model (cached)."""
-        # Try to use RDKit's built-in NP score calculation
-        try:
-            from rdkit.Chem.Scaffolds import MurckoScaffold as _  # noqa: F401
-
-            # RDKit has built-in NP score functionality
-            return None
-        except ImportError:
-            pass
-
-        # Fallback: Try to load from model file
-        if self._model_path:
-            model_file = Path(self._model_path)
-        else:
-            # Default location
-            model_file = (
-                Path(__file__).parent.parent.parent.parent
-                / "data"
-                / "publicnp.model.gz"
-            )
-
-        if model_file.exists():
-            try:
-                with gzip.open(model_file, "rb") as f:
-                    return pickle.load(f)
-            except Exception:
-                pass
-
-        return None
 
     def score(self, mol: Chem.Mol) -> NPLikenessResult:
         """
@@ -201,18 +158,14 @@ class NPLikenessScorer:
 
     def _calculate_np_score(self, mol: Chem.Mol) -> float:
         """
-        Calculate the NP-likeness score using fragment-based analysis.
+        Calculate the NP-likeness score.
 
-        This implementation uses a heuristic based on common NP features
-        when the model file is not available.
+        Uses the Ertl NP-likeness model from RDKit Contrib. Falls back to a
+        heuristic only if that model cannot be loaded.
         """
-        # Try to use RDKit's built-in calculation if available
-        try:
-            from rdkit.Chem import rdNPScore
-
-            return rdNPScore.GetNPLScore(mol)
-        except (ImportError, AttributeError):
-            pass
+        npscorer, fscore = _load_npscorer()
+        if npscorer is not None:
+            return npscorer.scoreMol(mol, fscore)
 
         # Fallback: Use a heuristic-based calculation
         # Based on common features found in natural products
@@ -380,7 +333,7 @@ class NPLikenessScorer:
         np_score = standard_result.score
 
         # Try to load fscore model
-        fscore = _load_npscorer_fscore()
+        _, fscore = _load_npscorer()
         if fscore is None:
             # Fallback: return score without fragment detail
             return NPBreakdownResult(

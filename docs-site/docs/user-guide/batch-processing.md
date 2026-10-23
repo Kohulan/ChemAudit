@@ -207,12 +207,13 @@ ChemAudit provides real-time progress via WebSocket:
 const ws = new WebSocket('ws://localhost:8001/ws/batch/' + jobId);
 
 ws.onmessage = (event) => {
+  if (event.data === 'pong') return;  // keep-alive reply is plain text, not JSON
   const data = JSON.parse(event.data);
   console.log(`Progress: ${data.progress}% (${data.processed}/${data.total})`);
   console.log(`ETA: ${data.eta_seconds} seconds`);
 };
 
-// Send keep-alive pings
+// Send keep-alive pings (the server answers with "pong")
 setInterval(() => ws.send('ping'), 30000);
 
 ws.onclose = () => {

@@ -220,7 +220,8 @@ docker-compose logs celery-worker
 
 **Check Redis connection:**
 ```bash
-docker-compose exec redis redis-cli ping
+# Set REDIS_PASSWORD in your shell to the value from .env
+docker-compose exec redis redis-cli -a "$REDIS_PASSWORD" ping
 # Should return: PONG
 ```
 
@@ -288,13 +289,13 @@ grep -c '$$$$' your_file.sdf  # Count molecules
 | `/score` | 10/min |
 | `/alerts` | 10/min |
 | `/standardize` | 10/min |
-| `/batch/upload` | 10/min |
+| `/batch/upload` | 3/min |
 | `/batch/{id}` (results) | 60/min |
 | `/integrations/*` | 30/min |
 
 **Solution:**
-- Wait and retry with exponential backoff
-- Use an API key for higher limits
+- Wait for the number of seconds in the `Retry-After` header, then retry
+- Use an API key so your requests are counted separately from other clients on the same IP (the limits are the same)
 - Use batch processing for many molecules
 
 </details>

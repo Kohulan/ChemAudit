@@ -178,7 +178,7 @@ ChemAudit can resolve a wide range of chemical identifiers to a canonical SMILES
 ### API - Resolve Identifier
 
 ```bash
-curl -X POST http://localhost:8001/api/v1/integrations/resolve \
+curl -X POST http://localhost:8001/api/v1/resolve \
   -H "Content-Type: application/json" \
   -d '{"identifier": "CHEMBL25"}'
 ```
@@ -207,7 +207,7 @@ Response:
 ```bash
 curl -X POST http://localhost:8001/api/v1/integrations/pubchem/lookup \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 ```
 
 Response:
@@ -228,7 +228,7 @@ Response:
 ```bash
 curl -X POST http://localhost:8001/api/v1/integrations/chembl/bioactivity \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 ```
 
 Response:
@@ -257,7 +257,7 @@ Response:
 ```bash
 curl -X POST http://localhost:8001/api/v1/integrations/coconut/lookup \
   -H "Content-Type: application/json" \
-  -d '{"molecule": "CCO", "format": "smiles"}'
+  -d '{"smiles": "CCO"}'
 ```
 
 Response:
