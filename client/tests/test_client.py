@@ -5,6 +5,7 @@ Uses respx for HTTP mocking to test client behavior without a live server.
 """
 
 import json
+from datetime import date
 
 import pytest
 import httpx
@@ -655,24 +656,6 @@ def test_export_batch(client, base_url, tmp_path):
 
 
 @respx.mock
-def test_export_batch_uses_server_filename(client, base_url, tmp_path, monkeypatch):
-    """Without output_path, the file gets the server's name and extension."""
-    monkeypatch.chdir(tmp_path)
-    respx.get(f"{base_url}/api/v1/batch/test-job-123/export").mock(
-        return_value=httpx.Response(
-            200,
-            content=b"%PDF-1.7",
-            headers={"Content-Disposition": 'attachment; filename="report_test.pdf"'},
-        )
-    )
-
-    path = client.export_batch("test-job-123", format="pdf")
-
-    assert path == "report_test.pdf"
-    assert (tmp_path / "report_test.pdf").read_bytes() == b"%PDF-1.7"
-
-
-@respx.mock
 def test_get_batch_stats(client, base_url):
     """Statistics come from the dedicated /stats endpoint."""
     route = respx.get(f"{base_url}/api/v1/batch/test-job-123/stats").mock(
@@ -695,18 +678,64 @@ def test_client_properties(client, base_url):
     assert client.max_retries == 3
 
 
-@pytest.mark.parametrize("name", ["../evil.csv", ".bashrc", "/etc/passwd", "a/b.csv", ""])
+@pytest.mark.parametrize(
+    "format, ext",
+    [
+        ("csv", "csv"),
+        ("excel", "xlsx"),
+        ("pdf", "pdf"),
+        ("fingerprint", "zip"),
+        ("scaffold", "csv"),
+    ],
+)
 @respx.mock
-def test_export_batch_ignores_unsafe_server_filename(client, base_url, tmp_path, monkeypatch, name):
-    """A server-chosen name that is hidden or has a path falls back to a safe default."""
+def test_export_batch_default_name_matches_format(
+    client, base_url, tmp_path, monkeypatch, format, ext
+):
+    """Without output_path, the client builds the name with the right extension."""
+    monkeypatch.chdir(tmp_path)
+    respx.get(f"{base_url}/api/v1/batch/test-job-123/export").mock(
+        return_value=httpx.Response(200, content=b"data")
+    )
+
+    path = client.export_batch("test-job-123", format=format)
+
+    assert path == f"chemaudit_batch_testjob1_{date.today().isoformat()}.{ext}"
+    assert (tmp_path / path).read_bytes() == b"data"
+
+
+@pytest.mark.parametrize(
+    "server_name", ["setup.py", "../evil.csv", ".bashrc", "-rf.csv", "CON.csv", "report.py"]
+)
+@respx.mock
+def test_export_batch_ignores_server_filename(
+    client, base_url, tmp_path, monkeypatch, server_name
+):
+    """The server's Content-Disposition name is never used for the local file."""
     monkeypatch.chdir(tmp_path)
     respx.get(f"{base_url}/api/v1/batch/test-job-123/export").mock(
         return_value=httpx.Response(
-            200, content=b"x", headers={"Content-Disposition": f'attachment; filename="{name}"'}
+            200,
+            content=b"x",
+            headers={"Content-Disposition": f'attachment; filename="{server_name}"'},
         )
     )
 
     path = client.export_batch("test-job-123", format="csv")
 
-    assert path == "batch_test-job-123.csv"
-    assert (tmp_path / "batch_test-job-123.csv").exists()
+    assert path.startswith("chemaudit_batch_testjob1_") and path.endswith(".csv")
+    assert [f.name for f in tmp_path.iterdir()] == [path]
+
+
+@respx.mock
+def test_export_batch_cleans_job_id_in_default_name(client, base_url, tmp_path, monkeypatch):
+    """Path characters in a job id never reach the file name."""
+    monkeypatch.chdir(tmp_path)
+    respx.get(url__startswith=base_url).mock(
+        return_value=httpx.Response(200, content=b"x")
+    )
+
+    path = client.export_batch("../../tmp/evil", format="json")
+
+    assert "/" not in path and "\\" not in path and not path.startswith(".")
+    assert (tmp_path / path).exists()
