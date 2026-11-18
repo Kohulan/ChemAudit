@@ -22,6 +22,7 @@ import { getRDKit } from '../../hooks/useRDKit';
 import { sanitizeSvg } from '../../lib/sanitize';
 import type { ScoringProfile } from '../../types/workflow';
 import type { BatchResult } from '../../types/batch';
+import { csvCell } from '../../lib/csv';
 
 /* ------------------------------------------------------------------ */
 /*  Types & helpers                                                    */
@@ -80,8 +81,8 @@ function buildScoreCsv(data: InlineScoreResponse): Blob {
     const p = m.profile;
     return [
       m.index,
-      `"${(m.name || '').replace(/"/g, '""')}"`,
-      `"${m.smiles.replace(/"/g, '""')}"`,
+      csvCell(m.name),
+      csvCell(m.smiles),
       p.score ?? '',
       ...propKeys.map(k => p.properties[k]?.value ?? ''),
       ...propKeys.map(k => p.properties[k]?.in_range ?? ''),
@@ -96,8 +97,8 @@ function buildValidationCsv(results: BatchResult[]): Blob {
   const header = 'Index,Name,SMILES,Status,Validation Score,QED,Issues';
   const rows = results.map(r => [
     r.index,
-    `"${(r.name || '').replace(/"/g, '""')}"`,
-    `"${r.smiles.replace(/"/g, '""')}"`,
+    csvCell(r.name),
+    csvCell(r.smiles),
     r.status,
     r.validation?.overall_score ?? '',
     r.scoring?.druglikeness?.qed_score ?? '',
