@@ -36,6 +36,9 @@ services:
     # under memory pressure and never the no-TTL Celery broker messages, so queued
     # batch jobs are not silently lost when Redis fills up.
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-volatile-lru}
+    environment:
+      # Read by the healthcheck through REDISCLI_AUTH, so the password is not in argv.
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
     networks:
@@ -48,7 +51,7 @@ services:
       - SETGID
       - SETUID
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5

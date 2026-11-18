@@ -7,6 +7,7 @@ import logging
 import re
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -388,8 +389,44 @@ app.include_router(
 # =============================================================================
 # MCP Server Mount (Phase 14 -- ECO-01)
 # =============================================================================
+class _McpBridgeTransport(httpx.ASGITransport):
+    """
+    In-process transport for MCP tool calls that only reaches MCP-tagged routes.
+
+    fastapi-mcp pastes tool arguments into route paths unencoded, and httpx then
+    resolves "../" segments, so a crafted argument could reach any route (such as
+    /metrics) from the loopback address. Requests whose final path matches no
+    operation the MCP server exposes get a 404 without reaching the app.
+    """
+
+    _allowed: list | None = None
+
+    def _is_allowed(self, method: str, path: str) -> bool:
+        if self._allowed is None:
+            # Built lazily from the MCP server's own operation list (set up after
+            # this transport is created); "{param}" matches one path segment.
+            self._allowed = [
+                (
+                    op["method"].upper(),
+                    re.compile(re.sub(r"\\\{[^/]+?\\\}", "[^/]+", re.escape(op["path"])) + "$"),
+                )
+                for op in mcp.operation_map.values()
+            ]
+        return any(m == method and rx.match(path) for m, rx in self._allowed)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if not self._is_allowed(request.method, request.url.path):
+            return httpx.Response(404, json={"detail": "Not Found"})
+        return await super().handle_async_request(request)
+
+
 mcp = FastApiMCP(
     app,
+    http_client=httpx.AsyncClient(
+        transport=_McpBridgeTransport(app=app, raise_app_exceptions=False),
+        base_url="http://apiserver",
+        timeout=10.0,
+    ),
     name="ChemAudit MCP",
     description="Chemical structure validation, scoring, standardization, and curation tools",
     include_tags=MCP_INCLUDE_TAGS,

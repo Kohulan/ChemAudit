@@ -141,3 +141,17 @@ def test_fresh_db_stamp_matches_latest_migration():
     latest = max(p.name.split("_")[0] for p in versions.glob("[0-9][0-9][0-9]_*.py"))
     main_src = (Path(__file__).parents[1] / "app" / "main.py").read_text()
     assert f"VALUES ('{latest}')" in main_src
+
+
+async def test_mcp_bridge_only_reaches_mcp_routes():
+    """F20: path traversal in an MCP tool argument must not reach non-MCP routes."""
+    from app.main import mcp
+
+    bridge = mcp._http_client
+    assert (await bridge.get("/metrics")).status_code == 404
+    assert (await bridge.get("/api/v1/bookmarks/1")).status_code == 404
+    assert (await bridge.get("/api/v1/batch/x/../../../metrics")).status_code == 404
+    assert (await bridge.get("/api/v1/health")).status_code == 200
+    ok = await bridge.post("/api/v1/validate", json={"molecule": "CCO"})
+    assert ok.status_code == 200
+    assert (await bridge.get("/api/v1/validate")).status_code == 404  # wrong method
