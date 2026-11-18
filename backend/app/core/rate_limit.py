@@ -269,6 +269,11 @@ def allow_unvalidated_key_attempt(request: Request) -> bool:
     if not limiter.enabled:
         return True
     ip = client_ip(request)
+    if _is_loopback(ip):
+        # The in-process MCP bridge: every MCP caller shares this address, so one
+        # bucket here would let one caller block all. The outer /mcp request is
+        # already rate limited per real client IP by SlowAPIMiddleware.
+        return True
     try:
         allowed = limiter.limiter.hit(_UNVALIDATED_KEY_LIMIT, "unvalidated-api-key", ip)
     except Exception as e:

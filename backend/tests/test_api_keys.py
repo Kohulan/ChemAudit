@@ -338,8 +338,16 @@ async def test_unvalidated_keys_throttled_per_ip_before_hashing():
         # Another IP is not affected.
         with pytest.raises(HTTPException) as other:
             await security.get_api_key(_plain_request(peer="198.51.100.5"), "bad-x")
+        # Loopback (the in-process MCP bridge, shared by all MCP callers) is never
+        # throttled here; the outer /mcp request is limited per real client IP.
+        loop_codes = []
+        for i in range(12):
+            with pytest.raises(HTTPException) as exc:
+                await security.get_api_key(_plain_request(peer="127.0.0.1"), f"mcp-{i}")
+            loop_codes.append(exc.value.status_code)
+    assert loop_codes == [401] * 12
     assert codes == [401] * 10 + [429]
-    assert validate.await_count == 11  # 10 from the first IP, 1 from the second
+    assert validate.await_count == 23  # 10 + 1 from other IPs, 12 from loopback
     assert other.value.status_code == 401
     violation.assert_called_once_with("198.51.100.4")
 
