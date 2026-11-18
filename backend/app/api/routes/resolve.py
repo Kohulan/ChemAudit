@@ -20,7 +20,9 @@ router = APIRouter()
 class ResolveRequest(BaseModel):
     """Request body for identifier resolution."""
 
-    identifier: str = Field(..., min_length=1, description="Any chemical identifier")
+    identifier: str = Field(
+        ..., min_length=1, max_length=2048, description="Any chemical identifier"
+    )
     identifier_type: str = Field(
         default="auto",
         description=(
