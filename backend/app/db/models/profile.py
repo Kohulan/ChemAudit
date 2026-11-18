@@ -22,11 +22,13 @@ class ScoringProfile(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     thresholds: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     weights: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    # Owner of a custom profile; both NULL for presets (and for legacy rows, which
+    # are then visible to nobody).
+    session_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    api_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     is_preset: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )

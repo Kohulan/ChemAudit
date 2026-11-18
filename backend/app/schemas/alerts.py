@@ -73,6 +73,7 @@ class AlertScreenRequest(BaseModel):
     )
     catalogs: List[str] = Field(
         default=["PAINS"],
+        max_length=20,
         description="List of catalogs to screen against (PAINS, BRENK, NIH, ZINC, ALL)",
     )
 
@@ -114,7 +115,10 @@ class AlertScreenRequest(BaseModel):
                     f"Unknown catalog: {cat}. Valid: {sorted(valid_catalogs)}"
                 )
             normalized.append(cat_upper)
-        return normalized
+        # Each entry runs a full catalog screen, so duplicates only cost time.
+        if "ALL" in normalized:
+            return ["ALL"]
+        return list(dict.fromkeys(normalized))
 
 
 class AlertScreenResponse(BaseModel):

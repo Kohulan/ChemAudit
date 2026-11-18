@@ -48,6 +48,7 @@ from app.schemas.structure_filter import (
     StructureFilterBatchStatusResponse,
     StructureFilterBatchUploadResponse,
 )
+from app.services.export.formula_guard import neutralize_row
 from app.services.structure_filter.filter_config import PRESETS, FilterConfig
 from app.services.structure_filter.filter_pipeline import filter_batch
 from app.services.structure_filter.scorer import score_for_generative
@@ -607,12 +608,12 @@ def _build_full_csv_response(job_id: str, molecules: list) -> StreamingResponse:
     writer.writeheader()
     for m in molecules:
         writer.writerow(
-            {
+            neutralize_row({
                 "smiles": m.get("smiles", ""),
                 "status": m.get("status", ""),
                 "failed_at": m.get("failed_at") or "",
                 "rejection_reason": m.get("rejection_reason") or "",
-            }
+            })
         )
     output.seek(0)
     return StreamingResponse(

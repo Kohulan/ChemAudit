@@ -11,6 +11,8 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
+from app.services.export.formula_guard import neutralize_frame
+
 from .base import BaseExporter, ExporterFactory, ExportFormat
 
 
@@ -79,7 +81,7 @@ class ScaffoldExporter(BaseExporter):
         # Write CSV
         csv_buf = StringIO()
         df = pd.DataFrame(rows)
-        df.to_csv(csv_buf, index=False)
+        neutralize_frame(df).to_csv(csv_buf, index=False)
 
         bytes_buffer = BytesIO()
         bytes_buffer.write(csv_buf.getvalue().encode("utf-8"))

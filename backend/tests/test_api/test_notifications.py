@@ -8,6 +8,7 @@ rendering, and notification opt-in behavior.
 import hashlib
 import hmac
 import json
+import ssl
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -165,6 +166,10 @@ class TestEmailTemplate:
 
             mock_smtp.assert_called_once_with("smtp.example.com", 587)
             mock_server.starttls.assert_called_once()
+            # F11: the server certificate and hostname must be verified before login.
+            ctx = mock_server.starttls.call_args.kwargs.get("context")
+            assert ctx is not None
+            assert ctx.verify_mode == ssl.CERT_REQUIRED and ctx.check_hostname
             mock_server.login.assert_called_once_with("user@example.com", "password")
             mock_server.sendmail.assert_called_once()
 

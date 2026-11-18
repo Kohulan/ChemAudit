@@ -8,6 +8,7 @@ https://www.ebi.ac.uk/unichem/
 """
 
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -54,7 +55,7 @@ class UniChemClient:
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/inchikey/{inchikey}")
+                response = await client.get(f"{self.base_url}/inchikey/{quote(inchikey, safe='')}")
                 response.raise_for_status()
                 data = response.json()
 
@@ -93,7 +94,7 @@ class UniChemClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/src_compound_id/{compound_id}/{src_id}",
+                    f"{self.base_url}/src_compound_id/{quote(compound_id, safe='')}/{src_id}",
                 )
                 response.raise_for_status()
                 data = response.json()

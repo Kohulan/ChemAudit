@@ -56,7 +56,7 @@ class ValidationEngine:
         if checks is None or "all" in checks:
             checks_to_run = list(self._check_instances.keys())
         else:
-            checks_to_run = [c for c in checks if c in self._check_instances]
+            checks_to_run = [c for c in dict.fromkeys(checks) if c in self._check_instances]
 
         results = []
         for check_name in checks_to_run:

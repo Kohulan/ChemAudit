@@ -40,6 +40,7 @@ from app.schemas.dataset_intelligence import (
     DatasetUploadResponse,
     DiffMolecule,
 )
+from app.services.export.formula_guard import neutralize_cell
 
 logger = logging.getLogger(__name__)
 
@@ -558,10 +559,11 @@ async def download_curated_csv(
                 seen.add(key)
 
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
-    writer.writeheader()
+    # Uploaded column names and values are user text: neutralise formulas in both.
+    writer = csv.writer(output)
+    writer.writerow([neutralize_cell(f) for f in fieldnames])
     for row in curated_rows:
-        writer.writerow(row)
+        writer.writerow([neutralize_cell(row.get(f, "")) for f in fieldnames])
 
     csv_str = output.getvalue()
 

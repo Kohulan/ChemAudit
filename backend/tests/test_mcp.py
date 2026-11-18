@@ -124,3 +124,56 @@ def test_openapi_admin_endpoints_not_in_mcp_tags():
                         f"Admin endpoint {path} has MCP-included tag(s): "
                         f"{operation_tags & mcp_tag_set}"
                     )
+
+
+def test_mcp_forwards_api_key_header():
+    """MCP tool calls must carry the caller's X-API-Key so scoped routes see the caller."""
+    from app.main import mcp
+
+    assert "x-api-key" in mcp._forward_headers
+
+
+def test_fresh_db_stamp_matches_latest_migration():
+    """main.py stamps a fresh database at the newest Alembic revision."""
+    from pathlib import Path
+
+    versions = Path(__file__).parents[1] / "alembic" / "versions"
+    latest = max(p.name.split("_")[0] for p in versions.glob("[0-9][0-9][0-9]_*.py"))
+    main_src = (Path(__file__).parents[1] / "app" / "main.py").read_text()
+    assert f"VALUES ('{latest}')" in main_src
+
+
+async def test_mcp_bridge_only_reaches_mcp_routes():
+    """F20: path traversal in an MCP tool argument must not reach non-MCP routes."""
+    from app.main import mcp
+
+    bridge = mcp._http_client
+    assert (await bridge.get("/metrics")).status_code == 404
+    assert (await bridge.get("/api/v1/bookmarks/1")).status_code == 404
+    assert (await bridge.get("/api/v1/batch/x/../../../metrics")).status_code == 404
+    assert (await bridge.get("/api/v1/health")).status_code == 200
+    ok = await bridge.post("/api/v1/validate", json={"molecule": "CCO"})
+    assert ok.status_code == 200
+    assert (await bridge.get("/api/v1/validate")).status_code == 404  # wrong method
+
+
+async def test_mcp_profile_create_without_api_key_is_refused():
+    """Final review #3: the bridge carries no cookie, so a key-less MCP caller could
+    create a profile nobody can ever read; such writes must be refused."""
+    from app.main import mcp
+
+    body = {"name": "x", "thresholds": {}, "weights": {}}
+    r = await mcp._http_client.post("/api/v1/profiles", json=body)
+    assert r.status_code == 401
+    r = await mcp._http_client.post("/api/v1/profiles/import", json=body)
+    assert r.status_code == 401
+
+
+async def test_mcp_bridge_keeps_no_cookies_between_callers():
+    """One caller's session cookie must never reach another MCP caller."""
+    from app.main import mcp
+
+    r = await mcp._http_client.post("/api/v1/validate", json={"molecule": "CCO"})
+    assert r.status_code == 200
+    assert "set-cookie" not in r.headers
+    assert not mcp._http_client.cookies

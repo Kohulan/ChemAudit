@@ -395,6 +395,8 @@ async def resolve_identifier(
         if result:
             return result
     except Exception:
-        logger.exception("Resolution failed for identifier: %s (type: %s)", identifier, detected_type)
+        logger.exception(
+            "Resolution failed for identifier: %r (type: %s)", identifier, detected_type
+        )
 
     return ResolvedCompound(resolved=False, identifier_type_detected=detected_type)

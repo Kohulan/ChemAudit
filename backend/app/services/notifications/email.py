@@ -7,6 +7,7 @@ Uses a Jinja2 HTML template for professional email formatting.
 
 import logging
 import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -78,7 +79,8 @@ def send_batch_complete_email(to: str, job_id: str, stats: dict):
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             if settings.SMTP_TLS:
-                server.starttls()
+                # Verify the certificate and hostname before the password is sent.
+                server.starttls(context=ssl.create_default_context())
             if settings.SMTP_USER:
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_FROM, [to], msg.as_string())
