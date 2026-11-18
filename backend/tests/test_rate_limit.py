@@ -113,15 +113,12 @@ def test_rate_limit_key_function():
 
     from app.core.rate_limit import get_rate_limit_key
 
-    # Mock request with API key
+    # An API key header that has not been validated in this worker is throttled by
+    # client IP, never by a per-key bucket (F9).
     mock_request_with_key = MagicMock(spec=Request)
     mock_request_with_key.headers.get.return_value = "test_api_key"
-
-    key = get_rate_limit_key(mock_request_with_key)
-    # Key is hashed (BLAKE2b) to avoid exposing raw API keys in Redis
-    from app.core.security import hash_api_key_for_lookup
-
-    assert key == f"apikey:{hash_api_key_for_lookup('test_api_key')}"
+    mock_request_with_key.client.host = "203.0.113.7"
+    assert get_rate_limit_key(mock_request_with_key) == "203.0.113.7"
 
     # Mock request without API key (anonymous)
     mock_request_anonymous = MagicMock(spec=Request)

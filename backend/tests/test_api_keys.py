@@ -210,3 +210,103 @@ def test_anonymous_access_allowed(client):
 
     # Should succeed or fail for non-auth reasons
     assert response.status_code != 401
+
+
+# --- F9/F10: no PBKDF2 or per-key bucket for unvalidated API keys --------------------
+
+
+def _plain_request(api_key=None, peer="203.0.113.9"):
+    from starlette.requests import Request
+
+    headers = [(b"x-api-key", api_key.encode())] if api_key else []
+    return Request({"type": "http", "headers": headers, "client": (peer, 1)})
+
+
+def test_rate_limit_key_ignores_unvalidated_api_key():
+    from app.core.rate_limit import get_rate_limit_key
+
+    with patch("app.core.security.hash_api_key_for_lookup") as h:
+        assert get_rate_limit_key(_plain_request("random-1")) == "203.0.113.9"
+        assert get_rate_limit_key(_plain_request("random-2")) == "203.0.113.9"
+    h.assert_not_called()
+
+
+def test_rate_limit_key_uses_validated_key():
+    from app.core import security
+    from app.core.rate_limit import get_rate_limit_key
+
+    security._VALIDATED_KEY_HASHES["good-key"] = "abc123"
+    try:
+        assert get_rate_limit_key(_plain_request("good-key")) == "apikey:abc123"
+    finally:
+        security._VALIDATED_KEY_HASHES.pop("good-key", None)
+
+
+@pytest.mark.asyncio
+async def test_get_data_scope_does_not_hash_raw_header():
+    from app.core.session import get_data_scope
+
+    req = _plain_request("whatever")
+    req._cookies = {"chemaudit_sid": "sess"}
+    with patch("app.core.security.hash_api_key_for_lookup") as h:
+        assert await get_data_scope(req) == ("sess", None)
+    h.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_data_scope_uses_validated_hash():
+    from app.core.session import get_data_scope
+
+    req = _plain_request("whatever")
+    req.state.api_key_hash = "h1"
+    assert await get_data_scope(req) == (None, "h1")
+
+
+@pytest.mark.asyncio
+async def test_oversized_key_rejected_without_hashing():
+    from fastapi import HTTPException
+
+    from app.core.security import get_api_key
+
+    with patch("app.core.security.hash_api_key_for_lookup") as h:
+        with pytest.raises(HTTPException) as exc:
+            await get_api_key(_plain_request(), "k" * 300)
+    assert exc.value.status_code == 401
+    h.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_validate_hashes_off_the_event_loop():
+    import threading
+
+    from app.core import security
+
+    seen = {}
+
+    def fake_hash(key):
+        seen["thread"] = threading.current_thread()
+        return "h"
+
+    redis = AsyncMock()
+    redis.hgetall.return_value = {}
+    with (
+        patch.object(security, "hash_api_key_for_lookup", fake_hash),
+        patch.object(security, "get_redis_client", AsyncMock(return_value=redis)),
+    ):
+        assert await security.validate_api_key("never-seen-key") is None
+    assert seen["thread"] is not threading.main_thread()
+
+
+@pytest.mark.asyncio
+async def test_valid_key_sets_scope_and_registers_hash():
+    from app.core import security
+
+    req = _plain_request()
+    with (
+        patch.object(security, "validate_api_key", AsyncMock(return_value={"name": "k"})),
+        patch.object(security, "hash_api_key_for_lookup", return_value="h9"),
+        patch.object(security, "_update_usage_stats", AsyncMock()),
+    ):
+        assert await security.get_api_key(req, "valid-key") == "valid-key"
+    assert req.state.api_key_hash == "h9"
+    assert security._VALIDATED_KEY_HASHES.pop("valid-key") == "h9"

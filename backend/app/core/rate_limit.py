@@ -202,10 +202,14 @@ def get_rate_limit_key(request: Request) -> str:
     Returns:
         Rate limit key string based on API key or IP address.
     """
-    api_key = request.headers.get("X-API-Key")
-    if api_key:
-        from app.core.security import hash_api_key_for_lookup
-        return f"apikey:{hash_api_key_for_lookup(api_key)}"
+    # Only keys already validated in this worker get their own bucket. An unknown
+    # header value is throttled by client IP, so random keys cannot mint fresh
+    # buckets, and nothing here runs the slow key hash.
+    from app.core.security import _VALIDATED_KEY_HASHES
+
+    key_hash = _VALIDATED_KEY_HASHES.get(request.headers.get("X-API-Key") or "")
+    if key_hash:
+        return f"apikey:{key_hash}"
     return client_ip(request)
 
 
