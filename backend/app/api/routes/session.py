@@ -5,7 +5,7 @@ GDPR-compliant data purge endpoint.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy import delete, func, select
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import get_rate_limit_key, limiter
@@ -14,6 +14,7 @@ from app.core.session import SESSION_COOKIE, get_data_scope
 from app.db import get_db
 from app.db.models.audit import ValidationAuditEntry
 from app.db.models.bookmark import Bookmark
+from app.db.models.profile import ScoringProfile
 
 router = APIRouter()
 
@@ -60,7 +61,18 @@ async def purge_my_data(
         )
     ).scalar() or 0
 
+    profile_filter = and_(
+        ScoringProfile.is_preset.is_(False),
+        ScoringProfile.api_key_hash == api_key_hash
+        if api_key_hash
+        else ScoringProfile.session_id == session_id,
+    )
+    profile_count = (
+        await db.execute(select(func.count()).select_from(ScoringProfile).where(profile_filter))
+    ).scalar() or 0
+
     # Delete
+    await db.execute(delete(ScoringProfile).where(profile_filter))
     await db.execute(delete(Bookmark).where(bm_filter))
     await db.execute(delete(ValidationAuditEntry).where(audit_filter))
     await db.commit()
@@ -71,5 +83,5 @@ async def purge_my_data(
 
     return {
         "status": "purged",
-        "deleted": {"bookmarks": bm_count, "history": audit_count},
+        "deleted": {"bookmarks": bm_count, "history": audit_count, "profiles": profile_count},
     }

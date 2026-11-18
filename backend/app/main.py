@@ -213,7 +213,7 @@ async def lifespan(app: FastAPI):
                     "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
                 ))
                 await conn.execute(text(
-                    "INSERT INTO alembic_version (version_num) VALUES ('002')"
+                    "INSERT INTO alembic_version (version_num) VALUES ('003')"
                 ))
             logger.info("Stamped alembic_version at head (fresh database)")
 
@@ -395,6 +395,8 @@ mcp = FastApiMCP(
     include_tags=MCP_INCLUDE_TAGS,
     describe_all_responses=True,
     describe_full_response_schema=True,
+    # Forward the API key so scoped routes (profiles) see the MCP caller.
+    headers=["authorization", "x-api-key"],
 )
 mcp.mount()  # Exposes at /mcp
 

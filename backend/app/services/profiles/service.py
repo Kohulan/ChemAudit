@@ -7,12 +7,33 @@ Presets are immutable (cannot be updated or deleted) but can be duplicated.
 
 import json
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, false, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.profile import ScoringProfile
+
+# (session_id, api_key_hash) of the caller, as returned by get_data_scope.
+Owner = Tuple[Optional[str], Optional[str]]
+
+
+def _visible_to(owner: Owner) -> ColumnElement[bool]:
+    """
+    WHERE clause for profiles the caller may see: every preset, plus the caller's own.
+
+    The API key wins over the session, as for bookmarks. Custom profiles with no
+    owner (created before ownership existed) are visible to nobody.
+    """
+    session_id, api_key_hash = owner
+    if api_key_hash:
+        own = ScoringProfile.api_key_hash == api_key_hash
+    elif session_id:
+        own = ScoringProfile.session_id == session_id
+    else:
+        own = false()
+    return or_(ScoringProfile.is_preset.is_(True), own)
+
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +146,13 @@ class ProfileService:
         description: Optional[str],
         thresholds: dict,
         weights: dict,
+        *,
+        owner: Owner,
     ) -> ScoringProfile:
-        """Create a new user profile (is_preset=False)."""
+        """Create a new user profile (is_preset=False) owned by ``owner``."""
         profile = ScoringProfile(
+            session_id=None if owner[1] else owner[0],
+            api_key_hash=owner[1],
             name=name,
             description=description,
             thresholds=json.dumps(thresholds),
@@ -140,21 +165,24 @@ class ProfileService:
         await db.refresh(profile)
         return profile
 
-    async def get(self, db: AsyncSession, profile_id: int) -> Optional[ScoringProfile]:
-        """Get a profile by ID."""
+    async def get(
+        self, db: AsyncSession, profile_id: int, *, owner: Owner
+    ) -> Optional[ScoringProfile]:
+        """Get a profile by ID if it is a preset or belongs to ``owner``."""
         result = await db.execute(
             select(ScoringProfile).where(
                 ScoringProfile.id == profile_id,
                 ScoringProfile.is_active.is_(True),
+                _visible_to(owner),
             )
         )
         return result.scalar_one_or_none()
 
     async def list_all(
-        self, db: AsyncSession, include_presets: bool = True
+        self, db: AsyncSession, include_presets: bool = True, *, owner: Owner
     ) -> List[ScoringProfile]:
-        """List all active profiles."""
-        query = select(ScoringProfile).where(ScoringProfile.is_active.is_(True))
+        """List active presets and the active profiles that belong to ``owner``."""
+        query = select(ScoringProfile).where(ScoringProfile.is_active.is_(True), _visible_to(owner))
         if not include_presets:
             query = query.where(ScoringProfile.is_preset.is_(False))
         query = query.order_by(ScoringProfile.is_preset.desc(), ScoringProfile.name)
@@ -166,6 +194,8 @@ class ProfileService:
         db: AsyncSession,
         profile_id: int,
         updates: dict,
+        *,
+        owner: Owner,
     ) -> Optional[ScoringProfile]:
         """
         Update a user profile. Refuses to update presets.
@@ -181,7 +211,7 @@ class ProfileService:
         Raises:
             ValueError: If profile is a preset
         """
-        profile = await self.get(db, profile_id)
+        profile = await self.get(db, profile_id, owner=owner)
         if profile is None:
             return None
         if profile.is_preset:
@@ -200,7 +230,7 @@ class ProfileService:
         await db.refresh(profile)
         return profile
 
-    async def delete(self, db: AsyncSession, profile_id: int) -> bool:
+    async def delete(self, db: AsyncSession, profile_id: int, *, owner: Owner) -> bool:
         """
         Soft-delete a user profile. Refuses to delete presets.
 
@@ -210,7 +240,7 @@ class ProfileService:
         Raises:
             ValueError: If profile is a preset
         """
-        profile = await self.get(db, profile_id)
+        profile = await self.get(db, profile_id, owner=owner)
         if profile is None:
             return False
         if profile.is_preset:
@@ -225,6 +255,8 @@ class ProfileService:
         db: AsyncSession,
         profile_id: int,
         new_name: str,
+        *,
+        owner: Owner,
     ) -> Optional[ScoringProfile]:
         """
         Duplicate any profile (including presets) as a new user profile.
@@ -232,11 +264,13 @@ class ProfileService:
         Returns:
             New profile, or None if source not found
         """
-        source = await self.get(db, profile_id)
+        source = await self.get(db, profile_id, owner=owner)
         if source is None:
             return None
 
         new_profile = ScoringProfile(
+            session_id=None if owner[1] else owner[0],
+            api_key_hash=owner[1],
             name=new_name,
             description=f"Copy of {source.name}",
             thresholds=source.thresholds,  # Already JSON string
@@ -250,10 +284,10 @@ class ProfileService:
         return new_profile
 
     async def export_json(
-        self, db: AsyncSession, profile_id: int
+        self, db: AsyncSession, profile_id: int, *, owner: Owner
     ) -> Optional[dict]:
         """Export a profile as a JSON-serializable dict."""
-        profile = await self.get(db, profile_id)
+        profile = await self.get(db, profile_id, owner=owner)
         if profile is None:
             return None
         return {
@@ -263,7 +297,7 @@ class ProfileService:
             "weights": json.loads(profile.weights),
         }
 
-    async def import_json(self, db: AsyncSession, data: dict) -> ScoringProfile:
+    async def import_json(self, db: AsyncSession, data: dict, *, owner: Owner) -> ScoringProfile:
         """Import a profile from a JSON dict."""
         return await self.create(
             db,
@@ -271,6 +305,7 @@ class ProfileService:
             description=data.get("description"),
             thresholds=data.get("thresholds", {}),
             weights=data.get("weights", {}),
+            owner=owner,
         )
 
     async def seed_presets(self, db: AsyncSession) -> int:
@@ -281,9 +316,7 @@ class ProfileService:
             Number of presets created
         """
         # Check how many presets already exist
-        result = await db.execute(
-            select(ScoringProfile).where(ScoringProfile.is_preset.is_(True))
-        )
+        result = await db.execute(select(ScoringProfile).where(ScoringProfile.is_preset.is_(True)))
         existing = {p.name for p in result.scalars().all()}
 
         created = 0

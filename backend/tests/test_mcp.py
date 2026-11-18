@@ -124,3 +124,20 @@ def test_openapi_admin_endpoints_not_in_mcp_tags():
                         f"Admin endpoint {path} has MCP-included tag(s): "
                         f"{operation_tags & mcp_tag_set}"
                     )
+
+
+def test_mcp_forwards_api_key_header():
+    """MCP tool calls must carry the caller's X-API-Key so scoped routes see the caller."""
+    from app.main import mcp
+
+    assert "x-api-key" in mcp._forward_headers
+
+
+def test_fresh_db_stamp_matches_latest_migration():
+    """main.py stamps a fresh database at the newest Alembic revision."""
+    from pathlib import Path
+
+    versions = Path(__file__).parents[1] / "alembic" / "versions"
+    latest = max(p.name.split("_")[0] for p in versions.glob("[0-9][0-9][0-9]_*.py"))
+    main_src = (Path(__file__).parents[1] / "app" / "main.py").read_text()
+    assert f"VALUES ('{latest}')" in main_src
