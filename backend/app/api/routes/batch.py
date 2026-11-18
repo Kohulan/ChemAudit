@@ -152,7 +152,9 @@ async def upload_batch(
     # post-hoc investigation has the full picture for rejected uploads too.
     suspicious_findings = detect_suspicious_content(content)
     if suspicious_findings:
-        client_ip = request.client.host if request.client else "unknown"
+        from app.core.rate_limit import client_ip as _client_ip
+
+        client_ip = _client_ip(request)
         logger.warning(
             "Suspicious patterns detected in batch upload: filename=%s "
             "client_ip=%s size_bytes=%d findings=%s",

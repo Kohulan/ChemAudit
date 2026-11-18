@@ -104,6 +104,9 @@ services:
       - API_KEY_MAX_EXPIRY_DAYS=${API_KEY_MAX_EXPIRY_DAYS:-365}
       - RATE_LIMIT_BAN_THRESHOLD=${RATE_LIMIT_BAN_THRESHOLD:-100}
       - RATE_LIMIT_BAN_DURATION_MINUTES=${RATE_LIMIT_BAN_DURATION_MINUTES:-60}
+      # Trust nginx's X-Real-IP. The backend publishes no host port, so only
+      # containers on the compose networks can reach it.
+      - TRUSTED_PROXY_CIDRS=${TRUSTED_PROXY_CIDRS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7}
       - CORS_ORIGINS_STR=${CORS_ORIGINS_STR:?CORS_ORIGINS_STR is required for production}
       - DEBUG=false
       - COCONUT_API_TOKEN=${COCONUT_API_TOKEN:-}

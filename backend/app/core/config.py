@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
 
     # IP banning for repeated rate limit violations
+    # Comma-separated CIDRs of reverse proxies whose X-Real-IP header is trusted.
+    # Empty trusts nobody (direct exposure). docker-compose.prod.yml sets it.
+    TRUSTED_PROXY_CIDRS: str = ""
     RATE_LIMIT_BAN_THRESHOLD: int = 100  # violations before ban
     RATE_LIMIT_BAN_DURATION_MINUTES: int = 60  # ban duration
 
