@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.3](https://github.com/Kohulan/ChemAudit/compare/v1.8.2...v1.8.3) (2026-10-23)
+
+
+### Bug Fixes
+
+* align Python client, frontend and docs with the API ([29dbfb5](https://github.com/Kohulan/ChemAudit/commit/29dbfb55447fe902633692c49de8b859e4eafa05))
+* align Python client, frontend and docs with the API; fix batch export and PDF bugs ([0490cc6](https://github.com/Kohulan/ChemAudit/commit/0490cc60cb69b3543d68e49968d25f5443936547))
+* align Python client, frontend and docs with the API; fix batch export and PDF bugs ([93adc3d](https://github.com/Kohulan/ChemAudit/commit/93adc3d61c6d0ac0b952a3827b2c9fa41d6b04fe))
+* **client:** accept only plain file names from the server in export_batch ([1836090](https://github.com/Kohulan/ChemAudit/commit/1836090439e7d4fd1bf2a630edb58374d017e17c))
+* **client:** accept only plain file names from the server in export_batch ([0a9bd40](https://github.com/Kohulan/ChemAudit/commit/0a9bd40ca905965c9e4ecbe816244f66c22d7a6b))
+* **client:** build export_batch default file name on the client ([6133472](https://github.com/Kohulan/ChemAudit/commit/6133472d0715c5f6308cadf4bf86edb7e793ad62))
+
 ## [1.8.2](https://github.com/Kohulan/ChemAudit/compare/v1.8.1...v1.8.2) (2026-10-22)
 
 
