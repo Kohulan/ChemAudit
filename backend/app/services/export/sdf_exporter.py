@@ -18,8 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 def _one_line(value: object) -> str:
-    """Text with CR/LF replaced by spaces, safe for one SDF line."""
-    return str(value).replace("\r", " ").replace("\n", " ")
+    """
+    Text that stays one ordinary SDF line.
+
+    CR/LF become spaces, and a line that would read as a record end ("$$$$") or a
+    property header (">") gets a leading underscore.
+    """
+    text = str(value).replace("\r", " ").replace("\n", " ")
+    if text.lstrip().startswith(("$$$$", ">")):
+        text = "_" + text
+    return text
 
 class SDFExporter(BaseExporter):
     """Export batch results to SDF format with properties."""

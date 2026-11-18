@@ -104,6 +104,25 @@ def test_sdf_export_name_newlines_cannot_forge_records():
     assert text.splitlines().count("$$$$") == clean.splitlines().count("$$$$")
 
 
+@pytest.mark.parametrize("name", ["$$$$", "  $$$$", ">  <overall_score>"])
+def test_sdf_export_name_cannot_be_a_delimiter_line(name):
+    results = copy.deepcopy(SAMPLE_RESULTS)
+    results[0]["name"] = name
+    clean = SDFExporter().export(copy.deepcopy(SAMPLE_RESULTS)).getvalue().decode()
+    lines = SDFExporter().export(results).getvalue().decode().splitlines()
+    assert lines.count("$$$$") == clean.splitlines().count("$$$$")
+    # lines[0] is the title line of the first record, which carries the name.
+    assert name.strip() in lines[0]
+    assert not lines[0].lstrip().startswith(("$$$$", ">"))
+
+
+def test_qsar_sdf_title_cannot_be_a_delimiter_line():
+    from app.services.qsar_ready.builders import _one_line
+
+    assert not _one_line("$$$$").startswith("$$$$")
+    assert not _one_line("> <x>").startswith(">")
+
+
 async def _body(response) -> str:
     if hasattr(response, "body_iterator"):
         chunks = [c async for c in response.body_iterator]

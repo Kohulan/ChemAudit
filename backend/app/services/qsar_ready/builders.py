@@ -19,9 +19,17 @@ from app.schemas.qsar_ready import (
 from app.services.export.formula_guard import neutralize_row
 
 
-def _one_line(value: str) -> str:
-    """Replace CR/LF so a value cannot break out of its SDF line."""
-    return value.replace("\r", " ").replace("\n", " ")
+def _one_line(value: object) -> str:
+    """
+    Text that stays one ordinary SDF line.
+
+    CR/LF become spaces, and a line that would read as a record end ("$$$$") or a
+    property header (">") gets a leading underscore.
+    """
+    text = str(value).replace("\r", " ").replace("\n", " ")
+    if text.lstrip().startswith(("$$$$", ">")):
+        text = "_" + text
+    return text
 
 
 def _build_csv_response(job_id: str, results: list) -> StreamingResponse:
