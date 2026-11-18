@@ -9,7 +9,7 @@ from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import get_rate_limit_key, limiter
-from app.core.security import get_api_key, hash_api_key_for_lookup
+from app.core.security import get_api_key
 from app.core.session import SESSION_COOKIE, get_data_scope
 from app.db import get_db
 from app.db.models.audit import ValidationAuditEntry
@@ -33,8 +33,6 @@ async def purge_my_data(
     GDPR Article 17 — Right to Erasure.
     """
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
 
     if not session_id and not api_key_hash:
         raise HTTPException(status_code=404, detail="No active session or API key")

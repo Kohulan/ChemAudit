@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
-from app.core.session import ensure_session_cookie, get_data_scope
+from app.core.session import MCP_BRIDGE_HEADER, ensure_session_cookie, get_data_scope
 from app.db import get_db
 from app.schemas.profiles import (
     DuplicateRequest,
@@ -33,6 +33,10 @@ async def _owner_for_write(request: Request, response: Response) -> Owner:
     """Caller's scope for a new profile; starts a session cookie when there is none."""
     owner = await get_data_scope(request)
     if owner == (None, None):
+        if request.headers.get(MCP_BRIDGE_HEADER):
+            # An MCP caller cannot keep a session cookie, so the new profile would
+            # be unreachable. Custom profiles over MCP need an API key.
+            raise HTTPException(status_code=401, detail="API key required for custom profiles")
         owner = (ensure_session_cookie(response, request), None)
     return owner
 

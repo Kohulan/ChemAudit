@@ -25,7 +25,7 @@ from app.core.cache import (
 from app.core.config import settings
 from app.core.error_sanitizer import safe_error_detail
 from app.core.rate_limit import get_rate_limit_key, limiter
-from app.core.security import get_api_key, hash_api_key_for_lookup
+from app.core.security import get_api_key
 from app.core.session import ensure_session_cookie, get_data_scope
 from app.db import get_db
 from app.schemas.validation import (
@@ -214,8 +214,6 @@ async def validate_molecule(
 
     # Compute session/API-key scope for audit tagging
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     if not session_id and not api_key_hash:
         session_id = ensure_session_cookie(response, request)
 

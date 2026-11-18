@@ -53,7 +53,7 @@ from app.core.rate_limit import (
     rate_limit_exceeded_handler,
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
-from app.core.session import SESSION_COOKIE
+from app.core.session import MCP_BRIDGE_HEADER, SESSION_COOKIE
 from app.websockets import manager
 
 logger = logging.getLogger(__name__)
@@ -417,7 +417,15 @@ class _McpBridgeTransport(httpx.ASGITransport):
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         if not self._is_allowed(request.method, request.url.path):
             return httpx.Response(404, json={"detail": "Not Found"})
-        return await super().handle_async_request(request)
+        request.headers[MCP_BRIDGE_HEADER] = "1"
+        # The bridge's one httpx client serves every MCP caller: never let it carry
+        # a session cookie from one caller's response into another caller's request.
+        if "cookie" in request.headers:
+            del request.headers["cookie"]
+        response = await super().handle_async_request(request)
+        if "set-cookie" in response.headers:
+            del response.headers["set-cookie"]
+        return response
 
 
 mcp = FastApiMCP(

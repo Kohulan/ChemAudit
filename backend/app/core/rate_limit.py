@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import redis
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
+from limits import parse as parse_limit
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 
@@ -249,6 +250,33 @@ limiter = Limiter(
     default_limits=["10/minute"],
     enabled=settings.RATE_LIMIT_ENABLED,
 )
+
+
+# Attempts with an API key this worker has not validated, per client IP. Checked in
+# get_api_key before the slow key hash: route limits run only after dependencies,
+# so without this a stream of bad keys is never throttled.
+_UNVALIDATED_KEY_LIMIT = parse_limit("10/minute")
+
+
+def allow_unvalidated_key_attempt(request: Request) -> bool:
+    """
+    Count one unvalidated-key attempt for the client IP; False once over the limit.
+
+    Records a rate-limit violation (towards an IP ban) when the limit is exceeded.
+    Fails open when rate limiting is off or its storage is unavailable, like the
+    rest of the limiter.
+    """
+    if not limiter.enabled:
+        return True
+    ip = client_ip(request)
+    try:
+        allowed = limiter.limiter.hit(_UNVALIDATED_KEY_LIMIT, "unvalidated-api-key", ip)
+    except Exception as e:
+        logger.error(f"Unvalidated-key limit check failed: {e}")
+        return True
+    if not allowed:
+        record_rate_limit_violation(ip)
+    return allowed
 
 
 def rate_limit_exceeded_handler(

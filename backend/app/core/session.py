@@ -16,6 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 
 SESSION_COOKIE = "chemaudit_sid"
+# Set by the in-process MCP bridge (main._McpBridgeTransport). Those requests carry
+# no cookie and drop Set-Cookie, so they cannot hold a session. A client that sends
+# this header itself only loses the ability to start a session.
+MCP_BRIDGE_HEADER = "X-ChemAudit-MCP-Bridge"
 SESSION_MAX_AGE = 30 * 24 * 3600  # 30 days
 
 _UUID_RE = re.compile(

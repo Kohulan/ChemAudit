@@ -187,6 +187,15 @@ async def get_api_key(
     if api_key is None:
         return None  # Anonymous access allowed
 
+    if api_key not in _VALIDATED_KEY_HASHES:
+        from app.core.rate_limit import allow_unvalidated_key_attempt
+
+        if not allow_unvalidated_key_attempt(request):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests with invalid API keys",
+            )
+
     key_data = None
     if len(api_key) <= _MAX_API_KEY_LENGTH:
         key_data = await validate_api_key(api_key)

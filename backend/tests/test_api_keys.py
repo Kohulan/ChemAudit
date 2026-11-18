@@ -310,3 +310,49 @@ async def test_valid_key_sets_scope_and_registers_hash():
         assert await security.get_api_key(req, "valid-key") == "valid-key"
     assert req.state.api_key_hash == "h9"
     assert security._VALIDATED_KEY_HASHES.pop("valid-key") == "h9"
+
+
+@pytest.mark.asyncio
+async def test_unvalidated_keys_throttled_per_ip_before_hashing():
+    """Final review #1: decorated routes check limits after dependencies, so
+    get_api_key itself must cap bad-key attempts per IP before the slow hash."""
+    from fastapi import HTTPException
+    from limits.storage import MemoryStorage
+    from limits.strategies import FixedWindowRateLimiter
+
+    from app.core import security
+    from app.core.rate_limit import limiter
+
+    validate = AsyncMock(return_value=None)
+    with (
+        patch.object(limiter, "enabled", True),
+        patch.object(limiter, "_limiter", FixedWindowRateLimiter(MemoryStorage())),
+        patch.object(security, "validate_api_key", validate),
+        patch("app.core.rate_limit.record_rate_limit_violation") as violation,
+    ):
+        codes = []
+        for i in range(11):
+            with pytest.raises(HTTPException) as exc:
+                await security.get_api_key(_plain_request(peer="198.51.100.4"), f"bad-{i}")
+            codes.append(exc.value.status_code)
+        # Another IP is not affected.
+        with pytest.raises(HTTPException) as other:
+            await security.get_api_key(_plain_request(peer="198.51.100.5"), "bad-x")
+    assert codes == [401] * 10 + [429]
+    assert validate.await_count == 11  # 10 from the first IP, 1 from the second
+    assert other.value.status_code == 401
+    violation.assert_called_once_with("198.51.100.4")
+
+
+def test_routes_do_not_hash_api_keys_on_the_event_loop():
+    """Final review #2: routes must take the validated hash from get_data_scope, not
+    rerun the slow PBKDF2 synchronously (only key creation hashes a new key)."""
+    from pathlib import Path
+
+    routes = Path(__file__).parents[1] / "app" / "api" / "routes"
+    offenders = [
+        p.name
+        for p in routes.glob("*.py")
+        if p.name != "api_keys.py" and "hash_api_key_for_lookup(" in p.read_text()
+    ]
+    assert offenders == []

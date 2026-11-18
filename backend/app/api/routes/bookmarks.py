@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ownership import store_job_owner
 from app.core.rate_limit import get_rate_limit_key, limiter
-from app.core.security import get_api_key, hash_api_key_for_lookup
+from app.core.security import get_api_key
 from app.core.session import (
     ensure_session_cookie,
     get_data_scope,
@@ -111,8 +111,6 @@ async def list_bookmarks(
 ):
     """List bookmarks with optional filters and pagination."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     base_query = select(Bookmark)
@@ -166,8 +164,6 @@ async def get_bookmark(
 ):
     """Get a single bookmark by ID."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     result = await db.execute(
@@ -190,8 +186,6 @@ async def create_bookmark(
 ):
     """Create a new bookmark. Auto-computes InChIKey from SMILES."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     # Ensure a session exists for anonymous users
@@ -228,8 +222,6 @@ async def update_bookmark(
 ):
     """Update bookmark metadata (name, tags, notes)."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     result = await db.execute(
@@ -262,8 +254,6 @@ async def delete_bookmark(
 ):
     """Delete a bookmark (hard delete)."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     result = await db.execute(
@@ -292,8 +282,6 @@ async def bookmark_batch_submit(
     Returns the new job_id.
     """
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     result = await db.execute(
@@ -339,8 +327,6 @@ async def bulk_delete_bookmarks(
 ):
     """Bulk delete bookmarks by IDs."""
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     result = await db.execute(
