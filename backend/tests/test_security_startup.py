@@ -130,3 +130,27 @@ class TestAllowInsecureDefaultsGate:
         s = Settings(DEBUG=True, **self._INSECURE)  # ALLOW_INSECURE_DEFAULTS defaults True
         assert s.SECRET_KEY == "CHANGE_ME_IN_PRODUCTION"
         assert s.ALLOW_INSECURE_DEFAULTS is True
+
+
+class TestPlaceholderSecrets:
+    """CHANGE_ME placeholders from the .env example files must not pass (F18, F24)."""
+
+    _STRONG = {
+        "SECRET_KEY": "super-secret-production-key-12345",
+        "API_KEY_ADMIN_SECRET": "admin-secret-production-67890",
+        "CSRF_SECRET_KEY": "csrf-secret-production-abcde",
+    }
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("SECRET_KEY", "CHANGE_ME_GENERATE_WITH_openssl_rand_hex_64"),
+            ("API_KEY_ADMIN_SECRET", "CHANGE_ME_ADMIN_SECRET_FOR_KEY_MANAGEMENT"),
+            ("CSRF_SECRET_KEY", "change_me_csrf_secret_32_chars"),
+        ],
+    )
+    def test_rejects_env_example_placeholders(self, field, value):
+        from app.core.config import Settings
+
+        with pytest.raises(ValueError, match=field):
+            Settings(DEBUG=False, **{**self._STRONG, field: value})

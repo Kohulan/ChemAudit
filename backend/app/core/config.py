@@ -16,6 +16,11 @@ _config_logger = logging.getLogger(__name__)
 _INSECURE_DEFAULTS = frozenset({"CHANGE_ME_IN_PRODUCTION", ""})
 
 
+def _is_insecure_secret(value: str) -> bool:
+    """True for an empty secret or any CHANGE_ME placeholder from the .env example files."""
+    return value in _INSECURE_DEFAULTS or "change_me" in value.lower()
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
@@ -173,7 +178,7 @@ class Settings(BaseSettings):
     def _check_insecure_defaults(self) -> "Settings":
         """Reject insecure default secrets in production or when explicitly disallowed."""
         secret_fields = ("SECRET_KEY", "API_KEY_ADMIN_SECRET", "CSRF_SECRET_KEY")
-        insecure = [f for f in secret_fields if getattr(self, f) in _INSECURE_DEFAULTS]
+        insecure = [f for f in secret_fields if _is_insecure_secret(getattr(self, f))]
         if insecure:
             must_block = (not self.DEBUG) or (not self.ALLOW_INSECURE_DEFAULTS)
             if must_block:
