@@ -10,9 +10,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from rdkit import Chem
 from rdkit.Chem import inchi as rdkit_inchi
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ownership import store_job_owner
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key, hash_api_key_for_lookup
 from app.core.session import (
@@ -63,6 +64,21 @@ def _compute_inchikey(smiles: str) -> Optional[str]:
         return key if key else None
     except Exception:
         return None
+
+
+def _owner_clause(session_id: Optional[str], api_key_hash: Optional[str]) -> ColumnElement[bool]:
+    """
+    Return the WHERE clause that limits bookmarks to the caller's own rows.
+
+    The API key wins over the session cookie, as in list_bookmarks. A caller with
+    neither has no rows, so this raises 404. This explicit predicate is the access
+    control; Postgres RLS is defence in depth only.
+    """
+    if api_key_hash:
+        return Bookmark.api_key_hash == api_key_hash
+    if session_id:
+        return Bookmark.session_id == session_id
+    raise HTTPException(status_code=404, detail="Bookmark not found")
 
 
 def _bookmark_to_response(bm: Bookmark) -> dict:
@@ -154,7 +170,9 @@ async def get_bookmark(
         api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
-    result = await db.execute(select(Bookmark).where(Bookmark.id == bookmark_id))
+    result = await db.execute(
+        select(Bookmark).where(Bookmark.id == bookmark_id, _owner_clause(session_id, api_key_hash))
+    )
     bm = result.scalar_one_or_none()
     if bm is None:
         raise HTTPException(status_code=404, detail="Bookmark not found")
@@ -214,7 +232,9 @@ async def update_bookmark(
         api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
-    result = await db.execute(select(Bookmark).where(Bookmark.id == bookmark_id))
+    result = await db.execute(
+        select(Bookmark).where(Bookmark.id == bookmark_id, _owner_clause(session_id, api_key_hash))
+    )
     bm = result.scalar_one_or_none()
     if bm is None:
         raise HTTPException(status_code=404, detail="Bookmark not found")
@@ -246,7 +266,9 @@ async def delete_bookmark(
         api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
-    result = await db.execute(select(Bookmark).where(Bookmark.id == bookmark_id))
+    result = await db.execute(
+        select(Bookmark).where(Bookmark.id == bookmark_id, _owner_clause(session_id, api_key_hash))
+    )
     bm = result.scalar_one_or_none()
     if bm is None:
         raise HTTPException(status_code=404, detail="Bookmark not found")
@@ -274,8 +296,11 @@ async def bookmark_batch_submit(
         api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
-    # Fetch bookmarks (RLS ensures only own bookmarks are visible)
-    result = await db.execute(select(Bookmark).where(Bookmark.id.in_(body.bookmark_ids)))
+    result = await db.execute(
+        select(Bookmark).where(
+            Bookmark.id.in_(body.bookmark_ids), _owner_clause(session_id, api_key_hash)
+        )
+    )
     bookmarks = result.scalars().all()
 
     if not bookmarks:
@@ -294,6 +319,7 @@ async def bookmark_batch_submit(
     ]
 
     job_id = str(uuid.uuid4())
+    store_job_owner(job_id, session_id)
     process_batch_job(job_id, mol_dicts, safety_options={})
 
     return {
@@ -307,7 +333,7 @@ async def bookmark_batch_submit(
 @limiter.limit("5/minute", key_func=get_rate_limit_key)
 async def bulk_delete_bookmarks(
     request: Request,
-    ids: List[int] = Query(..., description="Bookmark IDs to delete"),
+    ids: List[int] = Query(..., max_length=1000, description="Bookmark IDs to delete"),
     db: AsyncSession = Depends(get_db),
     api_key: Optional[str] = Depends(get_api_key),
 ):
@@ -317,8 +343,9 @@ async def bulk_delete_bookmarks(
         api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
-    # RLS ensures only own bookmarks are visible
-    result = await db.execute(select(Bookmark).where(Bookmark.id.in_(ids)))
+    result = await db.execute(
+        select(Bookmark).where(Bookmark.id.in_(ids), _owner_clause(session_id, api_key_hash))
+    )
     bookmarks = result.scalars().all()
 
     for bm in bookmarks:
