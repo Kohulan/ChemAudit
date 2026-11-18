@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.8.4](https://github.com/Kohulan/ChemAudit/compare/v1.8.3...v1.8.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* **api:** deduplicate and bound catalog and check lists ([4817e04](https://github.com/Kohulan/ChemAudit/commit/4817e042b18e35296b840288a216a1a99439aa45))
+* **auth,mcp:** throttle bad API keys before hashing and keep MCP callers apart ([3b9475b](https://github.com/Kohulan/ChemAudit/commit/3b9475b2105c12f511a39c8bbeae78763317e757))
+* **auth:** never derive rate-limit identity or data scope from an unvalidated API key ([42871a8](https://github.com/Kohulan/ChemAudit/commit/42871a8c46eb1c524d96c589157a5ba09856aaaf))
+* **bookmarks:** scope by-id bookmark queries to the caller's session or API key ([27fdfaf](https://github.com/Kohulan/ChemAudit/commit/27fdfafa60141df73c563bf2cb6005e78654c8e5))
+* close the 28 findings of the 2026-11-18 security scan ([74f71f9](https://github.com/Kohulan/ChemAudit/commit/74f71f9d1374e69f33dd62319d61520c6748172d))
+* **config:** reject CHANGE_ME placeholder secrets outside local development ([2516a8a](https://github.com/Kohulan/ChemAudit/commit/2516a8ab726bdeff2efaa6c0432d15f94778b53c))
+* **deps:** bump follow-redirects, body-parser and fast-uri to patched versions ([dc2b413](https://github.com/Kohulan/ChemAudit/commit/dc2b413aa1b606f96e18725edb6b1999a0671f8c))
+* **deps:** bump follow-redirects, body-parser and fast-uri to patched versions ([ae0d1c0](https://github.com/Kohulan/ChemAudit/commit/ae0d1c02ce0d7afaa6a9d6a53741342daf7e28cb))
+* **deps:** bump minimatch, joi, qs and serialize-javascript to patched versions ([4151184](https://github.com/Kohulan/ChemAudit/commit/415118444501dbf54ee0cab59787174e205b80e7))
+* **deps:** bump minimatch, joi, qs and serialize-javascript to patched versions ([fa4ba7a](https://github.com/Kohulan/ChemAudit/commit/fa4ba7ad11d2fcc93a2861c74353e473037bdcaa))
+* **export:** neutralise spreadsheet formulas and newlines in exported user text ([fb99f42](https://github.com/Kohulan/ChemAudit/commit/fb99f42f2a9d9f3f286539527aa4910e50ba8c9e))
+* **export:** stop SDF names and values from reading as record ends or headers ([b184126](https://github.com/Kohulan/ChemAudit/commit/b184126145b45ae78f3f05d3066fc47aa30249a8))
+* **frontend:** neutralise spreadsheet formulas in client-side CSV downloads ([480f607](https://github.com/Kohulan/ChemAudit/commit/480f60746169f3ebcc6be492c7d0aa67aee68730))
+* **profiles:** scope custom scoring profiles to their creator ([46abaa4](https://github.com/Kohulan/ChemAudit/commit/46abaa4113b362f614caf964989fbff736999263))
+* **rate-limit:** do not share one unvalidated-key bucket across all MCP callers ([045c832](https://github.com/Kohulan/ChemAudit/commit/045c832e6f8693a570c89dad616d58155ee6859c))
+* **rate-limit:** take the client IP from nginx's X-Real-IP when the peer is a trusted proxy ([6286894](https://github.com/Kohulan/ChemAudit/commit/6286894aa9df645a4e1e1fe1fe34fdfbabbf342e))
+* **resolve:** bound identifiers and parse Wikipedia URLs without a backtracking regex ([dc3c5f2](https://github.com/Kohulan/ChemAudit/commit/dc3c5f2a5ccc7d096a8ded8137c6af33cb939b41))
+* **skills:** drop blanket python/curl pre-approval and mark API data as untrusted ([ff6d9b5](https://github.com/Kohulan/ChemAudit/commit/ff6d9b5e47f28c197a4f40099c87da32fb03102c))
+* verify SMTP TLS, confine the MCP bridge, hide the Redis password, restrict .env ([65c2d96](https://github.com/Kohulan/ChemAudit/commit/65c2d96f1cda65664172ec5af905afb9553a003d))
+
 ## [1.8.3](https://github.com/Kohulan/ChemAudit/compare/v1.8.2...v1.8.3) (2026-10-23)
 
 
