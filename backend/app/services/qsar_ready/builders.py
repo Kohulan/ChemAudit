@@ -16,6 +16,12 @@ from fastapi.responses import StreamingResponse
 from app.schemas.qsar_ready import (
     QSARBatchSummary,
 )
+from app.services.export.formula_guard import neutralize_row
+
+
+def _one_line(value: str) -> str:
+    """Replace CR/LF so a value cannot break out of its SDF line."""
+    return value.replace("\r", " ").replace("\n", " ")
 
 
 def _build_csv_response(job_id: str, results: list) -> StreamingResponse:
@@ -41,7 +47,7 @@ def _build_csv_response(job_id: str, results: list) -> StreamingResponse:
             s["step_name"] for s in steps if s.get("status") == "applied"
         )
         writer.writerow(
-            {
+            neutralize_row({
                 "original_smiles": r.get("original_smiles", ""),
                 "curated_smiles": r.get("curated_smiles", ""),
                 "original_inchikey": r.get("original_inchikey", ""),
@@ -50,7 +56,7 @@ def _build_csv_response(job_id: str, results: list) -> StreamingResponse:
                 "status": r.get("status", ""),
                 "rejection_reason": r.get("rejection_reason", ""),
                 "steps_applied": applied_steps,
-            }
+            })
         )
 
     output.seek(0)
@@ -77,8 +83,9 @@ def _build_sdf_response(job_id: str, results: list) -> StreamingResponse:
             continue
         # Use original InChIKey as molecule title
         title = r.get("original_inchikey") or r.get("original_smiles", "")[:60]
-        mol.SetProp("_Name", title)
-        mol.SetProp("original_smiles", r.get("original_smiles", ""))
+        # Newlines in a title or property would end the SDF record early.
+        mol.SetProp("_Name", _one_line(title))
+        mol.SetProp("original_smiles", _one_line(r.get("original_smiles", "")))
         mol.SetProp("curated_smiles", curated_smiles)
         mol.SetProp("status", r.get("status", ""))
         try:

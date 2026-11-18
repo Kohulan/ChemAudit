@@ -16,6 +16,11 @@ from .base import BaseExporter, ExporterFactory, ExportFormat, extract_alert_nam
 logger = logging.getLogger(__name__)
 
 
+
+def _one_line(value: object) -> str:
+    """Text with CR/LF replaced by spaces, safe for one SDF line."""
+    return str(value).replace("\r", " ").replace("\n", " ")
+
 class SDFExporter(BaseExporter):
     """Export batch results to SDF format with properties."""
 
@@ -67,7 +72,8 @@ class SDFExporter(BaseExporter):
                 skipped_count += 1
                 continue
 
-            mol.SetProp("_Name", result.get("name", f"mol_{idx + 1}"))
+            # Newlines in a name or property would end the SDF record early.
+            mol.SetProp("_Name", _one_line(result.get("name", f"mol_{idx + 1}")))
 
             overall_score = validation.get("overall_score", 0)
             mol.SetProp("overall_score", str(overall_score))
@@ -94,7 +100,7 @@ class SDFExporter(BaseExporter):
                     )
                     str_value = str(value)
                     if str_value not in ("N/A", ""):
-                        mol.SetProp(short_key, str_value)
+                        mol.SetProp(_one_line(short_key), _one_line(str_value))
 
             try:
                 writer.write(mol)
