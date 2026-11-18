@@ -11,6 +11,7 @@ https://www.surechembl.org/
 
 import logging
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 from rdkit import Chem
@@ -55,7 +56,7 @@ class SureChEMBLClient:
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.unichem_url}/inchikey/{inchikey}")
+                response = await client.get(f"{self.unichem_url}/inchikey/{quote(inchikey, safe='')}")
                 response.raise_for_status()
                 data = response.json()
 
@@ -85,7 +86,7 @@ class SureChEMBLClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.surechembl_url}/chemical/id/{schembl_id}"
+                    f"{self.surechembl_url}/chemical/id/{quote(schembl_id, safe='')}"
                 )
                 response.raise_for_status()
                 data = response.json()

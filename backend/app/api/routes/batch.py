@@ -26,7 +26,7 @@ from app.core.error_sanitizer import safe_error_detail
 from app.core.ownership import store_job_owner, verify_job_access
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
-from app.core.session import get_session_id
+from app.core.session import get_data_scope, get_session_id
 from app.schemas.analytics import (
     AnalysisStatus,
     AnalyticsTriggerResponse,
@@ -152,7 +152,9 @@ async def upload_batch(
     # post-hoc investigation has the full picture for rejected uploads too.
     suspicious_findings = detect_suspicious_content(content)
     if suspicious_findings:
-        client_ip = request.client.host if request.client else "unknown"
+        from app.core.rate_limit import client_ip as _client_ip
+
+        client_ip = _client_ip(request)
         logger.warning(
             "Suspicious patterns detected in batch upload: filename=%s "
             "client_ip=%s size_bytes=%d findings=%s",
@@ -241,7 +243,9 @@ async def upload_batch(
         from app.services.profiles.service import ProfileService
 
         async with async_session() as db:
-            profile = await ProfileService().get(db, profile_id)
+            profile = await ProfileService().get(
+                db, profile_id, owner=await get_data_scope(request)
+            )
         if profile is None:
             raise HTTPException(status_code=404, detail=f"Profile {profile_id} not found")
         safety_options["profile_id"] = profile.id

@@ -2,6 +2,7 @@ import { Download } from 'lucide-react';
 import { ClayCard } from '../ui/ClayCard';
 import { ClayButton } from '../ui/ClayButton';
 import type { MoleculeResult } from '../../types/structure_filter';
+import { csvCell } from '../../lib/csv';
 
 // =============================================================================
 // Types
@@ -11,20 +12,6 @@ interface StructureFilterDownloadPanelProps {
   molecules: MoleculeResult[];
   inputCount: number;
   outputCount: number;
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/** Escape a field value for CSV (wrap in double-quotes if it contains comma/quote/newline). */
-function csvEscape(value: string | null): string {
-  if (value === null) return '';
-  // Escape internal double-quotes by doubling them, then wrap if necessary
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 // =============================================================================
@@ -68,10 +55,10 @@ export function StructureFilterDownloadPanel({
     const rows = molecules.map(
       (m) =>
         [
-          csvEscape(m.smiles),
-          csvEscape(m.status),
-          csvEscape(m.failed_at),
-          csvEscape(m.rejection_reason),
+          csvCell(m.smiles),
+          csvCell(m.status),
+          csvCell(m.failed_at),
+          csvCell(m.rejection_reason),
         ].join(','),
     );
     const csvContent = [header, ...rows].join('\n');

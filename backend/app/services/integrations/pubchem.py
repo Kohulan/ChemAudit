@@ -9,6 +9,7 @@ This client provides compound lookup and cross-reference functionality.
 """
 
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 from rdkit import Chem
@@ -65,7 +66,7 @@ class PubChemClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/compound/name/{name}/cids/JSON",
+                    f"{self.base_url}/compound/name/{quote(name, safe='')}/cids/JSON",
                 )
                 response.raise_for_status()
                 return self._extract_first_cid(response.json())
@@ -77,7 +78,7 @@ class PubChemClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/compound/inchikey/{inchikey}/cids/JSON",
+                    f"{self.base_url}/compound/inchikey/{quote(inchikey, safe='')}/cids/JSON",
                 )
                 response.raise_for_status()
                 return self._extract_first_cid(response.json())

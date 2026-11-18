@@ -113,23 +113,71 @@ def test_rate_limit_key_function():
 
     from app.core.rate_limit import get_rate_limit_key
 
-    # Mock request with API key
+    # An API key header that has not been validated in this worker is throttled by
+    # client IP, never by a per-key bucket (F9).
     mock_request_with_key = MagicMock(spec=Request)
     mock_request_with_key.headers.get.return_value = "test_api_key"
-
-    key = get_rate_limit_key(mock_request_with_key)
-    # Key is hashed (BLAKE2b) to avoid exposing raw API keys in Redis
-    from app.core.security import hash_api_key_for_lookup
-
-    assert key == f"apikey:{hash_api_key_for_lookup('test_api_key')}"
+    mock_request_with_key.client.host = "203.0.113.7"
+    assert get_rate_limit_key(mock_request_with_key) == "203.0.113.7"
 
     # Mock request without API key (anonymous)
     mock_request_anonymous = MagicMock(spec=Request)
     mock_request_anonymous.headers.get.return_value = None
     mock_request_anonymous.client.host = "127.0.0.1"
 
-    # Would normally return IP, but we need to patch get_remote_address
-    with patch("app.core.rate_limit.get_remote_address") as mock_get_ip:
-        mock_get_ip.return_value = "127.0.0.1"
-        key = get_rate_limit_key(mock_request_anonymous)
-        assert key == "127.0.0.1"
+    assert get_rate_limit_key(mock_request_anonymous) == "127.0.0.1"
+
+
+def _req(peer: str, real_ip: str | None = None, api_key: str | None = None):
+    """Build a bare Starlette request from a peer address and optional headers."""
+    from starlette.requests import Request
+
+    headers = []
+    if real_ip is not None:
+        headers.append((b"x-real-ip", real_ip.encode()))
+    if api_key is not None:
+        headers.append((b"x-api-key", api_key.encode()))
+    return Request({"type": "http", "headers": headers, "client": (peer, 1234)})
+
+
+def test_client_ip_ignores_header_from_untrusted_peer():
+    from app.core.rate_limit import client_ip
+
+    with patch("app.core.rate_limit.settings.TRUSTED_PROXY_CIDRS", "172.16.0.0/12"):
+        assert client_ip(_req("203.0.113.5", "1.2.3.4")) == "203.0.113.5"
+
+
+def test_client_ip_uses_header_from_trusted_proxy():
+    from app.core.rate_limit import client_ip
+
+    with patch("app.core.rate_limit.settings.TRUSTED_PROXY_CIDRS", "172.16.0.0/12,fc00::/7"):
+        assert client_ip(_req("172.18.0.3", "1.2.3.4")) == "1.2.3.4"
+        assert client_ip(_req("fd00::5", "1.2.3.4")) == "1.2.3.4"
+
+
+def test_client_ip_rejects_invalid_header():
+    from app.core.rate_limit import client_ip
+
+    with patch("app.core.rate_limit.settings.TRUSTED_PROXY_CIDRS", "172.16.0.0/12"):
+        assert client_ip(_req("172.18.0.3", "not-an-ip")) == "172.18.0.3"
+
+
+def test_client_ip_default_trusts_no_proxy():
+    from app.core.rate_limit import client_ip
+
+    with patch("app.core.rate_limit.settings.TRUSTED_PROXY_CIDRS", ""):
+        assert client_ip(_req("172.18.0.3", "1.2.3.4")) == "172.18.0.3"
+
+
+def test_loopback_never_banned():
+    from app.core import rate_limit
+
+    redis = MagicMock()
+    redis.incr.return_value = 10_000
+    with (
+        patch.object(rate_limit, "get_sync_redis_client", return_value=redis),
+        patch.object(rate_limit, "_ban_ip") as ban,
+    ):
+        rate_limit.record_rate_limit_violation("127.0.0.1")
+        rate_limit.record_rate_limit_violation("::1")
+    ban.assert_not_called()

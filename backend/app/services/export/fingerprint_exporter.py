@@ -14,6 +14,8 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
 
+from app.services.export.formula_guard import neutralize_frame
+
 from .base import BaseExporter, ExporterFactory, ExportFormat
 
 
@@ -107,7 +109,7 @@ class FingerprintExporter(BaseExporter):
                     ],
                 )
                 df.insert(0, "name", names if names else [])
-                df.to_csv(csv_buf, index=False)
+                neutralize_frame(df).to_csv(csv_buf, index=False)
                 zf.writestr(f"{fp_type}.csv", csv_buf.getvalue())
 
                 # NPY

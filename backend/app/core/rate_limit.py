@@ -6,15 +6,16 @@ Provides:
 - IP banning for repeated rate limit violations
 """
 
+import ipaddress
 import logging
 from datetime import datetime, timezone
 
 import redis
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
+from limits import parse as parse_limit
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.core.config import settings
 
@@ -26,6 +27,29 @@ VIOLATION_KEY_PREFIX = "ratelimit:violations:"
 
 
 _SYNC_REDIS: "redis.Redis | None" = None
+
+
+def client_ip(request: Request) -> str:
+    """
+    Return the address of the real client.
+
+    In production nginx sets X-Real-IP to the connecting address (overwriting any
+    value the client sent). The header is trusted only when the direct peer is in
+    settings.TRUSTED_PROXY_CIDRS; otherwise the peer address is used, so clients
+    cannot spoof their address. Without this every user behind nginx shares the
+    nginx container's address for rate limits and IP bans.
+    """
+    peer = request.client.host if request.client else "unknown"
+    cidrs = [c.strip() for c in settings.TRUSTED_PROXY_CIDRS.split(",") if c.strip()]
+    if not cidrs:
+        return peer
+    try:
+        peer_addr = ipaddress.ip_address(peer)
+        if not any(peer_addr in ipaddress.ip_network(c, strict=False) for c in cidrs):
+            return peer
+        return str(ipaddress.ip_address(request.headers.get("X-Real-IP", "").strip()))
+    except ValueError:
+        return peer
 
 
 def get_sync_redis_client():
@@ -112,8 +136,9 @@ def record_rate_limit_violation(ip_address: str) -> int:
                 violation_key, settings.RATE_LIMIT_BAN_DURATION_MINUTES * 60 * 2
             )
 
-        # Check if threshold reached
-        if violations >= settings.RATE_LIMIT_BAN_THRESHOLD:
+        # Check if threshold reached. Never ban loopback: in-process callers (the
+        # MCP bridge, health checks) use it, and banning it would lock them all out.
+        if violations >= settings.RATE_LIMIT_BAN_THRESHOLD and not _is_loopback(ip_address):
             _ban_ip(ip_address, violations)
 
         return violations
@@ -121,6 +146,14 @@ def record_rate_limit_violation(ip_address: str) -> int:
     except Exception as e:
         logger.error(f"Error recording rate limit violation: {e}")
         return 0
+
+
+def _is_loopback(ip_address: str) -> bool:
+    """True when the address parses as a loopback address."""
+    try:
+        return ipaddress.ip_address(ip_address).is_loopback
+    except ValueError:
+        return False
 
 
 def _ban_ip(ip_address: str, violations: int):
@@ -170,11 +203,15 @@ def get_rate_limit_key(request: Request) -> str:
     Returns:
         Rate limit key string based on API key or IP address.
     """
-    api_key = request.headers.get("X-API-Key")
-    if api_key:
-        from app.core.security import hash_api_key_for_lookup
-        return f"apikey:{hash_api_key_for_lookup(api_key)}"
-    return get_remote_address(request)
+    # Only keys already validated in this worker get their own bucket. An unknown
+    # header value is throttled by client IP, so random keys cannot mint fresh
+    # buckets, and nothing here runs the slow key hash.
+    from app.core.security import _VALIDATED_KEY_HASHES
+
+    key_hash = _VALIDATED_KEY_HASHES.get(request.headers.get("X-API-Key") or "")
+    if key_hash:
+        return f"apikey:{key_hash}"
+    return client_ip(request)
 
 
 def check_ip_ban_middleware(request: Request):
@@ -189,7 +226,7 @@ def check_ip_ban_middleware(request: Request):
     Raises:
         HTTPException: 403 if IP is banned
     """
-    ip_address = get_remote_address(request)
+    ip_address = client_ip(request)
     if is_ip_banned(ip_address):
         ban_info = get_ban_info(ip_address)
         remaining = ban_info.get("remaining_seconds", 0) if ban_info else 0
@@ -215,6 +252,38 @@ limiter = Limiter(
 )
 
 
+# Attempts with an API key this worker has not validated, per client IP. Checked in
+# get_api_key before the slow key hash: route limits run only after dependencies,
+# so without this a stream of bad keys is never throttled.
+_UNVALIDATED_KEY_LIMIT = parse_limit("10/minute")
+
+
+def allow_unvalidated_key_attempt(request: Request) -> bool:
+    """
+    Count one unvalidated-key attempt for the client IP; False once over the limit.
+
+    Records a rate-limit violation (towards an IP ban) when the limit is exceeded.
+    Fails open when rate limiting is off or its storage is unavailable, like the
+    rest of the limiter.
+    """
+    if not limiter.enabled:
+        return True
+    ip = client_ip(request)
+    if _is_loopback(ip):
+        # The in-process MCP bridge: every MCP caller shares this address, so one
+        # bucket here would let one caller block all. The outer /mcp request is
+        # already rate limited per real client IP by SlowAPIMiddleware.
+        return True
+    try:
+        allowed = limiter.limiter.hit(_UNVALIDATED_KEY_LIMIT, "unvalidated-api-key", ip)
+    except Exception as e:
+        logger.error(f"Unvalidated-key limit check failed: {e}")
+        return True
+    if not allowed:
+        record_rate_limit_violation(ip)
+    return allowed
+
+
 def rate_limit_exceeded_handler(
     request: Request, exc: RateLimitExceeded
 ) -> JSONResponse:
@@ -225,7 +294,7 @@ def rate_limit_exceeded_handler(
     Returns 429 Too Many Requests with Retry-After header.
     """
     # Record the violation
-    ip_address = get_remote_address(request)
+    ip_address = client_ip(request)
     violations = record_rate_limit_violation(ip_address)
 
     # Get rate limit info

@@ -43,6 +43,28 @@ async def get_redis_client():
     return _ASYNC_REDIS
 
 
+# Keys that passed validation in this worker, mapped to their lookup hash. Lets the
+# rate limiter give a validated key its own bucket without hashing raw headers.
+_VALIDATED_KEY_HASHES: dict[str, str] = {}
+_MAX_VALIDATED_KEYS = 1024
+# Real keys are 43 chars (secrets.token_urlsafe(32)); longer values are rejected
+# before any hashing.
+_MAX_API_KEY_LENGTH = 128
+# ponytail: PBKDF2 is kept because stored Redis keys and api_key_hash DB columns use
+# it. At most 2 uncached runs per worker at a time, off the event loop. Upgrade
+# path: a keyed HMAC-SHA256 lookup hash, with key re-issue.
+_KDF_SEMAPHORE = asyncio.Semaphore(2)
+
+
+async def _lookup_hash(api_key: str) -> str:
+    """Lookup hash of an API key, computed off the event loop when not yet known."""
+    known = _VALIDATED_KEY_HASHES.get(api_key)
+    if known:
+        return known
+    async with _KDF_SEMAPHORE:
+        return await asyncio.to_thread(hash_api_key_for_lookup, api_key)
+
+
 @lru_cache(maxsize=512)
 def hash_api_key_for_lookup(api_key_plain: str) -> str:
     """
@@ -79,7 +101,7 @@ async def validate_api_key(api_key: str) -> Optional[dict]:
         Dictionary with key metadata if valid, None if invalid or expired
     """
     client = await get_redis_client()
-    key_hash = hash_api_key_for_lookup(api_key)
+    key_hash = await _lookup_hash(api_key)
     key_data = await client.hgetall(f"apikey:{key_hash}")
 
     if not key_data:
@@ -165,13 +187,31 @@ async def get_api_key(
     if api_key is None:
         return None  # Anonymous access allowed
 
-    key_data = await validate_api_key(api_key)
+    if api_key not in _VALIDATED_KEY_HASHES:
+        from app.core.rate_limit import allow_unvalidated_key_attempt
+
+        if not allow_unvalidated_key_attempt(request):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests with invalid API keys",
+            )
+
+    key_data = None
+    if len(api_key) <= _MAX_API_KEY_LENGTH:
+        key_data = await validate_api_key(api_key)
     if key_data is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired API key",
             headers={"WWW-Authenticate": "ApiKey"},
         )
+
+    key_hash = await _lookup_hash(api_key)
+    if len(_VALIDATED_KEY_HASHES) >= _MAX_VALIDATED_KEYS:
+        _VALIDATED_KEY_HASHES.clear()
+    _VALIDATED_KEY_HASHES[api_key] = key_hash
+    # Data scope for get_data_scope(); only ever set from a validated key.
+    request.state.api_key_hash = key_hash
 
     # Update usage stats (async, don't wait) with error handling
     task = asyncio.create_task(_update_usage_stats(api_key))
@@ -196,7 +236,7 @@ async def _update_usage_stats(api_key: str):
     Increments request count and updates last_used timestamp.
     """
     client = await get_redis_client()
-    key_hash = hash_api_key_for_lookup(api_key)
+    key_hash = await _lookup_hash(api_key)
     await client.hset(
         f"apikey:{key_hash}", "last_used", datetime.now(timezone.utc).isoformat()
     )

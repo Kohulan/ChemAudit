@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
+from app.services.export.formula_guard import neutralize_frame
+
 from .audit_columns import extract_flat_row, get_flat_headers, get_identity_row
 from .base import BaseExporter, ExporterFactory, ExportFormat
 
@@ -35,7 +37,7 @@ class CSVExporter(BaseExporter):
         df = pd.DataFrame(rows, columns=columns)
 
         string_buffer = StringIO()
-        df.to_csv(string_buffer, index=False)
+        neutralize_frame(df).to_csv(string_buffer, index=False)
 
         bytes_buffer = BytesIO()
         bytes_buffer.write(string_buffer.getvalue().encode("utf-8"))

@@ -13,6 +13,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pandas as pd
 from rdkit import Chem
 
+from app.services.export.formula_guard import neutralize_frame
+
 from .base import BaseExporter, ExporterFactory, ExportFormat
 
 
@@ -113,13 +115,13 @@ class DedupExporter(BaseExporter):
             # Summary CSV
             summary_buf = StringIO()
             summary_df = pd.DataFrame(summary_rows)
-            summary_df.to_csv(summary_buf, index=False)
+            neutralize_frame(summary_df).to_csv(summary_buf, index=False)
             zf.writestr("dedup_summary.csv", summary_buf.getvalue())
 
             # Annotated CSV
             annotated_buf = StringIO()
             annotated_df = pd.DataFrame(annotated_rows)
-            annotated_df.to_csv(annotated_buf, index=False)
+            neutralize_frame(annotated_df).to_csv(annotated_buf, index=False)
             zf.writestr("dedup_annotated.csv", annotated_buf.getvalue())
 
         zip_buffer.seek(0)

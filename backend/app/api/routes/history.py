@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import get_rate_limit_key, limiter
-from app.core.security import get_api_key, hash_api_key_for_lookup
+from app.core.security import get_api_key
 from app.core.session import get_data_scope, set_rls_context
 from app.db import get_db
 from app.db.models.audit import ValidationAuditEntry
@@ -44,8 +44,6 @@ async def get_history(
     """
     # Determine data scope from session cookie or API key
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     # Build base query
@@ -129,8 +127,6 @@ async def get_history_stats(
     """
     # Determine data scope from session cookie or API key
     session_id, api_key_hash = await get_data_scope(request)
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
     await set_rls_context(db, session_id, api_key_hash)
 
     # Build scope filter

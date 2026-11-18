@@ -11,6 +11,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
 
+from app.services.export.formula_guard import XLSX_ENGINE_KWARGS, neutralize_frame
+
 from .base import (
     BaseExporter,
     ExporterFactory,
@@ -110,12 +112,14 @@ class PropertyMatrixExporter(BaseExporter):
         with ZipFile(zip_buffer, "w", ZIP_DEFLATED) as zf:
             # Flat CSV
             csv_buf = StringIO()
-            all_df.to_csv(csv_buf, index=False)
+            neutralize_frame(all_df).to_csv(csv_buf, index=False)
             zf.writestr("properties_flat.csv", csv_buf.getvalue())
 
             # Multi-sheet Excel
             excel_buf = BytesIO()
-            with pd.ExcelWriter(excel_buf, engine="xlsxwriter") as writer:
+            with pd.ExcelWriter(
+                excel_buf, engine="xlsxwriter", engine_kwargs=XLSX_ENGINE_KWARGS
+            ) as writer:
                 # Descriptors sheet
                 desc_cols = [
                     "smiles",
@@ -133,7 +137,7 @@ class PropertyMatrixExporter(BaseExporter):
                     "ring_count",
                 ]
                 desc_df = all_df[[c for c in desc_cols if c in all_df.columns]]
-                desc_df.to_excel(writer, sheet_name="Descriptors", index=False)
+                neutralize_frame(desc_df).to_excel(writer, sheet_name="Descriptors", index=False)
 
                 # Scores sheet
                 score_cols = [
@@ -147,7 +151,7 @@ class PropertyMatrixExporter(BaseExporter):
                     "lipinski_passed",
                 ]
                 score_df = all_df[[c for c in score_cols if c in all_df.columns]]
-                score_df.to_excel(writer, sheet_name="Scores", index=False)
+                neutralize_frame(score_df).to_excel(writer, sheet_name="Scores", index=False)
 
                 # Alerts sheet
                 alert_cols = [
@@ -161,10 +165,10 @@ class PropertyMatrixExporter(BaseExporter):
                     "glaxo_count",
                 ]
                 alert_df = all_df[[c for c in alert_cols if c in all_df.columns]]
-                alert_df.to_excel(writer, sheet_name="Alerts", index=False)
+                neutralize_frame(alert_df).to_excel(writer, sheet_name="Alerts", index=False)
 
                 # Properties sheet (all remaining)
-                all_df.to_excel(writer, sheet_name="Properties", index=False)
+                neutralize_frame(all_df).to_excel(writer, sheet_name="Properties", index=False)
 
             # CRITICAL: seek(0) after ExcelWriter context manager closes
             excel_buf.seek(0)

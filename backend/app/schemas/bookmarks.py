@@ -58,5 +58,5 @@ class BookmarkBatchSubmit(BaseModel):
     """Request body for submitting bookmarks as a new batch job."""
 
     bookmark_ids: List[int] = Field(
-        ..., min_length=1, description="IDs of bookmarks to submit"
+        ..., min_length=1, max_length=1000, description="IDs of bookmarks to submit"
     )

@@ -7,11 +7,12 @@ CRUD endpoints for custom scoring profiles with 8 immutable presets.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.core.session import MCP_BRIDGE_HEADER, ensure_session_cookie, get_data_scope
 from app.db import get_db
 from app.schemas.profiles import (
     DuplicateRequest,
@@ -20,12 +21,24 @@ from app.schemas.profiles import (
     ScoringProfileResponse,
     ScoringProfileUpdate,
 )
-from app.services.profiles.service import ProfileService, _profile_to_response_dict
+from app.services.profiles.service import Owner, ProfileService, _profile_to_response_dict
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 profile_service = ProfileService()
+
+
+async def _owner_for_write(request: Request, response: Response) -> Owner:
+    """Caller's scope for a new profile; starts a session cookie when there is none."""
+    owner = await get_data_scope(request)
+    if owner == (None, None):
+        if request.headers.get(MCP_BRIDGE_HEADER):
+            # An MCP caller cannot keep a session cookie, so the new profile would
+            # be unreachable. Custom profiles over MCP need an API key.
+            raise HTTPException(status_code=401, detail="API key required for custom profiles")
+        owner = (ensure_session_cookie(response, request), None)
+    return owner
 
 
 @router.get("/profiles", response_model=list[ScoringProfileResponse])
@@ -36,7 +49,7 @@ async def list_profiles(
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """List all active scoring profiles (user + presets)."""
-    profiles = await profile_service.list_all(db)
+    profiles = await profile_service.list_all(db, owner=await get_data_scope(request))
     return [_profile_to_response_dict(p) for p in profiles]
 
 
@@ -49,7 +62,7 @@ async def get_profile(
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """Get a single scoring profile by ID."""
-    profile = await profile_service.get(db, profile_id)
+    profile = await profile_service.get(db, profile_id, owner=await get_data_scope(request))
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return _profile_to_response_dict(profile)
@@ -59,6 +72,7 @@ async def get_profile(
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def create_profile(
     request: Request,
+    response: Response,
     body: ScoringProfileCreate,
     db: AsyncSession = Depends(get_db),
     api_key: Optional[str] = Depends(get_api_key),
@@ -70,6 +84,7 @@ async def create_profile(
         description=body.description,
         thresholds=body.thresholds,
         weights=body.weights,
+        owner=await _owner_for_write(request, response),
     )
     return _profile_to_response_dict(profile)
 
@@ -86,7 +101,9 @@ async def update_profile(
     """Update a user scoring profile. Cannot update presets (returns 400)."""
     try:
         updates = body.model_dump(exclude_none=True)
-        profile = await profile_service.update(db, profile_id, updates)
+        profile = await profile_service.update(
+            db, profile_id, updates, owner=await get_data_scope(request)
+        )
     except ValueError as e:
         logger.debug("Profile update rejected: %s", e)
         raise HTTPException(status_code=400, detail="Cannot modify preset profiles")
@@ -106,7 +123,7 @@ async def delete_profile(
 ):
     """Soft-delete a user scoring profile. Cannot delete presets (returns 400)."""
     try:
-        deleted = await profile_service.delete(db, profile_id)
+        deleted = await profile_service.delete(db, profile_id, owner=await get_data_scope(request))
     except ValueError as e:
         logger.debug("Profile delete rejected: %s", e)
         raise HTTPException(status_code=400, detail="Cannot delete preset profiles")
@@ -123,13 +140,16 @@ async def delete_profile(
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def duplicate_profile(
     request: Request,
+    response: Response,
     profile_id: int,
     body: DuplicateRequest,
     db: AsyncSession = Depends(get_db),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """Duplicate any profile (including presets) as a new user profile."""
-    profile = await profile_service.duplicate(db, profile_id, body.name)
+    profile = await profile_service.duplicate(
+        db, profile_id, body.name, owner=await _owner_for_write(request, response)
+    )
     if profile is None:
         raise HTTPException(status_code=404, detail="Source profile not found")
     return _profile_to_response_dict(profile)
@@ -144,7 +164,7 @@ async def export_profile(
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """Export a scoring profile as JSON for file sharing."""
-    data = await profile_service.export_json(db, profile_id)
+    data = await profile_service.export_json(db, profile_id, owner=await get_data_scope(request))
     if data is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return data
@@ -158,10 +178,13 @@ async def export_profile(
 @limiter.limit("10/minute", key_func=get_rate_limit_key)
 async def import_profile(
     request: Request,
+    response: Response,
     body: ScoringProfileExport,
     db: AsyncSession = Depends(get_db),
     api_key: Optional[str] = Depends(get_api_key),
 ):
     """Import a scoring profile from JSON."""
-    profile = await profile_service.import_json(db, body.model_dump())
+    profile = await profile_service.import_json(
+        db, body.model_dump(), owner=await _owner_for_write(request, response)
+    )
     return _profile_to_response_dict(profile)

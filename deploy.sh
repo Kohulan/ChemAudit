@@ -224,6 +224,12 @@ update_env_file() {
         exit 1
     fi
 
+    # .env holds every production secret: owner read/write only.
+    if [[ -n "$(find "$env_file" -perm -g+r -o -perm -o+r 2>/dev/null)" ]]; then
+        print_warning ".env was readable by other users; restricting it to the owner"
+    fi
+    chmod 600 "$env_file"
+
     # Generate secure secrets if needed
     generate_secrets "$env_file"
 

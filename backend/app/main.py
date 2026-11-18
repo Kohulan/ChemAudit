@@ -7,6 +7,7 @@ import logging
 import re
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -52,7 +53,7 @@ from app.core.rate_limit import (
     rate_limit_exceeded_handler,
 )
 from app.core.security import generate_csrf_token, verify_csrf_token
-from app.core.session import SESSION_COOKIE
+from app.core.session import MCP_BRIDGE_HEADER, SESSION_COOKIE
 from app.websockets import manager
 
 logger = logging.getLogger(__name__)
@@ -213,7 +214,7 @@ async def lifespan(app: FastAPI):
                     "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
                 ))
                 await conn.execute(text(
-                    "INSERT INTO alembic_version (version_num) VALUES ('002')"
+                    "INSERT INTO alembic_version (version_num) VALUES ('003')"
                 ))
             logger.info("Stamped alembic_version at head (fresh database)")
 
@@ -388,13 +389,59 @@ app.include_router(
 # =============================================================================
 # MCP Server Mount (Phase 14 -- ECO-01)
 # =============================================================================
+class _McpBridgeTransport(httpx.ASGITransport):
+    """
+    In-process transport for MCP tool calls that only reaches MCP-tagged routes.
+
+    fastapi-mcp pastes tool arguments into route paths unencoded, and httpx then
+    resolves "../" segments, so a crafted argument could reach any route (such as
+    /metrics) from the loopback address. Requests whose final path matches no
+    operation the MCP server exposes get a 404 without reaching the app.
+    """
+
+    _allowed: list | None = None
+
+    def _is_allowed(self, method: str, path: str) -> bool:
+        if self._allowed is None:
+            # Built lazily from the MCP server's own operation list (set up after
+            # this transport is created); "{param}" matches one path segment.
+            self._allowed = [
+                (
+                    op["method"].upper(),
+                    re.compile(re.sub(r"\\\{[^/]+?\\\}", "[^/]+", re.escape(op["path"])) + "$"),
+                )
+                for op in mcp.operation_map.values()
+            ]
+        return any(m == method and rx.match(path) for m, rx in self._allowed)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if not self._is_allowed(request.method, request.url.path):
+            return httpx.Response(404, json={"detail": "Not Found"})
+        request.headers[MCP_BRIDGE_HEADER] = "1"
+        # The bridge's one httpx client serves every MCP caller: never let it carry
+        # a session cookie from one caller's response into another caller's request.
+        if "cookie" in request.headers:
+            del request.headers["cookie"]
+        response = await super().handle_async_request(request)
+        if "set-cookie" in response.headers:
+            del response.headers["set-cookie"]
+        return response
+
+
 mcp = FastApiMCP(
     app,
+    http_client=httpx.AsyncClient(
+        transport=_McpBridgeTransport(app=app, raise_app_exceptions=False),
+        base_url="http://apiserver",
+        timeout=10.0,
+    ),
     name="ChemAudit MCP",
     description="Chemical structure validation, scoring, standardization, and curation tools",
     include_tags=MCP_INCLUDE_TAGS,
     describe_all_responses=True,
     describe_full_response_schema=True,
+    # Forward the API key so scoped routes (profiles) see the MCP caller.
+    headers=["authorization", "x-api-key"],
 )
 mcp.mount()  # Exposes at /mcp
 

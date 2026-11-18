@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from app.services.export.formula_guard import XLSX_ENGINE_KWARGS, neutralize_frame
+
 from .audit_columns import (
     AUDIT_SECTIONS,
     extract_by_section,
@@ -329,7 +331,7 @@ class ExcelExporter(BaseExporter):
         }
 
         summary_df = pd.DataFrame(summary_data)
-        summary_df.to_excel(writer, sheet_name="Summary", index=False)
+        neutralize_frame(summary_df).to_excel(writer, sheet_name="Summary", index=False)
 
         if alert_distribution:
             summary_worksheet = writer.sheets["Summary"]
@@ -367,7 +369,7 @@ class ExcelExporter(BaseExporter):
             rows.append(row)
 
         df = pd.DataFrame(rows)
-        df.to_excel(writer, sheet_name="Results", index=False)
+        neutralize_frame(df).to_excel(writer, sheet_name="Results", index=False)
 
         workbook = writer.book
         worksheet = writer.sheets["Results"]
@@ -415,7 +417,7 @@ class ExcelExporter(BaseExporter):
 
             df = pd.DataFrame(rows)
             sheet_name = section.name  # e.g. "Validation", "Deep Validation", …
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            neutralize_frame(df).to_excel(writer, sheet_name=sheet_name, index=False)
 
             workbook = writer.book
             worksheet = writer.sheets[sheet_name]
@@ -452,7 +454,9 @@ class ExcelExporter(BaseExporter):
         stats = self._collect_summary_stats(results)
         bytes_buffer = BytesIO()
 
-        with pd.ExcelWriter(bytes_buffer, engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(
+            bytes_buffer, engine="xlsxwriter", engine_kwargs=XLSX_ENGINE_KWARGS
+        ) as writer:
             if self._sheet_layout == "multi":
                 self._build_multi_sheet(writer, results)
             else:

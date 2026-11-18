@@ -20,6 +20,7 @@ from app.core.error_sanitizer import safe_error_detail
 from app.core.ownership import verify_job_access
 from app.core.rate_limit import get_rate_limit_key, limiter
 from app.core.security import get_api_key
+from app.core.session import get_data_scope
 from app.services.batch.parsing import parse_json_field
 from app.services.batch.result_aggregator import result_storage
 from app.services.batch.subset_actions import (
@@ -106,7 +107,9 @@ async def subset_rescore(
             from app.services.profiles.service import ProfileService
 
             async with async_session() as session:
-                profile = await ProfileService().get(session, body.profile_id)
+                profile = await ProfileService().get(
+                    session, body.profile_id, owner=await get_data_scope(request)
+                )
                 if profile:
                     safety_options["profile_id"] = profile.id
                     safety_options["profile_name"] = profile.name
@@ -215,7 +218,9 @@ async def score_subset_inline(
     # Fetch profile
     try:
         async with async_session() as session:
-            profile = await ProfileService().get(session, body.profile_id)
+            profile = await ProfileService().get(
+                session, body.profile_id, owner=await get_data_scope(request)
+            )
     except Exception as exc:
         logger.exception("Failed to fetch scoring profile %s", body.profile_id)
         raise HTTPException(

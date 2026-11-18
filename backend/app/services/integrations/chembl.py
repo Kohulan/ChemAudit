@@ -9,6 +9,7 @@ This client provides bioactivity data lookup functionality.
 """
 
 from typing import List, Optional
+from urllib.parse import quote
 
 import httpx
 from rdkit import Chem
@@ -97,7 +98,7 @@ class ChEMBLClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.base_url}/molecule/{chembl_id}.json",
+                    f"{self.base_url}/molecule/{quote(chembl_id, safe='')}.json",
                 )
                 response.raise_for_status()
 

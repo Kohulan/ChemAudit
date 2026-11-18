@@ -94,11 +94,19 @@ class ValidationRequest(BaseModel):
         default=None,
         description="Override input type detection: 'smiles', 'iupac', or 'auto' (default: auto)",
     )
-    checks: List[str] = Field(default=["all"], description="List of checks to run")
+    checks: List[str] = Field(
+        default=["all"], max_length=50, description="List of checks to run"
+    )
     preserve_aromatic: bool = Field(
         default=False,
         description="Preserve aromatic notation in canonical SMILES output",
     )
+
+    @field_validator("checks")
+    @classmethod
+    def dedupe_checks(cls, v: List[str]) -> List[str]:
+        """Drop repeated check names; each one would rerun the check."""
+        return list(dict.fromkeys(v))
 
     @field_validator("molecule")
     @classmethod

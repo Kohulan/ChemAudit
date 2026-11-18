@@ -6,7 +6,6 @@ Wikidata stores structured chemical data (SMILES, InChIKey, CAS) linked
 to Wikipedia articles.
 """
 
-import re
 import urllib.parse
 from typing import Optional
 
@@ -38,10 +37,15 @@ class WikidataClient:
 
     def _extract_title(self, url: str) -> Optional[str]:
         """Extract article title from a Wikipedia URL."""
-        match = re.search(r"wikipedia\.org/wiki/(.+?)(?:#.*)?$", url)
-        if not match:
+        # Plain string slicing: the old regex backtracked quadratically on long input.
+        marker = "wikipedia.org/wiki/"
+        start = url.find(marker)
+        if start == -1:
             return None
-        return urllib.parse.unquote(match.group(1)).replace("_", " ")
+        title = url[start + len(marker) :].split("#", 1)[0]
+        if not title or "\n" in title:
+            return None
+        return urllib.parse.unquote(title).replace("_", " ")
 
     async def resolve_from_wikipedia(self, url: str) -> Optional[dict]:
         """Resolve a Wikipedia URL to chemical structure data.

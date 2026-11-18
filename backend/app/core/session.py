@@ -14,9 +14,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import hash_api_key_for_lookup
 
 SESSION_COOKIE = "chemaudit_sid"
+# Set by the in-process MCP bridge (main._McpBridgeTransport). Those requests carry
+# no cookie and drop Set-Cookie, so they cannot hold a session. A client that sends
+# this header itself only loses the ability to start a session.
+MCP_BRIDGE_HEADER = "X-ChemAudit-MCP-Bridge"
 SESSION_MAX_AGE = 30 * 24 * 3600  # 30 days
 
 _UUID_RE = re.compile(
@@ -67,9 +70,9 @@ async def get_data_scope(request: Request) -> tuple[Optional[str], Optional[str]
     Returns:
         (session_id, api_key_hash) — API key takes precedence.
     """
-    api_key = request.headers.get("X-API-Key")
-    if api_key:
-        api_key_hash = hash_api_key_for_lookup(api_key)
+    # Set by get_api_key only after the key validated; a raw header is never hashed.
+    api_key_hash = getattr(request.state, "api_key_hash", None)
+    if api_key_hash:
         return None, api_key_hash
 
     session_id = get_session_id(request)
