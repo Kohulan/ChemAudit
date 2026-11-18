@@ -175,7 +175,8 @@ class AlertManager:
         if mol is None:
             return result
 
-        catalogs_to_use = catalogs or self.default_catalogs
+        # Deduplicate: each entry is a full catalog screen.
+        catalogs_to_use = list(dict.fromkeys(c.upper() for c in catalogs or self.default_catalogs))
 
         for catalog_type in catalogs_to_use:
             try:
@@ -298,7 +299,8 @@ class AlertManager:
         if mol is None:
             return False
 
-        catalogs_to_use = catalogs or self.default_catalogs
+        # Deduplicate: each entry is a full catalog screen.
+        catalogs_to_use = list(dict.fromkeys(c.upper() for c in catalogs or self.default_catalogs))
 
         for catalog_type in catalogs_to_use:
             try:
